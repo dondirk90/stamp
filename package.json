@@ -1,0 +1,17 @@
+{
+  "name": "digistamp",
+  "private": true,
+  "version": "0.1.0",
+  "engines": { "node": ">=18" },
+  "workspaces": [
+    "apps/*",
+    "contracts",
+    "packages/*",
+    "infra/*"
+  ],
+  "scripts": {
+    "prepare": "echo \"Monorepo ready\"",
+    "lint": "echo \"(todo) run repo-wide linters\"",
+    "dev": "echo \"(todo) run api/scanner concurrently\""
+  }
+}
