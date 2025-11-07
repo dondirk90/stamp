@@ -1,0 +1,12 @@
+const hre = require("hardhat");
+const fs = require("fs");
+
+async function main() {
+  const Stamp = await hre.ethers.getContractFactory("StampCard");
+  const stamp = await Stamp.deploy();
+  await stamp.waitForDeployment();
+  const address = await stamp.getAddress();
+  console.log("StampCard deployed to:", address);
+  fs.writeFileSync(".env.local", `STAMPCARD_ADDRESS=${address}\n`, { flag: "w" });
+}
+main().catch((e) => { console.error(e); process.exit(1); });
