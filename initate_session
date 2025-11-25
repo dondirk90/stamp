@@ -1,0 +1,56 @@
+Schritte (PowerShell / Windows):
+
+Stelle sicher, dass die API läuft (Hardhat + Backend)
+Falls du Hardhat lokal verwendest, zuerst den Node starten:
+
+npx hardhat node
+
+Dann deployen (falls du das Contract-ABI/Adresse neu brauchst). Falls du ein deploy-Skript hast, z.B.:
+
+node scripts/deploy.cjs
+
+# oder (falls du pnpm scripts hast)
+
+pnpm run deploy
+
+Starte das Backend/API:
+
+# direkt
+
+node api/server.cjs
+
+# oder, wenn du ein dev-script nutzt
+
+pnpm run dev
+
+Die API im repo lauscht standardmäßig auf Port 3000 (siehe server.cjs).
+
+Starte den Apps-Server (statische Browser-Apps)
+
+node apps/server.cjs
+
+Dieser startet einen kleinen Static-Server auf Port 8080 und zeigt beim Start direkt die wichtigsten URLs in der Console.
+
+Öffne die Apps (Beispiele)
+Im gleichen Rechner (Desktop):
+
+LAN Setup: http://localhost:8080/lan-setup.html
+Café Issuer (Enhanced): http://localhost:8080/cafe-issuer-web.html
+Customer Scanner (Enhanced): http://localhost:8080/customer-scanner-web.html
+Alternatives Verzeichnis-Index (falls vorhanden): http://localhost:8080/cafe/ oder http://localhost:8080/customer/
+Vom Smartphone im selben Wi‑Fi: ersetze localhost durch deine LAN-IP (z.B. 192.168.1.100):
+
+Beispiel: http://192.168.1.100:8080/customer-scanner-web.html
+So findest du deine LAN-IP auf Windows (PowerShell):
+
+ipconfig | Select-String -Pattern 'IPv4'
+
+Die Ausgabe zeigt die IP deines WLAN-Adapters (z.B. 192.168.1.100).
+
+Wichtige Hinweise / Troubleshooting
+
+CORS: Der apps-Server setzt "Access-Control-Allow-Origin: \*", aber die API muss erreichbar sein (gleicher Host/Port oder CORS erlaubt).
+API-URLs: Die Enhanced-Apps versuchen automatisch, die API zu discovern; falls nicht, kannst du in der App die Basis-URL manuell setzen auf z.B. http://<LAN_IP>:3000.
+Nonce-Fehler / Automining: Wenn du den Smart Contract neu deployed hast, starte Hardhat Node und Backend neu, damit Wallet/Contract-Adresse/ABI konsistent sind.
+Firewall: Falls das Smartphone die Seite nicht lädt, prüfe Windows-Firewall (erlaube node.exe eingehende Verbindungen für Port 8080).
+Logs: Wenn etwas nicht klappt, sieh in die Terminals (API und Apps-Server) — sie loggen Requests & URLs.

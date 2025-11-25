@@ -15,6 +15,7 @@
     "prepare": "echo \"Monorepo ready\"",
     "lint": "echo \"(todo) run repo-wide linters\"",
     "dev": "node api/server.cjs",
+    "restart:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/restart-all.ps1",
     "chain": "hardhat node",
     "deploy": "hardhat run scripts/deploy.cjs --network localhost",
     "dev:api": "tsx watch api/server.ts",
@@ -27,20 +28,33 @@
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.9.2",
+    "autoprefixer": "^10.4.21",
     "chai": "^4.5.0",
     "hardhat": "^2.26.5",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "type": "module",
   "dependencies": {
+    "@tanstack/react-query": "^5.90.7",
     "better-sqlite3": "^12.4.1",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
     "express": "^5.1.0",
     "fastify": "^5.6.1",
+    "minimist": "^1.2.8",
+    "next": "^16.0.1",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "cors": "^2.8.5",
+    "react-qr-reader": "3.0.0-beta-1",
+    "typechain": "^8.3.2",
     "viem": "^2.38.6",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
   }
 }

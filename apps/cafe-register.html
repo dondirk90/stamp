@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Cafe Register - Stamp</title>
+    <style>
+      body {
+        font-family: system-ui, Segoe UI, Roboto, Arial;
+        background: #fafafa;
+        padding: 20px;
+      }
+      .card {
+        max-width: 720px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+      }
+      input,
+      button {
+        padding: 10px;
+        margin: 6px 0;
+        width: 100%;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 10px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Register Cafe (Client-side wallet)</h2>
+      <p>
+        This page generates a wallet in your browser, encrypts it with a
+        password (keystore JSON) and registers the cafe with the server. Save
+        the mnemonic and the provided API key securely.
+      </p>
+
+      <label>Cafe Name</label>
+      <input id="name" placeholder="Cafe Name" />
+
+      <label>Password (used to encrypt the wallet locally)</label>
+      <input id="password" type="password" placeholder="Strong password" />
+      <label>Confirm Password</label>
+      <input id="password2" type="password" placeholder="Repeat password" />
+
+      <button id="gen">Generate Wallet & Register</button>
+
+      <h3>Result</h3>
+      <div id="result"></div>
+      <h4>Mnemonic (write this down)</h4>
+      <pre id="mnemonic"></pre>
+      <h4>API Key (save this — used for stamping)</h4>
+      <pre id="api_key"></pre>
+    </div>
+
+    <!-- Use ethers UMD build (v5) for browser globals -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script>
+      const genBtn = document.getElementById("gen");
+      const nameInput = document.getElementById("name");
+      const pwInput = document.getElementById("password");
+      const pw2Input = document.getElementById("password2");
+      const resDiv = document.getElementById("result");
+      const mnemonicPre = document.getElementById("mnemonic");
+      const apiKeyPre = document.getElementById("api_key");
+
+      genBtn.addEventListener("click", async () => {
+        resDiv.textContent = "Working...";
+        mnemonicPre.textContent = "";
+        apiKeyPre.textContent = "";
+        try {
+          const name = nameInput.value || "Unnamed Cafe";
+          const password = pwInput.value;
+          const password2 = pw2Input.value;
+          if (!password || password.length < 6) {
+            alert("Choose a password at least 6 characters long");
+            resDiv.textContent = "";
+            return;
+          }
+          if (password !== password2) {
+            alert("Passwords do not match");
+            resDiv.textContent = "";
+            return;
+          }
+          if (typeof ethers === "undefined") {
+            resDiv.textContent =
+              "Error: ethers library not loaded in this browser.";
+            return;
+          }
+          // generate wallet
+          const wallet = ethers.Wallet.createRandom();
+          const mnemonic = wallet.mnemonic ? wallet.mnemonic.phrase : null;
+          mnemonicPre.textContent = mnemonic || "No mnemonic available";
+
+          // encrypt with password
+          const keystore = await wallet.encrypt(password);
+
+          // register with server (use absolute API URL to avoid hitting the static apps server)
+          const apiUrl =
+            (window.__API_BASE__ || "http://127.0.0.1:3000") +
+            "/cafes/register-self";
+          console.log(
+            "Posting to API URL:",
+            apiUrl,
+            "keystore length:",
+            keystore.length
+          );
+          const resp = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, keystore }),
+          });
+
+          // Try to parse JSON response; if parsing fails, show raw text for debugging
+          let data;
+          try {
+            data = await resp.json();
+          } catch (err) {
+            const txt = await resp.text();
+            console.error("Server returned non-JSON response:", txt);
+            resDiv.textContent = "Server error: " + txt;
+            return;
+          }
+
+          if (!resp.ok) {
+            resDiv.textContent =
+              "Server error: " + (data.error || JSON.stringify(data));
+            return;
+          }
+          resDiv.textContent = "Registered successfully";
+          apiKeyPre.textContent = data.api_key || "";
+        } catch (e) {
+          console.error(e);
+          resDiv.textContent = "Error: " + (e.message || e);
+        }
+      });
+    </script>
+  </body>
+</html>

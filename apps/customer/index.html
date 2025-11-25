@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Customer — Scan & Stamp</title>
+    <style>
+      body {
+        font-family: system-ui, Segoe UI, Roboto, Arial;
+        margin: 20px;
+      }
+      label {
+        display: block;
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Customer — Scan & Stamp</h1>
+    <div
+      style="
+        background: #d4edda;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      "
+    >
+      <strong>📱 Auf deinem Smartphone öffnen:</strong>
+      <p>
+        Diese Seite auf deinem Smartphone im Browser öffnen (über deine
+        Rechner-IP, z.B. <code>http://192.168.1.100</code>)
+      </p>
+    </div>
+    <label
+      >API Base:
+      <input id="api" value="http://127.0.0.1:3000" style="width: 320px"
+    /></label>
+    <label
+      >Customer Private Key:
+      <input
+        id="pk"
+        style="width: 420px"
+        placeholder="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    /></label>
+    <button id="start">Start Camera</button>
+    <button id="stop">Stop Camera</button>
+    <div id="reader" style="margin-top: 12px"></div>
+
+    <h2>Scanned Payload</h2>
+    <pre
+      id="payload"
+      style="background: #f7f7f7; padding: 8px; border-radius: 6px"
+    ></pre>
+    <button id="signAndSend">Sign & Send</button>
+    <pre
+      id="result"
+      style="background: #eef; padding: 8px; border-radius: 6px"
+    ></pre>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+    <script>
+      const apiEl = document.getElementById("api");
+      const pkEl = document.getElementById("pk");
+      const start = document.getElementById("start");
+      const stop = document.getElementById("stop");
+      const reader = document.getElementById("reader");
+      const payloadEl = document.getElementById("payload");
+      const signBtn = document.getElementById("signAndSend");
+      const resultEl = document.getElementById("result");
+
+      let html5Qrcode;
+      start.onclick = async () => {
+        html5Qrcode = new Html5Qrcode("reader");
+        try {
+          await html5Qrcode.start(
+            { facingMode: "environment" },
+            { fps: 10 },
+            (qrCodeMessage) => {
+              // remove optional prefix
+              let txt = qrCodeMessage;
+              if (txt.startsWith("STAMP:")) txt = txt.slice(6);
+              try {
+                const obj = JSON.parse(txt);
+                payloadEl.textContent = JSON.stringify(obj, null, 2);
+                // stop camera automatically after scan
+                html5Qrcode.stop();
+              } catch (e) {
+                payloadEl.textContent = "Invalid JSON in QR: " + txt;
+              }
+            }
+          );
+        } catch (e) {
+          payloadEl.textContent = "Camera start error: " + e;
+        }
+      };
+      stop.onclick = async () => {
+        if (html5Qrcode) await html5Qrcode.stop();
+      };
+
+      signBtn.onclick = async () => {
+        resultEl.textContent = "Signing...";
+        try {
+          const txt = payloadEl.textContent;
+          if (!txt) throw new Error("No payload scanned");
+          const obj = JSON.parse(txt);
+          const wallet = new ethers.Wallet(pkEl.value);
+          const domain = {
+            name: "StampCard",
+            version: "1",
+            chainId: 31337,
+            verifyingContract:
+              window.STAMPCARD_ADDRESS ||
+              "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          };
+          const types = {
+            StampRequest: [
+              { name: "cafeId", type: "bytes16" },
+              { name: "nonce", type: "bytes32" },
+              { name: "expires", type: "uint256" },
+              { name: "customer", type: "address" },
+            ],
+          };
+          const message = {
+            cafeId: obj.cafeId,
+            nonce: obj.nonce,
+            expires: BigInt(obj.expires),
+            customer: wallet.address,
+          };
+          const signature = await wallet.signTypedData(domain, types, message);
+          resultEl.textContent =
+            "Signature: " + signature + "\nPosting to API...";
+          const payload = {
+            cafeId: obj.cafeId,
+            nonce: obj.nonce,
+            expires: Number(obj.expires),
+            customer: wallet.address,
+            signature,
+          };
+          const res = await fetch(apiEl.value.replace(/\/$/, "") + "/stamp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          resultEl.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          resultEl.textContent = "Error: " + e;
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Customer Register - Stamp</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+            circle at 20% 50%,
+            rgba(120, 119, 198, 0.3),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(138, 43, 226, 0.3),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 20%,
+            rgba(72, 149, 239, 0.3),
+            transparent 50%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+      .card {
+        max-width: 500px;
+        margin: 40px auto;
+        background: rgba(255, 255, 255, 0.98);
+        padding: 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+          0 0 100px rgba(102, 126, 234, 0.2);
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 1;
+        animation: slideUp 0.5s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      h2 {
+        text-align: center;
+        color: #1a202c;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .subtitle {
+        text-align: center;
+        color: #718096;
+        font-size: 15px;
+        margin-bottom: 32px;
+      }
+      label {
+        display: block;
+        color: #2d3748;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+        margin-top: 20px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: #fff;
+        color: #1a202c;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+      }
+      button {
+        width: 100%;
+        padding: 16px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button.secondary {
+        background: #f7fafc;
+        color: #4a5568;
+        border: 2px solid #e2e8f0;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+      img.qr {
+        width: 280px;
+        height: 280px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        margin: 20px auto;
+        display: block;
+        background: white;
+        padding: 20px;
+      }
+      .step-indicator {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 32px;
+        justify-content: center;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .step-number {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+      }
+      .step-number.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .step-number.done {
+        background: #10b981;
+        color: white;
+      }
+      .step-number.inactive {
+        background: #e2e8f0;
+        color: #a0aec0;
+      }
+      .step-label {
+        font-weight: 600;
+      }
+      .step-label.active {
+        color: #667eea;
+      }
+      .step-label.done {
+        color: #10b981;
+      }
+      .step-label.inactive {
+        color: #a0aec0;
+      }
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-top: 32px;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      .cafe-btn {
+        width: 100%;
+        padding: 20px;
+        margin: 8px 0;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1a202c;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: none;
+        letter-spacing: normal;
+      }
+      .cafe-btn:hover {
+        border-color: #667eea;
+        background: #f7fafc;
+        transform: translateY(-2px);
+      }
+      .info-box {
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 24px;
+      }
+      .info-box .label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+      }
+      .info-box .value {
+        color: #718096;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 40px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        padding: 16px 28px;
+        border-radius: 50px;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
+        display: none;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideUp 0.3s ease-out;
+      }
+      .events-list {
+        max-height: 300px;
+        overflow: auto;
+        background: #f7fafc;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-top: 12px;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+      }
+      .user-badge {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px 20px;
+        border-radius: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+      }
+      .user-badge .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .user-badge .info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .user-badge .name {
+        font-weight: 600;
+        color: #1a202c;
+        font-size: 14px;
+      }
+      .user-badge .email {
+        font-size: 12px;
+        color: #718096;
+      }
+      .user-badge .logout {
+        margin-left: 12px;
+        padding: 6px 12px;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #4a5568;
+        transition: all 0.2s;
+      }
+      .user-badge .logout:hover {
+        background: #e2e8f0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- User Badge (shown when logged in) -->
+    <div id="userBadge" class="user-badge">
+      <div class="avatar" id="userAvatar">M</div>
+      <div class="info">
+        <div class="name" id="userName">Max Mustermann</div>
+        <div class="email" id="userEmail">max@example.com</div>
+      </div>
+      <button class="logout" id="logoutBtn">Abmelden</button>
+    </div>
+
+    <div class="card">
+      <h2>☕ Stamp Card</h2>
+      <p class="subtitle">Sammle Stempel, erhalte Belohnungen!</p>
+
+      <!-- Step 1: Registration -->
+      <div id="step1">
+        <p
+          style="
+            text-align: center;
+            color: #718096;
+            margin-bottom: 32px;
+            line-height: 1.6;
+          "
+        >
+          Erstelle dein kostenloses Konto in nur 2 Schritten
+        </p>
+
+        <div class="step-indicator">
+          <div class="step">
+            <div class="step-number active">1</div>
+            <span class="step-label active">Registrierung</span>
+          </div>
+          <div class="step">
+            <div class="step-number inactive">2</div>
+            <span class="step-label inactive">Café wählen</span>
+          </div>
+        </div>
+
+        <label>👤 Dein Name</label>
+        <input id="name" placeholder="z.B. Max Mustermann" />
+
+        <label>📧 Deine E-Mail (für Wiederherstellung)</label>
+        <input id="email" type="email" placeholder="deine@email.de" />
+
+        <button id="createBtn">🚀 Weiter</button>
+      </div>
+
+      <!-- Step 2: Cafe Selection -->
+      <div id="step2" style="display: none">
+        <p
+          style="
+            text-align: center;
+            color: #718096;
+            margin-bottom: 32px;
+            line-height: 1.6;
+          "
+        >
+          Perfekt! Dein Konto wurde erstellt 🎉
+        </p>
+
+        <div class="step-indicator">
+          <div class="step">
+            <div class="step-number done">✓</div>
+            <span class="step-label done">Registrierung</span>
+          </div>
+          <div class="step">
+            <div class="step-number active">2</div>
+            <span class="step-label active">Café wählen</span>
+          </div>
+        </div>
+
+        <div class="section-title">☕ Wähle dein Lieblingscafé</div>
+        <p style="color: #718096; margin-bottom: 20px; font-size: 14px">
+          Wähle das Café aus, bei dem du Stempel sammeln möchtest
+        </p>
+
+        <div id="cafesButtons"></div>
+      </div>
+
+      <!-- Step 3: QR Display -->
+      <div id="step3" style="display: none">
+        <div style="text-align: center">
+          <div style="font-size: 48px; margin-bottom: 16px">🎉</div>
+          <h3 style="color: #1a202c; margin-bottom: 8px">Alles bereit!</h3>
+          <p style="color: #718096; margin-bottom: 24px">
+            Zeige diesen QR-Code beim Café vor
+          </p>
+        </div>
+
+        <div style="text-align: center">
+          <img id="qrImg" class="qr" alt="qr" />
+        </div>
+
+        <div class="info-box">
+          <div class="label">📍 Deine Daten</div>
+          <div class="value">
+            <strong>Name:</strong> <span id="displayName">-</span>
+          </div>
+          <div class="value">
+            <strong>Café:</strong> <span id="displayCafe">-</span>
+          </div>
+          <div
+            class="value"
+            style="
+              font-family: monospace;
+              font-size: 12px;
+              word-break: break-all;
+            "
+          >
+            <strong>Wallet:</strong> <span id="displayAddress">-</span>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 32px">
+          📋 Deine Stempel
+        </div>
+        <div id="eventsList" class="events-list">
+          <em style="color: #a0aec0">Noch keine Stempel</em>
+        </div>
+
+        <button id="newQRBtn" class="secondary">
+          🔄 Neuen QR-Code erstellen
+        </button>
+      </div>
+
+      <div id="toast" class="toast">✅ Stempel erhalten!</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script>
+      // Elements
+      const step1 = document.getElementById("step1");
+      const step2 = document.getElementById("step2");
+      const step3 = document.getElementById("step3");
+      const createBtn = document.getElementById("createBtn");
+      const newQRBtn = document.getElementById("newQRBtn");
+      const cafesButtons = document.getElementById("cafesButtons");
+      const qrImg = document.getElementById("qrImg");
+      const displayName = document.getElementById("displayName");
+      const displayCafe = document.getElementById("displayCafe");
+      const displayAddress = document.getElementById("displayAddress");
+      const eventsList = document.getElementById("eventsList");
+      const toastEl = document.getElementById("toast");
+
+      // State
+      let customer = null;
+      let selectedCafe = null;
+      let cafes = [];
+      let apiBase = null;
+      let sse = null;
+
+      // Detect API
+      async function detectAPI() {
+        const candidates = [
+          "http://127.0.0.1:3000",
+          `${location.protocol}//${location.hostname}:3000`,
+        ];
+
+        for (const base of candidates) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 1000);
+            const res = await fetch(base + "/debug/info", {
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (res.ok) return base;
+          } catch (e) {}
+        }
+        return "http://127.0.0.1:3000";
+      }
+
+      // Load cafes
+      async function loadCafes() {
+        try {
+          apiBase = await detectAPI();
+          const res = await fetch(apiBase + "/cafes");
+          cafes = await res.json();
+          renderCafes();
+        } catch (e) {
+          console.error("Failed to load cafes:", e);
+          cafes = [{ id: "testkaffee", name: "Test Kaffee" }];
+          renderCafes();
+        }
+      }
+
+      // Render cafe buttons
+      function renderCafes() {
+        cafesButtons.innerHTML = "";
+        cafes.forEach((cafe) => {
+          const btn = document.createElement("button");
+          btn.className = "cafe-btn";
+          btn.textContent = cafe.name || `Café ${cafe.id}`;
+          btn.onclick = () => selectCafe(cafe);
+          cafesButtons.appendChild(btn);
+        });
+      }
+
+      // Step 1: Create account
+      createBtn.onclick = async () => {
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+
+        if (!name || !email) {
+          alert("Bitte fülle Name und E-Mail aus");
+          return;
+        }
+
+        createBtn.disabled = true;
+        createBtn.textContent = "Wird erstellt...";
+
+        try {
+          apiBase = await detectAPI();
+          const res = await fetch(apiBase + "/customers/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email }),
+          });
+
+          if (!res.ok) throw new Error("Registrierung fehlgeschlagen");
+
+          const data = await res.json();
+          customer = { ...data, name, email };
+
+          // Save to localStorage
+          localStorage.setItem("stamp_customer", JSON.stringify(customer));
+
+          // Move to step 2
+          step1.style.display = "none";
+          step2.style.display = "block";
+
+          await loadCafes();
+        } catch (e) {
+          alert("Fehler bei der Registrierung: " + e.message);
+          createBtn.disabled = false;
+          createBtn.textContent = "🚀 Weiter";
+        }
+      };
+
+      // Step 2: Select cafe and generate QR
+      async function selectCafe(cafe) {
+        selectedCafe = cafe;
+
+        try {
+          const payload = JSON.stringify({
+            cafeId: String(cafe.id),
+            customer: customer.address,
+            customerName: customer.name || customer.email,
+          });
+
+          const qrUrl = await QRCode.toDataURL(payload, { width: 280 });
+          qrImg.src = qrUrl;
+
+          displayName.textContent = customer.name || customer.email;
+          displayCafe.textContent = cafe.name || `Café ${cafe.id}`;
+          displayAddress.textContent = customer.address;
+
+          // Move to step 3
+          step2.style.display = "none";
+          step3.style.display = "block";
+
+          // Start listening for stamps
+          connectSSE();
+        } catch (e) {
+          alert("Fehler beim Erstellen des QR-Codes: " + e.message);
+        }
+      }
+
+      // Step 3: New QR button
+      newQRBtn.onclick = () => {
+        step3.style.display = "none";
+        step2.style.display = "block";
+      };
+
+      // SSE for real-time stamps
+      function connectSSE() {
+        if (!apiBase || !customer) return;
+
+        try {
+          if (sse) sse.close();
+          sse = new EventSource(apiBase + "/events/stream");
+
+          sse.onmessage = (e) => {
+            try {
+              const event = JSON.parse(e.data);
+              if (
+                event.user &&
+                event.user.toLowerCase() === customer.address.toLowerCase()
+              ) {
+                // Show toast
+                toastEl.style.display = "block";
+                setTimeout(() => (toastEl.style.display = "none"), 3000);
+
+                // Add to events list
+                const div = document.createElement("div");
+                div.style.padding = "8px";
+                div.style.borderBottom = "1px solid #e2e8f0";
+                div.innerHTML = `<strong>${
+                  event.cafe || "Café"
+                }</strong> – ${new Date(
+                  event.ts
+                ).toLocaleString()}<br><small style="color:#718096;">${
+                  event.txhash || ""
+                }</small>`;
+
+                if (eventsList.querySelector("em")) {
+                  eventsList.innerHTML = "";
+                }
+                eventsList.insertBefore(div, eventsList.firstChild);
+              }
+            } catch (e) {
+              console.warn("SSE parse error:", e);
+            }
+          };
+
+          sse.onerror = () => {
+            sse.close();
+            setTimeout(connectSSE, 5000);
+          };
+        } catch (e) {
+          console.warn("SSE connection error:", e);
+        }
+      }
+
+      // Auto-login if saved
+      (async function autoLogin() {
+        try {
+          const saved = localStorage.getItem("stamp_customer");
+          if (saved) {
+            customer = JSON.parse(saved);
+            step1.style.display = "none";
+            step2.style.display = "block";
+            await loadCafes();
+          }
+        } catch (e) {
+          console.warn("Auto-login failed:", e);
+        }
+      })();
+    </script>
+  </body>
+</html>

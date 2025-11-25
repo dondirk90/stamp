@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Customer QR — Stamp</title>
+    <style>
+      body {
+        font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+        background: #f6f7fb;
+        margin: 0;
+        padding: 20px;
+      }
+      .card {
+        max-width: 420px;
+        margin: 24px auto;
+        background: #fff;
+        padding: 18px;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: #1e293b;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: #556;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-family: monospace;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      button {
+        flex: 1;
+        padding: 12px;
+        border-radius: 8px;
+        border: 0;
+        background: #1976d2;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #64748b;
+      }
+      .qr-wrap {
+        text-align: center;
+        margin-top: 18px;
+      }
+      canvas {
+        width: 260px;
+        height: 260px;
+      }
+      .small {
+        font-size: 13px;
+        color: #6b7280;
+        margin-top: 10px;
+      }
+      /* hide control buttons when not needed (user requested cleaner UI) */
+      #gen,
+      #copy,
+      #download,
+      #openScanner {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div
+        style="
+          background: #fee2e2;
+          color: #991b1b;
+          padding: 12px;
+          border-radius: 8px;
+          margin: 12px;
+          max-width: 720px;
+          margin-left: auto;
+          margin-right: auto;
+          text-align: center;
+          font-weight: 700;
+        "
+      >
+        JavaScript ist deaktiviert oder wird blockiert. Bitte aktiviere
+        JavaScript in deinem Browser oder deaktiviere Erweiterungen, die Skripte
+        blockieren.
+      </div>
+    </noscript>
+    <div class="card">
+      <div
+        id="versionBadge"
+        style="
+          position: relative;
+          text-align: right;
+          font-size: 12px;
+          color: #94a3b8;
+          margin-bottom: 6px;
+        "
+      >
+        v — updated
+      </div>
+      <div
+        id="jsStatus"
+        style="
+          position: relative;
+          text-align: right;
+          font-size: 12px;
+          color: #b91c1c;
+          margin-bottom: 6px;
+        "
+      >
+        JS: not running
+      </div>
+      <h1>Dein Kunden-QR</h1>
+      <div>
+        <label for="addr">Wallet-Adresse</label>
+        <input
+          id="addr"
+          type="text"
+          placeholder="0x..."
+          autocomplete="username"
+        />
+      </div>
+      <div style="margin-top: 10px">
+        <label for="name">Name (optional)</label>
+        <input
+          id="name"
+          type="text"
+          placeholder="Max Mustermann"
+          autocomplete="name"
+        />
+      </div>
+
+      <!-- Controls hidden for streamlined customer view -->
+
+      <div class="qr-wrap">
+        <canvas id="qrCanvas"></canvas>
+        <div id="linkBox" class="small"></div>
+        <div class="row" style="margin-top: 12px">
+          <button id="showStamps">Meine Stempel</button>
+        </div>
+        <div
+          id="stampsPanel"
+          class="small"
+          style="margin-top: 10px; display: none"
+        ></div>
+      </div>
+
+      <!-- Download / Open Scanner hidden for streamlined customer view -->
+
+      <div class="small" style="margin-top: 12px">
+        Tip: Zeige diesen QR dem Barista, damit er ihn scannen kann. Der
+        Barista-App erkennt sowohl reine Adressen als auch Links mit dem
+        Parameter <code>customer</code>.
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script>
+      // Minimal early indicator to show the inline script executed
+      try {
+        const s = document.getElementById("jsStatus");
+        if (s) s.innerText = "JS: active";
+      } catch (e) {}
+      console.log("[dbg] customer-qr script loaded");
+      // Visible debug panel (in-page) for environments where DevTools is unavailable
+      function dbgBanner(msg) {
+        try {
+          let panel = document.getElementById("dbgPanel");
+          if (!panel) {
+            panel = document.createElement("div");
+            panel.id = "dbgPanel";
+            panel.style.fontFamily = "monospace";
+            panel.style.fontSize = "12px";
+            panel.style.background = "#0f172a";
+            panel.style.color = "#e2e8f0";
+            panel.style.padding = "8px";
+            panel.style.borderRadius = "8px";
+            panel.style.marginTop = "10px";
+            panel.style.maxHeight = "140px";
+            panel.style.overflow = "auto";
+            panel.style.whiteSpace = "pre-wrap";
+            const card = document.querySelector(".card") || document.body;
+            card.appendChild(panel);
+          }
+          const time = new Date().toLocaleTimeString();
+          panel.textContent = `${time} – ${msg}\n` + panel.textContent;
+        } catch (e) {
+          // ignore
+        }
+      }
+      try {
+        dbgBanner("[init] script loaded");
+      } catch (e) {
+        try {
+          const s = document.getElementById("jsStatus");
+          if (s) s.innerText = "JS: error";
+        } catch (e) {}
+      }
+      try {
+        const vb = document.getElementById("versionBadge");
+        if (vb) vb.innerText = "v " + new Date().toLocaleString();
+      } catch (e) {}
+      // If CDN is blocked or unavailable, try to load a local fallback at /vendor/qrcode.min.js
+      (function ensureQRCodeLib() {
+        if (typeof QRCode !== "undefined") {
+          dbgBanner("[lib] QRCode available from CDN");
+          return;
+        }
+        dbgBanner(
+          "[lib] QRCode not found from CDN, attempting local fallback /vendor/qrcode.min.js"
+        );
+        // show non-intrusive banner
+        try {
+          const card =
+            document.currentScript && document.currentScript.parentNode
+              ? document.currentScript.parentNode
+              : document.body;
+          const banner = document.createElement("div");
+          banner.id = "qrFallbackBanner";
+          banner.style.background = "#fff3cd";
+          banner.style.color = "#664d03";
+          banner.style.padding = "8px";
+          banner.style.borderRadius = "8px";
+          banner.style.margin = "12px 0";
+          banner.textContent = "QR library loading from local fallback...";
+          // append near top card if possible
+          const cardEl = document.querySelector(".card") || document.body;
+          cardEl.insertBefore(banner, cardEl.firstChild);
+        } catch (e) {}
+
+        const s = document.createElement("script");
+        s.src = "/vendor/qrcode.min.js";
+        s.onload = () => {
+          dbgBanner("[lib] loaded local /vendor/qrcode.min.js");
+          const b = document.getElementById("qrFallbackBanner");
+          if (b) b.textContent = "QR library loaded (local)";
+          // try render if possible
+          try {
+            if (typeof tryAutoRender === "function") tryAutoRender();
+          } catch (e) {}
+        };
+        s.onerror = () => {
+          dbgBanner("[lib] failed to load local /vendor/qrcode.min.js");
+          const b = document.getElementById("qrFallbackBanner");
+          if (b)
+            b.textContent = "QR library not available — QR rendering disabled.";
+        };
+        document.head.appendChild(s);
+      })();
+      const addrEl = document.getElementById("addr");
+      const nameEl = document.getElementById("name");
+      const genBtn = document.getElementById("gen");
+      const copyBtn = document.getElementById("copy");
+      const downloadBtn = document.getElementById("download");
+      const openScannerBtn = document.getElementById("openScanner");
+      const canvas = document.getElementById("qrCanvas");
+      const linkBox = document.getElementById("linkBox");
+      const showStampsBtn = document.getElementById("showStamps");
+      const stampsPanel = document.getElementById("stampsPanel");
+
+      // Prefill from query param ?customer=
+      (function prefill() {
+        try {
+          const p = new URLSearchParams(window.location.search);
+          const c = p.get("customer") || p.get("addr") || p.get("address");
+          if (c) addrEl.value = c;
+          // if nothing in query params, try stored customer address (localStorage)
+          const stored = (function getStoredAddr() {
+            try {
+              const s = localStorage.getItem("customer_addr");
+              if (!s) return null;
+              // sometimes stored as JSON object; try to parse
+              try {
+                const parsed = JSON.parse(s);
+                if (typeof parsed === "string") return parsed;
+              } catch (e) {}
+              if (typeof s === "string") return s;
+              return null;
+            } catch (e) {
+              return null;
+            }
+          })();
+          if (!addrEl.value && stored) {
+            addrEl.value = stored;
+            // mark as readonly by default (customer has fixed wallet)
+            addrEl.readOnly = true;
+            // add an edit button to allow changing the stored address
+            const editBtn = document.createElement("button");
+            editBtn.textContent = "Ändern";
+            editBtn.className = "secondary";
+            editBtn.style.marginLeft = "8px";
+            editBtn.addEventListener("click", (ev) => {
+              ev.preventDefault();
+              addrEl.readOnly = false;
+              addrEl.focus();
+            });
+            addrEl.parentNode.appendChild(editBtn);
+          }
+          const n = p.get("name");
+          if (n) nameEl.value = n;
+        } catch (e) {}
+      })();
+
+      // Build QR payload. For a stable QR that doesn't change per device or host
+      // we encode just the raw customer address. The café app understands plain
+      // addresses as well as full links, so this keeps the QR constant across
+      // networks and reloads.
+      function buildUrl(addr) {
+        // Return a stable link that the Café Issuer app understands.
+        // This makes the QR open the café page pre-filled with the customer address.
+        try {
+          const origin =
+            window.location.origin ||
+            window.location.protocol + "//" + window.location.hostname;
+          return `${origin}/cafe-issuer-web.html?customer=${encodeURIComponent(
+            addr
+          )}`;
+        } catch (e) {
+          return addr;
+        }
+      }
+
+      async function renderQR() {
+        console.log("[dbg] renderQR called, addr=", addrEl.value);
+        try {
+          dbgBanner("[dbg] renderQR called, addr=" + addrEl.value);
+        } catch (e) {}
+        const addr = addrEl.value.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+          alert("Bitte gib eine gültige 0x... Adresse ein");
+          return;
+        }
+        // if we previously showed the success panel, reset it when rendering a new QR
+        try {
+          const successElExisting = document.getElementById("successBox");
+          if (successElExisting) {
+            // parent wrapper has been appended as successEl
+            successEl.style.display = "none";
+            canvas.style.display = "";
+            copyBtn.disabled = false;
+            copyBtn.style.opacity = "";
+            downloadBtn.disabled = false;
+            downloadBtn.style.opacity = "";
+            genBtn.disabled = false;
+            genBtn.style.opacity = "";
+            openScannerBtn.disabled = false;
+            openScannerBtn.style.opacity = "";
+          }
+        } catch (e) {}
+        const url = buildUrl(addr);
+        // Use qrcode lib to draw to canvas
+        try {
+          await QRCode.toCanvas(canvas, url, {
+            width: 300,
+            margin: 2,
+            color: { dark: "#111111", light: "#ffffff" },
+          });
+          // Show the encoded payload (address) rather than a host-specific link
+          linkBox.innerHTML = `<div>Address: <code>${url}</code></div>`;
+          // store for convenience
+          localStorage.setItem("customer_addr", addr);
+          localStorage.setItem("customer_name", nameEl.value || "");
+          // after rendering, ensure SSE is listening for confirmations for this addr
+          try {
+            startSSEFor(addr);
+          } catch (e) {}
+        } catch (err) {
+          console.error(err);
+          alert("QR render failed: " + err.message);
+        }
+      }
+
+      if (genBtn) genBtn.addEventListener("click", renderQR);
+
+      if (copyBtn)
+        copyBtn.addEventListener("click", async () => {
+          const addr = addrEl.value.trim();
+          if (!addr) return;
+          try {
+            await navigator.clipboard.writeText(addr);
+            copyBtn.textContent = "Copied";
+            setTimeout(() => {
+              if (copyBtn) copyBtn.textContent = "Copy";
+            }, 900);
+          } catch (e) {
+            alert("Clipboard failed");
+          }
+        });
+
+      if (downloadBtn)
+        downloadBtn.addEventListener("click", () => {
+          try {
+            const data = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.href = data;
+            a.download = (addrEl.value || "customer") + "-qr.png";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          } catch (e) {
+            alert("Download failed: " + e.message);
+          }
+        });
+
+      if (openScannerBtn)
+        openScannerBtn.addEventListener("click", () => {
+          const addr = addrEl.value.trim();
+          if (!addr) return;
+          const url = `${
+            window.location.origin
+          }/cafe-issuer-web.html?customer=${encodeURIComponent(addr)}`;
+          window.location.href = url;
+        });
+
+      // Show stamps button — fetch current stamp count (with graceful fallback)
+      if (showStampsBtn) {
+        showStampsBtn.addEventListener("click", async () => {
+          try {
+            stampsPanel.style.display = "";
+            stampsPanel.textContent = "Lade...";
+            const host = window.location.hostname;
+            const proto = window.location.protocol;
+            const addr = addrEl.value.trim();
+            if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+              stampsPanel.textContent = "Bitte gib eine gültige Adresse ein.";
+              return;
+            }
+            const resp = await fetch(
+              `${proto}//${host}:3000/stamps/${addr}?fallback=1`
+            );
+            if (!resp.ok) {
+              stampsPanel.textContent = `Fehler: ${resp.status}`;
+              return;
+            }
+            const j = await resp.json();
+            stampsPanel.innerHTML =
+              `Stempel beim Café <code>${j.cafe || "—"}</code>: <strong>${
+                j.stamps
+              }</strong>` +
+              (j.error
+                ? `<div style="color:#c00;font-size:12px">${j.error}</div>`
+                : "");
+          } catch (e) {
+            stampsPanel.textContent =
+              "Abfrage fehlgeschlagen: " + (e && e.message);
+          }
+        });
+      }
+
+      // Autogenerate from last saved
+      window.tryAutoRender = function tryAutoRender() {
+        try {
+          const last = (function () {
+            try {
+              const s = localStorage.getItem("customer_addr");
+              if (!s) return null;
+              try {
+                const p = JSON.parse(s);
+                if (typeof p === "string") return p;
+              } catch (e) {}
+              return s;
+            } catch (e) {
+              return null;
+            }
+          })();
+          if (last && !addrEl.value) addrEl.value = last;
+          if (addrEl.value && typeof QRCode !== "undefined") {
+            dbgBanner("[auto] triggering renderQR for " + addrEl.value);
+            renderQR();
+          } else if (addrEl.value) {
+            dbgBanner("[auto] address present but QR library not loaded yet");
+          }
+        } catch (e) {
+          dbgBanner("[auto] error " + (e && e.message));
+        }
+      };
+      // call initially
+      tryAutoRender();
+
+      // --- SSE: listen for stamp confirmations for this customer ---
+      let sse;
+      // success area (hidden until needed)
+      const successEl = document.createElement("div");
+      successEl.style.display = "none";
+      successEl.style.marginTop = "12px";
+      successEl.style.textAlign = "center";
+      successEl.innerHTML = `
+        <div id="successBox" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <svg width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" fill="#16a34a" />
+            <path d="M7 13l3 3 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <div id="successMsg" style="font-weight:800;color:#064e3b;font-size:16px">Erfolgreich!</div>
+          <div id="successDetail" style="font-size:13px;color:#064e3b"></div>
+          <button id="newQrBtn" style="margin-top:8px;padding:8px 14px;border-radius:8px;background:#1976d2;color:#fff;border:0;cursor:pointer">Neuen QR erstellen</button>
+        </div>
+      `;
+      document.querySelector(".card").appendChild(successEl);
+
+      function showSuccess(txhash, addr) {
+        // hide QR and controls
+        canvas.style.display = "none";
+        linkBox.innerHTML = "";
+        if (copyBtn) {
+          copyBtn.disabled = true;
+          copyBtn.style.opacity = "0.6";
+        }
+        if (downloadBtn) {
+          downloadBtn.disabled = true;
+          downloadBtn.style.opacity = "0.6";
+        }
+        if (genBtn) {
+          genBtn.disabled = true;
+          genBtn.style.opacity = "0.6";
+        }
+        if (openScannerBtn) {
+          openScannerBtn.disabled = true;
+          openScannerBtn.style.opacity = "0.6";
+        }
+
+        // show success box
+        successEl.style.display = "block";
+        const detail = document.getElementById("successDetail");
+        detail.innerHTML = `TX: <a href="#" target="_blank" style="color:#064e3b">${txhash.slice(
+          0,
+          10
+        )}...</a>`;
+
+        // try to fetch updated stamp count
+        (async () => {
+          try {
+            const host = window.location.hostname;
+            const proto = window.location.protocol;
+            const resp = await fetch(`${proto}//${host}:3000/stamps/${addr}`);
+            if (resp.ok) {
+              const j = await resp.json();
+              detail.innerHTML = `TX: ${txhash.slice(0, 10)}... — Stempel: ${
+                j.stamps
+              }`;
+            }
+          } catch (e) {}
+        })();
+
+        // allow user to create new QR
+        const newBtn = document.getElementById("newQrBtn");
+        if (newBtn)
+          newBtn.addEventListener("click", () => {
+            // reset UI
+            successEl.style.display = "none";
+            canvas.style.display = "";
+            if (copyBtn) {
+              copyBtn.disabled = false;
+              copyBtn.style.opacity = "";
+            }
+            if (downloadBtn) {
+              downloadBtn.disabled = false;
+              downloadBtn.style.opacity = "";
+            }
+            if (genBtn) {
+              genBtn.disabled = false;
+              genBtn.style.opacity = "";
+            }
+            if (openScannerBtn) {
+              openScannerBtn.disabled = false;
+              openScannerBtn.style.opacity = "";
+            }
+          });
+      }
+
+      function startSSEFor(addr) {
+        stopSSE();
+        try {
+          console.log("[dbg] startSSEFor", addr);
+          try {
+            dbgBanner("[dbg] startSSEFor " + addr);
+          } catch (e) {}
+          const host = window.location.hostname;
+          const proto = window.location.protocol;
+          const apiUrl = `${proto}//${host}:3000/events/stream`;
+          sse = new EventSource(apiUrl);
+          sse.onmessage = (ev) => {
+            try {
+              const data = JSON.parse(ev.data);
+              if (!data || !data.user) return;
+              if (data.user.toLowerCase() === addr.toLowerCase()) {
+                // show confirmation and replace QR with success box
+                showSuccess(data.txhash, addr);
+                // stop listening after first confirmation for this QR
+                stopSSE();
+              }
+            } catch (e) {}
+          };
+          sse.onerror = () => {
+            // try reconnect via browser EventSource default behavior
+          };
+        } catch (e) {
+          console.warn("SSE start failed", e);
+        }
+      }
+
+      function stopSSE() {
+        if (sse) {
+          try {
+            sse.close();
+          } catch (e) {}
+          sse = null;
+        }
+      }
+
+      // start SSE when we have an address
+      (function initSSE() {
+        const a = addrEl.value || localStorage.getItem("customer_addr");
+        if (a && /^0x[0-9a-fA-F]{40}$/.test(a)) startSSEFor(a);
+      })();
+
+      // restart SSE when user changes address and generates a new QR
+      if (genBtn)
+        genBtn.addEventListener("click", () => {
+          const a = addrEl.value.trim();
+          if (/^0x[0-9a-fA-F]{40}$/.test(a)) startSSEFor(a);
+        });
+    </script>
+    <!-- External diagnostic script: useful if inline scripts are blocked -->
+    <script src="/customer-qr.js"></script>
+  </body>
+</html>

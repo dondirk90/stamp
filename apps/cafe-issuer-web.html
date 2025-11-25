@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>Stamp — Café QR Issuer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 16px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 600;
+        flex-shrink: 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 16px;
+        gap: 12px;
+      }
+      .section {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .section h3 {
+        margin-bottom: 12px;
+        color: #333;
+        font-size: 16px;
+      }
+      .form-group {
+        margin-bottom: 12px;
+      }
+      .label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: monospace;
+        box-sizing: border-box;
+      }
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      button {
+        padding: 12px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      }
+      .qr-section {
+        text-align: center;
+      }
+      .qr-box {
+        background: #f9f9f9;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 350px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+      #qr canvas {
+        max-width: 100%;
+        height: auto;
+      }
+      .payload-box {
+        background: #f0f0f0;
+        border-radius: 6px;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 150px;
+        overflow-y: auto;
+        word-break: break-all;
+        text-align: left;
+      }
+      .status {
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+      .status.info {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .status.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status.error {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .status.loading {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      @media (max-width: 600px) {
+        .header {
+          font-size: 18px;
+          padding: 16px 12px;
+        }
+        .container {
+          padding: 12px;
+        }
+        .section {
+          padding: 12px;
+        }
+        .qr-box {
+          min-height: 300px;
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">☕ Stamp — Café QR Issuer</div>
+
+    <div class="container">
+      <!-- Configuration -->
+      <div id="issuerConfig" class="section">
+        <h3>⚙️ Configuration</h3>
+        <div class="form-group">
+          <label class="label">API Base URL</label>
+          <div style="display: flex; gap: 8px">
+            <input
+              type="text"
+              id="apiBase"
+              value="http://127.0.0.1:3000"
+              style="flex: 1"
+            />
+            <button
+              id="testApiBtn"
+              onclick="testApi()"
+              style="min-width: 110px"
+            >
+              Test API
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="label">API Key</label>
+          <input type="text" id="apiKey" value="supersecret-dev-key" />
+        </div>
+        <div class="form-group">
+          <label class="label">Café ID</label>
+          <input type="text" id="cafeId" value="cafetest-01" />
+        </div>
+        <div class="form-group">
+          <label class="label">TTL (seconds)</label>
+          <input type="number" id="ttl" value="300" min="30" max="3600" />
+        </div>
+      </div>
+
+      <!-- QR Code Display -->
+      <div id="issuerQR" class="section qr-section">
+        <h3>📱 QR Code</h3>
+        <div class="qr-box" id="qr">
+          <div style="color: #999; text-align: center">
+            <div style="font-size: 48px; margin-bottom: 8px">📲</div>
+            <div>Click "Issue QR" to generate</div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="issueQR()">Issue QR</button>
+        <div id="status" class="status info">Ready to issue QR codes</div>
+      </div>
+
+      <!-- Payload Display -->
+      <div id="issuerPayload" class="section">
+        <h3>📊 Payload</h3>
+        <div class="payload-box" id="payload">-</div>
+      </div>
+
+      <!-- Customer Scan & Quick Stamps -->
+      <div class="section">
+        <h3>🔎 Kunden scannen & Stempel vergeben</h3>
+        <div style="margin-bottom: 8px">
+          <label class="label">Kundenadresse (nach Scan)</label>
+          <input type="text" id="customerAddr" placeholder="0x..." />
+        </div>
+        <div style="margin-bottom: 8px">
+          <label class="label">Anzahl Stempel</label>
+          <select id="stampCount">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 12px">
+          <button class="btn-primary" id="giveBtn" onclick="giveStamps()">
+            Give Stamps
+          </button>
+        </div>
+        <div style="margin-bottom: 12px">
+          <label class="label">Scan with camera / upload photo</label>
+          <div class="qr-box" id="scanBox">
+            <video
+              id="scanVideo"
+              playsinline
+              autoplay
+              style="
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+                border-radius: 6px;
+                background: #000;
+              "
+            ></video>
+            <div
+              id="scanOverlay"
+              style="
+                position: absolute;
+                left: 16px;
+                right: 16px;
+                top: 16px;
+                bottom: 16px;
+                border: 2px dashed rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                pointer-events: none;
+              "
+            ></div>
+          </div>
+          <div style="margin-top: 8px">
+            <input id="scanFile" type="file" accept="image/*" />
+          </div>
+        </div>
+        <div id="scanStatus" class="status info">
+          Ready to scan customer QR (address)
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+    <script>
+      const apiBaseEl = document.getElementById("apiBase");
+      const apiKeyEl = document.getElementById("apiKey");
+      const cafeIdEl = document.getElementById("cafeId");
+      const ttlEl = document.getElementById("ttl");
+      const qrEl = document.getElementById("qr");
+      const statusEl = document.getElementById("status");
+      const payloadEl = document.getElementById("payload");
+
+      async function issueQR() {
+        statusEl.textContent = "Issuing QR...";
+        statusEl.className = "status loading";
+        qrEl.innerHTML = "";
+        payloadEl.textContent = "-";
+
+        try {
+          const apiBase = apiBaseEl.value.replace(/\/$/, "");
+          const cafeId = cafeIdEl.value || "cafetest-01";
+          const ttl = Number(ttlEl.value) || 300;
+
+          const response = await fetch(apiBase + "/qr/issue", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKeyEl.value,
+            },
+            body: JSON.stringify({ cafeId, ttl }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // Display payload
+          payloadEl.textContent = JSON.stringify(data, null, 2);
+
+          // --- LAN-IP für QR-Code-URL verwenden ---
+          // Versuche, die API-Base-IP zu extrahieren (z.B. http://192.168.0.175:3000)
+          let baseUrl = apiBaseEl.value.replace(/\/$/, "");
+          let host = window.location.hostname;
+          let proto = window.location.protocol;
+          let port = window.location.port;
+          // Wenn API-Base eine LAN-IP enthält, nutze diese für den QR-Link
+          const m = baseUrl.match(/^https?:\/\/(\d+\.\d+\.\d+\.\d+)/);
+          if (m) {
+            host = m[1];
+            proto = baseUrl.startsWith("https") ? "https:" : "http:";
+            port = "8080"; // statischer Server
+          }
+          const url = `${proto}//${host}:${port}/stamp.html?cafeId=${encodeURIComponent(
+            data.cafeId
+          )}&nonce=${encodeURIComponent(
+            data.nonce
+          )}&expires=${encodeURIComponent(data.expires)}`;
+
+          new QRCode(qrEl, {
+            text: url,
+            width: 300,
+            height: 300,
+            correctLevel: QRCode.CorrectLevel.H,
+          });
+
+          // Optionally, show the URL as text for easy copy
+          const urlBox = document.createElement("div");
+          urlBox.style.marginTop = "10px";
+          urlBox.style.fontSize = "13px";
+          urlBox.style.wordBreak = "break-all";
+          urlBox.innerHTML = `<b>QR-Link:</b> <a href="${url}" target="_blank">${url}</a>`;
+          qrEl.appendChild(urlBox);
+
+          statusEl.textContent = "✅ QR issued! Scan with your smartphone.";
+          statusEl.className = "status success";
+        } catch (err) {
+          statusEl.textContent = "❌ Error: " + err.message;
+          statusEl.className = "status error";
+          payloadEl.textContent = err.message;
+        }
+      }
+
+      // Auto-focus on load
+      window.addEventListener("load", () => {
+        try {
+          const hostApiDefault = `${location.protocol}//${location.hostname}:3000`;
+          apiBaseEl.value = hostApiDefault;
+        } catch (e) {
+          console.warn("API Base auto-detection failed", e);
+        }
+        apiBaseEl.focus();
+        initScanner();
+
+        // Wenn die Seite mit Kundenadresse geöffnet wird, Barista-Modus aktivieren:
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const c =
+            params.get("customer") ||
+            params.get("addr") ||
+            params.get("address");
+          if (c && /^0x[0-9a-fA-F]{40}$/.test(c)) {
+            // Prefill customer address
+            customerAddrEl.value = c;
+
+            // Hide issuer sections to avoid confusion
+            const cfg = document.getElementById("issuerConfig");
+            const qr = document.getElementById("issuerQR");
+            const payload = document.getElementById("issuerPayload");
+            if (cfg) cfg.style.display = "none";
+            if (qr) qr.style.display = "none";
+            if (payload) payload.style.display = "none";
+
+            // Scan-UI ausblenden
+            const scanBox = document.getElementById("scanBox");
+            if (scanBox) scanBox.style.display = "none";
+            if (scanFile) scanFile.style.display = "none";
+
+            // Update header/status to indicate barista mode
+            const header = document.querySelector(".header");
+            if (header) header.textContent = "☕ Stamp — Barista Mode";
+
+            scanStatus.textContent = "Kunde geladen — bereit zum Stempeln";
+            scanStatus.className = "status info";
+
+            // API-Base automatisch auf LAN-IP setzen, falls im QR-Link enthalten
+            const urlHost = window.location.hostname;
+            if (/^\d+\.\d+\.\d+\.\d+$/.test(urlHost)) {
+              apiBaseEl.value = `${window.location.protocol}//${urlHost}:3000`;
+            }
+          }
+        } catch (e) {
+          console.warn("prefill check failed", e);
+        }
+      });
+
+      // --- Scanner for customer QR (address) ---
+      let scanStream = null;
+      let scanReader = null;
+      const scanVideo = document.getElementById("scanVideo");
+      const scanStatus = document.getElementById("scanStatus");
+      const customerAddrEl = document.getElementById("customerAddr");
+      const scanFile = document.getElementById("scanFile");
+
+      function initScanner() {
+        try {
+          scanReader = new (window.ZXing || ZXing).BrowserMultiFormatReader();
+        } catch (e) {
+          console.warn("ZXing init failed", e);
+          scanStatus.textContent = "QR decoder not available";
+          scanStatus.className = "status error";
+          return;
+        }
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices
+            .getUserMedia({ video: { facingMode: "environment" } })
+            .then((s) => {
+              scanStream = s;
+              scanVideo.srcObject = s;
+              scanVideo.play();
+              scanStatus.textContent = "Point camera at customer QR";
+              scanStatus.className = "status info";
+              scanLoop();
+            })
+            .catch((err) => {
+              console.warn("camera failed", err);
+              scanStatus.textContent = "Camera unavailable — use file upload";
+              scanStatus.className = "status warning";
+            });
+        } else {
+          scanStatus.textContent = "Camera not supported — use file upload";
+          scanStatus.className = "status warning";
+        }
+
+        if (scanFile) scanFile.addEventListener("change", handleScanFile);
+      }
+
+      async function scanLoop() {
+        if (!scanReader || !scanVideo) return;
+        try {
+          const result = await scanReader.decodeOnceFromVideoElement(scanVideo);
+          if (result) {
+            handleScannedText(
+              result.getText ? result.getText() : result.text || ""
+            );
+          }
+        } catch (e) {
+          // ignore, retry
+        }
+        setTimeout(scanLoop, 500);
+      }
+
+      function handleScannedText(text) {
+        scanStatus.textContent = "Decoded: " + text;
+        scanStatus.className = "status success";
+        // Try to extract address
+        const addr = extractAddressFromText(text);
+        if (addr) {
+          customerAddrEl.value = addr;
+        }
+      }
+
+      function extractAddressFromText(text) {
+        try {
+          // If it's a URL with params
+          if (text.startsWith("http")) {
+            const u = new URL(text);
+            const p =
+              u.searchParams.get("customer") ||
+              u.searchParams.get("addr") ||
+              u.searchParams.get("address");
+            if (p && /^0x[0-9a-fA-F]{40}$/.test(p)) return p;
+          }
+        } catch (e) {}
+        // Plain address
+        const m = text.match(/0x[0-9a-fA-F]{40}/);
+        return m ? m[0] : null;
+      }
+
+      async function handleScanFile(ev) {
+        const file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        scanStatus.textContent = "Decoding image...";
+        scanStatus.className = "status info";
+        const img = document.createElement("img");
+        img.style.display = "none";
+        document.body.appendChild(img);
+        img.onload = async () => {
+          try {
+            const result = await scanReader.decodeFromImageElement(img);
+            const text = result.getText ? result.getText() : result.text || "";
+            handleScannedText(text);
+          } catch (err) {
+            scanStatus.textContent = "No QR found in image";
+            scanStatus.className = "status error";
+          } finally {
+            URL.revokeObjectURL(img.src);
+            img.remove();
+          }
+        };
+        img.src = URL.createObjectURL(file);
+      }
+
+      async function giveStamps() {
+        const apiBase = apiBaseEl.value.replace(/\/$/, "");
+        const apiKey = apiKeyEl.value;
+        const customer = customerAddrEl.value.trim();
+        const count = Number(document.getElementById("stampCount").value || 1);
+        if (!/^0x[0-9a-fA-F]{40}$/.test(customer)) {
+          scanStatus.textContent = "Invalid customer address";
+          scanStatus.className = "status error";
+          return;
+        }
+        scanStatus.textContent = "Sending stamp request...";
+        scanStatus.className = "status loading";
+
+        // --- DEBUG: Zeige Ziel-URL und Daten an ---
+        console.log("[DEBUG] POST", apiBase + "/stamp-by-cafe", {
+          customer,
+          count,
+        });
+        scanStatus.textContent = `DEBUG: POST ${apiBase}/stamp-by-cafe\nBody: ${JSON.stringify(
+          { customer, count }
+        )}`;
+
+        try {
+          const resp = await fetch(apiBase + "/stamp-by-cafe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+            },
+            body: JSON.stringify({ customer, count }),
+          });
+
+          const ct = resp.headers.get("content-type") || "";
+          if (!ct.includes("application/json")) {
+            const text = await resp.text();
+            throw new Error(
+              `Unexpected non-JSON response from API. Are you using the correct API base?\nResponse starts with: ${text.slice(
+                0,
+                300
+              )}`
+            );
+          }
+
+          const data = await resp.json();
+          if (data.success) {
+            scanStatus.textContent = `✅ ${
+              data.count
+            } Stempel gesetzt. TXs: ${data.txHashes.join(", ")}`;
+            scanStatus.className = "status success";
+          } else {
+            scanStatus.textContent = "❌ Error: " + JSON.stringify(data);
+            scanStatus.className = "status error";
+          }
+        } catch (err) {
+          scanStatus.textContent = "❌ Network error: " + (err.message || err);
+          scanStatus.className = "status error";
+          console.error("giveStamps error:", err);
+        }
+      }
+
+      async function testApi() {
+        const apiBase = apiBaseEl.value.replace(/\/$/, "");
+        const status = document.getElementById("status");
+        try {
+          status.textContent = "Pinging API...";
+          status.className = "status loading";
+          const res = await fetch(apiBase + "/health", { method: "GET" });
+          const ct = res.headers.get("content-type") || "";
+          if (!ct.includes("application/json")) {
+            const t = await res.text();
+            status.textContent =
+              "❌ Unexpected response (not JSON). Is API running?";
+            status.className = "status error";
+            console.error("health returned non-json:", t.slice(0, 300));
+            return;
+          }
+          const data = await res.json();
+          if (data && data.status === "ok") {
+            status.textContent = "✅ API reachable: /health ok";
+            status.className = "status success";
+          } else {
+            status.textContent = "❌ API replied but /health not ok";
+            status.className = "status error";
+          }
+        } catch (err) {
+          status.textContent = "❌ API unreachable: " + (err.message || err);
+          status.className = "status error";
+          console.error("testApi error:", err);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "dev:cafe": "pnpm --filter @app/cafe dev",
+    "dev:customer": "pnpm --filter @app/customer dev",
+    "dev:contracts": "pnpm --filter @stamp/contracts dev"
+  }
+}
