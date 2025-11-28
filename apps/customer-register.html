@@ -338,7 +338,9 @@
       <div class="avatar" id="userAvatar">M</div>
       <div class="info">
         <div class="name" id="userName">Max Mustermann</div>
-        <div class="email" id="userEmail">max@example.com</div>
+        <div class="email" id="userEmail">
+          <span id="userStampCount">0</span> 🎫 Stempel
+        </div>
       </div>
       <button class="logout" id="logoutBtn">Abmelden</button>
     </div>
@@ -481,7 +483,7 @@
       let customer = null;
       let selectedCafe = null;
       let cafes = [];
-      let apiBase = null;
+      let apiBase = "http://192.168.0.175:3000"; // Default to fixed IP
       let sse = null;
 
       // Detect API
@@ -560,6 +562,9 @@
           // Save to localStorage
           localStorage.setItem("stamp_customer", JSON.stringify(customer));
 
+          // Update user badge
+          updateUserBadge();
+
           // Move to step 2
           step1.style.display = "none";
           step2.style.display = "block";
@@ -572,33 +577,13 @@
         }
       };
 
-      // Step 2: Select cafe and generate QR
+      // Step 2: Select cafe - redirect to home
       async function selectCafe(cafe) {
         selectedCafe = cafe;
+        localStorage.setItem("selected_cafe", cafe.id);
 
-        try {
-          const payload = JSON.stringify({
-            cafeId: String(cafe.id),
-            customer: customer.address,
-            customerName: customer.name || customer.email,
-          });
-
-          const qrUrl = await QRCode.toDataURL(payload, { width: 280 });
-          qrImg.src = qrUrl;
-
-          displayName.textContent = customer.name || customer.email;
-          displayCafe.textContent = cafe.name || `Café ${cafe.id}`;
-          displayAddress.textContent = customer.address;
-
-          // Move to step 3
-          step2.style.display = "none";
-          step3.style.display = "block";
-
-          // Start listening for stamps
-          connectSSE();
-        } catch (e) {
-          alert("Fehler beim Erstellen des QR-Codes: " + e.message);
-        }
+        // Redirect to new home screen
+        window.location.href = "/customer-home.html";
       }
 
       // Step 3: New QR button
@@ -615,7 +600,7 @@
           if (sse) sse.close();
           sse = new EventSource(apiBase + "/events/stream");
 
-          sse.onmessage = (e) => {
+          sse.onmessage = async (e) => {
             try {
               const event = JSON.parse(e.data);
               if (
@@ -626,22 +611,41 @@
                 toastEl.style.display = "block";
                 setTimeout(() => (toastEl.style.display = "none"), 3000);
 
-                // Add to events list
-                const div = document.createElement("div");
-                div.style.padding = "8px";
-                div.style.borderBottom = "1px solid #e2e8f0";
-                div.innerHTML = `<strong>${
-                  event.cafe || "Café"
-                }</strong> – ${new Date(
-                  event.ts
-                ).toLocaleString()}<br><small style="color:#718096;">${
-                  event.txhash || ""
-                }</small>`;
+                // Fetch updated stamp count
+                try {
+                  const stampsRes = await fetch(
+                    `${apiBase}/stamps/${customer.address}?fallback=1`
+                  );
+                  const stampsData = await stampsRes.json();
+                  const totalStamps =
+                    stampsData.stamps ?? stampsData.count ?? 0;
 
-                if (eventsList.querySelector("em")) {
-                  eventsList.innerHTML = "";
+                  // Add to events list with stamp count
+                  const div = document.createElement("div");
+                  div.style.padding = "8px";
+                  div.style.borderBottom = "1px solid #e2e8f0";
+                  div.innerHTML = `<strong>${
+                    event.cafe || "Café"
+                  }</strong> – ${new Date(
+                    event.ts
+                  ).toLocaleString()}<br><small style="color:#718096;">${
+                    event.txhash || ""
+                  }</small><br><strong style="color:#667eea;">🎫 Gesamt: ${totalStamps} Stempel</strong>`;
+
+                  if (eventsList.querySelector("em")) {
+                    eventsList.innerHTML = "";
+                  }
+                  eventsList.insertBefore(div, eventsList.firstChild);
+
+                  // Update badge stamp count
+                  const userStampCount =
+                    document.getElementById("userStampCount");
+                  if (userStampCount) {
+                    userStampCount.textContent = totalStamps;
+                  }
+                } catch (err) {
+                  console.error("Failed to fetch stamps:", err);
                 }
-                eventsList.insertBefore(div, eventsList.firstChild);
               }
             } catch (e) {
               console.warn("SSE parse error:", e);
@@ -657,15 +661,99 @@
         }
       }
 
+      // Update user badge
+      async function updateUserBadge() {
+        if (!customer) {
+          document.getElementById("userBadge").style.display = "none";
+          return;
+        }
+
+        const badge = document.getElementById("userBadge");
+        const avatar = document.getElementById("userAvatar");
+        const userName = document.getElementById("userName");
+        const userStampCount = document.getElementById("userStampCount");
+
+        badge.style.display = "flex";
+        avatar.textContent = (customer.name || customer.email || "U")
+          .charAt(0)
+          .toUpperCase();
+        userName.textContent = customer.name || "Kunde";
+
+        // Fetch and display total stamps
+        try {
+          const url = `${apiBase}/stamps/${customer.address}?fallback=1`;
+          console.log("Fetching stamps from:", url);
+          const res = await fetch(url);
+          const data = await res.json();
+          console.log("Stamps response:", data);
+          const stampCount = data.stamps ?? data.count ?? 0;
+          userStampCount.textContent = stampCount;
+        } catch (e) {
+          console.error("Failed to fetch stamps:", e);
+          userStampCount.textContent = "0";
+        }
+      }
+
+      // Logout
+      document.getElementById("logoutBtn").onclick = () => {
+        if (confirm("Möchtest du dich wirklich abmelden?")) {
+          customer = null;
+          selectedCafe = null;
+          localStorage.removeItem("stamp_customer");
+          updateUserBadge();
+          step1.style.display = "block";
+          step2.style.display = "none";
+          step3.style.display = "none";
+          document.getElementById("name").value = "";
+          document.getElementById("email").value = "";
+          if (sse) sse.close();
+        }
+      };
+
+      // Load stamp history from server
+      async function loadStampHistory() {
+        if (!customer) return;
+
+        try {
+          const res = await fetch(
+            `${apiBase}/stamps/history/${customer.address}`
+          );
+          if (!res.ok) {
+            console.warn("No stamp history endpoint available");
+            return;
+          }
+          const events = await res.json();
+
+          const eventsList = document.getElementById("eventsList");
+          if (events && events.length > 0) {
+            eventsList.innerHTML = "";
+            events.forEach((event) => {
+              const div = document.createElement("div");
+              div.style.padding = "8px";
+              div.style.borderBottom = "1px solid #e2e8f0";
+              div.innerHTML = `<strong>${
+                event.cafe || "Café"
+              }</strong> – ${new Date(
+                event.ts
+              ).toLocaleString()}<br><small style="color:#718096;">${
+                event.txhash || ""
+              }</small>`;
+              eventsList.appendChild(div);
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to load stamp history:", e);
+        }
+      }
+
       // Auto-login if saved
       (async function autoLogin() {
         try {
           const saved = localStorage.getItem("stamp_customer");
           if (saved) {
-            customer = JSON.parse(saved);
-            step1.style.display = "none";
-            step2.style.display = "block";
-            await loadCafes();
+            // User already exists - redirect to home
+            window.location.href = "/customer-home.html";
+            return;
           }
         } catch (e) {
           console.warn("Auto-login failed:", e);

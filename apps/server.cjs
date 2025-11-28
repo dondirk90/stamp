@@ -21,6 +21,13 @@ const server = http.createServer((req, res) => {
     pathname = pathname === "/" ? "/lan-setup.html" : pathname + "index.html";
   }
 
+  // Aliase ohne .html Endung für wichtige Seiten
+  if (pathname === "/customer-register") pathname = "/customer-register.html";
+  if (pathname === "/customer-home" || pathname === "/")
+    pathname = "/customer-home.html";
+  if (pathname === "/cafe-scanner") pathname = "/cafe-scanner-new.html";
+  if (pathname === "/cafe-onboarding") pathname = "/cafe-onboarding.html";
+
   // Security: Verhindere Directory Traversal
   const normalizedPath = path.normalize(pathname);
   if (normalizedPath.startsWith("..")) {
@@ -95,6 +102,12 @@ server.listen(PORT, "0.0.0.0", () => {
   );
   console.log(
     `  🧾 Customer — Create QR: http://localhost:${PORT}/customer-qr.html`
+  );
+  console.log(
+    `  🧾 Customer Register: http://localhost:${PORT}/customer-register.html`
+  );
+  console.log(
+    `  📷 Café Scanner: http://localhost:${PORT}/cafe-scanner-new.html`
   );
   console.log(`  🔧 LAN Setup Helper: http://localhost:${PORT}/lan-setup.html`);
   console.log(

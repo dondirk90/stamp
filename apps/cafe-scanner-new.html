@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Café Scanner - Stamp</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+            circle at 20% 50%,
+            rgba(120, 119, 198, 0.3),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(138, 43, 226, 0.3),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 20%,
+            rgba(72, 149, 239, 0.3),
+            transparent 50%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+      .card {
+        max-width: 500px;
+        margin: 40px auto;
+        background: rgba(255, 255, 255, 0.98);
+        padding: 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+          0 0 100px rgba(102, 126, 234, 0.2);
+        backdrop-filter: blur(10px);
+        position: relative;
+        z-index: 1;
+        animation: slideUp 0.5s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      h2 {
+        text-align: center;
+        color: #1a202c;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .subtitle {
+        text-align: center;
+        color: #718096;
+        font-size: 15px;
+        margin-bottom: 32px;
+      }
+      label {
+        display: block;
+        color: #2d3748;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+        margin-top: 20px;
+      }
+      input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: #fff;
+        color: #1a202c;
+      }
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+      }
+      button {
+        width: 100%;
+        padding: 16px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+      button.secondary {
+        background: #f7fafc;
+        color: #4a5568;
+        border: 2px solid #e2e8f0;
+      }
+      .user-badge {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px 20px;
+        border-radius: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+      }
+      .user-badge .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .user-badge .info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .user-badge .name {
+        font-weight: 600;
+        color: #1a202c;
+        font-size: 14px;
+      }
+      .user-badge .logout {
+        margin-left: 12px;
+        padding: 6px 12px;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #4a5568;
+        transition: all 0.2s;
+      }
+      .user-badge .logout:hover {
+        background: #e2e8f0;
+      }
+      #videoContainer {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin: 24px auto;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+      #video {
+        width: 100%;
+        display: block;
+      }
+      .scan-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 200px;
+        border: 3px solid #667eea;
+        border-radius: 12px;
+        pointer-events: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+      }
+      .customer-info {
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 24px;
+      }
+      .customer-info .label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+      .customer-info .value {
+        color: #718096;
+        font-size: 14px;
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        background: white;
+        border-radius: 8px;
+      }
+      .stamp-controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+      }
+      .stamp-input {
+        flex: 1;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 18px;
+        text-align: center;
+        font-weight: 600;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 40px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        padding: 16px 28px;
+        border-radius: 50px;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
+        display: none;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideUp 0.3s ease-out;
+      }
+      .error-toast {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Café Badge -->
+    <div id="cafeBadge" class="user-badge">
+      <div class="avatar" id="cafeAvatar">☕</div>
+      <div class="info">
+        <div class="name" id="cafeName">Café Name</div>
+      </div>
+      <button class="logout" id="logoutBtn">Abmelden</button>
+    </div>
+
+    <div class="card">
+      <!-- Login Screen -->
+      <div id="loginScreen">
+        <h2>☕ Café Scanner</h2>
+        <p class="subtitle">Melde dich mit deinem Café-Konto an</p>
+
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            justify-content: center;
+          "
+        >
+          <button
+            id="tabApiKey"
+            class="secondary"
+            style="
+              flex: 1;
+              margin: 0;
+              padding: 12px;
+              font-size: 14px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              border: none;
+            "
+            onclick="showTab('apikey')"
+          >
+            🔑 API-Key
+          </button>
+          <button
+            id="tabRestore"
+            class="secondary"
+            style="flex: 1; margin: 0; padding: 12px; font-size: 14px"
+            onclick="showTab('wallet')"
+          >
+            🔄 Wallet
+          </button>
+        </div>
+
+        <!-- API Key Login -->
+        <div id="apiKeyTab">
+          <label>🔑 Café API-Key</label>
+          <input
+            id="apiKeyInput"
+            type="password"
+            placeholder="Dein Café API-Key"
+          />
+          <div
+            id="apiKeyHints"
+            style="
+              margin-top: 12px;
+              padding: 12px;
+              background: #f7fafc;
+              border-radius: 8px;
+              display: none;
+            "
+          >
+            <div style="font-size: 13px; color: #718096; margin-bottom: 8px">
+              💡 Registrierte API-Keys (erste 3 Zeichen):
+            </div>
+            <div
+              id="apiKeyList"
+              style="font-family: monospace; font-size: 12px; color: #4a5568"
+            ></div>
+          </div>
+          <button
+            id="showHintsBtn"
+            style="
+              margin-top: 12px;
+              background: #f7fafc;
+              color: #4a5568;
+              border: 2px solid #e2e8f0;
+              font-size: 14px;
+              text-transform: none;
+              letter-spacing: normal;
+            "
+          >
+            💡 API-Key Hinweise anzeigen
+          </button>
+          <button id="loginBtn">🚀 Anmelden</button>
+        </div>
+
+        <!-- Wallet Login -->
+        <div id="walletTab" style="display: none">
+          <label>🌱 Seed Phrase oder Private Key</label>
+          <textarea
+            id="seedInput"
+            type="password"
+            placeholder="12 Wörter durch Leerzeichen getrennt oder 0x..."
+            style="
+              min-height: 80px;
+              resize: vertical;
+              font-family: monospace;
+              font-size: 14px;
+            "
+          ></textarea>
+          <button id="walletLoginBtn">🔑 Mit Wallet anmelden</button>
+        </div>
+      </div>
+
+      <!-- Scanner Screen -->
+      <div id="scannerScreen" style="display: none">
+        <h2>🔗 Kunden-Link öffnen</h2>
+        <p class="subtitle">
+          Kunden-QR mit der Handy-Kamera scannen – diese Seite lädt dann direkt
+          die Daten (keine Browser-Kamera nötig).
+        </p>
+        <div
+          style="
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #2d3748;
+            line-height: 1.4;
+          "
+        >
+          Ablauf:<br />1️⃣ Kunde zeigt QR-Code.<br />2️⃣ Barista scannt mit
+          Kamera-App.<br />3️⃣ Der Link öffnet diese Seite mit den Parametern.<br />4️⃣
+          Nach Login werden Wallet & Stempel sofort angezeigt.<br /><br />Zum
+          erneuten Laden einfach erneut scannen.
+        </div>
+
+        <div id="customerInfo" class="customer-info" style="display: none">
+          <div class="label">👤 Kundeninformation</div>
+          <div class="value">
+            <strong>Name:</strong> <span id="customerName">-</span>
+          </div>
+          <div class="value">
+            <strong>Wallet:</strong>
+            <span
+              id="customerAddress"
+              style="font-family: monospace; font-size: 12px"
+              >-</span
+            >
+          </div>
+          <div class="value">
+            <strong>Aktuelle Stempel:</strong> <span id="currentStamps">-</span>
+          </div>
+
+          <div class="stamp-controls">
+            <input
+              type="number"
+              class="stamp-input"
+              id="stampAmount"
+              value="1"
+              min="1"
+              max="10"
+            />
+            <button id="awardBtn" style="margin: 0; flex: 2">
+              ✅ Stempel vergeben
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast" class="toast">✅ Stempel vergeben!</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+      // Elements
+      const loginScreen = document.getElementById("loginScreen");
+      const scannerScreen = document.getElementById("scannerScreen");
+      const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const video = document.getElementById("video");
+      const customerInfo = document.getElementById("customerInfo");
+      const customerName = document.getElementById("customerName");
+      const customerAddress = document.getElementById("customerAddress");
+      const currentStamps = document.getElementById("currentStamps");
+      const stampAmount = document.getElementById("stampAmount");
+      const awardBtn = document.getElementById("awardBtn");
+      const cafeBadge = document.getElementById("cafeBadge");
+      const cafeName = document.getElementById("cafeName");
+      const cafeAvatar = document.getElementById("cafeAvatar");
+      const toast = document.getElementById("toast");
+
+      // State
+      let cafe = null;
+      let apiBase = "http://192.168.0.175:3000";
+      let scannedCustomer = null;
+      let scanning = false;
+      let stream = null;
+
+      // Detect API
+      async function detectAPI() {
+        const candidates = [
+          "http://192.168.0.175:3000",
+          `${location.protocol}//${location.hostname}:3000`,
+          "http://127.0.0.1:3000",
+        ];
+        for (const base of candidates) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 1000);
+            const res = await fetch(base + "/debug/info", {
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (res.ok) return base;
+          } catch (e) {}
+        }
+        return "http://192.168.0.175:3000";
+      }
+
+      // Show toast
+      function showToast(message, isError = false) {
+        toast.textContent = message;
+        toast.className = "toast" + (isError ? " error-toast" : "");
+        toast.style.display = "block";
+        setTimeout(() => (toast.style.display = "none"), 3000);
+      }
+
+      // Tab switching
+      window.showTab = function (tab) {
+        const apiKeyTab = document.getElementById("apiKeyTab");
+        const walletTab = document.getElementById("walletTab");
+        const tabApiKey = document.getElementById("tabApiKey");
+        const tabRestore = document.getElementById("tabRestore");
+
+        if (tab === "apikey") {
+          apiKeyTab.style.display = "block";
+          walletTab.style.display = "none";
+          tabApiKey.style.background =
+            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+          tabApiKey.style.color = "white";
+          tabApiKey.style.border = "none";
+          tabRestore.style.background = "#f7fafc";
+          tabRestore.style.color = "#4a5568";
+          tabRestore.style.border = "2px solid #e2e8f0";
+        } else {
+          apiKeyTab.style.display = "none";
+          walletTab.style.display = "block";
+          tabRestore.style.background =
+            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+          tabRestore.style.color = "white";
+          tabRestore.style.border = "none";
+          tabApiKey.style.background = "#f7fafc";
+          tabApiKey.style.color = "#4a5568";
+          tabApiKey.style.border = "2px solid #e2e8f0";
+        }
+      };
+
+      // Update café badge
+      function updateCafeBadge() {
+        if (!cafe) {
+          cafeBadge.style.display = "none";
+          return;
+        }
+        cafeBadge.style.display = "flex";
+        cafeName.textContent = cafe.name || "Café";
+        cafeAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
+      }
+
+      // Login
+      loginBtn.onclick = async () => {
+        const apiKey = apiKeyInput.value.trim();
+        if (!apiKey) {
+          alert("Bitte gib deinen API-Key ein");
+          return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = "Wird angemeldet...";
+
+        try {
+          apiBase = await detectAPI();
+
+          // First get all cafes to find matching one
+          const cafesRes = await fetch(apiBase + "/cafes");
+          const cafes = await cafesRes.json();
+
+          // Find cafe with matching API key
+          const matchingCafe = cafes.find((c) => c.api_key === apiKey);
+
+          console.log("Verfügbare Cafés:", cafes);
+          console.log("Eingegebener API-Key:", apiKey);
+          console.log("Gefundenes Café:", matchingCafe);
+
+          if (!matchingCafe) {
+            const hints = cafes
+              .map((c) =>
+                c.api_key ? c.api_key.substring(0, 3) + "..." : "???"
+              )
+              .join(", ");
+            throw new Error(
+              `API-Key nicht gefunden.\nVerfügbare Keys: ${hints}`
+            );
+          }
+
+          // Store session (API-Key ist bereits validiert durch DB-Fund)
+          cafe = {
+            apiKey,
+            name: matchingCafe.name || "Café",
+            id: matchingCafe.id,
+            address: matchingCafe.address,
+          };
+          localStorage.setItem("cafe_session", JSON.stringify(cafe));
+
+          // Update UI
+          updateCafeBadge();
+          loginScreen.style.display = "none";
+          scannerScreen.style.display = "block";
+
+          // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
+          loadPendingScan();
+        } catch (e) {
+          alert("Fehler beim Anmelden: " + e.message);
+          loginBtn.disabled = false;
+          loginBtn.textContent = "🚀 Anmelden";
+        }
+      };
+
+      // Wallet Login
+      document.getElementById("walletLoginBtn").onclick = async () => {
+        const seedInput = document.getElementById("seedInput").value.trim();
+        if (!seedInput) {
+          alert("Bitte gib deine Seed Phrase oder Private Key ein");
+          return;
+        }
+
+        const btn = document.getElementById("walletLoginBtn");
+        btn.disabled = true;
+        btn.textContent = "Wird verarbeitet...";
+
+        try {
+          apiBase = await detectAPI();
+          let wallet;
+
+          // Try as mnemonic first
+          if (seedInput.split(" ").length >= 12) {
+            wallet = ethers.Wallet.fromPhrase(seedInput);
+          } else {
+            // Try as private key
+            wallet = new ethers.Wallet(
+              seedInput.startsWith("0x") ? seedInput : "0x" + seedInput
+            );
+          }
+
+          // Check if this wallet exists as a café
+          const cafesRes = await fetch(apiBase + "/cafes");
+          const cafes = await cafesRes.json();
+
+          console.log("Suche Wallet:", wallet.address);
+          console.log(
+            "Verfügbare Cafés:",
+            cafes.map((c) => ({
+              id: c.id,
+              name: c.name,
+              address: c.address,
+              hasApiKey: !!c.api_key,
+            }))
+          );
+
+          const matchingCafe = cafes.find((c) => {
+            // Try to get address from encrypted_key if available
+            if (c.address) {
+              return c.address.toLowerCase() === wallet.address.toLowerCase();
+            }
+            return false;
+          });
+
+          if (matchingCafe) {
+            console.log("Gefundenes Café:", matchingCafe);
+
+            if (!matchingCafe.api_key) {
+              throw new Error(
+                "Café gefunden, aber kein API-Key vorhanden. ID: " +
+                  matchingCafe.id
+              );
+            }
+
+            // Use existing API key
+            cafe = {
+              apiKey: matchingCafe.api_key,
+              name: matchingCafe.name || "Café",
+              address: wallet.address,
+              id: matchingCafe.id,
+            };
+            localStorage.setItem("cafe_session", JSON.stringify(cafe));
+
+            updateCafeBadge();
+            loginScreen.style.display = "none";
+            scannerScreen.style.display = "block";
+            loadPendingScan();
+            showToast("✅ Erfolgreich angemeldet!");
+          } else {
+            const addresses = cafes
+              .map((c) => c.address || "keine Adresse")
+              .join(", ");
+            throw new Error(
+              `Kein Café mit Wallet ${wallet.address} gefunden.\nRegistrierte Adressen: ${addresses}`
+            );
+          }
+        } catch (e) {
+          alert("Fehler: " + e.message);
+          btn.disabled = false;
+          btn.textContent = "🔑 Mit Wallet anmelden";
+        }
+      };
+
+      // Show API Key Hints
+      document.getElementById("showHintsBtn").onclick = async () => {
+        const hintsDiv = document.getElementById("apiKeyHints");
+        const listDiv = document.getElementById("apiKeyList");
+
+        if (hintsDiv.style.display === "block") {
+          hintsDiv.style.display = "none";
+          return;
+        }
+
+        try {
+          apiBase = await detectAPI();
+          const res = await fetch(apiBase + "/cafes");
+          const cafes = await res.json();
+
+          if (cafes.length === 0) {
+            listDiv.innerHTML =
+              '<div style="color: #718096;">Keine Cafés registriert</div>';
+          } else {
+            listDiv.innerHTML = cafes
+              .map((c) => {
+                const hint = c.api_key
+                  ? c.api_key.substring(0, 3) + "..."
+                  : "???";
+                const name = c.name || "Unbenannt";
+                return `<div style="padding: 4px 0;"><strong>${name}</strong>: ${hint}</div>`;
+              })
+              .join("");
+          }
+
+          hintsDiv.style.display = "block";
+        } catch (e) {
+          alert("Fehler beim Laden der Hinweise: " + e.message);
+        }
+      };
+
+      // Logout
+      logoutBtn.onclick = () => {
+        if (confirm("Möchtest du dich wirklich abmelden?")) {
+          cafe = null;
+          scannedCustomer = null;
+          localStorage.removeItem("cafe_session");
+          // Keine Kamera mehr zu stoppen
+          updateCafeBadge();
+          loginScreen.style.display = "block";
+          scannerScreen.style.display = "none";
+          customerInfo.style.display = "none";
+          apiKeyInput.value = "";
+          document.getElementById("seedInput").value = "";
+        }
+      };
+
+      // URL-basierter Scan (ohne Kamera)
+      let pendingScan = null;
+      function capturePendingFromURL() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const c = params.get("customer");
+          if (c) {
+            pendingScan = {
+              address: c,
+              name: params.get("customerName") || "Unbekannt",
+              cafeId: params.get("cafe") || null,
+            };
+          }
+        } catch (e) {
+          console.warn("Keine URL-Scan-Parameter", e);
+        }
+      }
+      capturePendingFromURL();
+
+      async function loadPendingScan() {
+        console.log(
+          "loadPendingScan called, pendingScan:",
+          pendingScan,
+          "cafe:",
+          cafe
+        );
+        if (!pendingScan) return;
+        if (scannedCustomer && scannedCustomer.address === pendingScan.address)
+          return;
+        scannedCustomer = {
+          address: pendingScan.address,
+          name: pendingScan.name,
+        };
+        localStorage.setItem(
+          "last_scanned_customer",
+          JSON.stringify(scannedCustomer)
+        );
+        try {
+          const res = await fetch(
+            `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${
+              cafe.address || ""
+            }`
+          );
+          const data = await res.json();
+          customerName.textContent = scannedCustomer.name;
+          customerAddress.textContent = scannedCustomer.address;
+          currentStamps.textContent = data.stamps ?? data.count ?? 0;
+          customerInfo.style.display = "block";
+          awardBtn.disabled = false;
+          awardBtn.textContent = "✅ Stempel vergeben";
+          showToast("Kunde geladen ✔️");
+        } catch (e) {
+          console.warn("Stempel laden fehlgeschlagen", e);
+          showToast("Fehler beim Laden der Stempel", true);
+        }
+      }
+
+      // Award stamps
+      awardBtn.onclick = async () => {
+        if (!scannedCustomer || !cafe) return;
+
+        const amount = parseInt(stampAmount.value) || 1;
+        console.log("Award attempt:", {
+          cafe,
+          apiKey: cafe.apiKey,
+          customer: scannedCustomer.address,
+        });
+        awardBtn.disabled = true;
+        awardBtn.textContent = "Wird vergeben...";
+
+        try {
+          const res = await fetch(apiBase + "/stamp-by-cafe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": cafe.apiKey,
+            },
+            body: JSON.stringify({
+              customer: scannedCustomer.address,
+              customerName: scannedCustomer.name,
+              count: amount,
+            }),
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            console.error("Stamp award failure", res.status, text);
+            let detail;
+            try {
+              detail = JSON.parse(text);
+            } catch {
+              detail = text;
+            }
+            const errMsg = detail && detail.error ? detail.error : detail;
+            throw new Error(`Status ${res.status}: ${errMsg}`);
+          }
+
+          const data = await res.json();
+
+          // Update stamps display
+          currentStamps.textContent =
+            (parseInt(currentStamps.textContent) || 0) + amount;
+
+          showToast(`✅ ${amount} Stempel vergeben!`);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            scannedCustomer = null;
+            localStorage.removeItem("last_scanned_customer");
+            customerInfo.style.display = "none";
+            awardBtn.disabled = false;
+            awardBtn.textContent = "✅ Stempel vergeben";
+          }, 1800);
+        } catch (e) {
+          showToast("❌ Fehler: " + e.message, true);
+          awardBtn.disabled = false;
+          awardBtn.textContent = "✅ Stempel vergeben";
+        }
+      };
+
+      // Auto-login if saved
+      (async function autoLogin() {
+        try {
+          const saved = localStorage.getItem("cafe_session");
+          if (saved) {
+            cafe = JSON.parse(saved);
+
+            // Validate café against server to ensure API key still exists
+            try {
+              const cafesRes = await fetch(`${apiBase}/cafes`);
+              const cafesData = await cafesRes.json();
+              const cafes = Array.isArray(cafesData)
+                ? cafesData
+                : cafesData.cafes || [];
+              console.log(
+                "Auto-Login: Checking API key",
+                cafe.apiKey,
+                "against cafes:",
+                cafes
+              );
+              const validCafe = cafes.find((c) => c.api_key === cafe.apiKey);
+
+              if (!validCafe) {
+                console.warn(
+                  "⚠️ Gespeichertes Café nicht mehr gültig, lösche localStorage"
+                );
+                localStorage.removeItem("cafe_session");
+                localStorage.removeItem("last_scanned_customer");
+                location.reload();
+                return;
+              }
+
+              console.log("✅ Café validation successful:", validCafe);
+
+              // Update café object with fresh data
+              cafe.name = validCafe.name;
+              cafe.id = validCafe.id;
+              if (validCafe.address) cafe.address = validCafe.address;
+              localStorage.setItem("cafe_session", JSON.stringify(cafe));
+            } catch (err) {
+              console.error("Café validation failed:", err);
+            }
+
+            console.log("Auto-Login für Café:", cafe);
+            updateCafeBadge();
+            loginScreen.style.display = "none";
+            scannerScreen.style.display = "block";
+            customerInfo.style.display = "none";
+
+            // Lade evtl. vorhandenen Scan direkt
+            setTimeout(() => loadPendingScan(), 300);
+
+            // Restore last scanned customer and show award UI directly
+            const last = localStorage.getItem("last_scanned_customer");
+            if (last) {
+              try {
+                scannedCustomer = JSON.parse(last);
+                customerName.textContent = scannedCustomer.name;
+                customerAddress.textContent = scannedCustomer.address;
+                customerInfo.style.display = "block";
+
+                // Fetch current stamps
+                const stampsRes = await fetch(
+                  `${apiBase}/stamps/${
+                    scannedCustomer.address
+                  }?fallback=1&cafe=${cafe.address || ""}`
+                );
+                const stampsData = await stampsRes.json();
+                const stamps = stampsData.stamps ?? stampsData.count ?? 0;
+                currentStamps.textContent = stamps;
+                console.log("Restored customer stamps:", stamps);
+
+                awardBtn.disabled = false;
+                awardBtn.textContent = "Stempel vergeben";
+              } catch (e) {
+                console.error("Restore last scanned failed", e);
+                localStorage.removeItem("last_scanned_customer");
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Auto-login failed:", e);
+          localStorage.removeItem("cafe_session");
+        }
+      })();
+
+      // Check if URL has scan parameters even without auto-login
+      // This handles the case when user scans QR but isn't logged in yet
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          if (pendingScan && !scannedCustomer && cafe) {
+            console.log("Loading pending scan after page load...");
+            loadPendingScan();
+          }
+        }, 500);
+      });
+    </script>
+  </body>
+</html>

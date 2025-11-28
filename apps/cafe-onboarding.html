@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Café Registrierung - Stampcard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+        position: relative;
+      }
+      h1 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 2rem;
+        text-align: center;
+      }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 0.95rem;
+      }
+
+      /* Step Indicators */
+      .step-indicators {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 40px;
+        gap: 10px;
+      }
+      .step-indicator {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #999;
+        transition: all 0.3s ease;
+      }
+      .step-indicator.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        transform: scale(1.1);
+      }
+      .step-indicator.completed {
+        background: #4caf50;
+        color: white;
+      }
+      .step-line {
+        width: 60px;
+        height: 3px;
+        background: #e0e0e0;
+        transition: all 0.3s ease;
+      }
+      .step-line.active {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      /* Form Sections */
+      .step-section {
+        display: none;
+      }
+      .step-section.active {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="number"],
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        font-family: inherit;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      /* Radio buttons for stamp mode */
+      .radio-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 10px;
+      }
+      .radio-option {
+        flex: 1;
+        position: relative;
+      }
+      .radio-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+      }
+      .radio-option label {
+        display: block;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 0;
+      }
+      .radio-option input[type="radio"]:checked + label {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      /* Product list */
+      .product-list {
+        margin-top: 15px;
+      }
+      .product-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+      }
+      .product-item input {
+        flex: 1;
+      }
+      .btn-remove {
+        padding: 10px 15px;
+        background: #f44336;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.3s ease;
+      }
+      .btn-remove:hover {
+        background: #d32f2f;
+      }
+      .btn-add-product {
+        width: 100%;
+        padding: 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 10px;
+        transition: background 0.3s ease;
+      }
+      .btn-add-product:hover {
+        background: #45a049;
+      }
+
+      /* Buttons */
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+      }
+      .btn {
+        flex: 1;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+      .btn-secondary {
+        background: #e0e0e0;
+        color: #333;
+      }
+      .btn-secondary:hover {
+        background: #d0d0d0;
+      }
+
+      /* Success screen */
+      .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #4caf50;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+      }
+      .credentials-box {
+        background: #f5f5f5;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        font-family: "Courier New", monospace;
+      }
+      .credential-item {
+        margin-bottom: 15px;
+      }
+      .credential-label {
+        font-weight: bold;
+        color: #666;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+      }
+      .credential-value {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        word-break: break-all;
+        font-size: 0.9rem;
+        border: 1px solid #ddd;
+      }
+      .warning-box {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 20px 0;
+        color: #856404;
+      }
+      .warning-box strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1.1rem;
+      }
+
+      .error-message {
+        background: #ffebee;
+        color: #c62828;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: none;
+      }
+      .error-message.show {
+        display: block;
+        animation: shake 0.3s ease;
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-5px);
+        }
+        75% {
+          transform: translateX(5px);
+        }
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+      .loading.show {
+        display: block;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>☕ Café Registrierung</h1>
+      <p class="subtitle">Erstelle dein Stampcard-System in 3 Schritten</p>
+
+      <!-- Step Indicators -->
+      <div class="step-indicators">
+        <div class="step-indicator active" data-step="1">1</div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="2">2</div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="3">3</div>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+
+      <!-- Step 1: Basic Info -->
+      <div class="step-section active" id="step1">
+        <h2 style="margin-bottom: 25px; color: #333">Grundinformationen</h2>
+
+        <div class="form-group">
+          <label for="cafeName">Name des Cafés *</label>
+          <input
+            type="text"
+            id="cafeName"
+            placeholder="z.B. Café Latte"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">E-Mail Adresse *</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="cafe@example.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Passwort *</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Mindestens 6 Zeichen"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Passwort bestätigen *</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            placeholder="Passwort wiederholen"
+            required
+          />
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="goToStep2()">
+            Weiter →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Stamp Setup -->
+      <div class="step-section" id="step2">
+        <h2 style="margin-bottom: 25px; color: #333">
+          Stempel-System konfigurieren
+        </h2>
+
+        <div class="form-group">
+          <label>Stempel-Modus *</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input
+                type="radio"
+                id="modeGeneral"
+                name="stampMode"
+                value="general"
+                checked
+              />
+              <label for="modeGeneral">
+                <div style="font-size: 1.3rem; margin-bottom: 5px">📋</div>
+                Allgemein<br />
+                <small style="color: #999">Für alle Käufe</small>
+              </label>
+            </div>
+            <div class="radio-option">
+              <input
+                type="radio"
+                id="modeSpecific"
+                name="stampMode"
+                value="specific"
+              />
+              <label for="modeSpecific">
+                <div style="font-size: 1.3rem; margin-bottom: 5px">☕</div>
+                Spezifisch<br />
+                <small style="color: #999">Für bestimmte Produkte</small>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" id="productsGroup" style="display: none">
+          <label>Produkte für Stempel *</label>
+          <div class="product-list" id="productList">
+            <div class="product-item">
+              <input
+                type="text"
+                class="product-input"
+                placeholder="z.B. Cappuccino"
+                required
+              />
+              <button class="btn-remove" onclick="removeProduct(this)">
+                ✕
+              </button>
+            </div>
+          </div>
+          <button class="btn-add-product" onclick="addProduct()">
+            + Produkt hinzufügen
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="stampsForReward">Stempel für Belohnung *</label>
+          <input
+            type="number"
+            id="stampsForReward"
+            value="10"
+            min="1"
+            max="20"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="rewardDescription">Belohnungs-Beschreibung *</label>
+          <textarea
+            id="rewardDescription"
+            rows="3"
+            placeholder="z.B. Ein Freigetränk deiner Wahl"
+            required
+          ></textarea>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-secondary" onclick="goToStep1()">
+            ← Zurück
+          </button>
+          <button class="btn btn-primary" onclick="submitRegistration()">
+            Registrieren
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div class="step-section" id="step3">
+        <div class="success-icon">✓</div>
+        <h2 style="text-align: center; color: #4caf50; margin-bottom: 15px">
+          Registrierung erfolgreich!
+        </h2>
+        <p style="text-align: center; color: #666; margin-bottom: 30px">
+          Dein Café wurde erfolgreich eingerichtet. Die Zugangsdaten wurden an
+          <strong id="successEmail"></strong> gesendet.
+        </p>
+
+        <div class="warning-box">
+          <strong>⚠️ Wichtig:</strong>
+          Bitte speichere diese Informationen sicher ab. Der Seed Phrase
+          ermöglicht den Zugriff auf dein Wallet und kann nicht
+          wiederhergestellt werden!
+        </div>
+
+        <div class="credentials-box" id="credentialsBox">
+          <div class="credential-item">
+            <div class="credential-label">Café Name</div>
+            <div class="credential-value" id="showCafeName"></div>
+          </div>
+          <div class="credential-item">
+            <div class="credential-label">API Key</div>
+            <div class="credential-value" id="showApiKey"></div>
+          </div>
+          <div class="credential-item">
+            <div class="credential-label">Wallet Adresse</div>
+            <div class="credential-value" id="showAddress"></div>
+          </div>
+          <div class="credential-item">
+            <div class="credential-label">Seed Phrase (12 Wörter)</div>
+            <div class="credential-value" id="showSeedPhrase"></div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button
+            class="btn btn-primary"
+            onclick="window.location.href='/cafe-scanner-new'"
+          >
+            Zum Scanner →
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Erstelle dein Café-System...</p>
+      </div>
+    </div>
+
+    <script>
+      const apiBase = "http://192.168.0.175:3000";
+      let currentStep = 1;
+
+      // Toggle product list visibility based on stamp mode
+      document.querySelectorAll('input[name="stampMode"]').forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          const productsGroup = document.getElementById("productsGroup");
+          productsGroup.style.display =
+            e.target.value === "specific" ? "block" : "none";
+        });
+      });
+
+      function showError(message) {
+        const errorEl = document.getElementById("errorMessage");
+        errorEl.textContent = message;
+        errorEl.classList.add("show");
+        setTimeout(() => errorEl.classList.remove("show"), 5000);
+      }
+
+      function updateStepIndicators(step) {
+        document
+          .querySelectorAll(".step-indicator")
+          .forEach((indicator, index) => {
+            const stepNum = index + 1;
+            if (stepNum < step) {
+              indicator.classList.add("completed");
+              indicator.classList.remove("active");
+            } else if (stepNum === step) {
+              indicator.classList.add("active");
+              indicator.classList.remove("completed");
+            } else {
+              indicator.classList.remove("active", "completed");
+            }
+          });
+
+        document.querySelectorAll(".step-line").forEach((line, index) => {
+          line.classList.toggle("active", index < step - 1);
+        });
+      }
+
+      function goToStep1() {
+        document.getElementById("step2").classList.remove("active");
+        document.getElementById("step1").classList.add("active");
+        currentStep = 1;
+        updateStepIndicators(1);
+      }
+
+      function goToStep2() {
+        // Validate Step 1
+        const cafeName = document.getElementById("cafeName").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+
+        if (!cafeName) {
+          showError("Bitte gib einen Café-Namen ein");
+          return;
+        }
+        if (!email || !email.includes("@")) {
+          showError("Bitte gib eine gültige E-Mail Adresse ein");
+          return;
+        }
+        if (password.length < 6) {
+          showError("Das Passwort muss mindestens 6 Zeichen lang sein");
+          return;
+        }
+        if (password !== confirmPassword) {
+          showError("Die Passwörter stimmen nicht überein");
+          return;
+        }
+
+        document.getElementById("step1").classList.remove("active");
+        document.getElementById("step2").classList.add("active");
+        currentStep = 2;
+        updateStepIndicators(2);
+      }
+
+      function addProduct() {
+        const productList = document.getElementById("productList");
+        const newItem = document.createElement("div");
+        newItem.className = "product-item";
+        newItem.innerHTML = `
+        <input type="text" class="product-input" placeholder="z.B. Cappuccino" required>
+        <button class="btn-remove" onclick="removeProduct(this)">✕</button>
+      `;
+        productList.appendChild(newItem);
+      }
+
+      function removeProduct(button) {
+        const productList = document.getElementById("productList");
+        if (productList.children.length > 1) {
+          button.parentElement.remove();
+        } else {
+          showError("Mindestens ein Produkt muss angegeben werden");
+        }
+      }
+
+      async function submitRegistration() {
+        // Validate Step 2
+        const stampMode = document.querySelector(
+          'input[name="stampMode"]:checked'
+        ).value;
+        const stampsForReward = parseInt(
+          document.getElementById("stampsForReward").value
+        );
+        const rewardDescription = document
+          .getElementById("rewardDescription")
+          .value.trim();
+
+        if (!rewardDescription) {
+          showError("Bitte gib eine Belohnungs-Beschreibung ein");
+          return;
+        }
+
+        let products = [];
+        if (stampMode === "specific") {
+          const productInputs = document.querySelectorAll(".product-input");
+          products = Array.from(productInputs)
+            .map((input) => input.value.trim())
+            .filter((p) => p);
+
+          if (products.length === 0) {
+            showError("Bitte gib mindestens ein Produkt ein");
+            return;
+          }
+        }
+
+        // Show loading
+        document.getElementById("step2").style.display = "none";
+        document.getElementById("loading").classList.add("show");
+
+        try {
+          const response = await fetch(`${apiBase}/cafes/register-with-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: document.getElementById("cafeName").value.trim(),
+              email: document.getElementById("email").value.trim(),
+              password: document.getElementById("password").value,
+              stampMode,
+              stampsForReward,
+              rewardDescription,
+              products,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "Registrierung fehlgeschlagen");
+          }
+
+          // Show success screen
+          document.getElementById("loading").classList.remove("show");
+          document.getElementById("step3").classList.add("active");
+          currentStep = 3;
+          updateStepIndicators(3);
+
+          // Fill credentials
+          document.getElementById("successEmail").textContent =
+            document.getElementById("email").value;
+          document.getElementById("showCafeName").textContent = data.name;
+          document.getElementById("showApiKey").textContent = data.apiKey;
+          document.getElementById("showAddress").textContent = data.address;
+          document.getElementById("showSeedPhrase").textContent =
+            data.seedPhrase;
+        } catch (error) {
+          document.getElementById("loading").classList.remove("show");
+          document.getElementById("step2").style.display = "block";
+          showError(error.message || "Ein Fehler ist aufgetreten");
+        }
+      }
+    </script>
+  </body>
+</html>

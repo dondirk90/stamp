@@ -3,6 +3,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env.local") });
 const { ethers, verifyTypedData } = require("ethers");
 const crypto = require("crypto");
 const util = require("util");
+const nodemailer = require("nodemailer");
 
 function sanitizeEnv(key) {
   const v = process.env[key];
@@ -73,6 +74,154 @@ if (!/^0x[0-9a-fA-F]{64}$/.test(PRIVATE_KEY)) {
   throw new Error(
     `❌ CAFE_PRIVATE_KEY has wrong format (len=${PRIVATE_KEY.length})`
   );
+}
+
+// === Email Configuration ===
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.EMAIL_PORT || "587"),
+  secure: process.env.EMAIL_SECURE === "true", // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+async function sendCafeCredentialsEmail({
+  email,
+  cafeName,
+  apiKey,
+  address,
+  seedPhrase,
+  config,
+}) {
+  const scannerUrl = `http://192.168.0.175:8080/cafe-scanner`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `🎉 Willkommen bei Stampcard - Zugangsdaten für ${cafeName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .credential-box { background: white; border: 2px solid #667eea; border-radius: 8px; padding: 15px; margin: 15px 0; }
+          .credential-label { font-weight: bold; color: #667eea; margin-bottom: 5px; }
+          .credential-value { font-family: 'Courier New', monospace; background: #f5f5f5; padding: 10px; border-radius: 5px; word-break: break-all; }
+          .warning { background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px 0; color: #856404; }
+          .button { display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>☕ Willkommen bei Stampcard!</h1>
+            <p>Dein Café wurde erfolgreich registriert</p>
+          </div>
+          <div class="content">
+            <h2>Hallo ${cafeName}!</h2>
+            <p>Dein digitales Stempelkarten-System ist jetzt einsatzbereit. Hier sind deine Zugangsdaten:</p>
+            
+            <div class="credential-box">
+              <div class="credential-label">🔑 API-Key</div>
+              <div class="credential-value">${apiKey}</div>
+            </div>
+            
+            <div class="credential-box">
+              <div class="credential-label">📍 Wallet-Adresse</div>
+              <div class="credential-value">${address}</div>
+            </div>
+            
+            <div class="credential-box">
+              <div class="credential-label">🌱 Seed Phrase (12 Wörter)</div>
+              <div class="credential-value">${seedPhrase}</div>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ WICHTIG - Bitte sicher aufbewahren!</strong><br>
+              Der Seed Phrase ermöglicht den vollständigen Zugriff auf dein Wallet und kann NICHT wiederhergestellt werden. 
+              Speichere diese Informationen an einem sicheren Ort ab!
+            </div>
+            
+            <h3>⚙️ Deine Konfiguration:</h3>
+            <ul>
+              <li><strong>Stempel-Modus:</strong> ${
+                config.stampMode === "general"
+                  ? "Allgemein (für alle Käufe)"
+                  : "Spezifisch (für bestimmte Produkte)"
+              }</li>
+              <li><strong>Stempel für Belohnung:</strong> ${
+                config.stampsForReward
+              }</li>
+              <li><strong>Belohnung:</strong> ${config.rewardDescription}</li>
+              ${
+                config.products && config.products.length > 0
+                  ? `<li><strong>Produkte:</strong> ${config.products.join(
+                      ", "
+                    )}</li>`
+                  : ""
+              }
+            </ul>
+            
+            <center>
+              <a href="${scannerUrl}" class="button">🚀 Zum Scanner</a>
+            </center>
+            
+            <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+              Bei Fragen oder Problemen kannst du dich jederzeit an uns wenden.<br>
+              Viel Erfolg mit deinem Stampcard-System!
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Willkommen bei Stampcard!
+
+Dein Café "${cafeName}" wurde erfolgreich registriert.
+
+ZUGANGSDATEN:
+=============
+API-Key: ${apiKey}
+Wallet-Adresse: ${address}
+Seed Phrase: ${seedPhrase}
+
+⚠️ WICHTIG: Bitte speichere diese Informationen sicher ab! Der Seed Phrase kann nicht wiederhergestellt werden.
+
+KONFIGURATION:
+==============
+Stempel-Modus: ${config.stampMode === "general" ? "Allgemein" : "Spezifisch"}
+Stempel für Belohnung: ${config.stampsForReward}
+Belohnung: ${config.rewardDescription}
+${
+  config.products && config.products.length > 0
+    ? `Produkte: ${config.products.join(", ")}`
+    : ""
+}
+
+Scanner-Zugang: ${scannerUrl}
+
+Viel Erfolg mit deinem Stampcard-System!
+    `.trim(),
+  };
+
+  // Only send if email credentials are configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️  Email credentials not configured. Email content:");
+    console.log("To:", email);
+    console.log("Subject:", mailOptions.subject);
+    console.log("Text:", mailOptions.text);
+    return;
+  }
+
+  const info = await emailTransporter.sendMail(mailOptions);
+  return info;
 }
 
 // === SQLite (better-sqlite3) ===
@@ -273,10 +422,12 @@ function requireApiKey(req, res, next) {
           req.cafeAddress = cafeWallet.address;
           return next();
         } catch (e) {
-          console.error(
-            "Failed to decrypt cafe private key:",
-            e && e.message ? e.message : e
-          );
+          console.error("Failed to decrypt cafe private key", {
+            api_key: key,
+            encrypted_key_len: cafe.encrypted_key.length,
+            master_key_len: (process.env.MASTER_KEY || "").length,
+            error: e && e.message ? e.message : e,
+          });
           return res.status(500).json({ error: "server_decrypt_failed" });
         }
       }
@@ -313,6 +464,30 @@ app.get("/health", (req, res) => {
     res.json({ status: "ok" });
   } catch {
     res.status(500).json({ status: "db_error" });
+  }
+});
+
+// Provider & Contract Debug
+app.get("/debug/contract", async (req, res) => {
+  try {
+    const net = await provider.getNetwork();
+    let blockNumber = null;
+    try {
+      blockNumber = await provider.getBlockNumber();
+    } catch (e) {}
+    res.json({
+      ok: true,
+      rpc: RPC_URL,
+      chainId: net.chainId,
+      blockNumber,
+      stampcardAddress: process.env.STAMPCARD_ADDRESS,
+      walletAddress: wallet.address,
+      hasContract: !!process.env.STAMPCARD_ADDRESS,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 
@@ -430,7 +605,6 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
         ts: Date.now(),
         cafe: cafeAddress,
         customer_name: customerName || null,
-        customer_name: customerName || null,
         user: customer,
         txhash: tx.hash,
       };
@@ -449,6 +623,7 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
       const ev = {
         ts: Date.now(),
         cafe: cafeAddress,
+        customer_name: customerName || null,
         user: customer,
         txhash: tx.hash,
       };
@@ -477,6 +652,8 @@ app.get("/stamps/:addr", async (req, res) => {
     const fallback =
       req.query &&
       (req.query.fallback === "1" || req.query.fallback === "true");
+    const cafeAddress = req.query && req.query.cafe;
+
     if (!wallet || !wallet.address) {
       console.error("Wallet not initialized");
       if (fallback)
@@ -488,23 +665,60 @@ app.get("/stamps/:addr", async (req, res) => {
         });
       return res.status(500).json({ error: "server_wallet_not_initialized" });
     }
-    const count = await contract.getStamps(wallet.address, user);
-    // Normalize returned numeric type (BigInt, BigNumber, number)
+
     let stamps = 0;
-    try {
-      if (typeof count === "bigint") stamps = Number(count);
-      else if (count && typeof count.toNumber === "function")
-        stamps = count.toNumber();
-      else stamps = Number(count);
-    } catch (e) {
-      console.warn(
-        "Could not convert contract.getStamps result to number:",
-        count,
-        e
-      );
-      stamps = Number(String(count));
+
+    // If specific cafe requested, get stamps from that cafe only
+    if (cafeAddress && /^0x[0-9a-fA-F]{40}$/i.test(cafeAddress)) {
+      const count = await contract.getStamps(cafeAddress, user);
+      stamps =
+        typeof count === "bigint"
+          ? Number(count)
+          : count?.toNumber
+          ? count.toNumber()
+          : Number(count);
+      return res.json({ cafe: cafeAddress, user, stamps });
     }
-    res.json({ cafe: wallet.address, user, stamps });
+
+    // Otherwise, sum stamps across all cafes
+    const allCafes = db
+      .prepare("SELECT address, api_key, encrypted_key FROM cafes")
+      .all();
+    for (const cafe of allCafes) {
+      try {
+        let cafeAddr = cafe.address;
+
+        // If no address field, try to decrypt wallet to get address
+        if (!cafeAddr && cafe.encrypted_key) {
+          try {
+            const decrypted = decryptPrivateKey(cafe.encrypted_key);
+            const cafeWallet = new ethers.Wallet(decrypted, provider);
+            cafeAddr = cafeWallet.address;
+          } catch (e) {
+            console.warn(`Could not decrypt cafe ${cafe.api_key}:`, e.message);
+            continue;
+          }
+        }
+
+        if (cafeAddr) {
+          const count = await contract.getStamps(cafeAddr, user);
+          const num =
+            typeof count === "bigint"
+              ? Number(count)
+              : count?.toNumber
+              ? count.toNumber()
+              : Number(count);
+          stamps += num;
+        }
+      } catch (e) {
+        console.warn(
+          `Error getting stamps for cafe ${cafe.api_key}:`,
+          e.message
+        );
+      }
+    }
+
+    res.json({ user, stamps, note: "total_across_all_cafes" });
   } catch (err) {
     console.error(
       "Error in GET /stamps/:addr",
@@ -520,6 +734,27 @@ app.get("/stamps/:addr", async (req, res) => {
         stamps: 0,
         error: String(err.message || err),
       });
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// Get stamp history for a user
+app.get("/stamps/history/:addr", (req, res) => {
+  try {
+    const addr = req.params.addr;
+    if (!addr || !/^0x[0-9a-fA-F]{40}$/i.test(addr)) {
+      return res.status(400).json({ error: "invalid address" });
+    }
+
+    const events = db
+      .prepare(
+        "SELECT * FROM stamp_events WHERE user = ? ORDER BY ts DESC LIMIT 50"
+      )
+      .all(addr);
+
+    res.json(events);
+  } catch (err) {
+    console.error("Error fetching stamp history:", err);
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -551,7 +786,15 @@ app.get("/events", (req, res) => {
 // --- Temporary debug endpoints ---
 app.get("/debug/info", async (req, res) => {
   try {
-    const block = await provider.getBlockNumber();
+    let block = null;
+    try {
+      block = await provider.getBlockNumber();
+    } catch (e) {
+      console.warn(
+        "Provider blockNumber failed",
+        e && e.message ? e.message : e
+      );
+    }
     // compute ABI functions defensively (some ethers Contract shapes can be unexpected)
     let abiFunctions = null;
     try {
@@ -570,18 +813,59 @@ app.get("/debug/info", async (req, res) => {
       );
       abiFunctions = null;
     }
-
+    const contractAddr = process.env.STAMPCARD_ADDRESS || null;
+    let contractCodeStatus = null;
+    if (contractAddr) {
+      try {
+        const code = await provider.getCode(contractAddr);
+        contractCodeStatus =
+          code && code !== "0x" && code !== "0x0" ? "present" : "missing";
+      } catch (e) {
+        contractCodeStatus = "error:" + (e && e.message ? e.message : e);
+      }
+    }
     res.json({
       ok: true,
-      blockNumber: Number(block),
+      blockNumber: block !== null ? Number(block) : null,
       rpcUrl: RPC_URL || null,
-      contract: process.env.STAMPCARD_ADDRESS || null,
+      contract: contractAddr,
+      contractCodeStatus,
       wallet: wallet && wallet.address ? wallet.address : null,
       abiFunctions,
     });
   } catch (err) {
     console.error("Error in /debug/info", err && err.stack ? err.stack : err);
     res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+// Debug decrypt cafe by api key
+app.get("/debug/cafe/:apiKey", (req, res) => {
+  try {
+    const apiKey = req.params.apiKey;
+    const cafe = getCafeByApiKey.get(apiKey);
+    if (!cafe) return res.status(404).json({ ok: false, error: "not_found" });
+    let decrypted = null,
+      error = null;
+    if (cafe.encrypted_key) {
+      try {
+        decrypted = decryptPrivateKey(cafe.encrypted_key);
+      } catch (e) {
+        error = String(e && e.message ? e.message : e);
+      }
+    }
+    res.json({
+      ok: true,
+      id: cafe.id,
+      name: cafe.name,
+      encrypted_key_len: cafe.encrypted_key ? cafe.encrypted_key.length : 0,
+      decrypted_ok: !!decrypted,
+      decrypt_error: error,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 
@@ -603,7 +887,9 @@ app.get("/debug/getStamps/:addr", async (req, res) => {
         .status(500)
         .json({ error: "no_contract_code", address: contractAddr });
 
-    const raw = await contract.getStamps(wallet.address, user);
+    // Try to get cafe address from query or use server wallet as fallback
+    const cafeAddr = req.query.cafe || wallet.address;
+    const raw = await contract.getStamps(cafeAddr, user);
     // try to normalize
     let normalized = null;
     try {
@@ -614,7 +900,13 @@ app.get("/debug/getStamps/:addr", async (req, res) => {
     } catch (e) {
       normalized = String(raw);
     }
-    res.json({ ok: true, raw: raw, type: typeof raw, normalized });
+    res.json({
+      ok: true,
+      raw: raw,
+      type: typeof raw,
+      normalized,
+      cafe: cafeAddr,
+    });
   } catch (err) {
     console.error(
       "Error in /debug/getStamps",
@@ -699,6 +991,89 @@ app.post("/cafes/register", async (req, res) => {
 
 // Self-service cafe registration: client supplies a keystore JSON (encrypted with a password)
 // Server stores the provided keystore as `encrypted_key` and returns an api_key.
+// Register cafe with email notification and configuration
+app.post("/cafes/register-with-email", async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      stampMode,
+      stampsForReward,
+      rewardDescription,
+      products,
+    } = req.body || {};
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "missing required fields" });
+    }
+
+    // Create new wallet
+    const newWallet = ethers.Wallet.createRandom();
+    const privateKey = newWallet.privateKey;
+    const address = newWallet.address;
+    const seedPhrase = newWallet.mnemonic.phrase;
+
+    // Encrypt private key
+    const encrypted_key = encryptPrivateKey(privateKey);
+
+    // Generate API key
+    const api_key = randomHex(16).slice(2);
+
+    // Store cafe configuration
+    const config = {
+      stampMode: stampMode || "general",
+      stampsForReward: stampsForReward || 10,
+      rewardDescription: rewardDescription || "1 Freigetränk",
+      products: products || [],
+    };
+
+    const info = {
+      name: String(name).slice(0, 128),
+      api_key,
+      encrypted_key,
+      address,
+      created_at: Date.now(),
+    };
+
+    const r = insertCafe.run(info);
+    const id = r.lastInsertRowid || null;
+
+    console.log(`\n🎉 New Café Registered: ${name}`);
+    console.log(`📧 Email: ${email}`);
+    console.log(`🔑 API-Key: ${api_key}`);
+    console.log(`📍 Address: ${address}`);
+
+    // Send email with credentials
+    try {
+      await sendCafeCredentialsEmail({
+        email,
+        cafeName: name,
+        apiKey: api_key,
+        address,
+        seedPhrase,
+        config,
+      });
+      console.log(`✅ Email sent to: ${email}\n`);
+    } catch (emailErr) {
+      console.error(`❌ Failed to send email to ${email}:`, emailErr.message);
+      // Don't fail the registration if email fails
+    }
+
+    res.json({
+      ok: true,
+      id,
+      name: info.name,
+      apiKey: api_key,
+      address,
+      seedPhrase,
+    });
+  } catch (err) {
+    console.error("Error in /cafes/register-with-email:", err);
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
 app.post("/cafes/register-self", async (req, res) => {
   try {
     const { name, keystore } = req.body || {};
@@ -745,10 +1120,26 @@ app.get("/cafes", (req, res) => {
   try {
     const rows = db
       .prepare(
-        "SELECT id, name, api_key, substr(encrypted_key,1,48) as encrypted_preview, created_at FROM cafes ORDER BY id DESC"
+        "SELECT id, name, api_key, encrypted_key, created_at FROM cafes ORDER BY id DESC"
       )
       .all();
-    res.json(rows);
+
+    // Decrypt and add wallet addresses
+    const rowsWithAddress = rows.map((row) => {
+      let address = null;
+      if (row.encrypted_key) {
+        try {
+          const priv = decryptPrivateKey(row.encrypted_key);
+          const wallet = new ethers.Wallet(priv);
+          address = wallet.address;
+        } catch (e) {
+          // Could not decrypt, leave address null
+        }
+      }
+      return { ...row, address };
+    });
+
+    res.json(rowsWithAddress);
   } catch (e) {
     res
       .status(500)
