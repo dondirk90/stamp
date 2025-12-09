@@ -134,6 +134,21 @@
         cursor: not-allowed;
         transform: none !important;
       }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #e2e8f0;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        display: inline-block;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       button.secondary {
         background: #f7fafc;
         color: #4a5568;
@@ -239,6 +254,34 @@
         gap: 12px;
         margin-top: 20px;
       }
+      .stamp-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+        cursor: pointer;
+      }
+      .stamp-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+      }
+      .stamp-slider::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+      }
       .stamp-input {
         flex: 1;
         padding: 14px 16px;
@@ -267,15 +310,162 @@
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
       }
+      .reward-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 16, 35, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        padding: 20px;
+      }
+      .reward-overlay.show {
+        display: flex;
+        animation: fadeIn 0.25s ease-out;
+      }
+      .reward-card {
+        background: rgba(255, 255, 255, 0.97);
+        border-radius: 24px;
+        padding: 32px 36px;
+        max-width: 360px;
+        text-align: center;
+        box-shadow: 0 25px 80px rgba(102, 126, 234, 0.45);
+        position: relative;
+        overflow: hidden;
+      }
+      .reward-card h3 {
+        font-size: 26px;
+        margin-bottom: 12px;
+        color: #1a202c;
+      }
+      .reward-card p {
+        font-size: 15px;
+        color: #4a5568;
+        margin-bottom: 24px;
+      }
+      .reward-card button {
+        width: auto;
+        padding: 12px 24px;
+        font-size: 14px;
+      }
+      .reward-illustration {
+        width: 120px;
+        height: 140px;
+        margin: 0 auto 20px;
+        position: relative;
+      }
+      .reward-illustration .cup {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90px;
+        height: 70px;
+        border-radius: 20px 20px 30px 30px;
+        background: linear-gradient(135deg, #fdf2f8 0%, #fde7f3 100%);
+        border: 3px solid #e2d6f5;
+        box-shadow: 0 15px 30px rgba(118, 75, 162, 0.25);
+      }
+      .reward-illustration .saucer {
+        position: absolute;
+        bottom: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 18px;
+        border-radius: 50%;
+        background: rgba(102, 126, 234, 0.12);
+      }
+      .reward-illustration .steam {
+        position: absolute;
+        bottom: 70px;
+        width: 12px;
+        height: 40px;
+        left: 50%;
+        margin-left: -6px;
+        border-radius: 50px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.8),
+          rgba(255, 255, 255, 0)
+        );
+        animation: floatUp 2.5s ease-in-out infinite;
+      }
+      .reward-illustration .steam.steam-1 {
+        margin-left: -18px;
+        animation-delay: 0s;
+      }
+      .reward-illustration .steam.steam-2 {
+        animation-delay: 0.6s;
+      }
+      .reward-illustration .steam.steam-3 {
+        margin-left: 8px;
+        animation-delay: 1.1s;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes floatUp {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, 0) scale(0.8);
+        }
+        30% {
+          opacity: 1;
+        }
+        70% {
+          opacity: 1;
+          transform: translate(-50%, -20px) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -40px) scale(1.05);
+        }
+      }
     </style>
   </head>
   <body>
+    <div id="rewardOverlay" class="reward-overlay">
+      <div class="reward-card">
+        <div class="reward-illustration">
+          <div class="cup"></div>
+          <div class="saucer"></div>
+          <div class="steam steam-1"></div>
+          <div class="steam steam-2"></div>
+          <div class="steam steam-3"></div>
+        </div>
+        <h3>Belohnung eingelöst!</h3>
+        <p>Der Gratis-Kaffee wurde bestätigt.</p>
+        <button id="rewardOverlayClose" type="button">Weiter</button>
+      </div>
+    </div>
     <!-- Café Badge -->
     <div id="cafeBadge" class="user-badge">
       <div class="avatar" id="cafeAvatar">☕</div>
       <div class="info">
         <div class="name" id="cafeName">Café Name</div>
       </div>
+      <a
+        href="./cafe-dashboard.html"
+        style="
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 600;
+          margin-left: 8px;
+          transition: all 0.3s;
+        "
+        >📊 Dashboard</a
+      >
       <button class="logout" id="logoutBtn">Abmelden</button>
     </div>
 
@@ -373,7 +563,40 @@
 
       <!-- Scanner Screen -->
       <div id="scannerScreen" style="display: none">
-        <h2>🔗 Kunden-Link öffnen</h2>
+        <div
+          id="redemptionPrompt"
+          style="
+            display: none;
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+          "
+        >
+          <h2 style="margin: 0 0 8px 0; color: #92400e">
+            🎁 Einlösung ausstehend
+          </h2>
+          <p style="margin: 0 0 12px 0; color: #78350f">
+            Ein Kunde möchte seine Belohnung einlösen. Bitte melden Sie sich mit
+            Ihrem Café-API-Key an, um fortzufahren.
+          </p>
+          <button
+            onclick="document.getElementById('loginScreen').style.display='block'; document.getElementById('scannerScreen').style.display='none';"
+            style="
+              background: #f59e0b;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: 600;
+            "
+          >
+            Jetzt anmelden
+          </button>
+        </div>
+        <h2 id="scannerHeader">🔗 Kunden-Link öffnen</h2>
         <p class="subtitle">
           Kunden-QR mit der Handy-Kamera scannen – diese Seite lädt dann direkt
           die Daten (keine Browser-Kamera nötig).
@@ -410,19 +633,69 @@
             >
           </div>
           <div class="value">
-            <strong>Aktuelle Stempel:</strong> <span id="currentStamps">-</span>
+            <strong>Aktuelle Stempel:</strong>
+            <span id="currentStamps">-</span>
+            <span
+              id="stampsSpinner"
+              class="spinner"
+              style="display: none; margin-left: 8px"
+            ></span>
           </div>
 
-          <div class="stamp-controls">
-            <input
-              type="number"
-              class="stamp-input"
-              id="stampAmount"
-              value="1"
-              min="1"
-              max="10"
-            />
-            <button id="awardBtn" style="margin: 0; flex: 2">
+          <div class="stamp-controls" style="display: block">
+            <div style="margin-bottom: 15px">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 8px;
+                "
+              >
+                <label style="font-size: 14px; font-weight: 600; color: #4a5568"
+                  >Anzahl Stempel:</label
+                >
+                <span
+                  id="stampAmountDisplay"
+                  style="font-size: 24px; font-weight: bold; color: #667eea"
+                  >1</span
+                >
+              </div>
+              <input
+                type="range"
+                class="stamp-slider"
+                id="stampAmount"
+                value="1"
+                min="1"
+                max="10"
+                style="
+                  width: 100%;
+                  height: 8px;
+                  border-radius: 4px;
+                  background: linear-gradient(
+                    to right,
+                    #667eea 10%,
+                    #e2e8f0 10%
+                  );
+                  outline: none;
+                  -webkit-appearance: none;
+                "
+              />
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  font-size: 12px;
+                  color: #718096;
+                  margin-top: 4px;
+                "
+              >
+                <span>1</span>
+                <span>5</span>
+                <span>10</span>
+              </div>
+            </div>
+            <button id="awardBtn" style="margin: 0; width: 100%">
               ✅ Stempel vergeben
             </button>
           </div>
@@ -446,19 +719,33 @@
       const customerName = document.getElementById("customerName");
       const customerAddress = document.getElementById("customerAddress");
       const currentStamps = document.getElementById("currentStamps");
+      const stampsSpinner = document.getElementById("stampsSpinner");
       const stampAmount = document.getElementById("stampAmount");
+      const stampAmountDisplay = document.getElementById("stampAmountDisplay");
       const awardBtn = document.getElementById("awardBtn");
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
       const cafeAvatar = document.getElementById("cafeAvatar");
       const toast = document.getElementById("toast");
+      const rewardOverlay = document.getElementById("rewardOverlay");
+      const rewardOverlayClose = document.getElementById("rewardOverlayClose");
 
       // State
       let cafe = null;
       let apiBase = "http://192.168.0.175:3000";
+
+      // Slider interaction
+      stampAmount.addEventListener("input", (e) => {
+        const value = e.target.value;
+        stampAmountDisplay.textContent = value;
+        // Update slider gradient
+        const percentage = ((value - 1) / 9) * 100;
+        e.target.style.background = `linear-gradient(to right, #667eea ${percentage}%, #e2e8f0 ${percentage}%)`;
+      });
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
+      let lastStampNote = null;
 
       // Detect API
       async function detectAPI() {
@@ -482,11 +769,30 @@
       }
 
       // Show toast
-      function showToast(message, isError = false) {
-        toast.textContent = message;
+      function showToast(message, isError = false, asHtml = false) {
+        if (asHtml) {
+          toast.innerHTML = message;
+        } else {
+          toast.textContent = message;
+        }
         toast.className = "toast" + (isError ? " error-toast" : "");
         toast.style.display = "block";
         setTimeout(() => (toast.style.display = "none"), 3000);
+      }
+
+      function showRedemptionCelebration() {
+        if (!rewardOverlay) return;
+        rewardOverlay.classList.add("show");
+        clearTimeout(showRedemptionCelebration._timer);
+        showRedemptionCelebration._timer = setTimeout(() => {
+          rewardOverlay.classList.remove("show");
+        }, 4500);
+      }
+
+      if (rewardOverlayClose) {
+        rewardOverlayClose.addEventListener("click", () => {
+          rewardOverlay.classList.remove("show");
+        });
       }
 
       // Tab switching
@@ -575,6 +881,10 @@
           updateCafeBadge();
           loginScreen.style.display = "none";
           scannerScreen.style.display = "block";
+
+          // Hide redemption prompt after login
+          const redemptionPrompt = document.getElementById("redemptionPrompt");
+          if (redemptionPrompt) redemptionPrompt.style.display = "none";
 
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
           loadPendingScan();
@@ -700,6 +1010,10 @@
               address: c,
               name: params.get("customerName") || "Unbekannt",
               cafe: params.get("cafe") || null, // Café wallet address from QR code
+              isRedemption: params.get("redeem") === "true", // Flag for reward redemption
+              cardIndex: params.get("cardIndex")
+                ? parseInt(params.get("cardIndex"))
+                : null, // Which card to redeem
             };
           }
         } catch (e) {
@@ -716,7 +1030,14 @@
           cafe
         );
         if (!pendingScan) return;
-        if (scannedCustomer && scannedCustomer.address === pendingScan.address)
+
+        // For redemption scans, always process (don't skip if customer already loaded)
+        // For regular scans, skip if same customer already loaded
+        if (
+          !pendingScan.isRedemption &&
+          scannedCustomer &&
+          scannedCustomer.address === pendingScan.address
+        )
           return;
 
         // Validate QR code belongs to this café
@@ -739,7 +1060,7 @@
               console.warn("Cafe name lookup failed", e);
             }
             showToast(
-              `🥸 Falscher Laden! QR gehört zu "${scannedName}" – bitte eigenen Kunden fragen.`,
+              `⚠️ Diese Stempelkarte gehört zu "${scannedName}"!\n\nWir sind hier im "${cafe.name}".\nBitte nur Stempelkarten deiner eigenen Kunden scannen.`,
               true
             );
             console.warn("QR validation failed:", {
@@ -764,46 +1085,259 @@
               cafe.address || ""
             }`
           );
+          console.log("🔍 DEBUG: /stamps response status =", res.status);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${text}`);
+          }
           const data = await res.json();
+          lastStampNote = data.note || null;
+          console.log("🔍 DEBUG: stamps data =", data);
           customerName.textContent = scannedCustomer.name;
           customerAddress.textContent = scannedCustomer.address;
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
-          awardBtn.disabled = false;
-          awardBtn.textContent = "✅ Stempel vergeben";
-          showToast("Kunde geladen ✔️");
+
+          // Check if this is a reward redemption scan
+          console.log(
+            "🔍 DEBUG loadPendingScan: pendingScan.isRedemption =",
+            pendingScan?.isRedemption
+          );
+          if (pendingScan.isRedemption) {
+            const stamps = data.stamps ?? data.count ?? 0;
+            if (lastStampNote === "db_fallback") {
+              awardBtn.disabled = true;
+              awardBtn.textContent = "⚠️ Bitte Backend syncen";
+              showToast(
+                "⚠️ Kettendaten fehlen – bitte Contract synchronisieren, bevor du die Belohnung einlöst.",
+                true,
+                true
+              );
+              return;
+            }
+            // Switch UI into redemption mode to avoid confusion
+            try {
+              const amt = document.getElementById("stampAmount");
+              const amtRow =
+                document.getElementById("stampAmountRow") ||
+                (amt && amt.parentElement);
+              if (amtRow) amtRow.style.display = "none";
+              const hdr = document.getElementById("scannerHeader");
+              if (hdr) hdr.textContent = "🎁 Einlösung-Modus";
+            } catch {}
+
+            if (stamps >= 10) {
+              // Auto-trigger redemption immediately
+              console.log(
+                "🎁 AUTO-REDEEM: Triggering redemption for",
+                stamps,
+                "stamps"
+              );
+              showToast("🎁 Einlösung wird verarbeitet...", false, true);
+              awardBtn.disabled = true;
+              awardBtn.textContent = "⏳ Wird eingelöst...";
+              console.log(
+                "🎁 AUTO-REDEEM: Will trigger redemption in 500ms..."
+              );
+              setTimeout(() => {
+                console.log(
+                  "🎁 AUTO-REDEEM: Calling performRedemption() in 500ms"
+                );
+                performRedemption();
+              }, 500);
+            } else {
+              awardBtn.textContent = "✅ Stempel vergeben";
+              showToast(
+                `⚠️ Nur ${stamps}/10 Stempel - Belohnung noch nicht verfügbar`,
+                true
+              );
+              awardBtn.disabled = false;
+            }
+          } else {
+            awardBtn.textContent = "✅ Stempel vergeben";
+            showToast("Kunde geladen ✔️");
+            awardBtn.disabled = false;
+          }
         } catch (e) {
-          console.warn("Stempel laden fehlgeschlagen", e);
-          showToast("Fehler beim Laden der Stempel", true);
+          console.error("❌ FEHLER beim Laden der Stempel:", e.message, e);
+          showToast("Fehler beim Laden der Stempel: " + e.message, true);
         }
       }
 
-      // Award stamps
-      awardBtn.onclick = async () => {
-        if (!scannedCustomer || !cafe) return;
+      // Redemption function (separated for auto-triggering)
+      async function performRedemption() {
+        console.log(
+          "🔘 PERFORMING REDEMPTION - scannedCustomer:",
+          scannedCustomer,
+          "cafe:",
+          cafe
+        );
+        if (!scannedCustomer || !cafe) {
+          console.warn(
+            "⚠️ REDEMPTION ABORTED - Missing scannedCustomer or cafe"
+          );
+          return;
+        }
 
+        if (pendingScan?.isRedemption && lastStampNote === "db_fallback") {
+          showToast(
+            "⚠️ Die Blockchain meldet 0 Stempel – bitte zuerst synchronisieren und dann erneut versuchen.",
+            true,
+            true
+          );
+          awardBtn.disabled = false;
+          awardBtn.textContent = "🎁 Belohnung einlösen";
+          return;
+        }
+
+        // Check if this is a redemption
+        const isRedemption = pendingScan && pendingScan.isRedemption;
+        const qrCafe =
+          pendingScan && pendingScan.cafe ? pendingScan.cafe : null;
         const amount = parseInt(stampAmount.value) || 1;
-        console.log("Award attempt:", {
+
+        console.log(isRedemption ? "Redemption attempt:" : "Award attempt:", {
           cafe,
           apiKey: cafe.apiKey,
           customer: scannedCustomer.address,
+          isRedemption,
+          qrCafe,
         });
+
         awardBtn.disabled = true;
-        awardBtn.textContent = "Wird vergeben...";
+        awardBtn.textContent = isRedemption
+          ? "Wird eingelöst..."
+          : "Wird vergeben...";
 
         try {
-          const res = await fetch(apiBase + "/stamp-by-cafe", {
+          // show spinner while we process and sync
+          if (stampsSpinner) stampsSpinner.style.display = "inline-block";
+
+          const endpoint = isRedemption ? "/redeem-reward" : "/stamp-by-cafe";
+          const body = isRedemption
+            ? {
+                customer: scannedCustomer.address,
+                customerName: scannedCustomer.name,
+                cardIndex: pendingScan.cardIndex || 0,
+                qrCafe,
+              }
+            : {
+                customer: scannedCustomer.address,
+                customerName: scannedCustomer.name,
+                count: amount,
+                qrCafe,
+              };
+
+          const res = await fetch(apiBase + endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-api-key": cafe.apiKey,
             },
-            body: JSON.stringify({
-              customer: scannedCustomer.address,
-              customerName: scannedCustomer.name,
-              count: amount,
-            }),
+            body: JSON.stringify(body),
           });
+
+          // If server is funding the cafe wallet, handle 202 with auto-retry
+          if (res.status === 202) {
+            const info = await res.json();
+            const retryAfter = Math.max(1, Math.min(10, info.retryAfter || 2));
+            const txh = info.fundTxHash;
+            if (txh) {
+              const href = `https://sepolia.etherscan.io/tx/${txh}`;
+              showToast(
+                `⛽ Wallet wird aufgeladen … <a href="${href}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">Funding-Tx</a>`,
+                false,
+                true
+              );
+            } else {
+              showToast("⛽ Wallet wird aufgeladen … bitte kurz warten");
+            }
+
+            // Retry stamping automatically after a short delay (limited attempts)
+            let attempts = 5;
+            const retry = async () => {
+              attempts--;
+              try {
+                const endpoint2 = isRedemption
+                  ? "/redeem-reward"
+                  : "/stamp-by-cafe";
+                const body2 = isRedemption
+                  ? {
+                      customer: scannedCustomer.address,
+                      customerName: scannedCustomer.name,
+                      cardIndex: pendingScan.cardIndex || 0,
+                      qrCafe,
+                    }
+                  : {
+                      customer: scannedCustomer.address,
+                      customerName: scannedCustomer.name,
+                      count: amount,
+                      qrCafe,
+                    };
+                const r = await fetch(apiBase + endpoint2, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": cafe.apiKey,
+                  },
+                  body: JSON.stringify(body2),
+                });
+                if (r.status === 202 && attempts > 0) {
+                  setTimeout(retry, retryAfter * 1000);
+                  return;
+                }
+                if (!r.ok) {
+                  const t = await r.text();
+                  throw new Error(t);
+                }
+                const d = await r.json();
+                if (isRedemption) {
+                  const remainingStamps = d.stamps ?? 0;
+                  showToast(
+                    "🎉 BELOHNUNG EINGELÖST! 🎉\n\n10 Stempel wurden abgezogen.\nKunde erhält Gratis-Kaffee! ☕",
+                    false,
+                    true
+                  );
+                  currentStamps.textContent = remainingStamps;
+                  showRedemptionCelebration();
+                } else {
+                  // Optimistic update
+                  currentStamps.textContent =
+                    (parseInt(currentStamps.textContent) || 0) + amount;
+                  showToast(`✅ ${amount} Stempel vergeben!`);
+                }
+                if (d && d.txHash) {
+                  const short = String(d.txHash).slice(0, 10) + "…";
+                  const href = `https://sepolia.etherscan.io/tx/${d.txHash}`;
+                  showToast(
+                    `⏳ Tx gesendet: <a href="${href}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">${short}</a>`,
+                    false,
+                    true
+                  );
+                }
+                try {
+                  refreshStampsWithRetry();
+                } catch {}
+                setTimeout(() => {
+                  scannedCustomer = null;
+                  localStorage.removeItem("last_scanned_customer");
+                  customerInfo.style.display = "none";
+                  awardBtn.disabled = false;
+                  awardBtn.textContent = "✅ Stempel vergeben";
+                }, 1200);
+              } catch (e) {
+                if (attempts > 0) {
+                  setTimeout(retry, retryAfter * 1000);
+                } else {
+                  showToast("❌ Fehler: " + (e.message || e), true, false);
+                  awardBtn.disabled = false;
+                  awardBtn.textContent = "✅ Stempel vergeben";
+                }
+              }
+            };
+            setTimeout(retry, retryAfter * 1000);
+            return; // exit main handler while retry loop runs
+          }
 
           if (!res.ok) {
             const text = await res.text();
@@ -820,11 +1354,39 @@
 
           const data = await res.json();
 
-          // Update stamps display
-          currentStamps.textContent =
-            (parseInt(currentStamps.textContent) || 0) + amount;
+          if (isRedemption) {
+            // Redemption success - show prominent confirmation
+            const remainingStamps = data.stamps ?? 0;
+            showToast(
+              "🎉 BELOHNUNG EINGELÖST! 🎉\n\n10 Stempel wurden abgezogen.\nKunde erhält Gratis-Kaffee! ☕",
+              false,
+              true
+            );
+            // Update UI with remaining stamps
+            currentStamps.textContent = remainingStamps;
+            showRedemptionCelebration();
+          } else {
+            // Optimistic UI update for stamping
+            currentStamps.textContent =
+              (parseInt(currentStamps.textContent) || 0) + amount;
 
-          showToast(`✅ ${amount} Stempel vergeben!`);
+            showToast(`✅ ${amount} Stempel vergeben!`);
+            if (data && data.txHash) {
+              // Short feedback that tx was submitted with Etherscan link
+              const short = String(data.txHash).slice(0, 10) + "…";
+              const href = `https://sepolia.etherscan.io/tx/${data.txHash}`;
+              showToast(
+                `⏳ Tx gesendet: <a href="${href}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">${short}</a>`,
+                false,
+                true
+              );
+            }
+          }
+
+          // Background refresh to sync with chain once indexed/mined
+          try {
+            refreshStampsWithRetry();
+          } catch {}
 
           // Reset after 2 seconds
           setTimeout(() => {
@@ -838,8 +1400,42 @@
           showToast("❌ Fehler: " + e.message, true);
           awardBtn.disabled = false;
           awardBtn.textContent = "✅ Stempel vergeben";
+          if (stampsSpinner) stampsSpinner.style.display = "none";
         }
+      }
+
+      // Award stamps or redeem reward
+      awardBtn.onclick = () => {
+        console.log("🔘 BUTTON CLICKED via onclick");
+        performRedemption();
       };
+
+      // Poll stamps a few times after submitting a tx to sync UI
+      async function refreshStampsWithRetry(attempts = 6, delayMs = 1000) {
+        if (stampsSpinner) stampsSpinner.style.display = "inline-block";
+        if (!scannedCustomer || !cafe) return false;
+        for (let i = 0; i < attempts; i++) {
+          try {
+            const res = await fetch(
+              `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${
+                cafe.address || ""
+              }`
+            );
+            const data = await res.json();
+            const stamps = data.stamps ?? data.count ?? 0;
+            // Only update if it's >= current UI value to avoid flicker
+            const current = parseInt(currentStamps.textContent) || 0;
+            if (stamps >= current) {
+              currentStamps.textContent = stamps;
+            }
+            if (stampsSpinner) stampsSpinner.style.display = "none";
+            return true;
+          } catch (e) {}
+          await new Promise((r) => setTimeout(r, delayMs));
+        }
+        if (stampsSpinner) stampsSpinner.style.display = "none";
+        return false;
+      }
 
       // Auto-login if saved
       (async function autoLogin() {
@@ -892,6 +1488,11 @@
             scannerScreen.style.display = "block";
             customerInfo.style.display = "none";
 
+            // Hide redemption prompt since we're logged in
+            const redemptionPrompt =
+              document.getElementById("redemptionPrompt");
+            if (redemptionPrompt) redemptionPrompt.style.display = "none";
+
             // Lade evtl. vorhandenen Scan direkt
             setTimeout(() => loadPendingScan(), 300);
 
@@ -926,6 +1527,16 @@
         } catch (e) {
           console.warn("Auto-login failed:", e);
           localStorage.removeItem("cafe_session");
+        } finally {
+          // If no saved session but redemption QR was scanned, show redemption prompt
+          const hasRedemptionNow = pendingScan && pendingScan.isRedemption;
+          if (!localStorage.getItem("cafe_session") && hasRedemptionNow) {
+            const redemptionPrompt =
+              document.getElementById("redemptionPrompt");
+            if (redemptionPrompt) redemptionPrompt.style.display = "block";
+            loginScreen.style.display = "none";
+            scannerScreen.style.display = "block";
+          }
         }
       })();
 

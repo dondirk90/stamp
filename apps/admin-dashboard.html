@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>☕ Café Übersicht (Admin)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 24px;
+        min-height: 100vh;
+        color: #1a202c;
+      }
+      a {
+        color: inherit;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        color: #fff;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 32px;
+      }
+      .header p {
+        margin: 4px 0 0;
+        opacity: 0.85;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 12px;
+      }
+      .btn {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        font-size: 14px;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(10px);
+        border-radius: 18px;
+        padding: 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      }
+      .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        display: block;
+        margin-bottom: 6px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #cbd5f5;
+        font-size: 14px;
+        outline: none;
+        transition: border 0.2s, box-shadow 0.2s;
+      }
+      input:focus {
+        border-color: #764ba2;
+        box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.2);
+      }
+      .error {
+        background: rgba(255, 67, 67, 0.1);
+        border: 1px solid rgba(255, 67, 67, 0.35);
+        color: #7f1d1d;
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .summary-card {
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 16px;
+        padding: 18px;
+        border: 1px solid rgba(102, 126, 234, 0.18);
+      }
+      .summary-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #718096;
+        letter-spacing: 0.04em;
+      }
+      .summary-value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-top: 4px;
+        color: #2d3748;
+      }
+      .cafe-card {
+        margin-bottom: 24px;
+      }
+      .cafe-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .cafe-name {
+        font-size: 22px;
+        font-weight: 700;
+        color: #2d3748;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .badge-neutral {
+        background: #edf2f7;
+        color: #4a5568;
+      }
+      .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        margin-top: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+      }
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #4a5568;
+        background: rgba(99, 102, 241, 0.12);
+      }
+      tr:nth-child(even) td {
+        background: rgba(247, 250, 252, 0.9);
+      }
+      tr:hover td {
+        background: rgba(235, 248, 255, 0.9);
+      }
+      .delta-positive {
+        color: #047857;
+        font-weight: 600;
+      }
+      .delta-negative {
+        color: #b45309;
+        font-weight: 600;
+      }
+      .timestamp {
+        font-family: "Fira Mono", "Courier New", monospace;
+        font-size: 12px;
+        color: #4a5568;
+      }
+      .address {
+        font-family: "Fira Mono", "Courier New", monospace;
+        font-size: 13px;
+        color: #2d3748;
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 24px;
+        margin-bottom: 8px;
+        color: #1a202c;
+      }
+      .meta-info {
+        font-size: 13px;
+        color: #4a5568;
+        margin-bottom: 8px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      @media (max-width: 768px) {
+        body {
+          padding: 16px;
+        }
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .summary-grid {
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+        table {
+          min-width: 600px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>☕ Café Übersicht</h1>
+          <p>Administrative Sicht auf Stempel- und Einlöseaktivitäten</p>
+        </div>
+        <div class="action-buttons">
+          <button id="refreshBtn" class="btn btn-primary hidden">
+            Aktualisieren
+          </button>
+          <button id="logoutBtn" class="btn btn-secondary hidden">
+            Abmelden
+          </button>
+        </div>
+      </div>
+
+      <div id="errorBox" class="error"></div>
+
+      <div id="configSection" class="card">
+        <form id="configForm">
+          <div class="config-grid">
+            <div>
+              <label for="apiBaseInput"
+                >API-URL (z.B. http://127.0.0.1:3000)</label
+              >
+              <input
+                id="apiBaseInput"
+                type="url"
+                required
+                placeholder="http://localhost:3000"
+              />
+            </div>
+            <div>
+              <label for="adminKeyInput">Admin-Key (x-admin-key)</label>
+              <input
+                id="adminKeyInput"
+                type="password"
+                required
+                placeholder="••••••"
+                autocomplete="off"
+              />
+            </div>
+            <div>
+              <label for="eventsLimitInput">Events pro Café</label>
+              <input
+                id="eventsLimitInput"
+                type="number"
+                min="5"
+                max="200"
+                step="1"
+                value="50"
+              />
+            </div>
+            <div>
+              <label for="customerLimitInput">Kunden pro Café</label>
+              <input
+                id="customerLimitInput"
+                type="number"
+                min="5"
+                max="500"
+                step="1"
+                value="25"
+              />
+            </div>
+          </div>
+          <div
+            style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap"
+          >
+            <button type="submit" class="btn btn-primary">
+              Dashboard laden
+            </button>
+            <button type="reset" class="btn btn-secondary" id="resetBtn">
+              Eingaben löschen
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div id="loading" class="card hidden">Lade Daten...</div>
+
+      <section id="dashboard" class="hidden">
+        <div id="metaInfo" class="meta-info"></div>
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div id="cafesContainer"></div>
+      </section>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "stamp_admin_dashboard_v1";
+      const DEFAULT_API_BASE = (() => {
+        const { protocol, hostname } = window.location;
+        const port = protocol === "https:" ? 443 : 3000;
+        if (hostname && hostname !== "") {
+          if (hostname.includes(":")) {
+            return `${protocol}//${hostname.split(":")[0]}:${port}`;
+          }
+          return `${protocol}//${hostname}:${port}`;
+        }
+        return "http://127.0.0.1:3000";
+      })();
+
+      const refs = {
+        configSection: document.getElementById("configSection"),
+        configForm: document.getElementById("configForm"),
+        apiBaseInput: document.getElementById("apiBaseInput"),
+        adminKeyInput: document.getElementById("adminKeyInput"),
+        eventsLimitInput: document.getElementById("eventsLimitInput"),
+        customerLimitInput: document.getElementById("customerLimitInput"),
+        resetBtn: document.getElementById("resetBtn"),
+        refreshBtn: document.getElementById("refreshBtn"),
+        logoutBtn: document.getElementById("logoutBtn"),
+        loading: document.getElementById("loading"),
+        dashboard: document.getElementById("dashboard"),
+        summaryGrid: document.getElementById("summaryGrid"),
+        cafesContainer: document.getElementById("cafesContainer"),
+        metaInfo: document.getElementById("metaInfo"),
+        errorBox: document.getElementById("errorBox"),
+      };
+
+      const state = {
+        config: null,
+        data: null,
+      };
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatNumber(value) {
+        return new Intl.NumberFormat("de-DE").format(Number(value || 0));
+      }
+
+      function formatDate(value) {
+        if (!value) return "—";
+        try {
+          return new Date(Number(value)).toLocaleString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        } catch (err) {
+          return "—";
+        }
+      }
+
+      function shortenAddress(addr, keep = 4) {
+        if (!addr || addr.length <= keep * 2) return addr || "—";
+        return `${addr.slice(0, keep + 2)}…${addr.slice(-keep)}`;
+      }
+
+      function loadConfig() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed || !parsed.apiBase || !parsed.adminKey) return null;
+          return parsed;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function saveConfig(config) {
+        state.config = config;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      }
+
+      function clearConfig() {
+        localStorage.removeItem(STORAGE_KEY);
+        state.config = null;
+      }
+
+      function showError(message) {
+        refs.errorBox.textContent = message;
+        refs.errorBox.style.display = "block";
+      }
+
+      function clearError() {
+        refs.errorBox.textContent = "";
+        refs.errorBox.style.display = "none";
+      }
+
+      async function fetchActivity() {
+        if (!state.config) return;
+        clearError();
+        refs.loading.classList.remove("hidden");
+        refs.refreshBtn.disabled = true;
+        refs.dashboard.classList.add("hidden");
+
+        const url = new URL("/admin/cafes/activity", state.config.apiBase);
+        url.searchParams.set(
+          "eventsPerCafe",
+          String(state.config.eventsPerCafe)
+        );
+        url.searchParams.set(
+          "customerLimit",
+          String(state.config.customerLimit)
+        );
+
+        try {
+          const res = await fetch(url.toString(), {
+            headers: {
+              "x-admin-key": state.config.adminKey,
+            },
+          });
+
+          if (!res.ok) {
+            const body = await res.text();
+            throw new Error(`API-Fehler (${res.status}): ${body}`);
+          }
+
+          const data = await res.json();
+          if (!data || !Array.isArray(data.cafes)) {
+            throw new Error("Unerwartete Antwort der API");
+          }
+
+          state.data = data;
+          renderDashboard();
+          refs.dashboard.classList.remove("hidden");
+        } catch (err) {
+          showError(err.message || String(err));
+          refs.dashboard.classList.add("hidden");
+        } finally {
+          refs.loading.classList.add("hidden");
+          refs.refreshBtn.disabled = false;
+        }
+      }
+
+      function renderDashboard() {
+        const { data } = state;
+        if (!data) return;
+
+        const totalCafes = data.cafes.length;
+        const totalEvents = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.totalEvents || 0),
+          0
+        );
+        const totalStamps = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.stampsAwarded || 0),
+          0
+        );
+        const totalRedeemed = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.stampsRedeemed || 0),
+          0
+        );
+        const totalRedeemCount = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.redemptions || 0),
+          0
+        );
+
+        refs.summaryGrid.innerHTML = `
+          <div class="summary-card">
+            <div class="summary-label">Cafés</div>
+            <div class="summary-value">${formatNumber(totalCafes)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Gesamt Stempel vergeben</div>
+            <div class="summary-value">${formatNumber(totalStamps)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Eingelöste Stempel</div>
+            <div class="summary-value">${formatNumber(totalRedeemed)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Einlösungen</div>
+            <div class="summary-value">${formatNumber(totalRedeemCount)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Events gesamt</div>
+            <div class="summary-value">${formatNumber(totalEvents)}</div>
+          </div>
+        `;
+
+        const generatedAt = data.meta?.generatedAt
+          ? formatDate(data.meta.generatedAt)
+          : "—";
+        const eventsPerCafe =
+          data.meta?.eventsPerCafe || state.config.eventsPerCafe;
+        const customerLimit =
+          data.meta?.customerLimit || state.config.customerLimit;
+
+        refs.metaInfo.textContent = `Datenstand: ${generatedAt} • Events pro Café: ${eventsPerCafe} • Kundenlimit: ${customerLimit}`;
+
+        const explorerBase = state.config.apiBase.includes("sepolia")
+          ? "https://sepolia.etherscan.io/tx/"
+          : "https://etherscan.io/tx/";
+
+        refs.cafesContainer.innerHTML = data.cafes
+          .map((cafe) => {
+            const stats = cafe.stats || {};
+            const customers = cafe.customers || [];
+            const events = cafe.events || [];
+            const cafeName = escapeHtml(cafe.name || "Unbenanntes Café");
+            const badge = cafe.isUnknown
+              ? '<span class="badge badge-warning">nicht registriert</span>'
+              : "";
+            const address = cafe.address
+              ? `<span class="address" title="${escapeHtml(
+                  cafe.address
+                )}">${escapeHtml(shortenAddress(cafe.address))}</span>`
+              : '<span class="address">—</span>';
+            const created = cafe.createdAt ? formatDate(cafe.createdAt) : "—";
+
+            const eventsRows =
+              events
+                .map((ev) => {
+                  const deltaClass =
+                    ev.delta >= 0 ? "delta-positive" : "delta-negative";
+                  const deltaValue =
+                    ev.delta > 0 ? `+${ev.delta}` : `${ev.delta}`;
+                  const kind =
+                    ev.eventType === "redeem" ? "Einlösung" : "Stempel";
+                  const customerAddr = ev.user
+                    ? `<span class="address" title="${escapeHtml(
+                        ev.user
+                      )}">${escapeHtml(shortenAddress(ev.user))}</span>`
+                    : "—";
+                  const nameCell = ev.customerName
+                    ? escapeHtml(ev.customerName)
+                    : "—";
+                  const txCell = ev.txhash
+                    ? `<a href="${explorerBase}${
+                        ev.txhash
+                      }" target="_blank" rel="noopener">${escapeHtml(
+                        shortenAddress(ev.txhash, 6)
+                      )}</a>`
+                    : "—";
+                  return `
+                  <tr>
+                    <td class="timestamp">${formatDate(ev.ts)}</td>
+                    <td>${kind}</td>
+                    <td class="${deltaClass}">${deltaValue}</td>
+                    <td>${customerAddr}</td>
+                    <td>${nameCell}</td>
+                    <td>${txCell}</td>
+                  </tr>`;
+                })
+                .join("") ||
+              `
+                <tr>
+                  <td colspan="6" style="text-align:center; padding: 18px; color: #718096;">
+                    Keine Aktivitäten innerhalb des Limits
+                  </td>
+                </tr>`;
+
+            const customerRows =
+              customers
+                .map((cust) => {
+                  const balanceClass =
+                    cust.netStamps >= 0 ? "delta-positive" : "delta-negative";
+                  const customerAddr = cust.user
+                    ? `<span class="address" title="${escapeHtml(
+                        cust.user
+                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                    : "—";
+                  const nameCell = cust.customerName
+                    ? escapeHtml(cust.customerName)
+                    : "—";
+                  return `
+                  <tr>
+                    <td>${customerAddr}</td>
+                    <td>${nameCell}</td>
+                    <td>${formatNumber(cust.stampsAwarded)}</td>
+                    <td>${formatNumber(cust.stampsRedeemed)}</td>
+                    <td class="${balanceClass}">${formatNumber(
+                    cust.netStamps
+                  )}</td>
+                    <td>${formatDate(cust.lastActivityTs)}</td>
+                  </tr>`;
+                })
+                .join("") ||
+              `
+                <tr>
+                  <td colspan="6" style="text-align:center; padding: 18px; color: #718096;">
+                    Keine Kunden im Limit
+                  </td>
+                </tr>`;
+
+            return `
+              <div class="card cafe-card">
+                <div class="cafe-header">
+                  <div>
+                    <span class="cafe-name">${cafeName}</span>
+                    ${badge}
+                  </div>
+                  <div style="font-size: 13px; color: #4a5568;">
+                    Wallet: ${address} • Erstellt: ${created}
+                  </div>
+                </div>
+
+                <div class="summary-grid">
+                  <div class="summary-card">
+                    <div class="summary-label">Stempel vergeben</div>
+                    <div class="summary-value">${formatNumber(
+                      stats.stampsAwarded
+                    )}</div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Stempel eingelöst</div>
+                    <div class="summary-value">${formatNumber(
+                      stats.stampsRedeemed
+                    )}</div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Saldo</div>
+                    <div class="summary-value">${formatNumber(
+                      stats.netStamps
+                    )}</div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Einlösungen</div>
+                    <div class="summary-value">${formatNumber(
+                      stats.redemptions
+                    )}</div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Aktive Kunden</div>
+                    <div class="summary-value">${formatNumber(
+                      stats.uniqueCustomers
+                    )}</div>
+                  </div>
+                </div>
+
+                <div class="section-title">Letzte Events</div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Zeit</th>
+                        <th>Aktion</th>
+                        <th>Delta</th>
+                        <th>Kunde</th>
+                        <th>Name</th>
+                        <th>Tx</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${eventsRows}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="section-title">Kunden (Top ${
+                  state.config.customerLimit
+                })</div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Kunde</th>
+                        <th>Name</th>
+                        <th>Erhalten</th>
+                        <th>Eingelöst</th>
+                        <th>Saldo</th>
+                        <th>Zuletzt aktiv</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${customerRows}
+                    </tbody>
+                  </table>
+                </div>
+              </div>`;
+          })
+          .join("");
+      }
+
+      function handleSubmit(event) {
+        event.preventDefault();
+        const apiBase = refs.apiBaseInput.value.trim() || DEFAULT_API_BASE;
+        const adminKey = refs.adminKeyInput.value.trim();
+        const eventsPerCafe = Number(refs.eventsLimitInput.value) || 50;
+        const customerLimit = Number(refs.customerLimitInput.value) || 25;
+
+        if (!adminKey) {
+          showError("Der Admin-Key ist erforderlich.");
+          return;
+        }
+
+        const config = {
+          apiBase,
+          adminKey,
+          eventsPerCafe,
+          customerLimit,
+        };
+
+        saveConfig(config);
+        refs.configSection.classList.add("hidden");
+        refs.refreshBtn.classList.remove("hidden");
+        refs.logoutBtn.classList.remove("hidden");
+        fetchActivity();
+      }
+
+      function handleReset(event) {
+        event.preventDefault();
+        refs.apiBaseInput.value = DEFAULT_API_BASE;
+        refs.adminKeyInput.value = "";
+        refs.eventsLimitInput.value = "50";
+        refs.customerLimitInput.value = "25";
+      }
+
+      function handleLogout() {
+        clearConfig();
+        state.data = null;
+        refs.dashboard.classList.add("hidden");
+        refs.refreshBtn.classList.add("hidden");
+        refs.logoutBtn.classList.add("hidden");
+        refs.configSection.classList.remove("hidden");
+        refs.apiBaseInput.value = DEFAULT_API_BASE;
+        refs.adminKeyInput.value = "";
+        refs.eventsLimitInput.value = "50";
+        refs.customerLimitInput.value = "25";
+      }
+
+      function bootstrap() {
+        refs.apiBaseInput.value = DEFAULT_API_BASE;
+        const stored = loadConfig();
+        if (stored) {
+          state.config = stored;
+          refs.apiBaseInput.value = stored.apiBase || DEFAULT_API_BASE;
+          refs.adminKeyInput.value = stored.adminKey || "";
+          refs.eventsLimitInput.value = String(stored.eventsPerCafe || 50);
+          refs.customerLimitInput.value = String(stored.customerLimit || 25);
+          refs.configSection.classList.add("hidden");
+          refs.refreshBtn.classList.remove("hidden");
+          refs.logoutBtn.classList.remove("hidden");
+          fetchActivity();
+        }
+      }
+
+      refs.configForm.addEventListener("submit", handleSubmit);
+      refs.resetBtn.addEventListener("click", handleReset);
+      refs.refreshBtn.addEventListener("click", fetchActivity);
+      refs.logoutBtn.addEventListener("click", handleLogout);
+
+      bootstrap();
+    </script>
+  </body>
+</html>

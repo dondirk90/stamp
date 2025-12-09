@@ -344,15 +344,13 @@
   <body>
     <div class="container">
       <h1>☕ Café Registrierung</h1>
-      <p class="subtitle">Erstelle dein Stampcard-System in 3 Schritten</p>
+      <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
 
       <!-- Step Indicators -->
       <div class="step-indicators">
         <div class="step-indicator active" data-step="1">1</div>
         <div class="step-line"></div>
         <div class="step-indicator" data-step="2">2</div>
-        <div class="step-line"></div>
-        <div class="step-indicator" data-step="3">3</div>
       </div>
 
       <div class="error-message" id="errorMessage"></div>
@@ -402,13 +400,13 @@
         </div>
 
         <div class="button-group">
-          <button class="btn btn-primary" onclick="goToStep2()">
-            Weiter →
+          <button class="btn btn-primary" onclick="submitRegistration()">
+            Registrieren →
           </button>
         </div>
       </div>
 
-      <!-- Step 2: Stamp Setup -->
+      <!-- Step 2: Success (Setup moved to separate page) -->
       <div class="step-section" id="step2">
         <h2 style="margin-bottom: 25px; color: #333">
           Stempel-System konfigurieren
@@ -539,7 +537,7 @@
         <div class="button-group">
           <button
             class="btn btn-primary"
-            onclick="window.location.href='/cafe-scanner-new'"
+            onclick="window.location.href='/cafe-scanner'"
           >
             Zum Scanner →
           </button>
@@ -653,37 +651,32 @@
       }
 
       async function submitRegistration() {
-        // Validate Step 2
-        const stampMode = document.querySelector(
-          'input[name="stampMode"]:checked'
-        ).value;
-        const stampsForReward = parseInt(
-          document.getElementById("stampsForReward").value
-        );
-        const rewardDescription = document
-          .getElementById("rewardDescription")
-          .value.trim();
+        // Validate Step 1
+        const cafeName = document.getElementById("cafeName").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
 
-        if (!rewardDescription) {
-          showError("Bitte gib eine Belohnungs-Beschreibung ein");
+        if (!cafeName) {
+          showError("Bitte gib einen Café-Namen ein");
+          return;
+        }
+        if (!email || !email.includes("@")) {
+          showError("Bitte gib eine gültige E-Mail Adresse ein");
+          return;
+        }
+        if (password.length < 6) {
+          showError("Das Passwort muss mindestens 6 Zeichen lang sein");
+          return;
+        }
+        if (password !== confirmPassword) {
+          showError("Die Passwörter stimmen nicht überein");
           return;
         }
 
-        let products = [];
-        if (stampMode === "specific") {
-          const productInputs = document.querySelectorAll(".product-input");
-          products = Array.from(productInputs)
-            .map((input) => input.value.trim())
-            .filter((p) => p);
-
-          if (products.length === 0) {
-            showError("Bitte gib mindestens ein Produkt ein");
-            return;
-          }
-        }
-
         // Show loading
-        document.getElementById("step2").style.display = "none";
+        document.getElementById("step1").style.display = "none";
         document.getElementById("loading").classList.add("show");
 
         try {
@@ -691,13 +684,13 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: document.getElementById("cafeName").value.trim(),
-              email: document.getElementById("email").value.trim(),
-              password: document.getElementById("password").value,
-              stampMode,
-              stampsForReward,
-              rewardDescription,
-              products,
+              name: cafeName,
+              email: email,
+              password: password,
+              stampMode: "general",
+              stampsForReward: 10,
+              rewardDescription: "Ein Freigetränk deiner Wahl",
+              products: [],
             }),
           });
 
@@ -710,8 +703,8 @@
           // Show success screen
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step3").classList.add("active");
-          currentStep = 3;
-          updateStepIndicators(3);
+          currentStep = 2;
+          updateStepIndicators(2);
 
           // Fill credentials
           document.getElementById("successEmail").textContent =
@@ -723,7 +716,7 @@
             data.seedPhrase;
         } catch (error) {
           document.getElementById("loading").classList.remove("show");
-          document.getElementById("step2").style.display = "block";
+          document.getElementById("step1").style.display = "block";
           showError(error.message || "Ein Fehler ist aufgetreten");
         }
       }

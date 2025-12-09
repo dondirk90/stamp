@@ -129,6 +129,21 @@
   </div>
 
   <script>
+    // Auto-forward to scanner when redeem parameters are present
+    (function () {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const hasRedeem = params.get("redeem") === "true";
+        const hasCustomer = params.has("customer");
+        if (hasRedeem && hasCustomer) {
+          const search = window.location.search || "";
+          const target = `/cafe-scanner.html${search}`;
+          window.location.replace(target);
+          return; // stop initializing helper UI
+        }
+      } catch (_) {}
+    })();
+
     function getLocalIP() {
       // Versuche, die LAN-IP zu ermitteln (funktioniert teilweise im Browser)
       // Fallback: zeige Anleitung zur manuellen Eingabe

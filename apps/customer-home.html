@@ -104,6 +104,44 @@
         backdrop-filter: blur(10px);
         border-radius: 20px;
         padding: 25px;
+
+        .cards-container {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .card-badge {
+          display: inline-block;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+          margin-left: 10px;
+        }
+
+        .card-badge.redeemable {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          animation: pulse 2s infinite;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+
+        .card-badge.redeemable:hover {
+          transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         margin-bottom: 20px;
       }
@@ -119,6 +157,150 @@
         font-size: 20px;
         font-weight: 600;
         color: #1a202c;
+      }
+
+      .redemption-success {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 16, 35, 0.82);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 2000;
+      }
+
+      .redemption-success.show {
+        display: flex;
+        animation: fadeIn 0.25s ease-out;
+      }
+
+      .redemption-success-card {
+        background: rgba(255, 255, 255, 0.97);
+        border-radius: 28px;
+        padding: 36px 40px;
+        max-width: 420px;
+        text-align: center;
+        box-shadow: 0 30px 90px rgba(102, 126, 234, 0.45);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .redemption-success-card h2 {
+        font-size: 28px;
+        color: #1a202c;
+        margin-bottom: 12px;
+      }
+
+      .redemption-success-card p {
+        font-size: 15px;
+        color: #4a5568;
+        margin-bottom: 26px;
+      }
+
+      .redemption-success-close {
+        padding: 12px 28px;
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .redemption-success-close:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+      }
+
+      .redemption-graphic {
+        width: 140px;
+        height: 160px;
+        margin: 0 auto 24px;
+        position: relative;
+      }
+
+      .redemption-graphic .cup {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 80px;
+        border-radius: 24px 24px 36px 36px;
+        background: linear-gradient(135deg, #fff5f7 0%, #fce7f3 100%);
+        border: 3px solid #e7d8f8;
+        box-shadow: 0 18px 36px rgba(118, 75, 162, 0.25);
+      }
+
+      .redemption-graphic .saucer {
+        position: absolute;
+        bottom: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 140px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(102, 126, 234, 0.12);
+      }
+
+      .redemption-graphic .sparkle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        animation: sparkle 2.4s ease-in-out infinite;
+      }
+
+      .redemption-graphic .sparkle:nth-child(3) {
+        top: 10px;
+        left: 10px;
+        animation-delay: 0.2s;
+      }
+
+      .redemption-graphic .sparkle:nth-child(4) {
+        top: 6px;
+        right: 20px;
+        animation-delay: 0.6s;
+      }
+
+      .redemption-graphic .sparkle:nth-child(5) {
+        bottom: 50px;
+        left: -6px;
+        animation-delay: 1s;
+      }
+
+      .redemption-graphic .sparkle:nth-child(6) {
+        bottom: 52px;
+        right: -10px;
+        animation-delay: 1.4s;
+      }
+
+      @keyframes sparkle {
+        0% {
+          opacity: 0;
+          transform: scale(0.5) translateY(0);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1) translateY(-4px);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0.5) translateY(-12px);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       .stamp-count {
@@ -369,6 +551,94 @@
           transform: rotate(360deg);
         }
       }
+
+      /* Celebration Modal */
+      .celebration-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .celebration-content {
+        background: white;
+        border-radius: 24px;
+        padding: 40px;
+        max-width: 400px;
+        text-align: center;
+        position: relative;
+        animation: celebrate 0.5s ease-out;
+      }
+
+      @keyframes celebrate {
+        0% {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: #667eea;
+        animation: fall 3s linear infinite;
+      }
+
+      @keyframes fall {
+        to {
+          transform: translateY(100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      .celebration-title {
+        font-size: 32px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+      }
+
+      .celebration-subtitle {
+        font-size: 18px;
+        color: #4a5568;
+        margin-bottom: 30px;
+      }
+
+      .redemption-qr {
+        margin: 20px auto;
+        padding: 20px;
+        background: #f7fafc;
+        border-radius: 16px;
+        display: inline-block;
+      }
+
+      .close-celebration {
+        margin-top: 20px;
+        padding: 14px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -398,18 +668,16 @@
       </div>
 
       <!-- Stamp card -->
-      <div id="stampCard" class="stamp-card" style="display: none">
-        <div class="stamp-card-header">
-          <div class="stamp-card-title" id="cafeTitle">Meine Stempelkarte</div>
-          <div class="stamp-count">
-            <span id="stampCount">0</span> / 10 Stempel
-          </div>
-        </div>
+      <div
+        id="stampCardsContainer"
+        class="cards-container"
+        style="display: none"
+      >
+        <!-- Multiple cards generated by JS -->
+      </div>
 
-        <div class="stamp-grid" id="stampGrid">
-          <!-- Generated by JS -->
-        </div>
-
+      <!-- QR Section (below all cards) -->
+      <div id="qrSection" class="stamp-card" style="display: none">
         <div class="qr-section">
           <h3>🎫 Zum Scannen beim Café vorzeigen</h3>
           <p>Zeige diesen QR-Code beim Bezahlen vor</p>
@@ -426,6 +694,73 @@
           <h3 style="margin-bottom: 10px">Wähle ein Café</h3>
           <p>Wähle oben ein Café aus, um deine Stempelkarte zu sehen</p>
         </div>
+      </div>
+    </div>
+
+    <div class="redemption-success" id="redemptionSuccessModal">
+      <div class="redemption-success-card">
+        <div class="redemption-graphic">
+          <div class="cup"></div>
+          <div class="saucer"></div>
+          <div class="sparkle"></div>
+          <div class="sparkle"></div>
+          <div class="sparkle"></div>
+          <div class="sparkle"></div>
+        </div>
+        <h2>Gratis-Kaffee freigeschaltet!</h2>
+        <p>Deine Stempelkarte wurde eingelöst und startet wieder bei Null.</p>
+        <button class="redemption-success-close" id="redemptionSuccessClose">
+          Weiter sammeln
+        </button>
+      </div>
+    </div>
+
+    <!-- Card Redemption Modal -->
+    <div class="celebration-modal" id="cardRedemptionModal">
+      <div class="celebration-content">
+        <div class="celebration-title">🎁 Belohnung einlösen</div>
+        <div class="celebration-subtitle" id="cardRedemptionText">
+          Zeige diesen QR-Code im Café vor
+        </div>
+        <div class="redemption-qr">
+          <img id="cardRedemptionQR" style="width: 200px; height: 200px" />
+        </div>
+        <button class="close-celebration" onclick="closeCardRedemption()">
+          Schließen
+        </button>
+      </div>
+    </div>
+
+    <!-- Celebration Modal -->
+    <div class="celebration-modal" id="celebrationModal">
+      <div class="celebration-content">
+        <div class="celebration-title">🎉 Glückwunsch! 🎉</div>
+        <div class="celebration-subtitle">
+          Du hast 10 Stempel gesammelt!<br />Zeige diesen QR-Code im Café, um
+          deine Belohnung einzulösen.
+        </div>
+        <div class="redemption-qr">
+          <img id="redemptionQR" style="width: 200px; height: 200px" />
+        </div>
+        <button class="close-celebration" onclick="closeCelebration()">
+          Schließen
+        </button>
+      </div>
+    </div>
+
+    <!-- Card Redemption Modal -->
+    <div class="celebration-modal" id="cardRedemptionModal">
+      <div class="celebration-content">
+        <div class="celebration-title">🎁 Belohnung einlösen</div>
+        <div class="celebration-subtitle" id="cardRedemptionText">
+          Zeige diesen QR-Code im Café vor
+        </div>
+        <div class="redemption-qr">
+          <img id="cardRedemptionQR" style="width: 200px; height: 200px" />
+        </div>
+        <button class="close-celebration" onclick="closeCardRedemption()">
+          Schließen
+        </button>
       </div>
     </div>
 
@@ -456,31 +791,105 @@
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <script>
-      const apiBase = "http://192.168.0.175:3000";
+      function resolveApiBase() {
+        const stored = localStorage.getItem("api_base");
+        if (stored) return stored;
+        try {
+          const host = window.location.hostname || "localhost";
+          const proto =
+            window.location.protocol === "http:" ||
+            window.location.protocol === "https:"
+              ? window.location.protocol
+              : "http:";
+          return `${proto}//${host}:3000`;
+        } catch {
+          return "http://localhost:3000";
+        }
+      }
+      const apiBase = resolveApiBase();
 
       let customer = null;
       let cafes = [];
       let selectedCafe = null;
       let stampHistory = [];
 
+      // Simple toast notification
+      let toastTimeout = null;
+      function showToast(message, isError = false) {
+        // Create toast if doesn't exist
+        let toast = document.getElementById("toast");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "toast";
+          toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${
+              isError
+                ? "#e53e3e"
+                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            };
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+          `;
+          document.body.appendChild(toast);
+        }
+
+        clearTimeout(toastTimeout);
+        toast.textContent = message;
+        toast.style.background = isError
+          ? "#e53e3e"
+          : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+        toast.style.opacity = "1";
+
+        toastTimeout = setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 2000);
+      }
+
       // Elements
       const header = document.getElementById("header");
       const loading = document.getElementById("loading");
-      const stampCard = document.getElementById("stampCard");
       const emptyState = document.getElementById("emptyState");
       const cafeSelect = document.getElementById("cafeSelect");
       const userAvatar = document.getElementById("userAvatar");
       const userName = document.getElementById("userName");
       const userEmail = document.getElementById("userEmail");
-      const cafeTitle = document.getElementById("cafeTitle");
-      const stampCount = document.getElementById("stampCount");
-      const stampGrid = document.getElementById("stampGrid");
       const qrImg = document.getElementById("qrImg");
       const modal = document.getElementById("modal");
       const modalClose = document.getElementById("modalClose");
       const modalCafe = document.getElementById("modalCafe");
       const modalTime = document.getElementById("modalTime");
       const modalTxHash = document.getElementById("modalTxHash");
+      const redemptionSuccessModal = document.getElementById(
+        "redemptionSuccessModal"
+      );
+      const redemptionSuccessClose = document.getElementById(
+        "redemptionSuccessClose"
+      );
+
+      let previousTotalStamps = null;
+      let lastCafeId = null;
+
+      if (redemptionSuccessClose) {
+        redemptionSuccessClose.addEventListener("click", () => {
+          redemptionSuccessModal?.classList.remove("show");
+        });
+      }
+
+      redemptionSuccessModal?.addEventListener("click", (event) => {
+        if (event.target === redemptionSuccessModal) {
+          redemptionSuccessModal.classList.remove("show");
+        }
+      });
 
       // Initialize
       (async function init() {
@@ -506,6 +915,20 @@
           // Load cafes
           const cafesRes = await fetch(`${apiBase}/cafes`);
           cafes = await cafesRes.json();
+
+          // If no cafes configured, show helpful message and stop
+          if (!Array.isArray(cafes) || cafes.length === 0) {
+            header.style.display = "block";
+            loading.style.display = "none";
+            emptyState.style.display = "block";
+            emptyState.innerHTML = `
+              <div style="text-align:center;color:#2d3748">
+                <div style="font-size:18px;margin-bottom:8px">Noch keine Cafés eingerichtet</div>
+                <div style="font-size:14px;color:#4a5568;margin-bottom:12px">Bitte ein Café in der API registrieren (Route /cafes) oder das Café-Setup verwenden.</div>
+                <div style="font-size:13px;color:#718096">Tipp: Öffne <code style="background:#edf2f7;padding:2px 6px;border-radius:4px">http://localhost:8080/cafe-issuer-web.html</code> und folge der Einrichtung.</div>
+              </div>`;
+            return;
+          }
 
           // Populate dropdown
           cafes.forEach((cafe) => {
@@ -540,7 +963,10 @@
         const cafeId = e.target.value;
         if (!cafeId) {
           emptyState.style.display = "block";
-          stampCard.style.display = "none";
+          const container = document.getElementById("stampCardsContainer");
+          const qrSection = document.getElementById("qrSection");
+          if (container) container.style.display = "none";
+          if (qrSection) qrSection.style.display = "none";
           return;
         }
 
@@ -554,18 +980,28 @@
           selectedCafe = cafes.find((c) => c.id == cafeId);
           if (!selectedCafe) return;
 
+          if (lastCafeId !== selectedCafe.id) {
+            previousTotalStamps = null;
+            lastCafeId = selectedCafe.id;
+          }
+
           emptyState.style.display = "none";
-          stampCard.style.display = "block";
+          document.getElementById("stampCardsContainer").style.display =
+            "block";
+          document.getElementById("qrSection").style.display = "block";
 
-          // Update title
-          cafeTitle.textContent = selectedCafe.name;
-
-          // Generate QR code
-          const qrData = `http://192.168.0.175:8080/cafe-scanner-new.html?customer=${
+          // Generate café-specific QR code using current host on port 8080
+          const appsBase = `${
+            window.location.protocol === "http:" ||
+            window.location.protocol === "https:"
+              ? window.location.protocol
+              : "http:"
+          }//${window.location.hostname || "localhost"}:8080`;
+          const qrData = `${appsBase}/cafe-scanner.html?customer=${
             customer.address
           }&customerName=${encodeURIComponent(customer.name || "Kunde")}&cafe=${
-            selectedCafe.id
-          }`;
+            selectedCafe.address
+          }&cafeName=${encodeURIComponent(selectedCafe.name || "Cafe")}`;
           await QRCode.toDataURL(qrData, { width: 200, margin: 1 }).then(
             (url) => {
               qrImg.src = url;
@@ -579,7 +1015,19 @@
           const stampsData = await stampsRes.json();
           const totalStamps = stampsData.stamps ?? 0;
 
-          stampCount.textContent = totalStamps;
+          if (stampsData.note === "db_fallback") {
+            showToast(
+              "⚠️ Hinweis: Stempelstand basiert auf Backup-Daten. Bitte Backend synchronisieren.",
+              true
+            );
+          }
+
+          previousTotalStamps = totalStamps;
+          lastCafeId = selectedCafe.id;
+
+          // Render multiple cards (one per 10 stamps)
+          renderMultipleCards(totalStamps);
+          handleTotalStampChange(totalStamps);
 
           // Load stamp history
           const historyRes = await fetch(
@@ -595,41 +1043,203 @@
               h.cafe.toLowerCase() === selectedCafe.address.toLowerCase()
           );
 
-          // Render stamp grid
-          renderStampGrid(totalStamps);
+          // No longer needed here - called in renderMultipleCards
         } catch (err) {
           console.error("Failed to load stamp card:", err);
           alert("Fehler beim Laden der Stempelkarte");
         }
       }
 
-      // Render stamp grid
-      function renderStampGrid(total) {
-        stampGrid.innerHTML = "";
+      // Render multiple cards (one per 10 stamps)
+      function renderMultipleCards(totalStamps) {
+        const container = document.getElementById("stampCardsContainer");
+        container.innerHTML = "";
 
-        for (let i = 0; i < 10; i++) {
-          const slot = document.createElement("div");
-          slot.className = "stamp-slot";
+        const numFullCards = Math.floor(totalStamps / 10);
+        const remainingStamps = totalStamps % 10;
+        const totalCards = numFullCards + (remainingStamps > 0 ? 1 : 0);
 
-          if (i < total) {
-            slot.classList.add("filled");
-            slot.textContent = "☕";
+        for (let cardIndex = 0; cardIndex < totalCards; cardIndex++) {
+          const cardStartStamp = cardIndex * 10;
+          const cardStamps = cardIndex < numFullCards ? 10 : remainingStamps;
+          const isFull = cardStamps === 10;
 
-            // Add click handler to show transaction details
-            const historyIndex = i;
-            if (stampHistory[historyIndex]) {
-              slot.addEventListener("click", () =>
-                showStampDetails(stampHistory[historyIndex])
+          const card = document.createElement("div");
+          card.className = "stamp-card";
+          card.innerHTML = `
+                    <div class="stamp-card-header">
+                      <div class="stamp-card-title">
+                        ${selectedCafe.name} - Karte ${cardIndex + 1}
+                        ${
+                          isFull
+                            ? '<span class="card-badge redeemable">🎁 Einlösbar!</span>'
+                            : `<span class="card-badge">${cardStamps} / 10</span>`
+                        }
+                      </div>
+                    </div>
+                    <div class="stamp-grid" data-card-index="${cardIndex}">
+                      <!-- Generated below -->
+                    </div>
+                  `;
+
+          // Add click handler to redeemable badge
+          if (isFull) {
+            const badge = card.querySelector(".card-badge.redeemable");
+            if (badge) {
+              badge.addEventListener("click", () =>
+                showCardRedemption(cardIndex)
               );
             }
-          } else {
-            slot.classList.add("empty");
-            slot.textContent = "";
           }
 
-          stampGrid.appendChild(slot);
+          const grid = card.querySelector(".stamp-grid");
+          for (let i = 0; i < 10; i++) {
+            const slot = document.createElement("div");
+            slot.className = "stamp-slot";
+
+            if (i < cardStamps) {
+              slot.classList.add("filled");
+              slot.textContent = "☕";
+
+              const historyIndex = cardStartStamp + i;
+              if (stampHistory[historyIndex]) {
+                slot.addEventListener("click", () =>
+                  showStampDetails(stampHistory[historyIndex])
+                );
+              }
+            } else {
+              slot.classList.add("empty");
+              slot.textContent = "";
+            }
+
+            grid.appendChild(slot);
+          }
+
+          container.appendChild(card);
+        }
+
+        // Check eligibility for any full card
+        checkRewardEligibility(totalStamps);
+      }
+
+      // Check for reward eligibility and show celebration
+      function checkRewardEligibility(totalStamps) {
+        const key = "celebrationCount_" + selectedCafe.id;
+        const prev = parseInt(sessionStorage.getItem(key) || "0", 10);
+        const current = Math.floor(totalStamps / 10); // number of full cards
+        if (current > prev) {
+          showCelebration();
+          sessionStorage.setItem(key, String(current));
         }
       }
+
+      function handleTotalStampChange(totalStamps) {
+        if (
+          previousTotalStamps !== null &&
+          Math.floor(previousTotalStamps / 10) > Math.floor(totalStamps / 10)
+        ) {
+          showRedemptionSuccess();
+        }
+        previousTotalStamps = totalStamps;
+      }
+
+      function showRedemptionSuccess() {
+        if (!redemptionSuccessModal) return;
+        redemptionSuccessModal.classList.add("show");
+        clearTimeout(showRedemptionSuccess._timer);
+        showRedemptionSuccess._timer = setTimeout(() => {
+          redemptionSuccessModal.classList.remove("show");
+        }, 4500);
+      }
+
+      // Show celebration modal with redemption QR
+      async function showCelebration() {
+        const modal = document.getElementById("celebrationModal");
+        const qrImg = document.getElementById("redemptionQR");
+
+        // Generate redemption QR with customer address
+        const appsBase = `${
+          window.location.protocol === "http:" ||
+          window.location.protocol === "https:"
+            ? window.location.protocol
+            : "http:"
+        }//${window.location.hostname || "localhost"}:8080`;
+        const redeemData = `${appsBase}/cafe-scanner.html?redeem=true&customer=${
+          customer.address
+        }&customerName=${encodeURIComponent(customer.name || "Kunde")}&cafe=${
+          selectedCafe.address
+        }&cafeName=${encodeURIComponent(selectedCafe.name || "Cafe")}`;
+
+        await QRCode.toDataURL(redeemData, { width: 200, margin: 1 }).then(
+          (url) => {
+            qrImg.src = url;
+          }
+        );
+
+        // Generate confetti
+        for (let i = 0; i < 50; i++) {
+          const confetti = document.createElement("div");
+          confetti.className = "confetti";
+          confetti.style.left = Math.random() * 100 + "%";
+          confetti.style.animationDelay = Math.random() * 3 + "s";
+          confetti.style.background = [
+            "#667eea",
+            "#764ba2",
+            "#f093fb",
+            "#4facfe",
+          ][Math.floor(Math.random() * 4)];
+          modal.querySelector(".celebration-content").appendChild(confetti);
+        }
+
+        modal.style.display = "flex";
+      }
+
+      // Close celebration
+      window.closeCelebration = function () {
+        const modal = document.getElementById("celebrationModal");
+        modal.style.display = "none";
+        // Clear confetti
+        modal.querySelectorAll(".confetti").forEach((c) => c.remove());
+      };
+
+      // Ensure single celebration implementation (dynamic base, no hardcoded IP)
+      // The version above is the canonical one; remove duplicates and hardcoded IPs.
+
+      // Show card-specific redemption QR
+      async function showCardRedemption(cardIndex) {
+        const modal = document.getElementById("cardRedemptionModal");
+        const qrImg = document.getElementById("cardRedemptionQR");
+        const text = document.getElementById("cardRedemptionText");
+
+        text.innerHTML = `Karte ${
+          cardIndex + 1
+        } einlösen<br/><small style="color: #718096;">10 Stempel werden abgezogen</small>`;
+
+        const appsBase = `${
+          window.location.protocol === "http:" ||
+          window.location.protocol === "https:"
+            ? window.location.protocol
+            : "http:"
+        }//${window.location.hostname || "localhost"}:8080`;
+        const redeemData = `${appsBase}/cafe-scanner.html?redeem=true&cardIndex=${cardIndex}&customer=${
+          customer.address
+        }&customerName=${encodeURIComponent(customer.name || "Kunde")}&cafe=${
+          selectedCafe.address
+        }&cafeName=${encodeURIComponent(selectedCafe.name || "Cafe")}`;
+
+        await QRCode.toDataURL(redeemData, { width: 200, margin: 1 }).then(
+          (url) => {
+            qrImg.src = url;
+          }
+        );
+
+        modal.style.display = "flex";
+      }
+
+      window.closeCardRedemption = function () {
+        const modal = document.getElementById("cardRedemptionModal");
+        modal.style.display = "none";
+      };
 
       // Show stamp details in modal
       function showStampDetails(stamp) {
@@ -655,24 +1265,58 @@
         }
       });
 
-      // Listen for new stamps via SSE
-      const sse = new EventSource(`${apiBase}/events/stream`);
-      sse.onmessage = async (e) => {
+      // Listen for new stamps via SSE with reconnect
+      function setupSSE() {
         try {
-          const event = JSON.parse(e.data);
-          if (
-            event.user &&
-            event.user.toLowerCase() === customer.address.toLowerCase()
-          ) {
-            // Reload current cafe if it matches
-            if (selectedCafe && cafeSelect.value) {
-              await loadStampCard(cafeSelect.value);
-            }
+          if (window._sse) {
+            try {
+              window._sse.close();
+            } catch (e) {}
           }
-        } catch (err) {
-          console.warn("SSE parse error:", err);
-        }
-      };
+        } catch (e) {}
+        const sseUrl = `${apiBase}/events/stream`;
+        let retries = 0;
+        const connect = () => {
+          const es = new EventSource(sseUrl);
+          window._sse = es;
+          es.onopen = () => {
+            retries = 0;
+          };
+          es.onmessage = async (e) => {
+            try {
+              const event = JSON.parse(e.data);
+              if (
+                event.user &&
+                event.user.toLowerCase() === customer.address.toLowerCase()
+              ) {
+                if (
+                  selectedCafe &&
+                  event.cafe &&
+                  event.cafe.toLowerCase() ===
+                    selectedCafe.address.toLowerCase()
+                ) {
+                  showToast("☕ Neuer Stempel!", false);
+                  setTimeout(() => {
+                    loadStampCard(selectedCafe.id);
+                  }, 1000);
+                }
+              }
+            } catch (err) {
+              console.warn("SSE parse error:", err);
+            }
+          };
+          es.onerror = () => {
+            try {
+              es.close();
+            } catch (e) {}
+            const delay = Math.min(30000, 1000 * Math.pow(2, retries));
+            retries++;
+            setTimeout(connect, delay);
+          };
+        };
+        connect();
+      }
+      setupSSE();
     </script>
   </body>
 </html>

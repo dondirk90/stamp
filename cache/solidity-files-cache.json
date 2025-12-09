@@ -38,8 +38,8 @@
       ]
     },
     "C:\\Users\\dirkb\\Documents\\GitHub\\stamp\\contracts\\StampCard.sol": {
-      "lastModificationDate": 1763490573928,
-      "contentHash": "0241a9042bd1668148281e3880f49aed",
+      "lastModificationDate": 1764708407861,
+      "contentHash": "f98974feba6c0294adba6b50abba6f64",
       "sourceName": "contracts/StampCard.sol",
       "solcConfig": {
         "version": "0.8.28",
