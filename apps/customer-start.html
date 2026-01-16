@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>☕ Stamp — Start</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        background: rgba(251, 247, 241, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        z-index: 10;
+      }
+
+      .topbar-inner {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 14px 18px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--brand);
+        font-size: 18px;
+      }
+
+      .brand small {
+        font-weight: 700;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .main {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 22px 18px 50px;
+      }
+
+      .hero {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 14px 0 18px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.15;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      @media (min-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .field:first-child {
+        margin-top: 0;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .row > * {
+        flex: 1;
+        min-width: 160px;
+      }
+
+      .seg {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .menu {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .menu-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        cursor: pointer;
+      }
+
+      .menu-title {
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+
+      .menu-body {
+        display: none;
+        padding: 0 16px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .menu.open .menu-body {
+        display: block;
+      }
+
+      .cafe-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .cafe {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 14px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .cafe-meta {
+        min-width: 0;
+      }
+
+      .cafe-name {
+        font-weight: 900;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
+
+      .cafe-sub {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-top: 2px;
+        word-break: break-word;
+      }
+
+      .pill {
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+
+      .actions button {
+        flex: 1;
+        min-width: 160px;
+        padding: 12px 14px;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .mono {
+        font-family: var(--font-mono);
+      }
+
+      .preview {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        font-size: 12px;
+        overflow: auto;
+      }
+
+      .qr {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        min-height: 280px;
+      }
+
+      .qr canvas {
+        width: 240px;
+        height: 240px;
+      }
+
+      .footer-hint {
+        margin-top: 18px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      @media (min-width: 760px) {
+        .cards {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .card-title {
+        font-weight: 900;
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+
+      .kpi {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .kpi .pill {
+        background: var(--surface-muted);
+      }
+
+      .qr-mini {
+        margin-top: 12px;
+        display: none;
+        padding: 12px;
+        border-radius: var(--radius);
+        border: 1px dashed var(--border);
+        background: var(--surface);
+        align-items: center;
+        justify-content: center;
+        min-height: 220px;
+      }
+
+      .qr-mini canvas {
+        width: 200px;
+        height: 200px;
+      }
+
+      .flip {
+        perspective: 1200px;
+      }
+
+      .flip-inner {
+        position: relative;
+        width: 100%;
+        transform-style: preserve-3d;
+        transition: transform 0.55s ease;
+      }
+
+      .flip.is-flipped .flip-inner {
+        transform: rotateY(180deg);
+      }
+
+      .flip-face {
+        backface-visibility: hidden;
+        transform-style: preserve-3d;
+      }
+
+      .flip-back {
+        position: absolute;
+        inset: 0;
+        transform: rotateY(180deg);
+      }
+
+      .stamp-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .stamp {
+        height: 46px;
+        border-radius: 14px;
+        border: 1px dashed rgba(32, 24, 20, 0.22);
+        background: rgba(255, 255, 255, 0.65);
+        position: relative;
+        overflow: hidden;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+      }
+
+      .stamp.on {
+        border-style: solid;
+        border-color: rgba(124, 87, 58, 0.35);
+        background: rgba(124, 87, 58, 0.08);
+      }
+
+      .stamp.on::after {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(124, 87, 58, 0.92),
+          rgba(124, 87, 58, 0.55)
+        );
+        transform: rotate(-14deg);
+        opacity: 0.92;
+        filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.25));
+      }
+
+      @supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
+        .stamp.on::after {
+          border-radius: 0;
+          -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+          -webkit-mask-position: center;
+          mask-position: center;
+          -webkit-mask-size: contain;
+          mask-size: contain;
+          -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='black' d='M52 12 C72 14 86 30 84 50 C82 70 66 86 46 84 C26 82 12 66 14 46 C16 26 32 10 52 12 Z'/%3E%3Cpath fill='black' d='M40 26 C30 32 24 44 26 54 C28 64 38 72 48 72 C58 72 70 62 72 50 C74 38 64 28 52 26 C48 25 44 25 40 26 Z' opacity='0.55'/%3E%3C/svg%3E");
+          mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='black' d='M52 12 C72 14 86 30 84 50 C82 70 66 86 46 84 C26 82 12 66 14 46 C16 26 32 10 52 12 Z'/%3E%3Cpath fill='black' d='M40 26 C30 32 24 44 26 54 C28 64 38 72 48 72 C58 72 70 62 72 50 C74 38 64 28 52 26 C48 25 44 25 40 26 Z' opacity='0.55'/%3E%3C/svg%3E");
+        }
+      }
+
+      .stamp.on::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 12px;
+        border-left: 2px solid rgba(255, 255, 255, 0.55);
+        transform: rotate(-14deg);
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .paper-card {
+        border-radius: 16px;
+        border: 1px solid rgba(32, 24, 20, 0.14);
+        background: radial-gradient(
+            1200px 420px at -10% -10%,
+            rgba(255, 255, 255, 0.9),
+            rgba(255, 255, 255, 0.62)
+          ),
+          radial-gradient(
+            900px 420px at 110% 0%,
+            rgba(251, 247, 241, 0.95),
+            rgba(251, 247, 241, 0.6)
+          );
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .paper-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          rgba(32, 24, 20, 0.045) 1px,
+          transparent 1px
+        );
+        background-size: 12px 12px;
+        opacity: 0.55;
+        pointer-events: none;
+        mix-blend-mode: multiply;
+      }
+
+      .paper-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px dashed rgba(32, 24, 20, 0.22);
+        background: linear-gradient(
+          180deg,
+          rgba(124, 87, 58, 0.18),
+          rgba(124, 87, 58, 0.06)
+        );
+      }
+
+      .paper-brand {
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: rgba(32, 24, 20, 0.92);
+      }
+
+      .paper-sub {
+        margin-top: 2px;
+        font-size: 12px;
+        color: rgba(32, 24, 20, 0.65);
+      }
+
+      .swipe-hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .flip-cta {
+        margin-top: 14px;
+        width: 100%;
+        padding: 12px 14px;
+      }
+
+      .notice {
+        margin-top: 12px;
+      }
+
+      .section {
+        display: none;
+      }
+
+      .section.active {
+        display: block;
+      }
+
+      details {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 10px 12px;
+      }
+
+      details > summary {
+        cursor: pointer;
+        font-weight: 800;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">Stamp <small>Stempelkarte</small></div>
+      </div>
+    </div>
+
+    <main class="main">
+      <section class="hero">
+        <h1>Deine Stempelkarte</h1>
+        <p>Alle Karten auf einen Blick. Tippe auf „QR zeigen“.</p>
+      </section>
+
+      <div class="menu" id="cafeMenu">
+        <div class="menu-head" id="cafeMenuToggle" role="button" tabindex="0">
+          <div>
+            <div class="menu-title">Cafés</div>
+            <div class="muted" id="selectedCafeHint">Alle Cafés</div>
+          </div>
+          <span class="pill" id="countPill">0</span>
+        </div>
+        <div class="menu-body">
+          <div class="cafe-list" id="cafeList" style="margin-top: 12px"></div>
+          <div class="actions" style="margin-top: 12px">
+            <button id="reload" class="secondary">Neu laden</button>
+            <button id="resetCustomer" class="secondary" type="button">
+              Abmelden
+            </button>
+          </div>
+          <div id="status" class="notice muted" style="display: none"></div>
+        </div>
+      </div>
+
+      <section class="card panel" style="margin-top: 14px">
+        <div class="row" style="margin-bottom: 6px">
+          <h2 style="margin: 0; font-size: 16px">Deine Karte</h2>
+          <button id="reloadCards" class="secondary" type="button">
+            Aktualisieren
+          </button>
+        </div>
+        <div id="cardStage"></div>
+
+        <details>
+          <summary>Hilfe</summary>
+          <div class="footer-hint" style="margin-top: 10px">
+            Auf dem Smartphone nutzt du statt
+            <span class="mono">localhost</span>
+            deine LAN‑IP.
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const els = {
+        reload: $("reload"),
+        resetCustomer: $("resetCustomer"),
+        status: $("status"),
+        countPill: $("countPill"),
+        cafeMenu: $("cafeMenu"),
+        cafeMenuToggle: $("cafeMenuToggle"),
+        selectedCafeHint: $("selectedCafeHint"),
+        cafeList: $("cafeList"),
+        cardStage: $("cardStage"),
+        reloadCards: $("reloadCards"),
+      };
+
+      let cafes = [];
+      let selectedCafe = null;
+      let cardStats = [];
+
+      function showStatus(msg, kind = "muted") {
+        els.status.style.display = "block";
+        els.status.className = `notice ${kind}`;
+        els.status.textContent = msg;
+      }
+
+      function hideStatus() {
+        els.status.style.display = "none";
+      }
+
+      function getStoredCustomer() {
+        try {
+          const raw = localStorage.getItem("stamp.customer.session");
+          if (!raw) return null;
+          const obj = JSON.parse(raw);
+          if (!obj || !obj.customer_id || !obj.address) return null;
+          return obj;
+        } catch {
+          return null;
+        }
+      }
+
+      function setStoredCustomer(session) {
+        try {
+          localStorage.setItem(
+            "stamp.customer.session",
+            JSON.stringify({
+              customer_id: session.customer_id,
+              address: session.address,
+              ts: Date.now(),
+            })
+          );
+        } catch {}
+      }
+
+      function clearStoredCustomer() {
+        try {
+          localStorage.removeItem("stamp.customer.session");
+        } catch {}
+      }
+
+      function updateWelcomeUI(session) {
+        // customer-start is now a pure "cards per cafe" view; no name field here
+        return;
+      }
+
+      function apiBaseFromLocation() {
+        // Default assumption: API runs on same host as the app, port 3000.
+        // Works for LAN because hostname will be the LAN IP.
+        const host = window.location.hostname;
+        const proto = window.location.protocol;
+        return `${proto}//${host}:3000`;
+      }
+
+      async function ensureCustomerSession() {
+        const existing = getStoredCustomer();
+        if (existing) return existing;
+        const apiBase = apiBaseFromLocation();
+        const r = await fetch(`${apiBase}/customers/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || !data.ok) {
+          throw new Error(data.error || "Registrierung fehlgeschlagen");
+        }
+        const session = {
+          customer_id: data.customer_id,
+          address: data.address,
+        };
+        setStoredCustomer(session);
+        return session;
+      }
+
+      function safeNum(n, fallback = 0) {
+        const x = Number(n);
+        return Number.isFinite(x) ? x : fallback;
+      }
+
+      function formatMaybeInt(n) {
+        const x = safeNum(n, NaN);
+        if (!Number.isFinite(x)) return "—";
+        return String(Math.round(x));
+      }
+
+      function findCafeLabel(card) {
+        const cid = card && (card.cafe_id || card.cafeId || card.cafe);
+        const caddr = card && (card.cafe_address || card.cafeAddress || "");
+        const cafe = cafes.find((c) => {
+          if (!c) return false;
+          if (cid && c.id && String(c.id) === String(cid)) return true;
+          if (
+            caddr &&
+            c.address &&
+            String(c.address).toLowerCase() === String(caddr).toLowerCase()
+          )
+            return true;
+          return false;
+        });
+        if (cafe && cafe.name) return String(cafe.name);
+        if (card && (card.cafe_name || card.cafeName))
+          return String(card.cafe_name || card.cafeName);
+        if (cid) return String(cid);
+        return "(Café)";
+      }
+
+      function cardCafeId(card) {
+        const cid = card && (card.cafe_id || card.cafeId || card.cafe);
+        if (cid) return String(cid);
+        const fallback = card && (card.cafe_name || card.cafeName);
+        if (fallback) return String(fallback);
+        return "";
+      }
+
+      function passesSelectedCafe(card) {
+        if (!selectedCafe || !selectedCafe.id) return true;
+        const cid = cardCafeId(card);
+        return cid && String(cid) === String(selectedCafe.id);
+      }
+
+      async function fetchCards() {
+        const apiBase = apiBaseFromLocation();
+        const session = await ensureCustomerSession();
+
+        showStatus("Lade Karten…", "info");
+        try {
+          const r = await fetch(
+            `${apiBase}/customers/${encodeURIComponent(session.address)}/cards`,
+            {
+              cache: "no-store",
+            }
+          );
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const data = await r.json();
+          // API returns: { ok: true, cards: [...] }
+          cardStats = Array.isArray(data?.cards) ? data.cards : [];
+          renderCards();
+          hideStatus();
+        } catch (e) {
+          cardStats = [];
+          renderCards();
+          showStatus(
+            `Konnte Karten nicht laden. (${String(
+              e && e.message ? e.message : e
+            )})`,
+            "danger"
+          );
+        }
+      }
+
+      function getStampsCount(card) {
+        const direct =
+          card?.stamps ?? card?.stamp_count ?? card?.stampCount ?? card?.count;
+        if (direct != null) return direct;
+        if (card?.stats?.netStamps != null) return card.stats.netStamps;
+        return 0;
+      }
+
+      function getRedeemsCount(card) {
+        const direct = card?.redeems ?? card?.redeem_count ?? card?.redeemCount;
+        if (direct != null) return direct;
+        if (card?.stats?.redemptions != null) return card.stats.redemptions;
+        return 0;
+      }
+
+      async function renderCardQr(canvas, cafeId) {
+        const session = await ensureCustomerSession();
+        // Customer QR should open the Barista/Scanner page (not the customer page).
+        // The scanner is protected by cafe login (API key) and server-side checks.
+        const u = new URL(window.location.origin + "/cafe-scanner-new.html");
+
+        // Scanner parsing supports various aliases; provide multiple to be robust.
+        u.searchParams.set("customer", session.address);
+        u.searchParams.set("address", session.address);
+
+        // Prefer cafe wallet address in QR (server enforces wrong_cafe by comparing qrCafe vs logged-in cafe).
+        const cafe = cafeId
+          ? cafes.find((c) => String(c.id) === String(cafeId))
+          : null;
+        const cafeAddr = cafe && cafe.address ? String(cafe.address) : "";
+        if (cafeAddr) {
+          u.searchParams.set("cafe", cafeAddr);
+          u.searchParams.set("qrCafe", cafeAddr);
+        } else if (cafeId) {
+          // Fallback if address not present; scanner may still resolve by cafeId elsewhere.
+          u.searchParams.set("cafeId", String(cafeId));
+        }
+        await QRCode.toCanvas(canvas, u.toString(), {
+          margin: 2,
+          width: 200,
+          color: { dark: "#201814", light: "#ffffff" },
+        });
+      }
+
+      function renderCards() {
+        if (!els.cardStage) return;
+        els.cardStage.innerHTML = "";
+
+        const chosenCafeId =
+          (selectedCafe && selectedCafe.id ? String(selectedCafe.id) : "") ||
+          "";
+
+        let card = null;
+        if (chosenCafeId) {
+          card =
+            cardStats.find(
+              (c) => String(c?.cafeId || "") === String(chosenCafeId)
+            ) || null;
+        }
+        if (!card) {
+          // if we have any cards, pick the most recent
+          card = cardStats[0] || null;
+        }
+
+        // If we still have no card data, show a "fresh" card with 0 stamps.
+        const cafeId =
+          chosenCafeId || (card && card.cafeId ? String(card.cafeId) : "");
+        const cafeName =
+          (selectedCafe && selectedCafe.name
+            ? String(selectedCafe.name)
+            : "") || (card ? findCafeLabel(card) : "Wähle ein Café");
+
+        const stampsCount = Math.max(
+          0,
+          Math.min(10, safeNum(getStampsCount(card), 0))
+        );
+        const redeemsCount = safeNum(getRedeemsCount(card), 0);
+
+        const flip = document.createElement("div");
+        flip.className = "flip";
+
+        const inner = document.createElement("div");
+        inner.className = "flip-inner";
+
+        const front = document.createElement("div");
+        front.className = "flip-face";
+
+        const back = document.createElement("div");
+        back.className = "flip-face flip-back";
+
+        // FRONT: stamp card
+        const frontCard = document.createElement("div");
+        frontCard.className = "paper-card";
+
+        const paperHead = document.createElement("div");
+        paperHead.className = "paper-header";
+
+        const leftHead = document.createElement("div");
+        const brand = document.createElement("div");
+        brand.className = "paper-brand";
+        brand.textContent = cafeName || "Café";
+        const paperSub = document.createElement("div");
+        paperSub.className = "paper-sub";
+        paperSub.textContent = `Stempelkarte • ${stampsCount}/10`;
+        leftHead.appendChild(brand);
+        leftHead.appendChild(paperSub);
+
+        const rightHead = document.createElement("div");
+        rightHead.className = "pill";
+        rightHead.textContent = `Belohnungen: ${formatMaybeInt(redeemsCount)}`;
+
+        paperHead.appendChild(leftHead);
+        paperHead.appendChild(rightHead);
+
+        const grid = document.createElement("div");
+        grid.className = "stamp-grid";
+        for (let i = 0; i < 10; i++) {
+          const s = document.createElement("div");
+          s.className = i < stampsCount ? "stamp on" : "stamp";
+          grid.appendChild(s);
+        }
+
+        const btnFlip = document.createElement("button");
+        btnFlip.type = "button";
+        btnFlip.className = "flip-cta";
+        btnFlip.textContent = "QR anzeigen";
+
+        const frontBody = document.createElement("div");
+        frontBody.style.padding = "14px";
+        frontBody.appendChild(grid);
+        frontBody.appendChild(btnFlip);
+
+        const hint = document.createElement("div");
+        hint.className = "swipe-hint";
+        hint.textContent = "Tipp: Wisch nach links für den QR";
+        frontBody.appendChild(hint);
+
+        frontCard.appendChild(paperHead);
+        frontCard.appendChild(frontBody);
+        front.appendChild(frontCard);
+
+        // BACK: QR
+        const backCard = document.createElement("div");
+        backCard.className = "paper-card";
+
+        const backHeader = document.createElement("div");
+        backHeader.className = "paper-header";
+
+        const backLeft = document.createElement("div");
+        const backBrand = document.createElement("div");
+        backBrand.className = "paper-brand";
+        backBrand.textContent = cafeName || "Café";
+        const backSub = document.createElement("div");
+        backSub.className = "paper-sub";
+        backSub.textContent = "Zeig diesen QR an der Kasse";
+        backLeft.appendChild(backBrand);
+        backLeft.appendChild(backSub);
+
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.className = "secondary";
+        backBtn.textContent = "Zurück";
+        backBtn.style.minWidth = "120px";
+
+        backHeader.appendChild(backLeft);
+        backHeader.appendChild(backBtn);
+
+        const qrWrap = document.createElement("div");
+        qrWrap.className = "qr-mini";
+        qrWrap.style.display = "flex";
+        const canvas = document.createElement("canvas");
+        qrWrap.appendChild(canvas);
+
+        const backBody = document.createElement("div");
+        backBody.style.padding = "14px";
+        backBody.appendChild(qrWrap);
+
+        const backHint = document.createElement("div");
+        backHint.className = "swipe-hint";
+        backHint.textContent = "Tipp: Wisch nach rechts zurück";
+        backBody.appendChild(backHint);
+
+        backCard.appendChild(backHeader);
+        backCard.appendChild(backBody);
+        back.appendChild(backCard);
+
+        inner.appendChild(front);
+        inner.appendChild(back);
+        flip.appendChild(inner);
+        els.cardStage.appendChild(flip);
+
+        // Flip interactions
+        async function ensureQr() {
+          try {
+            await renderCardQr(canvas, cafeId);
+          } catch (e) {
+            showStatus(String(e && e.message ? e.message : e), "danger");
+          }
+        }
+
+        btnFlip.addEventListener("click", async () => {
+          flip.classList.add("is-flipped");
+          await ensureQr();
+        });
+        backBtn.addEventListener("click", () => {
+          flip.classList.remove("is-flipped");
+        });
+
+        // Tap-to-flip fallback
+        frontCard.addEventListener("click", async (e) => {
+          if (e.target && e.target.tagName === "BUTTON") return;
+          flip.classList.add("is-flipped");
+          await ensureQr();
+        });
+
+        // Swipe gesture (mobile): left = show QR, right = back
+        let startX = 0;
+        let startY = 0;
+        let startT = 0;
+
+        function onTouchStart(ev) {
+          const t = ev.touches && ev.touches[0];
+          if (!t) return;
+          startX = t.clientX;
+          startY = t.clientY;
+          startT = Date.now();
+        }
+
+        async function onTouchEnd(ev) {
+          const t = ev.changedTouches && ev.changedTouches[0];
+          if (!t) return;
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          const dt = Date.now() - startT;
+
+          // Ignore long drags / vertical scroll
+          if (dt > 700) return;
+          if (Math.abs(dy) > Math.abs(dx)) return;
+          if (Math.abs(dx) < 40) return;
+
+          if (dx < 0) {
+            flip.classList.add("is-flipped");
+            await ensureQr();
+          } else {
+            flip.classList.remove("is-flipped");
+          }
+        }
+
+        frontCard.addEventListener("touchstart", onTouchStart, {
+          passive: true,
+        });
+        frontCard.addEventListener("touchend", onTouchEnd, { passive: true });
+        backCard.addEventListener("touchstart", onTouchStart, {
+          passive: true,
+        });
+        backCard.addEventListener("touchend", onTouchEnd, { passive: true });
+      }
+
+      async function fetchCafes() {
+        const apiBase = apiBaseFromLocation();
+        showStatus("Lade Cafés…", "info");
+        selectedCafe = null;
+        updateSelectionUI();
+
+        try {
+          const r = await fetch(`${apiBase}/cafes`, { cache: "no-store" });
+          if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+          }
+          const data = await r.json();
+          cafes = Array.isArray(data) ? data : [];
+          renderCafes();
+          renderCards();
+          hideStatus();
+        } catch (e) {
+          cafes = [];
+          renderCafes();
+          renderCards();
+          showStatus(
+            `Konnte Cafés nicht laden. Läuft die API? (${String(
+              e && e.message ? e.message : e
+            )})`,
+            "danger"
+          );
+        }
+      }
+
+      function renderCafes() {
+        if (!els.cafeList) return;
+        els.cafeList.innerHTML = "";
+
+        const items = cafes.filter((c) => c && c.id);
+        els.countPill.textContent = String(items.length);
+
+        const makeCafeRow = (cafe) => {
+          const row = document.createElement("div");
+          row.className = "cafe";
+          row.setAttribute("role", "button");
+          row.tabIndex = 0;
+
+          const meta = document.createElement("div");
+          meta.className = "cafe-meta";
+
+          const name = document.createElement("div");
+          name.className = "cafe-name";
+          name.textContent = String(cafe.name || "Café");
+
+          const sub = document.createElement("div");
+          sub.className = "cafe-sub";
+          sub.textContent = cafe.address
+            ? String(cafe.address)
+            : `ID: ${String(cafe.id)}`;
+
+          meta.appendChild(name);
+          meta.appendChild(sub);
+
+          const pill = document.createElement("div");
+          pill.className = "pill";
+          pill.textContent = "Öffnen";
+
+          row.appendChild(meta);
+          row.appendChild(pill);
+
+          const activate = () => {
+            selectedCafe = cafe;
+            updateSelectionUI();
+            renderCards();
+            toggleCafeMenu(false);
+          };
+
+          row.addEventListener("click", activate);
+          row.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              activate();
+            }
+          });
+          return row;
+        };
+
+        // Top option: show all
+        const allRow = document.createElement("div");
+        allRow.className = "cafe";
+        allRow.setAttribute("role", "button");
+        allRow.tabIndex = 0;
+        allRow.innerHTML = `
+          <div class="cafe-meta">
+            <div class="cafe-name">Alle Cafés</div>
+            <div class="cafe-sub">Automatisch (letzte Karte)</div>
+          </div>
+          <div class="pill">Öffnen</div>
+        `;
+        const activateAll = () => {
+          selectedCafe = null;
+          updateSelectionUI();
+          renderCards();
+          toggleCafeMenu(false);
+        };
+        allRow.addEventListener("click", activateAll);
+        allRow.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            activateAll();
+          }
+        });
+        els.cafeList.appendChild(allRow);
+
+        for (const cafe of items) {
+          els.cafeList.appendChild(makeCafeRow(cafe));
+        }
+      }
+
+      function updateSelectionUI() {
+        if (els.selectedCafeHint) {
+          const label =
+            selectedCafe && selectedCafe.id
+              ? `${selectedCafe.name || "(ohne Namen)"}`
+              : "Alle Cafés";
+          els.selectedCafeHint.textContent = label;
+        }
+      }
+
+      // Initial state
+      updateSelectionUI();
+
+      // Seed fields from query params (optional)
+      try {
+        const qp = new URLSearchParams(window.location.search);
+        // no name field here anymore
+      } catch (e) {}
+
+      function toggleCafeMenu(force) {
+        if (!els.cafeMenu) return;
+        const isOpen = els.cafeMenu.classList.contains("open");
+        const next = typeof force === "boolean" ? force : !isOpen;
+        if (next) els.cafeMenu.classList.add("open");
+        else els.cafeMenu.classList.remove("open");
+      }
+
+      if (els.cafeMenuToggle) {
+        els.cafeMenuToggle.addEventListener("click", () => toggleCafeMenu());
+        els.cafeMenuToggle.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleCafeMenu();
+          }
+        });
+      }
+
+      els.reload.addEventListener("click", fetchCafes);
+      if (els.reloadCards)
+        els.reloadCards.addEventListener("click", fetchCards);
+      els.resetCustomer.addEventListener("click", () => {
+        clearStoredCustomer();
+        selectedCafe = null;
+        updateSelectionUI();
+        cardStats = [];
+        renderCards();
+      });
+
+      // Load cafes immediately
+      fetchCafes();
+
+      // Load cards immediately
+      fetchCards();
+    </script>
+  </body>
+</html>
