@@ -119,10 +119,11 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--surface);
         padding: 12px 20px;
         border-radius: 50px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
         display: none;
         align-items: center;
         gap: 12px;
@@ -133,7 +134,7 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--brand);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -148,22 +149,25 @@
       }
       .user-badge .name {
         font-weight: 600;
-        color: #1a202c;
+        color: var(--text);
         font-size: 14px;
       }
-      .user-badge .logout {
+      .user-badge .miniBtn {
         margin-left: 12px;
         padding: 6px 12px;
-        background: #f7fafc;
-        border: 1px solid #e2e8f0;
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
         border-radius: 8px;
         cursor: pointer;
         font-size: 12px;
-        color: #4a5568;
+        color: var(--text);
         transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
       }
-      .user-badge .logout:hover {
-        background: #e2e8f0;
+      .user-badge .miniBtn:hover {
+        background: var(--surface);
       }
       #videoContainer {
         position: relative;
@@ -243,6 +247,118 @@
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
       }
+
+      .app-shell {
+        max-width: 1100px;
+        margin: 88px auto 24px;
+        display: none;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .sidebar {
+        width: 260px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 14px;
+      }
+      .sidebarHeader {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+        margin-bottom: 10px;
+      }
+      .sidebarHeader .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+      }
+      .sidebarHeader .title {
+        font-weight: 700;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.1;
+      }
+      .navItem {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 12px;
+        margin: 8px 0 0;
+        border-radius: 12px;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: none;
+        letter-spacing: 0;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .navItem:hover {
+        background: var(--surface-muted);
+        transform: none;
+        box-shadow: none;
+      }
+      .navItem.active {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+      }
+      .navItem.danger {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+      .navItem.danger:hover {
+        background: rgba(239, 68, 68, 0.08);
+      }
+      .mainPanel {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 24px;
+      }
+      .panelTitle {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--brand);
+        margin-bottom: 8px;
+      }
+      .hintBox {
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 14px;
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--text);
+        line-height: 1.4;
+      }
+
+      @media (max-width: 900px) {
+        .app-shell {
+          margin-top: 84px;
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -252,10 +368,11 @@
       <div class="info">
         <div class="name" id="cafeName">Café Name</div>
       </div>
-      <button class="logout" id="logoutBtn">Abmelden</button>
+      <a class="miniBtn" id="dashboardLink" href="/cafe-dashboard">Dashboard</a>
+      <button class="miniBtn" id="logoutBtn">Abmelden</button>
     </div>
 
-    <div class="card">
+    <div class="card" id="loginCard">
       <!-- Login Screen -->
       <div id="loginScreen">
         <h2>☕ Café Scanner</h2>
@@ -346,67 +463,109 @@
           <button id="walletLoginBtn">🔑 Mit Wallet anmelden</button>
         </div>
       </div>
+    </div>
 
-      <!-- Scanner Screen -->
-      <div id="scannerScreen" style="display: none">
-        <h2>🔗 Kunden-Link öffnen</h2>
-        <p class="subtitle">
-          Kunden-QR mit der Handy-Kamera scannen – diese Seite lädt dann direkt
-          die Daten (keine Browser-Kamera nötig).
-        </p>
-        <div
-          style="
-            background: #f7fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #2d3748;
-            line-height: 1.4;
-          "
-        >
-          Ablauf:<br />1️⃣ Kunde zeigt QR-Code.<br />2️⃣ Barista scannt mit
-          Kamera-App.<br />3️⃣ Der Link öffnet diese Seite mit den Parametern.<br />4️⃣
-          Nach Login werden Wallet & Stempel sofort angezeigt.<br /><br />Zum
-          erneuten Laden einfach erneut scannen.
+    <!-- Post-login Shell -->
+    <div id="appShell" class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebarHeader">
+          <div class="avatar" id="sidebarAvatar">☕</div>
+          <div class="title" id="sidebarCafeName">Café</div>
         </div>
 
-        <div id="customerInfo" class="customer-info" style="display: none">
-          <div class="label">👤 Kundeninformation</div>
-          <div class="value">
-            <strong>Name:</strong> <span id="customerName">-</span>
-          </div>
-          <div class="value">
-            <strong>Wallet:</strong>
-            <span
-              id="customerAddress"
-              style="font-family: monospace; font-size: 12px"
-              >-</span
-            >
-          </div>
-          <div class="value">
-            <strong>Aktuelle Stempel:</strong> <span id="currentStamps">-</span>
-          </div>
+        <button id="navHome" class="navItem active" type="button">
+          🏠 Willkommen
+        </button>
+        <button id="navScan" class="navItem" type="button">
+          📷 Scan / Stempeln
+        </button>
+        <a class="navItem" href="/cafe-profile">🏷️ Café Profil</a>
+        <a class="navItem" href="/cafe-dashboard">📊 Dashboard</a>
+        <button id="navLogout" class="navItem danger" type="button">
+          🚪 Abmelden
+        </button>
+      </aside>
 
-          <div class="stamp-controls">
-            <input
-              type="number"
-              class="stamp-input"
-              id="stampAmount"
-              value="1"
-              min="1"
-              max="10"
-            />
-            <button id="awardBtn" style="margin: 0; flex: 2">
-              ✅ Stempel vergeben
+      <main class="mainPanel">
+        <!-- Welcome / Home -->
+        <div id="homeScreen">
+          <div class="panelTitle">Willkommen</div>
+          <p class="subtitle" style="text-align: left">
+            Hier ist deine Café-Startseite. Scans öffnen automatisch die
+            Stempel- Ansicht.
+          </p>
+
+          <div id="homePending" class="hintBox" style="display: none">
+            <div style="font-weight: 800; margin-bottom: 6px">Kunde bereit</div>
+            <div id="homePendingText" style="color: var(--text-muted)"></div>
+            <button id="openScanBtn" type="button" style="margin-top: 12px">
+              Zum Kunden
             </button>
           </div>
-        </div>
-      </div>
 
-      <div id="toast" class="toast">✅ Stempel vergeben!</div>
+          <div class="hintBox">
+            <div style="font-weight: 800; margin-bottom: 6px">
+              So nutzt du es
+            </div>
+            <div style="color: var(--text-muted)">
+              1) Kunde zeigt QR-Code auf dem Handy.<br />
+              2) Du scannst mit der Kamera-App.<br />
+              3) Der Link öffnet diese Seite mit Parametern – dann kannst du
+              direkt stempeln.
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan / Stamp -->
+        <div id="scannerScreen" style="display: none">
+          <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
+          <p class="subtitle" id="scanSubtitle" style="text-align: left">
+            Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
+            wurde.
+          </p>
+
+          <div id="scanHint" class="hintBox">
+            Noch kein Kunde geladen. Scanne den Kunden-QR, damit die Daten hier
+            erscheinen.
+          </div>
+
+          <div id="customerInfo" class="customer-info" style="display: none">
+            <div class="label">👤 Kundeninformation</div>
+            <div class="value">
+              <strong>Name:</strong> <span id="customerName">-</span>
+            </div>
+            <div class="value">
+              <strong>Wallet:</strong>
+              <span
+                id="customerAddress"
+                style="font-family: monospace; font-size: 12px"
+                >-</span
+              >
+            </div>
+            <div class="value">
+              <strong>Aktuelle Stempel:</strong>
+              <span id="currentStamps">-</span>
+            </div>
+
+            <div class="stamp-controls">
+              <input
+                type="number"
+                class="stamp-input"
+                id="stampAmount"
+                value="1"
+                min="1"
+                max="10"
+              />
+              <button id="awardBtn" style="margin: 0; flex: 2">
+                ✅ Stempel vergeben
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
+
+    <div id="toast" class="toast">✅ Stempel vergeben!</div>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -416,6 +575,18 @@
       const scannerScreen = document.getElementById("scannerScreen");
       const loginBtn = document.getElementById("loginBtn");
       const logoutBtn = document.getElementById("logoutBtn");
+      const loginCard = document.getElementById("loginCard");
+      const appShell = document.getElementById("appShell");
+      const homeScreen = document.getElementById("homeScreen");
+      const navHome = document.getElementById("navHome");
+      const navScan = document.getElementById("navScan");
+      const navLogout = document.getElementById("navLogout");
+      const sidebarCafeName = document.getElementById("sidebarCafeName");
+      const sidebarAvatar = document.getElementById("sidebarAvatar");
+      const homePending = document.getElementById("homePending");
+      const homePendingText = document.getElementById("homePendingText");
+      const openScanBtn = document.getElementById("openScanBtn");
+      const scanHint = document.getElementById("scanHint");
       const apiKeyInput = document.getElementById("apiKeyInput");
       const video = document.getElementById("video");
       const customerInfo = document.getElementById("customerInfo");
@@ -424,6 +595,8 @@
       const currentStamps = document.getElementById("currentStamps");
       const stampAmount = document.getElementById("stampAmount");
       const awardBtn = document.getElementById("awardBtn");
+      const scanTitle = document.getElementById("scanTitle");
+      const scanSubtitle = document.getElementById("scanSubtitle");
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
       const cafeAvatar = document.getElementById("cafeAvatar");
@@ -431,7 +604,7 @@
 
       // State
       let cafe = null;
-      let apiBase = `${location.protocol}//${location.hostname}:3000`;
+      let apiBase = `${location.origin}/api`;
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
@@ -439,6 +612,7 @@
       // Detect API
       async function detectAPI() {
         const candidates = [
+          `${location.origin}/api`,
           `${location.protocol}//${location.hostname}:3000`,
           "http://127.0.0.1:3000",
           "http://localhost:3000",
@@ -454,7 +628,53 @@
             if (res.ok) return base;
           } catch (e) {}
         }
-        return `${location.protocol}//${location.hostname}:3000`;
+        return `${location.origin}/api`;
+      }
+
+      function setActiveNav(view) {
+        navHome.classList.toggle("active", view === "home");
+        navScan.classList.toggle("active", view === "scan");
+      }
+
+      function showView(view) {
+        if (view === "scan") {
+          homeScreen.style.display = "none";
+          scannerScreen.style.display = "block";
+          setActiveNav("scan");
+          return;
+        }
+        scannerScreen.style.display = "none";
+        homeScreen.style.display = "block";
+        setActiveNav("home");
+      }
+
+      function showLoginUI() {
+        loginCard.style.display = "block";
+        appShell.style.display = "none";
+        showView("home");
+      }
+
+      function showAppUI() {
+        loginCard.style.display = "none";
+        appShell.style.display = "flex";
+      }
+
+      function updateHomeStatus() {
+        const last = localStorage.getItem("last_scanned_customer");
+        const lastCustomer = last ? JSON.parse(last) : null;
+
+        const source = pendingScan || lastCustomer;
+        if (!source) {
+          homePending.style.display = "none";
+          navScan.disabled = false;
+          return;
+        }
+
+        const addr = source.address || source.customer || "";
+        const name = source.name || source.customerName || "Unbekannt";
+        homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
+        homePending.style.display = "block";
+        navScan.disabled = false;
       }
 
       // Show toast
@@ -504,6 +724,9 @@
         cafeBadge.style.display = "flex";
         cafeName.textContent = cafe.name || "Café";
         cafeAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
+
+        sidebarCafeName.textContent = cafe.name || "Café";
+        sidebarAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
       }
 
       // Login
@@ -549,8 +772,9 @@
 
           // Update UI
           updateCafeBadge();
-          loginScreen.style.display = "none";
-          scannerScreen.style.display = "block";
+          showAppUI();
+          showView(pendingScan ? "scan" : "home");
+          updateHomeStatus();
 
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
           loadPendingScan();
@@ -630,8 +854,9 @@
             localStorage.setItem("cafe_session", JSON.stringify(cafe));
 
             updateCafeBadge();
-            loginScreen.style.display = "none";
-            scannerScreen.style.display = "block";
+            showAppUI();
+            showView(pendingScan ? "scan" : "home");
+            updateHomeStatus();
             loadPendingScan();
             showToast("✅ Erfolgreich angemeldet!");
           } else {
@@ -650,23 +875,36 @@
       };
 
       // Logout
-      logoutBtn.onclick = () => {
-        if (confirm("Möchtest du dich wirklich abmelden?")) {
-          cafe = null;
-          scannedCustomer = null;
-          localStorage.removeItem("cafe_session");
-          // Keine Kamera mehr zu stoppen
-          updateCafeBadge();
-          loginScreen.style.display = "block";
-          scannerScreen.style.display = "none";
-          customerInfo.style.display = "none";
-          apiKeyInput.value = "";
-          document.getElementById("seedInput").value = "";
-        }
+      function doLogout() {
+        if (!confirm("Möchtest du dich wirklich abmelden?")) return;
+        cafe = null;
+        scannedCustomer = null;
+        localStorage.removeItem("cafe_session");
+        localStorage.removeItem("last_scanned_customer");
+        updateCafeBadge();
+        showLoginUI();
+        customerInfo.style.display = "none";
+        if (scanHint) scanHint.style.display = "block";
+        apiKeyInput.value = "";
+        document.getElementById("seedInput").value = "";
+      }
+      logoutBtn.onclick = doLogout;
+      navLogout.onclick = doLogout;
+
+      navHome.onclick = () => {
+        showView("home");
+        updateHomeStatus();
+      };
+      navScan.onclick = () => {
+        showView("scan");
+      };
+      openScanBtn.onclick = () => {
+        showView("scan");
       };
 
       // URL-basierter Scan (ohne Kamera)
       let pendingScan = null;
+      let pendingAction = "stamp";
       function capturePendingFromURL() {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -676,13 +914,40 @@
               address: c,
               name: params.get("customerName") || "Unbekannt",
               cafe: params.get("cafe") || null, // Café wallet address from QR code
+              action: params.get("action") || "stamp",
             };
+            pendingAction =
+              String(pendingScan.action || "stamp").toLowerCase() === "redeem"
+                ? "redeem"
+                : "stamp";
           }
         } catch (e) {
           console.warn("Keine URL-Scan-Parameter", e);
         }
       }
       capturePendingFromURL();
+
+      function applyActionUi() {
+        const isRedeem = pendingAction === "redeem";
+        if (scanTitle) {
+          scanTitle.textContent = isRedeem
+            ? "Belohnung einlösen"
+            : "Stempel vergeben";
+        }
+        if (scanSubtitle) {
+          scanSubtitle.textContent = isRedeem
+            ? "Diese Ansicht erscheint automatisch, wenn ein Einlöse-QR geöffnet wurde."
+            : "Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet wurde.";
+        }
+        if (awardBtn) {
+          awardBtn.textContent = isRedeem
+            ? "🎁 Einlösen"
+            : "✅ Stempel vergeben";
+        }
+        if (stampAmount) {
+          stampAmount.style.display = isRedeem ? "none" : "block";
+        }
+      }
 
       async function loadPendingScan() {
         console.log(
@@ -692,8 +957,19 @@
           cafe
         );
         if (!pendingScan) return;
-        if (scannedCustomer && scannedCustomer.address === pendingScan.address)
+        if (
+          scannedCustomer &&
+          scannedCustomer.address === pendingScan.address
+        ) {
+          // Same customer already loaded, but the QR might carry a different action (redeem vs stamp)
+          pendingAction =
+            String(pendingScan.action || "stamp").toLowerCase() === "redeem"
+              ? "redeem"
+              : "stamp";
+          applyActionUi();
+          showView("scan");
           return;
+        }
 
         // Validate QR code belongs to this café
         if (pendingScan.cafe && cafe.address) {
@@ -730,24 +1006,35 @@
           address: pendingScan.address,
           name: pendingScan.name,
         };
+
+        // Ensure UI reflects action (stamp vs redeem)
+        pendingAction =
+          String(pendingScan.action || "stamp").toLowerCase() === "redeem"
+            ? "redeem"
+            : "stamp";
+        applyActionUi();
         localStorage.setItem(
           "last_scanned_customer",
           JSON.stringify(scannedCustomer)
         );
         try {
+          const strict = pendingAction === "redeem" ? "&strict=1" : "";
           const res = await fetch(
             `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${
               cafe.address || ""
-            }`
+            }${strict}`
           );
           const data = await res.json();
           customerName.textContent = scannedCustomer.name;
           customerAddress.textContent = scannedCustomer.address;
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
+          if (scanHint) scanHint.style.display = "none";
           awardBtn.disabled = false;
-          awardBtn.textContent = "✅ Stempel vergeben";
+          applyActionUi();
           showToast("Kunde geladen ✔️");
+          showView("scan");
+          updateHomeStatus();
         } catch (e) {
           console.warn("Stempel laden fehlgeschlagen", e);
           showToast("Fehler beim Laden der Stempel", true);
@@ -758,28 +1045,54 @@
       awardBtn.onclick = async () => {
         if (!scannedCustomer || !cafe) return;
 
-        const amount = parseInt(stampAmount.value) || 1;
-        console.log("Award attempt:", {
+        const isRedeem = pendingAction === "redeem";
+        const amount = !isRedeem ? parseInt(stampAmount.value) || 1 : 0;
+        console.log(isRedeem ? "Redeem attempt:" : "Award attempt:", {
           cafe,
           apiKey: cafe.apiKey,
           customer: scannedCustomer.address,
+          action: pendingAction,
         });
         awardBtn.disabled = true;
-        awardBtn.textContent = "Wird vergeben...";
+        awardBtn.textContent = isRedeem
+          ? "Wird eingelöst..."
+          : "Wird vergeben...";
 
         try {
-          const res = await fetch(apiBase + "/stamp-by-cafe", {
+          const endpoint = isRedeem ? "/redeem-reward" : "/stamp-by-cafe";
+          const payload = isRedeem
+            ? {
+                customer: scannedCustomer.address,
+                customerName: scannedCustomer.name,
+                qrCafe: pendingScan ? pendingScan.cafe : null,
+              }
+            : {
+                customer: scannedCustomer.address,
+                customerName: scannedCustomer.name,
+                count: amount,
+              };
+
+          const res = await fetch(apiBase + endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-api-key": cafe.apiKey,
             },
-            body: JSON.stringify({
-              customer: scannedCustomer.address,
-              customerName: scannedCustomer.name,
-              count: amount,
-            }),
+            body: JSON.stringify(payload),
           });
+
+          // Funding flow (202) is non-fatal: show message and let barista retry.
+          if (res.status === 202) {
+            const data202 = await res.json().catch(() => null);
+            showToast(
+              (data202 && data202.message) ||
+                "Wallet wird gerade gefunded. Bitte kurz warten und erneut versuchen.",
+              false
+            );
+            awardBtn.disabled = false;
+            applyActionUi();
+            return;
+          }
 
           if (!res.ok) {
             const text = await res.text();
@@ -790,17 +1103,41 @@
             } catch {
               detail = text;
             }
-            const errMsg = detail && detail.error ? detail.error : detail;
+
+            if (
+              detail &&
+              typeof detail === "object" &&
+              detail.error === "insufficient_stamps"
+            ) {
+              const cur =
+                detail.current != null
+                  ? Number(detail.current)
+                  : parseInt(currentStamps.textContent) || 0;
+              const reqd =
+                detail.required != null ? Number(detail.required) : 10;
+              throw new Error(
+                `Zu wenige Stempel (on-chain): ${cur}/${reqd}. Wenn du gerade gestempelt hast, kurz warten bis die Transaktion bestätigt ist.`
+              );
+            }
+            const errMsg =
+              detail && typeof detail === "object"
+                ? detail.message || detail.error || JSON.stringify(detail)
+                : detail;
             throw new Error(`Status ${res.status}: ${errMsg}`);
           }
 
           const data = await res.json();
 
-          // Update stamps display
-          currentStamps.textContent =
-            (parseInt(currentStamps.textContent) || 0) + amount;
-
-          showToast(`✅ ${amount} Stempel vergeben!`);
+          if (isRedeem) {
+            const cur = parseInt(currentStamps.textContent) || 0;
+            currentStamps.textContent = Math.max(0, cur - 10);
+            showToast("🎉 Belohnung eingelöst!");
+          } else {
+            // Update stamps display
+            currentStamps.textContent =
+              (parseInt(currentStamps.textContent) || 0) + amount;
+            showToast(`✅ ${amount} Stempel vergeben!`);
+          }
 
           // Reset after 2 seconds
           setTimeout(() => {
@@ -808,12 +1145,14 @@
             localStorage.removeItem("last_scanned_customer");
             customerInfo.style.display = "none";
             awardBtn.disabled = false;
-            awardBtn.textContent = "✅ Stempel vergeben";
+            pendingScan = null;
+            pendingAction = "stamp";
+            applyActionUi();
           }, 1800);
         } catch (e) {
           showToast("❌ Fehler: " + e.message, true);
           awardBtn.disabled = false;
-          awardBtn.textContent = "✅ Stempel vergeben";
+          applyActionUi();
         }
       };
 
@@ -864,16 +1203,20 @@
 
             console.log("Auto-Login für Café:", cafe);
             updateCafeBadge();
-            loginScreen.style.display = "none";
-            scannerScreen.style.display = "block";
+            showAppUI();
+            showView(pendingScan ? "scan" : "home");
             customerInfo.style.display = "none";
+            if (scanHint) scanHint.style.display = "block";
+            updateHomeStatus();
 
             // Lade evtl. vorhandenen Scan direkt
             setTimeout(() => loadPendingScan(), 300);
 
             // Restore last scanned customer and show award UI directly
             const last = localStorage.getItem("last_scanned_customer");
-            if (last) {
+            // Only restore when there is no active QR scan in the URL.
+            // Otherwise we would override action=redeem and confuse the operator.
+            if (last && !pendingScan) {
               try {
                 scannedCustomer = JSON.parse(last);
                 customerName.textContent = scannedCustomer.name;
@@ -892,7 +1235,11 @@
                 console.log("Restored customer stamps:", stamps);
 
                 awardBtn.disabled = false;
-                awardBtn.textContent = "Stempel vergeben";
+                pendingAction = "stamp";
+                applyActionUi();
+
+                // Keep welcome as default unless a QR link is active
+                updateHomeStatus();
               } catch (e) {
                 console.error("Restore last scanned failed", e);
                 localStorage.removeItem("last_scanned_customer");

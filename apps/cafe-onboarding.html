@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Registrierung - Stampcard</title>
+    <link rel="stylesheet" href="/theme.css" />
     <style>
       * {
         margin: 0;
@@ -11,8 +12,8 @@
         box-sizing: border-box;
       }
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: var(--font-sans);
+        background: var(--bg);
         min-height: 100vh;
         display: flex;
         justify-content: center;
@@ -20,23 +21,24 @@
         padding: 20px;
       }
       .container {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-md);
         padding: 40px;
         max-width: 600px;
         width: 100%;
         position: relative;
       }
       h1 {
-        color: #667eea;
+        color: var(--brand);
         margin-bottom: 10px;
         font-size: 2rem;
         text-align: center;
       }
       .subtitle {
         text-align: center;
-        color: #666;
+        color: var(--text-muted);
         margin-bottom: 30px;
         font-size: 0.95rem;
       }
@@ -53,31 +55,34 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #e0e0e0;
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: #999;
+        color: var(--text-muted);
         transition: all 0.3s ease;
       }
       .step-indicator.active {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
+        background: var(--brand);
+        color: #fff;
         transform: scale(1.1);
+        border-color: transparent;
       }
       .step-indicator.completed {
-        background: #4caf50;
-        color: white;
+        background: var(--success);
+        color: #fff;
+        border-color: transparent;
       }
       .step-line {
         width: 60px;
         height: 3px;
-        background: #e0e0e0;
+        background: var(--border);
         transition: all 0.3s ease;
       }
       .step-line.active {
-        background: linear-gradient(90deg, #667eea, #764ba2);
+        background: var(--brand);
       }
 
       /* Form Sections */
@@ -105,7 +110,7 @@
       label {
         display: block;
         margin-bottom: 8px;
-        color: #333;
+        color: var(--text);
         font-weight: 500;
         font-size: 0.95rem;
       }
@@ -117,18 +122,20 @@
       select {
         width: 100%;
         padding: 12px 15px;
-        border: 2px solid #e0e0e0;
+        border: 1px solid var(--border);
         border-radius: 10px;
         font-size: 1rem;
         transition: all 0.3s ease;
         font-family: inherit;
+        background: var(--surface);
+        color: var(--text);
       }
       input:focus,
       textarea:focus,
       select:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px var(--focus);
       }
 
       /* Radio buttons for stamp mode */
@@ -148,17 +155,18 @@
       .radio-option label {
         display: block;
         padding: 15px;
-        border: 2px solid #e0e0e0;
+        border: 1px solid var(--border);
         border-radius: 10px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
         margin-bottom: 0;
+        background: var(--surface);
       }
       .radio-option input[type="radio"]:checked + label {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.1);
-        color: #667eea;
+        border-color: var(--brand);
+        background: var(--brand-50);
+        color: var(--brand);
         font-weight: 600;
       }
 
@@ -177,8 +185,8 @@
       }
       .btn-remove {
         padding: 10px 15px;
-        background: #f44336;
-        color: white;
+        background: var(--danger);
+        color: #fff;
         border: none;
         border-radius: 8px;
         cursor: pointer;
@@ -186,13 +194,13 @@
         transition: background 0.3s ease;
       }
       .btn-remove:hover {
-        background: #d32f2f;
+        filter: brightness(0.92);
       }
       .btn-add-product {
         width: 100%;
         padding: 12px;
-        background: #4caf50;
-        color: white;
+        background: var(--success);
+        color: #fff;
         border: none;
         border-radius: 10px;
         cursor: pointer;
@@ -201,7 +209,7 @@
         transition: background 0.3s ease;
       }
       .btn-add-product:hover {
-        background: #45a049;
+        filter: brightness(0.92);
       }
 
       /* Buttons */
@@ -221,38 +229,39 @@
         transition: all 0.3s ease;
       }
       .btn-primary {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        background: var(--brand);
+        color: #fff;
+        box-shadow: var(--shadow-sm);
       }
       .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        background: var(--brand-700);
       }
       .btn-secondary {
-        background: #e0e0e0;
-        color: #333;
+        background: var(--surface-muted);
+        color: var(--text);
+        border: 1px solid var(--border);
       }
       .btn-secondary:hover {
-        background: #d0d0d0;
+        filter: brightness(0.98);
       }
 
       /* Success screen */
       .success-icon {
         width: 80px;
         height: 80px;
-        background: #4caf50;
+        background: var(--success);
         border-radius: 50%;
         margin: 0 auto 20px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 3rem;
-        color: white;
+        color: #fff;
       }
       .credentials-box {
-        background: #f5f5f5;
-        border: 2px solid #e0e0e0;
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
         border-radius: 10px;
         padding: 20px;
         margin: 20px 0;
@@ -263,25 +272,25 @@
       }
       .credential-label {
         font-weight: bold;
-        color: #666;
+        color: var(--text-muted);
         font-size: 0.85rem;
         margin-bottom: 5px;
       }
       .credential-value {
-        background: white;
+        background: var(--surface);
         padding: 10px;
         border-radius: 5px;
         word-break: break-all;
         font-size: 0.9rem;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border);
       }
       .warning-box {
-        background: #fff3cd;
-        border: 2px solid #ffc107;
+        background: var(--surface-muted);
+        border: 1px solid var(--brand);
         border-radius: 10px;
         padding: 15px;
         margin: 20px 0;
-        color: #856404;
+        color: var(--text);
       }
       .warning-box strong {
         display: block;
@@ -290,8 +299,8 @@
       }
 
       .error-message {
-        background: #ffebee;
-        color: #c62828;
+        background: var(--danger-bg);
+        color: var(--danger);
         padding: 12px;
         border-radius: 8px;
         margin-bottom: 15px;
@@ -324,7 +333,7 @@
       }
       .spinner {
         border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
+        border-top: 4px solid var(--brand);
         border-radius: 50%;
         width: 50px;
         height: 50px;
@@ -357,7 +366,9 @@
 
       <!-- Step 1: Basic Info -->
       <div class="step-section active" id="step1">
-        <h2 style="margin-bottom: 25px; color: #333">Grundinformationen</h2>
+        <h2 style="margin-bottom: 25px; color: var(--text)">
+          Grundinformationen
+        </h2>
 
         <div class="form-group">
           <label for="cafeName">Name des Cafés *</label>
@@ -408,7 +419,7 @@
 
       <!-- Step 2: Success (Setup moved to separate page) -->
       <div class="step-section" id="step2">
-        <h2 style="margin-bottom: 25px; color: #333">
+        <h2 style="margin-bottom: 25px; color: var(--text)">
           Stempel-System konfigurieren
         </h2>
 
@@ -426,7 +437,7 @@
               <label for="modeGeneral">
                 <div style="font-size: 1.3rem; margin-bottom: 5px">📋</div>
                 Allgemein<br />
-                <small style="color: #999">Für alle Käufe</small>
+                <small style="color: var(--text-muted)">Für alle Käufe</small>
               </label>
             </div>
             <div class="radio-option">
@@ -439,7 +450,9 @@
               <label for="modeSpecific">
                 <div style="font-size: 1.3rem; margin-bottom: 5px">☕</div>
                 Spezifisch<br />
-                <small style="color: #999">Für bestimmte Produkte</small>
+                <small style="color: var(--text-muted)"
+                  >Für bestimmte Produkte</small
+                >
               </label>
             </div>
           </div>
@@ -500,10 +513,18 @@
       <!-- Step 3: Success -->
       <div class="step-section" id="step3">
         <div class="success-icon">✓</div>
-        <h2 style="text-align: center; color: #4caf50; margin-bottom: 15px">
+        <h2
+          style="text-align: center; color: var(--success); margin-bottom: 15px"
+        >
           Registrierung erfolgreich!
         </h2>
-        <p style="text-align: center; color: #666; margin-bottom: 30px">
+        <p
+          style="
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+          "
+        >
           Dein Café wurde erfolgreich eingerichtet. Die Zugangsdaten wurden an
           <strong id="successEmail"></strong> gesendet.
         </p>
@@ -552,7 +573,10 @@
     </div>
 
     <script>
-      const apiBase = "http://192.168.0.175:3000";
+      const apiBase =
+        location.protocol === "file:"
+          ? "http://127.0.0.1:3000"
+          : `${location.origin}/api`;
       let currentStep = 1;
 
       // Toggle product list visibility based on stamp mode

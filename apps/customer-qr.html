@@ -96,265 +96,308 @@
         JavaScript ist deaktiviert oder wird blockiert. Bitte aktiviere
         JavaScript in deinem Browser oder deaktiviere Erweiterungen, die Skripte
         blockieren.
-      </div>
-    </noscript>
-    <div class="card">
-      <div
-        id="versionBadge"
-        style="
-          position: relative;
-          text-align: right;
-          font-size: 12px;
-          color: #94a3b8;
-          margin-bottom: 6px;
-        "
-      >
-        v — updated
-      </div>
-      <div
-        id="jsStatus"
-        style="
-          position: relative;
-          text-align: right;
-          font-size: 12px;
-          color: #b91c1c;
-          margin-bottom: 6px;
-        "
-      >
-        JS: not running
-      </div>
-      <h1>Dein Kunden-QR</h1>
-      <div>
-        <label for="addr">Wallet-Adresse</label>
-        <input
-          id="addr"
-          type="text"
-          placeholder="0x..."
-          autocomplete="username"
-        />
-      </div>
-      <div style="margin-top: 10px">
-        <label for="name">Name (optional)</label>
-        <input
-          id="name"
-          type="text"
-          placeholder="Max Mustermann"
-          autocomplete="name"
-        />
-      </div>
+            <title>Customer — Stamp</title>
+            <link rel="stylesheet" href="/theme.css" />
+            <style>
+              body {
+                padding: var(--space-5);
+              }
 
-      <!-- Controls hidden for streamlined customer view -->
+              .shell {
+                max-width: 980px;
+                margin: 0 auto;
+              }
 
-      <div class="qr-wrap">
-        <canvas id="qrCanvas"></canvas>
-        <div id="linkBox" class="small"></div>
-        <div class="row" style="margin-top: 12px">
-          <button id="showStamps">Meine Stempel</button>
-        </div>
-        <div
-          id="stampsPanel"
-          class="small"
-          style="margin-top: 10px; display: none"
-        ></div>
-      </div>
+              .topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                margin-bottom: var(--space-4);
+              }
 
-      <!-- Download / Open Scanner hidden for streamlined customer view -->
+              .brand {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+              }
 
-      <div class="small" style="margin-top: 12px">
-        Tip: Zeige diesen QR dem Barista, damit er ihn scannen kann. Der
-        Barista-App erkennt sowohl reine Adressen als auch Links mit dem
-        Parameter <code>customer</code>.
-      </div>
-    </div>
+              .brand h1 {
+                margin: 0;
+                font-size: 18px;
+              }
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <script>
+              .brand .subtitle {
+                font-size: 13px;
+              }
+
+              .grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: var(--space-4);
+              }
+
+              @media (min-width: 860px) {
+                .grid {
+                  grid-template-columns: 360px 1fr;
+                  align-items: start;
+                }
+              }
+
+              .panel {
+                padding: var(--space-5);
+              }
+
+              .seg {
+                display: inline-flex;
+                border: 1px solid var(--border);
+                background: var(--surface-muted);
+                border-radius: 999px;
+                padding: 4px;
+                gap: 4px;
+              }
+
+              .seg button {
+                border-radius: 999px;
+                padding: 8px 12px;
+                font-weight: 800;
+                background: transparent !important;
+                color: var(--text) !important;
+                border: none;
+              }
+
+              .seg button.active {
+                background: var(--surface) !important;
+                border: 1px solid var(--border);
+              }
+
+              .actions {
+                display: flex;
+                gap: var(--space-2);
+                margin-top: var(--space-3);
+              }
+
+              .actions button {
+                flex: 1;
+              }
+
+              .navRow {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                flex-wrap: wrap;
+              }
+
+              .navRow select {
+                min-width: 260px;
+              }
+
+              /* Flip card */
+              .flip {
+                perspective: 1200px;
+              }
+              .flipInner {
+                position: relative;
+                width: 100%;
+                min-height: 340px;
+                transition: transform 360ms ease;
+                transform-style: preserve-3d;
+              }
+              .flip.flipped .flipInner {
+                transform: rotateY(180deg);
+              }
+              .face {
+                position: absolute;
+                inset: 0;
+                backface-visibility: hidden;
+                border-radius: var(--radius);
+                border: 1px solid var(--border);
+                background: var(--surface);
+                box-shadow: var(--shadow-lg);
+                padding: var(--space-5);
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+              }
+              .back {
+                transform: rotateY(180deg);
+              }
+
+              .cardHead {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: var(--space-3);
+              }
+
+              .cardTitle {
+                font-size: 18px;
+                font-weight: 900;
+                color: var(--brand);
+                margin: 0;
+              }
+
+              .stampGrid {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 10px;
+                padding: 6px;
+                border-radius: var(--radius-sm);
+                background: var(--surface-muted);
+                border: 1px solid var(--border);
+              }
+
+              .stamp {
+                aspect-ratio: 1 / 1;
+                border-radius: 999px;
+                border: 2px dashed var(--border);
+                background: var(--surface);
+                display: grid;
+                place-items: center;
+                font-weight: 900;
+                color: var(--text-muted);
+                user-select: none;
+              }
+
+              .stamp.filled {
+                border-style: solid;
+                border-color: var(--brand);
+                background: var(--brand-50);
+                color: var(--brand);
+              }
+
+              .qrBox {
+                display: grid;
+                place-items: center;
+                flex: 1;
+                min-height: 220px;
+                border-radius: var(--radius-sm);
+                border: 1px dashed var(--border);
+                background: var(--surface-muted);
+              }
+
+              #qrCanvas {
+                width: 260px;
+                height: 260px;
+              }
+
+              .hint {
+                font-size: 13px;
+                color: var(--text-muted);
+              }
+            </style>
       // Minimal early indicator to show the inline script executed
       try {
-        const s = document.getElementById("jsStatus");
-        if (s) s.innerText = "JS: active";
-      } catch (e) {}
-      console.log("[dbg] customer-qr script loaded");
-      // Visible debug panel (in-page) for environments where DevTools is unavailable
-      function dbgBanner(msg) {
-        try {
-          let panel = document.getElementById("dbgPanel");
-          if (!panel) {
-            panel = document.createElement("div");
-            panel.id = "dbgPanel";
-            panel.style.fontFamily = "monospace";
-            panel.style.fontSize = "12px";
-            panel.style.background = "#0f172a";
-            panel.style.color = "#e2e8f0";
-            panel.style.padding = "8px";
-            panel.style.borderRadius = "8px";
-            panel.style.marginTop = "10px";
-            panel.style.maxHeight = "140px";
-            panel.style.overflow = "auto";
-            panel.style.whiteSpace = "pre-wrap";
-            const card = document.querySelector(".card") || document.body;
-            card.appendChild(panel);
-          }
-          const time = new Date().toLocaleTimeString();
-          panel.textContent = `${time} – ${msg}\n` + panel.textContent;
-        } catch (e) {
-          // ignore
-        }
-      }
-      try {
-        dbgBanner("[init] script loaded");
-      } catch (e) {
-        try {
-          const s = document.getElementById("jsStatus");
-          if (s) s.innerText = "JS: error";
-        } catch (e) {}
-      }
-      try {
-        const vb = document.getElementById("versionBadge");
-        if (vb) vb.innerText = "v " + new Date().toLocaleString();
-      } catch (e) {}
-      // If CDN is blocked or unavailable, try to load a local fallback at /vendor/qrcode.min.js
-      (function ensureQRCodeLib() {
-        if (typeof QRCode !== "undefined") {
-          dbgBanner("[lib] QRCode available from CDN");
-          return;
-        }
-        dbgBanner(
-          "[lib] QRCode not found from CDN, attempting local fallback /vendor/qrcode.min.js"
-        );
-        // show non-intrusive banner
-        try {
-          const card =
-            document.currentScript && document.currentScript.parentNode
-              ? document.currentScript.parentNode
-              : document.body;
-          const banner = document.createElement("div");
-          banner.id = "qrFallbackBanner";
-          banner.style.background = "#fff3cd";
-          banner.style.color = "#664d03";
-          banner.style.padding = "8px";
-          banner.style.borderRadius = "8px";
-          banner.style.margin = "12px 0";
-          banner.textContent = "QR library loading from local fallback...";
-          // append near top card if possible
-          const cardEl = document.querySelector(".card") || document.body;
-          cardEl.insertBefore(banner, cardEl.firstChild);
-        } catch (e) {}
+            <noscript>
+              <div class="container">
+                <div class="notice danger">
+                  JavaScript ist deaktiviert. Bitte aktiviere JavaScript.
+                </div>
+              </div>
+            </noscript>
 
-        const s = document.createElement("script");
-        s.src = "/vendor/qrcode.min.js";
-        s.onload = () => {
-          dbgBanner("[lib] loaded local /vendor/qrcode.min.js");
-          const b = document.getElementById("qrFallbackBanner");
-          if (b) b.textContent = "QR library loaded (local)";
-          // try render if possible
-          try {
-            if (typeof tryAutoRender === "function") tryAutoRender();
-          } catch (e) {}
-        };
-        s.onerror = () => {
-          dbgBanner("[lib] failed to load local /vendor/qrcode.min.js");
-          const b = document.getElementById("qrFallbackBanner");
-          if (b)
-            b.textContent = "QR library not available — QR rendering disabled.";
-        };
-        document.head.appendChild(s);
-      })();
-      const addrEl = document.getElementById("addr");
-      const nameEl = document.getElementById("name");
-      const genBtn = document.getElementById("gen");
-      const copyBtn = document.getElementById("copy");
-      const downloadBtn = document.getElementById("download");
-      const openScannerBtn = document.getElementById("openScanner");
-      const canvas = document.getElementById("qrCanvas");
-      const linkBox = document.getElementById("linkBox");
-      const showStampsBtn = document.getElementById("showStamps");
-      const stampsPanel = document.getElementById("stampsPanel");
+            <div class="shell">
+              <div class="topbar">
+                <div class="brand">
+                  <h1>Deine Stempelkarte</h1>
+                  <div class="subtitle" id="buildBadge">build</div>
+                </div>
+                <div class="row">
+                  <span class="badge" id="sessionBadge">Nicht eingeloggt</span>
+                  <button class="btn secondary" id="logoutBtn" style="display: none">
+                    Logout
+                  </button>
+                </div>
+              </div>
 
-      // Prefill from query param ?customer=
-      (function prefill() {
-        try {
-          const p = new URLSearchParams(window.location.search);
-          const c = p.get("customer") || p.get("addr") || p.get("address");
-          if (c) addrEl.value = c;
-          // if nothing in query params, try stored customer address (localStorage)
-          const stored = (function getStoredAddr() {
-            try {
-              const s = localStorage.getItem("customer_addr");
-              if (!s) return null;
-              // sometimes stored as JSON object; try to parse
-              try {
-                const parsed = JSON.parse(s);
-                if (typeof parsed === "string") return parsed;
-              } catch (e) {}
-              if (typeof s === "string") return s;
-              return null;
-            } catch (e) {
-              return null;
-            }
-          })();
-          if (!addrEl.value && stored) {
-            addrEl.value = stored;
-            // mark as readonly by default (customer has fixed wallet)
-            addrEl.readOnly = true;
-            // add an edit button to allow changing the stored address
-            const editBtn = document.createElement("button");
-            editBtn.textContent = "Ändern";
-            editBtn.className = "secondary";
-            editBtn.style.marginLeft = "8px";
-            editBtn.addEventListener("click", (ev) => {
-              ev.preventDefault();
-              addrEl.readOnly = false;
-              addrEl.focus();
-            });
-            addrEl.parentNode.appendChild(editBtn);
-          }
-          const n = p.get("name");
-          if (n) nameEl.value = n;
-        } catch (e) {}
-      })();
+              <div class="grid">
+                <div class="card panel" id="authPanel">
+                  <div class="row" style="justify-content: space-between">
+                    <h2 style="margin: 0">Account</h2>
+                    <div class="seg" role="tablist" aria-label="Auth Mode">
+                      <button id="modeRegister" class="active" type="button">
+                        Neu
+                      </button>
+                      <button id="modeLogin" type="button">Login</button>
+                    </div>
+                  </div>
 
-      // Build QR payload. For a stable QR that doesn't change per device or host
-      // we encode just the raw customer address. The café app understands plain
-      // addresses as well as full links, so this keeps the QR constant across
-      // networks and reloads.
-      function buildUrl(addr) {
-        // Return a stable link that the Café Issuer app understands.
-        // This makes the QR open the café page pre-filled with the customer address.
-        try {
-          const origin =
-            window.location.origin ||
-            window.location.protocol + "//" + window.location.hostname;
-          return `${origin}/cafe-issuer-web.html?customer=${encodeURIComponent(
-            addr
-          )}`;
-        } catch (e) {
-          return addr;
-        }
-      }
+                  <div class="stack" style="margin-top: var(--space-4)">
+                    <div id="registerFields" class="stack">
+                      <div class="stack" style="gap: 6px">
+                        <label for="username">Username</label>
+                        <input id="username" type="text" autocomplete="nickname" />
+                      </div>
+                    </div>
+                    <div class="stack" style="gap: 6px">
+                      <label for="email">E-Mail</label>
+                      <input id="email" type="text" autocomplete="email" />
+                    </div>
 
-      async function renderQR() {
-        console.log("[dbg] renderQR called, addr=", addrEl.value);
-        try {
-          dbgBanner("[dbg] renderQR called, addr=" + addrEl.value);
-        } catch (e) {}
-        const addr = addrEl.value.trim();
-        if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-          alert("Bitte gib eine gültige 0x... Adresse ein");
-          return;
-        }
-        // if we previously showed the success panel, reset it when rendering a new QR
-        try {
-          const successElExisting = document.getElementById("successBox");
-          if (successElExisting) {
-            // parent wrapper has been appended as successEl
-            successEl.style.display = "none";
-            canvas.style.display = "";
-            copyBtn.disabled = false;
-            copyBtn.style.opacity = "";
-            downloadBtn.disabled = false;
-            downloadBtn.style.opacity = "";
-            genBtn.disabled = false;
+                    <div class="actions">
+                      <button class="btn primary" id="authSubmit" type="button">
+                        Account erstellen
+                      </button>
+                    </div>
+
+                    <div id="authMsg" class="notice" style="display: none"></div>
+                    <div class="hint">
+                      Kein Wallet eintippen. Im Hintergrund wird automatisch eins
+                      erstellt.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stack" id="mainPanel" style="display: none">
+                  <div class="card panel">
+                    <div class="navRow">
+                      <div class="stack" style="gap: 6px">
+                        <div class="badge" id="welcomeBadge">Willkommen</div>
+                        <div class="muted" id="addressLine"></div>
+                      </div>
+
+                      <div class="row wrap">
+                        <label for="cafeSelect" style="font-weight: 800">
+                          Café
+                        </label>
+                        <select id="cafeSelect"></select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flip" id="flipCard" aria-label="Stempelkarte">
+                    <div class="flipInner">
+                      <div class="face front">
+                        <div class="cardHead">
+                          <h3 class="cardTitle" id="cafeTitle">Wähle ein Café</h3>
+                          <span class="badge" id="stampCountBadge">0 / 10</span>
+                        </div>
+                        <div class="stampGrid" id="stampGrid"></div>
+                        <div class="hint">
+                          Tippe auf die Karte, um den QR-Code zu zeigen.
+                        </div>
+                      </div>
+                      <div class="face back">
+                        <div class="cardHead">
+                          <h3 class="cardTitle">QR für den Barista</h3>
+                          <span class="badge" id="qrCafeBadge">Café</span>
+                        </div>
+                        <div class="qrBox">
+                          <canvas id="qrCanvas"></canvas>
+                        </div>
+                        <div class="hint" id="qrHint">
+                          Dieser QR ist an das ausgewählte Café gebunden.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <script src="/vendor/qrcode.min.js"></script>
+            <script src="/customer-qr.js"></script>
             genBtn.style.opacity = "";
             openScannerBtn.disabled = false;
             openScannerBtn.style.opacity = "";

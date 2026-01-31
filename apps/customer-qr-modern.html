@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Customer — Stamp</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: var(--space-5);
+      }
+
+      .shell {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .brand .subtitle {
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+
+      @media (min-width: 860px) {
+        .grid {
+          grid-template-columns: 360px 1fr;
+          align-items: start;
+        }
+      }
+
+      .panel {
+        padding: var(--space-5);
+      }
+
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        border-radius: 999px;
+        padding: 4px;
+        gap: 4px;
+      }
+
+      .seg button {
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-weight: 800;
+        background: transparent !important;
+        color: var(--text) !important;
+        border: none;
+      }
+
+      .seg button.active {
+        background: var(--surface) !important;
+        border: 1px solid var(--border);
+      }
+
+      .actions {
+        display: flex;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+      }
+
+      .actions button {
+        flex: 1;
+      }
+
+      .navRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+      }
+
+      .navRow select {
+        min-width: 260px;
+      }
+
+      /* Flip card */
+      .flip {
+        perspective: 1200px;
+      }
+      .flipInner {
+        position: relative;
+        width: 100%;
+        min-height: 340px;
+        transition: transform 360ms ease;
+        transform-style: preserve-3d;
+      }
+      .flip.flipped .flipInner {
+        transform: rotateY(180deg);
+      }
+      .face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+      .back {
+        transform: rotateY(180deg);
+      }
+
+      .cardHead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+
+      .brandRow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .cafeLogo {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        object-fit: cover;
+        display: none;
+        flex: 0 0 auto;
+      }
+
+      .cardTitleWrap {
+        min-width: 0;
+      }
+
+      .cafeAbout {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.35;
+        display: none;
+      }
+
+      .cardTitle {
+        font-size: 18px;
+        font-weight: 900;
+        color: var(--brand);
+        margin: 0;
+      }
+
+      .stampGrid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        padding: 6px;
+        border-radius: var(--radius-sm);
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+      }
+
+      .stamp {
+        aspect-ratio: 1 / 1;
+        border-radius: 999px;
+        border: 2px dashed var(--border);
+        background: var(--surface);
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        color: var(--text-muted);
+        user-select: none;
+      }
+
+      .stamp .stampIcon {
+        width: 64%;
+        height: 64%;
+        display: block;
+      }
+
+      .stamp.empty {
+        color: var(--text-muted);
+      }
+
+      .stamp.filled {
+        border-style: solid;
+        border-color: var(--brand);
+        background: var(--brand-50);
+        color: var(--brand);
+      }
+
+      .qrBox {
+        display: grid;
+        place-items: center;
+        flex: 1;
+        min-height: 220px;
+        border-radius: var(--radius-sm);
+        border: 1px dashed var(--border);
+        background: var(--surface-muted);
+        padding: var(--space-4);
+      }
+
+      #qrCanvas {
+        width: min(260px, 100%);
+        height: auto;
+        max-width: 260px;
+        aspect-ratio: 1 / 1;
+      }
+
+      .hint {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .historyList {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: var(--space-3);
+      }
+
+      .historyItem {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .historyLeft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .historyMain {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .historyCafe {
+        font-weight: 900;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .historyMeta {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .historyTx {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      .walletItem {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .walletVoid {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        font-size: 34px;
+        letter-spacing: 1px;
+        color: var(--text);
+        opacity: 0.12;
+        transform: rotate(-12deg);
+        pointer-events: none;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div class="container">
+        <div class="notice danger">
+          JavaScript ist deaktiviert. Bitte aktiviere JavaScript.
+        </div>
+      </div>
+    </noscript>
+
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          <h1>Deine Stempelkarte</h1>
+          <div class="subtitle" id="buildBadge">build</div>
+        </div>
+        <div class="row">
+          <span class="badge" id="sessionBadge">Nicht eingeloggt</span>
+          <button
+            class="btn secondary"
+            id="logoutBtn"
+            style="display: none"
+            type="button"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card panel" id="authPanel">
+          <div class="row" style="justify-content: space-between">
+            <h2 style="margin: 0">Account</h2>
+            <div class="seg" role="tablist" aria-label="Auth Mode">
+              <button id="modeRegister" class="active" type="button">
+                Neu
+              </button>
+              <button id="modeLogin" type="button">Login</button>
+            </div>
+          </div>
+
+          <div class="stack" style="margin-top: var(--space-4)">
+            <div id="registerFields" class="stack">
+              <div class="stack" style="gap: 6px">
+                <label for="username">Username</label>
+                <input id="username" type="text" autocomplete="nickname" />
+              </div>
+            </div>
+            <div class="stack" style="gap: 6px">
+              <label for="email">E-Mail</label>
+              <input id="email" type="text" autocomplete="email" />
+            </div>
+
+            <div class="stack" style="gap: 6px">
+              <label for="password">Passwort</label>
+              <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+              />
+            </div>
+
+            <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
+              <label for="confirmPassword">Passwort bestätigen</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+              />
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="authSubmit" type="button">
+                Account erstellen
+              </button>
+            </div>
+
+            <div id="authMsg" class="notice" style="display: none"></div>
+            <div id="credsPanel" class="notice" style="display: none"></div>
+            <div class="hint">
+              Kein Wallet eintippen. Im Hintergrund wird automatisch eins
+              erstellt.
+            </div>
+          </div>
+        </div>
+
+        <div class="stack" id="mainPanel" style="display: none">
+          <div class="card panel">
+            <div class="navRow">
+              <div class="stack" style="gap: 6px">
+                <div class="badge" id="welcomeBadge">Willkommen</div>
+                <div class="muted" id="addressLine" style="display: none"></div>
+              </div>
+
+              <div class="row wrap">
+                <label for="cafeSelect" style="font-weight: 800">Café</label>
+                <select id="cafeSelect"></select>
+              </div>
+            </div>
+
+            <div
+              class="row"
+              style="justify-content: flex-end; margin-top: var(--space-3)"
+            >
+              <div
+                class="seg"
+                id="mainModeSeg"
+                role="tablist"
+                aria-label="Ansicht"
+              >
+                <button id="mainModeCard" class="active" type="button">
+                  Karte
+                </button>
+                <button id="mainModeWallet" type="button">Wallet</button>
+                <button id="mainModeHistory" type="button">Historie</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flip" id="flipCard" aria-label="Stempelkarte">
+            <div class="flipInner">
+              <div class="face front">
+                <div class="cardHead">
+                  <div class="brandRow">
+                    <img id="cafeLogo" class="cafeLogo" alt="Café Logo" />
+                    <div class="cardTitleWrap">
+                      <h3 class="cardTitle" id="cafeTitle">Wähle ein Café</h3>
+                    </div>
+                  </div>
+                  <span class="badge" id="stampCountBadge">0 / 10</span>
+                </div>
+                <div class="stampGrid" id="stampGrid"></div>
+                <div class="cafeAbout" id="cafeAbout"></div>
+
+                <div
+                  id="redeemNotice"
+                  class="notice success"
+                  style="display: none"
+                ></div>
+                <div
+                  id="redeemActions"
+                  class="row"
+                  style="display: none; margin-top: var(--space-3)"
+                >
+                  <button
+                    class="btn primary"
+                    id="showRedeemQrBtn"
+                    type="button"
+                  >
+                    QR zum Einlösen anzeigen
+                  </button>
+                </div>
+
+                <div class="hint">
+                  Tippe auf die Karte, um den QR-Code zu zeigen. Tippe auf einen
+                  Stempel für die Historie.
+                </div>
+              </div>
+              <div class="face back">
+                <div class="cardHead">
+                  <h3 class="cardTitle" id="qrTitle">QR für den Barista</h3>
+                  <span class="badge" id="qrCafeBadge">Café</span>
+                </div>
+
+                <div
+                  class="seg"
+                  id="qrModeSeg"
+                  style="display: none; margin: 0 0 var(--space-3) 0"
+                  role="tablist"
+                  aria-label="QR Modus"
+                >
+                  <button id="qrModeStamp" class="active" type="button">
+                    Stempeln
+                  </button>
+                  <button id="qrModeRedeem" type="button">Einlösen</button>
+                </div>
+
+                <div class="qrBox">
+                  <canvas id="qrCanvas"></canvas>
+                </div>
+                <div class="hint" id="qrHint">
+                  Dieser QR ist an das ausgewählte Café gebunden.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card panel" id="historyPanel" style="display: none">
+            <div class="row" style="justify-content: space-between">
+              <h3 style="margin: 0">Stempel-Historie</h3>
+              <button class="btn secondary" id="historyCloseBtn" type="button">
+                Schließen
+              </button>
+            </div>
+            <div class="hint" id="historySubtitle">
+              Letzte Transaktionen (mehrere Stempel werden zusammengefasst).
+            </div>
+            <div
+              id="historyError"
+              class="notice danger"
+              style="display: none"
+            ></div>
+            <div id="historyEmpty" class="hint" style="display: none">
+              Noch keine Einträge.
+            </div>
+            <div id="historyList" class="historyList"></div>
+          </div>
+
+          <div class="card panel" id="walletPanel" style="display: none">
+            <div class="row" style="justify-content: space-between">
+              <h3 style="margin: 0">Wallet</h3>
+              <button class="btn secondary" id="walletCloseBtn" type="button">
+                Schließen
+              </button>
+            </div>
+            <div class="hint" id="walletSubtitle">
+              Eingelöste Karten (ohne QR-Code).
+            </div>
+            <div id="walletEmpty" class="hint" style="display: none">
+              Noch keine eingelösten Karten.
+            </div>
+            <div id="walletList" class="historyList"></div>
+          </div>
+
+          <div class="notice" id="noCafesNotice" style="display: none">
+            Es sind noch keine Cafés registriert. Bitte zuerst ein Café anlegen
+            (z.B. über die Café-Tools).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/vendor/qrcode.min.js"></script>
+    <script src="/customer-qr.js"></script>
+  </body>
+</html>

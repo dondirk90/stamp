@@ -312,6 +312,7 @@ CREATE TABLE IF NOT EXISTS stamp_events (
   user TEXT NOT NULL,
   customer_name TEXT,
   txhash TEXT NOT NULL,
+  status TEXT DEFAULT 'confirmed',
   event_type TEXT DEFAULT 'stamp',
   delta INTEGER DEFAULT 1
 );
@@ -329,17 +330,111 @@ CREATE TABLE IF NOT EXISTS cafes (
   name TEXT,
   api_key TEXT UNIQUE,
   encrypted_key TEXT,
+  address TEXT,
+  password_hash TEXT,
+  about_text TEXT,
+  redeem_message TEXT,
+  logo_mime TEXT,
+  logo_data TEXT,
+  updated_at INTEGER,
   created_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id TEXT UNIQUE,
+  username TEXT,
+  email TEXT,
   address TEXT,
   encrypted_key TEXT,
+  password_hash TEXT,
   created_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
 `);
+
+// Ensure legacy databases pick up newer cafe columns
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN address TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.address column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN password_hash TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.password_hash column:", e.message || e);
+  }
+}
+
+// Cafe public profile fields
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN about_text TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.about_text column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN logo_mime TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.logo_mime column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN logo_data TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.logo_data column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN redeem_message TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.redeem_message column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE cafes ADD COLUMN updated_at INTEGER").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add cafes.updated_at column:", e.message || e);
+  }
+}
+
+// Ensure legacy databases pick up newer customer columns
+try {
+  db.prepare("ALTER TABLE customers ADD COLUMN username TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add customers.username column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE customers ADD COLUMN email TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add customers.email column:", e.message || e);
+  }
+}
+try {
+  db.prepare("ALTER TABLE customers ADD COLUMN password_hash TEXT").run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn(
+      "Failed to add customers.password_hash column:",
+      e.message || e
+    );
+  }
+}
 
 // Ensure legacy databases pick up the additional columns for event tracking
 try {
@@ -361,19 +456,43 @@ try {
   }
 }
 
+// Event status tracking (submitted/confirmed/failed)
+try {
+  db.prepare(
+    "ALTER TABLE stamp_events ADD COLUMN status TEXT DEFAULT 'confirmed'"
+  ).run();
+} catch (e) {
+  if (!/duplicate column/i.test(e.message || "")) {
+    console.warn("Failed to add status column:", e.message || e);
+  }
+}
+
 // Prepare statements
 const insertEvent = db.prepare(
-  "INSERT INTO stamp_events (ts, cafe, user, customer_name, txhash, event_type, delta) VALUES (@ts, @cafe, @user, @customer_name, @txhash, @event_type, @delta)"
+  "INSERT INTO stamp_events (ts, cafe, user, customer_name, txhash, status, event_type, delta) VALUES (@ts, @cafe, @user, @customer_name, @txhash, @status, @event_type, @delta)"
 );
 const listEvents = db.prepare(
   "SELECT * FROM stamp_events ORDER BY id DESC LIMIT 50"
 );
 // Count net stamps for a specific cafe+user (DB fallback when chain state lost)
 const countEventsByCafeUser = db.prepare(
-  "SELECT COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE cafe = ? AND user = ?"
+  "SELECT COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(user) = LOWER(?) AND status = 'confirmed'"
 );
 const updateEventMetadata = db.prepare(
   "UPDATE stamp_events SET event_type = ?, delta = ? WHERE id = ?"
+);
+const updateEventStatusByTx = db.prepare(
+  "UPDATE stamp_events SET status = ? WHERE txhash = ?"
+);
+const hasEventByTx = db.prepare(
+  "SELECT 1 as ok FROM stamp_events WHERE txhash = ? LIMIT 1"
+);
+
+const getSyncState = db.prepare(
+  "SELECT value FROM sync_state WHERE key = ? LIMIT 1"
+);
+const setSyncState = db.prepare(
+  "INSERT INTO sync_state(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
 );
 const insertNonce = db.prepare(
   "INSERT INTO qr_nonces (nonce, cafe_id, expires) VALUES (@nonce, @cafeId, @expires)"
@@ -387,7 +506,7 @@ const consumeNonce = db.prepare(
 
 // Cafes prepared statements
 const insertCafe = db.prepare(
-  "INSERT INTO cafes (name, api_key, encrypted_key, address, password_hash, created_at) VALUES (@name, @api_key, @encrypted_key, @address, @password_hash, @created_at)"
+  "INSERT INTO cafes (name, api_key, encrypted_key, address, password_hash, about_text, redeem_message, logo_mime, logo_data, updated_at, created_at) VALUES (@name, @api_key, @encrypted_key, @address, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @updated_at, @created_at)"
 );
 const getCafeByApiKey = db.prepare("SELECT * FROM cafes WHERE api_key = ?");
 const getCafeById = db.prepare("SELECT * FROM cafes WHERE id = ?");
@@ -395,11 +514,24 @@ const getCafeByName = db.prepare(
   "SELECT * FROM cafes WHERE name = ? COLLATE NOCASE"
 );
 
+const updateCafeProfileById = db.prepare(
+  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, updated_at = ? WHERE id = ?"
+);
+
 // Customers prepared statements
 const insertCustomer = db.prepare(
-  "INSERT INTO customers (customer_id, address, encrypted_key, created_at) VALUES (@customer_id, @address, @encrypted_key, @created_at)"
+  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @created_at)"
 );
 const listCustomers = db.prepare("SELECT * FROM customers ORDER BY id DESC");
+const getCustomerByEmail = db.prepare(
+  "SELECT id, customer_id, username, email, address, encrypted_key, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1"
+);
+const getCustomerAuthByEmail = db.prepare(
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1"
+);
+const setCustomerPasswordHashById = db.prepare(
+  "UPDATE customers SET password_hash = ? WHERE id = ?"
+);
 
 // === Express setup ===
 const express = require("express");
@@ -407,6 +539,7 @@ const app = express();
 // Capture raw request body for debugging JSON parse errors (verify option)
 app.use(
   express.json({
+    limit: "2mb",
     verify: (req, res, buf, encoding) => {
       try {
         req.rawBody = buf.toString(encoding || "utf8");
@@ -503,12 +636,67 @@ app.get("/events/stream", async (req, res) => {
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 const stampCardJson = require("../artifacts/contracts/StampCard.sol/StampCard.json");
-const contract = new ethers.Contract(
-  process.env.STAMPCARD_ADDRESS,
-  stampCardJson.abi,
-  wallet
-);
 const stampCardInterface = new ethers.Interface(stampCardJson.abi);
+
+const TOPIC_STAMP_ADDED = ethers.id("StampAdded(address,address,uint32)");
+const TOPIC_REWARD_REDEEMED = ethers.id(
+  "RewardRedeemed(address,address,uint32)"
+);
+
+function readEnvLocalValue(key) {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const envPath = path.resolve(__dirname, "..", ".env.local");
+    if (!fs.existsSync(envPath)) return null;
+    const raw = fs.readFileSync(envPath, "utf8");
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+      if (!line || /^\s*#/.test(line)) continue;
+      const idx = line.indexOf("=");
+      if (idx <= 0) continue;
+      const k = line.slice(0, idx).trim();
+      if (k !== key) continue;
+      return line.slice(idx + 1).trim() || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getActiveStampcardAddress() {
+  // Prefer network-specific var; fall back to STAMPCARD_ADDRESS.
+  // Additionally, read .env.local on demand so a deploy can update the address without requiring a restart.
+  const fromEnv =
+    process.env.SEPOLIA_STAMPCARD_ADDRESS || process.env.STAMPCARD_ADDRESS;
+  const fromFile =
+    readEnvLocalValue("SEPOLIA_STAMPCARD_ADDRESS") ||
+    readEnvLocalValue("STAMPCARD_ADDRESS");
+  const addr = fromEnv || fromFile || null;
+  if (
+    addr &&
+    (!process.env.STAMPCARD_ADDRESS || process.env.STAMPCARD_ADDRESS !== addr)
+  ) {
+    process.env.STAMPCARD_ADDRESS = addr;
+  }
+  return addr;
+}
+
+function getStampCardContract(signerOrProvider) {
+  const addr = getActiveStampcardAddress();
+  return new ethers.Contract(addr, stampCardJson.abi, signerOrProvider);
+}
+
+function isEthersDecodeError(err) {
+  const code = err && err.code ? String(err.code) : "";
+  const msg = err && err.message ? String(err.message) : "";
+  return (
+    code === "BAD_DATA" ||
+    msg.includes("could not decode result data") ||
+    msg.includes("BAD_DATA")
+  );
+}
 
 async function backfillEventMetadata() {
   try {
@@ -581,6 +769,389 @@ backfillEventMetadata().catch((err) => {
     err && err.message ? err.message : err
   );
 });
+
+async function reconcileEventStatuses() {
+  // Best-effort: mark submitted/confirmed/failed based on on-chain receipt.
+  // Limit rows to keep startup fast.
+  try {
+    const rows = db
+      .prepare(
+        "SELECT txhash, status FROM stamp_events WHERE txhash IS NOT NULL AND LENGTH(txhash) = 66 ORDER BY id DESC LIMIT 2000"
+      )
+      .all();
+
+    for (const row of rows) {
+      const txh = row && row.txhash ? String(row.txhash) : "";
+      if (!txh || !txh.startsWith("0x") || txh.length !== 66) continue;
+
+      let receipt = null;
+      try {
+        receipt = await provider.getTransactionReceipt(txh);
+      } catch (e) {
+        continue;
+      }
+
+      if (!receipt) {
+        // Still pending/unknown
+        try {
+          updateEventStatusByTx.run("submitted", txh);
+        } catch (e) {}
+        continue;
+      }
+
+      const ok = receipt.status === 1;
+      try {
+        updateEventStatusByTx.run(ok ? "confirmed" : "failed", txh);
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.warn(
+      "Async event status reconciliation failed:",
+      err && err.message ? err.message : err
+    );
+  }
+}
+
+reconcileEventStatuses().catch((err) => {
+  console.warn(
+    "Async event status reconciliation failed:",
+    err && err.message ? err.message : err
+  );
+});
+
+function getLastSyncedBlock() {
+  try {
+    const row = getSyncState.get("stampcard_last_block");
+    const n = row && row.value != null ? Number(row.value) : NaN;
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setLastSyncedBlock(blockNumber) {
+  try {
+    const n = Number(blockNumber);
+    if (!Number.isFinite(n) || n < 0) return;
+    setSyncState.run("stampcard_last_block", String(Math.floor(n)));
+  } catch (e) {}
+}
+
+async function syncStampEventsFromChain({
+  maxBlocksPerRun = 10,
+  maxChunksPerRun = 3,
+} = {}) {
+  const contractAddr = getActiveStampcardAddress();
+  if (!contractAddr || !/^0x[0-9a-fA-F]{40}$/.test(contractAddr)) {
+    return { ok: false, error: "no_contract_address" };
+  }
+
+  const latest = await provider.getBlockNumber();
+  let last = getLastSyncedBlock();
+
+  // If we never synced before, start a bit back to cover recent activity.
+  // You can set STAMPCARD_SYNC_START_BLOCK in .env.local for full history.
+  if (last == null) {
+    const startEnv = sanitizeEnv("STAMPCARD_SYNC_START_BLOCK");
+    const start = startEnv != null ? Number(startEnv) : NaN;
+    last =
+      Number.isFinite(start) && start >= 0
+        ? Math.floor(start)
+        : Math.max(0, latest - 500);
+  }
+
+  // Stored value is "last processed block"; next run starts at +1.
+  let cursor = Math.min(last + 1, latest);
+  let processedTo = last;
+  let inserted = 0;
+
+  let chunks = 0;
+  while (cursor <= latest) {
+    if (chunks >= maxChunksPerRun) break;
+    let to = Math.min(latest, cursor + maxBlocksPerRun - 1);
+
+    let logs = [];
+    try {
+      logs = await provider.getLogs({
+        address: contractAddr,
+        fromBlock: cursor,
+        toBlock: to,
+        topics: [[TOPIC_STAMP_ADDED, TOPIC_REWARD_REDEEMED]],
+      });
+    } catch (e) {
+      // Alchemy free-tier can enforce very small getLogs ranges.
+      const msg = String(e && e.message ? e.message : e);
+      const lower = msg.toLowerCase();
+      const isRateLimited =
+        lower.includes("exceeded its compute units") ||
+        lower.includes("compute units per second") ||
+        lower.includes('"code": 429') ||
+        e?.code === 429 ||
+        e?.error?.code === 429;
+      if (
+        msg.toLowerCase().includes("10 block range") &&
+        to - cursor + 1 > 10
+      ) {
+        to = Math.min(latest, cursor + 9);
+        logs = await provider.getLogs({
+          address: contractAddr,
+          fromBlock: cursor,
+          toBlock: to,
+          topics: [[TOPIC_STAMP_ADDED, TOPIC_REWARD_REDEEMED]],
+        });
+      } else if (isRateLimited) {
+        return {
+          ok: false,
+          error: "rate_limited",
+          latest,
+          processedTo,
+          inserted,
+          chunks,
+        };
+      } else {
+        throw e;
+      }
+    }
+
+    logs.sort((a, b) =>
+      a.blockNumber !== b.blockNumber
+        ? a.blockNumber - b.blockNumber
+        : (a.index ?? 0) - (b.index ?? 0)
+    );
+
+    const lastTotalByKey = new Map();
+    const keyOf = (cafe, user) =>
+      `${String(cafe).toLowerCase()}_${String(user).toLowerCase()}`;
+
+    for (const log of logs) {
+      let parsed;
+      try {
+        parsed = stampCardInterface.parseLog(log);
+      } catch {
+        continue;
+      }
+
+      const name = parsed && parsed.name ? String(parsed.name) : "";
+      const cafe = parsed?.args?.cafe;
+      const user = parsed?.args?.user;
+      if (!cafe || !user) continue;
+
+      const txhash = log.transactionHash;
+      if (!txhash || typeof txhash !== "string") continue;
+      if (hasEventByTx.get(txhash)) continue;
+
+      let delta = 0;
+      let eventType = null;
+
+      if (name === "StampAdded") {
+        eventType = "stamp";
+        const total = Number(parsed?.args?.totalStamps ?? 0);
+        const k = keyOf(cafe, user);
+        const lastTotal = lastTotalByKey.get(k);
+        const d =
+          Number.isFinite(total) && Number.isFinite(lastTotal)
+            ? total - lastTotal
+            : Number.isFinite(total)
+            ? total
+            : 0;
+        delta = Number.isFinite(d) ? Math.max(0, d) : 0;
+        lastTotalByKey.set(k, Number.isFinite(total) ? total : 0);
+      } else if (name === "RewardRedeemed") {
+        eventType = "redeem";
+        delta = -10;
+      } else {
+        continue;
+      }
+
+      const ev = {
+        ts: Date.now(),
+        cafe: String(cafe),
+        user: String(user),
+        customer_name: null,
+        txhash,
+        status: "confirmed",
+        event_type: eventType,
+        delta: Number.isFinite(delta) ? delta : 0,
+      };
+
+      try {
+        insertEvent.run(ev);
+        inserted += 1;
+        try {
+          broadcastEvent(ev);
+        } catch (e) {}
+      } catch (e) {
+        // ignore insert issues; next run may retry
+      }
+    }
+
+    processedTo = to;
+    cursor = to + 1;
+    chunks += 1;
+  }
+
+  setLastSyncedBlock(processedTo);
+  return { ok: true, latest, processedTo, inserted, chunks };
+}
+
+let _chainSyncInFlight = false;
+async function runChainSyncTick() {
+  if (_chainSyncInFlight) return;
+  _chainSyncInFlight = true;
+  try {
+    await syncStampEventsFromChain({ maxBlocksPerRun: 10, maxChunksPerRun: 3 });
+  } catch (e) {
+    // best-effort sync
+  } finally {
+    _chainSyncInFlight = false;
+  }
+}
+
+// Periodic on-chain sync (keeps DB aligned with real chain state)
+setInterval(runChainSyncTick, 15_000).unref?.();
+setTimeout(runChainSyncTick, 2_000).unref?.();
+
+// Real-time on-chain sync (preferred): subscribe to logs via WebSocket to avoid getLogs limits
+let _wsSyncStarted = false;
+let _wsProvider = null;
+const _wsLastTotalByKey = new Map();
+
+function deriveWsUrl(httpUrl) {
+  try {
+    const s = String(httpUrl || "").trim();
+    if (!s) return null;
+    if (s.startsWith("wss://") || s.startsWith("ws://")) return s;
+    if (s.startsWith("https://")) return `wss://${s.slice("https://".length)}`;
+    if (s.startsWith("http://")) return `ws://${s.slice("http://".length)}`;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function _keyOfCafeUser(cafe, user) {
+  return `${String(cafe).toLowerCase()}_${String(user).toLowerCase()}`;
+}
+
+function ingestRealtimeChainLog(log) {
+  try {
+    if (!log) return;
+
+    let parsed;
+    try {
+      parsed = stampCardInterface.parseLog(log);
+    } catch {
+      return;
+    }
+
+    const name = parsed && parsed.name ? String(parsed.name) : "";
+    const cafe = parsed?.args?.cafe;
+    const user = parsed?.args?.user;
+    if (!cafe || !user) return;
+
+    const txhash = log.transactionHash;
+    if (!txhash || typeof txhash !== "string") return;
+    if (hasEventByTx.get(txhash)) return;
+
+    let delta = 0;
+    let eventType = null;
+
+    const k = _keyOfCafeUser(cafe, user);
+    const dbTotalRow = countEventsByCafeUser.get(String(cafe), String(user));
+    const dbTotal = Number(
+      dbTotalRow && dbTotalRow.total != null ? dbTotalRow.total : 0
+    );
+    const lastTotal = _wsLastTotalByKey.has(k)
+      ? Number(_wsLastTotalByKey.get(k))
+      : Number.isFinite(dbTotal)
+      ? dbTotal
+      : 0;
+
+    if (name === "StampAdded") {
+      eventType = "stamp";
+      const total = Number(parsed?.args?.totalStamps ?? 0);
+      const d = Number.isFinite(total)
+        ? total - (Number.isFinite(lastTotal) ? lastTotal : 0)
+        : 0;
+      delta = Number.isFinite(d) ? Math.max(0, d) : 0;
+      _wsLastTotalByKey.set(k, Number.isFinite(total) ? total : 0);
+    } else if (name === "RewardRedeemed") {
+      eventType = "redeem";
+      delta = -10;
+      const nextTotal = Math.max(
+        0,
+        (Number.isFinite(lastTotal) ? lastTotal : 0) - 10
+      );
+      _wsLastTotalByKey.set(k, nextTotal);
+    } else {
+      return;
+    }
+
+    const ev = {
+      ts: Date.now(),
+      cafe: String(cafe),
+      user: String(user),
+      customer_name: null,
+      txhash,
+      status: "confirmed",
+      event_type: eventType,
+      delta: Number.isFinite(delta) ? delta : 0,
+    };
+
+    insertEvent.run(ev);
+    try {
+      broadcastEvent(ev);
+    } catch (e) {}
+
+    if (
+      typeof log.blockNumber === "number" &&
+      Number.isFinite(log.blockNumber)
+    ) {
+      const prev = getLastSyncedBlock();
+      const next =
+        prev == null
+          ? log.blockNumber
+          : Math.max(Number(prev) || 0, log.blockNumber);
+      setLastSyncedBlock(next);
+    }
+  } catch (e) {
+    // best-effort
+  }
+}
+
+function startWsChainSync() {
+  if (_wsSyncStarted) return;
+  _wsSyncStarted = true;
+
+  const contractAddr = getActiveStampcardAddress();
+  if (!contractAddr || !/^0x[0-9a-fA-F]{40}$/.test(contractAddr)) {
+    console.warn("WS sync skipped: no contract address");
+    return;
+  }
+
+  const wsUrl =
+    (process.env.RPC_WS_URL && String(process.env.RPC_WS_URL).trim()) ||
+    deriveWsUrl(RPC_URL);
+  if (!wsUrl) {
+    console.warn("WS sync skipped: no ws url (set RPC_WS_URL to enable)");
+    return;
+  }
+
+  try {
+    _wsProvider = new ethers.WebSocketProvider(wsUrl);
+    const filter = {
+      address: contractAddr,
+      topics: [[TOPIC_STAMP_ADDED, TOPIC_REWARD_REDEEMED]],
+    };
+
+    _wsProvider.on(filter, ingestRealtimeChainLog);
+    console.log("🔁 WS chain sync enabled");
+  } catch (e) {
+    console.warn("WS sync failed to start:", e && e.message ? e.message : e);
+  }
+}
+
+setTimeout(startWsChainSync, 3_000).unref?.();
 
 // === Mini-Auth (ein API-Key für MVP) ===
 function requireApiKey(req, res, next) {
@@ -749,7 +1320,16 @@ app.post("/stamp", async (req, res) => {
 
     // Sende Transaktion
     console.log("Calling contract.addStamp for customer:", customer);
-    const tx = await contract.addStamp(customer);
+    const addr = getActiveStampcardAddress();
+    if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+      return res.status(500).json({
+        error: "stampcard_address_missing",
+        message:
+          "STAMPCARD_ADDRESS fehlt/ist ungültig. Bitte .env.local prüfen.",
+      });
+    }
+    const stampContract = getStampCardContract(wallet);
+    const tx = await stampContract.addStamp(customer);
     console.log("Transaction sent:", tx.hash);
     await tx.wait();
     console.log("Transaction confirmed");
@@ -771,6 +1351,13 @@ app.post("/stamp", async (req, res) => {
     res.json({ success: true, txHash: tx.hash });
   } catch (err) {
     console.error("Error in /stamp:", err);
+    if (isEthersDecodeError(err)) {
+      return res.status(503).json({
+        error: "bad_data",
+        message:
+          "Ethers konnte Contract-Result nicht dekodieren. Sehr wahrscheinlich ist STAMPCARD_ADDRESS nicht der StampCard-Contract auf dem aktuellen RPC_URL.",
+      });
+    }
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -809,6 +1396,33 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
       } catch (e) {
         console.warn("qrCafe comparison failed", e);
       }
+    }
+
+    const stampcardAddress = getActiveStampcardAddress();
+    if (!stampcardAddress || !/^0x[0-9a-fA-F]{40}$/.test(stampcardAddress)) {
+      return res.status(500).json({
+        error: "stampcard_address_missing",
+        message:
+          "STAMPCARD_ADDRESS fehlt/ist ungültig. Bitte .env.local prüfen.",
+      });
+    }
+
+    // Helpful guard: BAD_DATA from ethers usually means RPC_URL and STAMPCARD_ADDRESS don't match.
+    try {
+      const code = await provider.getCode(stampcardAddress);
+      if (!code || code === "0x") {
+        return res.status(503).json({
+          error: "stampcard_not_deployed",
+          message:
+            "Kein Contract unter STAMPCARD_ADDRESS auf dem aktuellen RPC_URL. Bitte .env.local prüfen (RPC_URL vs STAMPCARD_ADDRESS).",
+        });
+      }
+    } catch (e) {
+      return res.status(503).json({
+        error: "rpc_unavailable",
+        message:
+          "RPC_URL nicht erreichbar oder Fehler beim Contract-Check. Bitte Node/RPC starten und .env.local prüfen.",
+      });
     }
 
     // Auto-fund cafe if balance too low for gas
@@ -863,19 +1477,29 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
       }
     }
 
-    const cafeContract = new ethers.Contract(
-      process.env.STAMPCARD_ADDRESS,
-      stampCardJson.abi,
-      cafeSigner
-    );
+    const cafeContract = getStampCardContract(cafeSigner);
+
+    // Some RPC providers may fail gas estimation; provide explicit gas & fees
+    let overrides = { gasLimit: 180000n };
+    try {
+      const fee = await provider.getFeeData();
+      const maxFee = fee.maxFeePerGas ?? ethers.parseUnits("30", "gwei");
+      const maxPrio =
+        fee.maxPriorityFeePerGas ?? ethers.parseUnits("2", "gwei");
+      overrides = {
+        gasLimit: 180000n,
+        maxFeePerGas: maxFee,
+        maxPriorityFeePerGas: maxPrio,
+      };
+    } catch {}
 
     let tx;
     if (cnt === 1) {
       console.log(`Cafe ${cafeAddress} awarding 1 stamp to ${customer}`);
-      tx = await cafeContract.addStamp(customer);
+      tx = await cafeContract.addStamp(customer, overrides);
     } else {
       console.log(`Cafe ${cafeAddress} awarding ${cnt} stamps to ${customer}`);
-      tx = await cafeContract.addStamps(customer, cnt);
+      tx = await cafeContract.addStamps(customer, cnt, overrides);
     }
     console.log("sent tx", tx.hash);
 
@@ -886,6 +1510,7 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
       customer_name: customerName || null,
       user: customer,
       txhash: tx.hash,
+      status: "submitted",
       event_type: "stamp",
       delta: cnt,
     };
@@ -893,6 +1518,19 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
     try {
       broadcastEvent(ev);
     } catch (e) {}
+
+    // Background: mark event status based on receipt
+    Promise.resolve()
+      .then(async () => {
+        try {
+          const receipt = await tx.wait();
+          const ok = receipt && receipt.status === 1;
+          updateEventStatusByTx.run(ok ? "confirmed" : "failed", tx.hash);
+        } catch (e) {
+          // If it reverts or never confirms, keep as submitted; do not spam logs.
+        }
+      })
+      .catch(() => {});
 
     // Return submitted status; client can optimistically update and/or re-fetch later
     res.json({
@@ -903,6 +1541,14 @@ app.post("/stamp-by-cafe", requireApiKey, async (req, res) => {
     });
   } catch (err) {
     console.error("Error in /stamp-by-cafe:", err);
+    const code = err && err.code ? String(err.code) : null;
+    if (code === "BAD_DATA" || isEthersDecodeError(err)) {
+      return res.status(503).json({
+        error: "bad_data",
+        message:
+          "Ethers BAD_DATA: RPC_URL und STAMPCARD_ADDRESS passen sehr wahrscheinlich nicht zusammen (Contract nicht deployed/anderes Netz).",
+      });
+    }
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -941,12 +1587,35 @@ app.post("/redeem-reward", requireApiKey, async (req, res) => {
       }
     }
 
+    const stampcardAddress = getActiveStampcardAddress();
+    if (!stampcardAddress || !/^0x[0-9a-fA-F]{40}$/.test(stampcardAddress)) {
+      return res.status(500).json({
+        error: "stampcard_address_missing",
+        message:
+          "STAMPCARD_ADDRESS fehlt/ist ungültig. Bitte .env.local prüfen.",
+      });
+    }
+
+    // Helpful guard: if there's no code at the address on this RPC, ethers calls often throw BAD_DATA.
+    try {
+      const code = await provider.getCode(stampcardAddress);
+      if (!code || code === "0x") {
+        return res.status(503).json({
+          error: "stampcard_not_deployed",
+          message:
+            "Kein Contract unter STAMPCARD_ADDRESS auf dem aktuellen RPC_URL. Bitte .env.local prüfen (RPC_URL vs STAMPCARD_ADDRESS).",
+        });
+      }
+    } catch (e) {
+      return res.status(503).json({
+        error: "rpc_unavailable",
+        message:
+          "RPC_URL nicht erreichbar oder Fehler beim Contract-Check. Bitte Node/RPC starten und .env.local prüfen.",
+      });
+    }
+
     // Check current stamps
-    const cafeContract = new ethers.Contract(
-      process.env.STAMPCARD_ADDRESS,
-      stampCardJson.abi,
-      provider
-    );
+    const cafeContract = getStampCardContract(provider);
     const currentStamps = await cafeContract.getStamps(cafeAddress, customer);
 
     if (currentStamps < 10n) {
@@ -994,11 +1663,7 @@ app.post("/redeem-reward", requireApiKey, async (req, res) => {
     }
 
     // Call contract's redeemReward function (impl may reset to 0 or subtract 10)
-    const contractWithSigner = new ethers.Contract(
-      process.env.STAMPCARD_ADDRESS,
-      stampCardJson.abi,
-      cafeSigner
-    );
+    const contractWithSigner = getStampCardContract(cafeSigner);
 
     console.log(
       `Redeeming reward for ${customer} at café ${cafeAddress} (current: ${currentStamps} stamps)`
@@ -1021,10 +1686,42 @@ app.post("/redeem-reward", requireApiKey, async (req, res) => {
     const tx = await contractWithSigner.redeemReward(customer, overrides);
     console.log("Redemption tx sent:", tx.hash);
 
+    // Log + broadcast immediately as "submitted" so UIs can react.
+    const ev = {
+      ts: Date.now(),
+      cafe: cafeAddress,
+      customer_name: customerName || null,
+      user: customer,
+      txhash: tx.hash,
+      status: "submitted",
+      event_type: "redeem",
+      delta: -10,
+    };
+
+    try {
+      insertEvent.run(ev);
+    } catch (dbErr) {
+      console.warn("Failed to log redemption:", dbErr);
+    }
+
+    try {
+      broadcastEvent(ev);
+    } catch (e) {}
+
     Promise.resolve()
       .then(async () => {
         try {
-          await tx.wait();
+          const receipt = await tx.wait();
+          const ok = receipt && receipt.status === 1;
+          try {
+            updateEventStatusByTx.run(ok ? "confirmed" : "failed", tx.hash);
+          } catch (e) {}
+
+          // Broadcast status update so clients can refresh after confirmation.
+          try {
+            broadcastEvent({ ...ev, status: ok ? "confirmed" : "failed" });
+          } catch (e) {}
+
           const postStamps = await cafeContract.getStamps(
             cafeAddress,
             customer
@@ -1050,26 +1747,6 @@ app.post("/redeem-reward", requireApiKey, async (req, res) => {
             waitErr && waitErr.message ? waitErr.message : waitErr
           );
         }
-
-        const ev = {
-          ts: Date.now(),
-          cafe: cafeAddress,
-          customer_name: customerName || null,
-          user: customer,
-          txhash: tx.hash,
-          event_type: "redeem",
-          delta: -10,
-        };
-
-        try {
-          insertEvent.run(ev);
-        } catch (dbErr) {
-          console.warn("Failed to log redemption:", dbErr);
-        }
-
-        try {
-          broadcastEvent(ev);
-        } catch (e) {}
       })
       .catch((backgroundErr) => {
         console.error("Async redemption handler failed:", backgroundErr);
@@ -1085,6 +1762,14 @@ app.post("/redeem-reward", requireApiKey, async (req, res) => {
     });
   } catch (err) {
     console.error("Error in /redeem-reward:", err);
+    const code = err && err.code ? String(err.code) : null;
+    if (code === "BAD_DATA" || isEthersDecodeError(err)) {
+      return res.status(503).json({
+        error: "bad_data",
+        message:
+          "Ethers BAD_DATA: RPC_URL und STAMPCARD_ADDRESS passen sehr wahrscheinlich nicht zusammen (Contract nicht deployed/anderes Netz).",
+      });
+    }
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -1100,6 +1785,8 @@ app.get("/stamps/:addr", async (req, res) => {
     const fallback =
       req.query &&
       (req.query.fallback === "1" || req.query.fallback === "true");
+    const strict =
+      req.query && (req.query.strict === "1" || req.query.strict === "true");
     const cafeAddress = req.query && req.query.cafe;
 
     if (!wallet || !wallet.address) {
@@ -1116,17 +1803,63 @@ app.get("/stamps/:addr", async (req, res) => {
 
     let stamps = 0;
 
+    const stampcardAddress = getActiveStampcardAddress();
+    if (!stampcardAddress || !/^0x[0-9a-fA-F]{40}$/.test(stampcardAddress)) {
+      if (fallback)
+        return res.json({
+          cafe: cafeAddress || null,
+          user,
+          stamps: 0,
+          note: "stampcard_address_missing",
+        });
+      return res.status(500).json({ error: "stampcard_address_missing" });
+    }
+
+    const readContract = getStampCardContract(provider);
+
     // If specific cafe requested, get stamps from that cafe only
     if (cafeAddress && /^0x[0-9a-fA-F]{40}$/i.test(cafeAddress)) {
-      const count = await contract.getStamps(cafeAddress, user);
-      stamps =
-        typeof count === "bigint"
-          ? Number(count)
-          : count?.toNumber
-          ? count.toNumber()
-          : Number(count);
-      // If chain returned 0 but we have historical events, use DB fallback so users still see their stamps after a dev chain reset
-      if (stamps === 0) {
+      try {
+        const count = await readContract.getStamps(cafeAddress, user);
+        stamps =
+          typeof count === "bigint"
+            ? Number(count)
+            : count?.toNumber
+            ? count.toNumber()
+            : Number(count);
+      } catch (chainErr) {
+        if (fallback) {
+          try {
+            const row = countEventsByCafeUser.get(cafeAddress, user);
+            const total = row && typeof row.total === "number" ? row.total : 0;
+            return res.json({
+              cafe: cafeAddress,
+              user,
+              stamps: total,
+              note: total > 0 ? "db_fallback" : "db_fallback_zero",
+              error: String(
+                chainErr && chainErr.message ? chainErr.message : chainErr
+              ),
+            });
+          } catch (dbErr) {
+            return res.json({
+              cafe: cafeAddress,
+              user,
+              stamps: 0,
+              note: "db_fallback_failed",
+              error: String(
+                chainErr && chainErr.message ? chainErr.message : chainErr
+              ),
+              dbError: String(dbErr && dbErr.message ? dbErr.message : dbErr),
+            });
+          }
+        }
+
+        throw chainErr;
+      }
+      // If chain returned 0 but we have historical events, use DB fallback so users still see their stamps after a dev chain reset.
+      // strict=1 disables this behavior so redeem flows can rely on the on-chain truth.
+      if (!strict && stamps === 0) {
         try {
           const row = countEventsByCafeUser.get(cafeAddress, user);
           if (row && typeof row.total === "number" && row.total > 0) {
@@ -1167,23 +1900,42 @@ app.get("/stamps/:addr", async (req, res) => {
         }
 
         if (cafeAddr) {
-          const count = await contract.getStamps(cafeAddr, user);
-          const num =
-            typeof count === "bigint"
-              ? Number(count)
-              : count?.toNumber
-              ? count.toNumber()
-              : Number(count);
-          if (num === 0) {
-            try {
-              const row = countEventsByCafeUser.get(cafeAddr, user);
-              if (row && typeof row.total === "number" && row.total > 0) {
-                stamps += row.total;
-                fallbackUsed = true;
-                continue;
+          let num = 0;
+          try {
+            const count = await readContract.getStamps(cafeAddr, user);
+            num =
+              typeof count === "bigint"
+                ? Number(count)
+                : count?.toNumber
+                ? count.toNumber()
+                : Number(count);
+          } catch (chainErr) {
+            if (fallback) {
+              try {
+                const row = countEventsByCafeUser.get(cafeAddr, user);
+                if (row && typeof row.total === "number" && row.total > 0) {
+                  stamps += row.total;
+                  fallbackUsed = true;
+                }
+              } catch (e) {
+                console.warn("DB fallback failed", e.message || e);
               }
-            } catch (e) {
-              console.warn("DB fallback failed", e.message || e);
+              continue;
+            }
+            throw chainErr;
+          }
+          if (num === 0) {
+            if (!strict) {
+              try {
+                const row = countEventsByCafeUser.get(cafeAddr, user);
+                if (row && typeof row.total === "number" && row.total > 0) {
+                  stamps += row.total;
+                  fallbackUsed = true;
+                  continue;
+                }
+              } catch (e) {
+                console.warn("DB fallback failed", e.message || e);
+              }
             }
           }
           stamps += num;
@@ -1211,7 +1963,12 @@ app.get("/stamps/:addr", async (req, res) => {
       (req.query.fallback === "1" || req.query.fallback === "true");
     if (fallback)
       return res.json({
-        cafe: wallet && wallet.address ? wallet.address : null,
+        cafe:
+          req.query && /^0x[0-9a-fA-F]{40}$/i.test(req.query.cafe)
+            ? req.query.cafe
+            : wallet && wallet.address
+            ? wallet.address
+            : null,
         user,
         stamps: 0,
         error: String(err.message || err),
@@ -1230,7 +1987,7 @@ app.get("/stamps/history/:addr", (req, res) => {
 
     const events = db
       .prepare(
-        "SELECT * FROM stamp_events WHERE user = ? ORDER BY ts DESC LIMIT 50"
+        "SELECT * FROM stamp_events WHERE LOWER(user) = LOWER(?) ORDER BY ts DESC LIMIT 50"
       )
       .all(addr);
 
@@ -1360,6 +2117,12 @@ app.get("/cafes/:cafeId/overview", requireApiKey, (req, res) => {
         id: cafeRow.id,
         name: cafeRow.name || null,
         address: cafeAddress,
+        about: cafeRow.about_text || null,
+        redeemMessage: cafeRow.redeem_message || null,
+        logoDataUrl:
+          cafeRow.logo_data && cafeRow.logo_mime
+            ? `data:${cafeRow.logo_mime};base64,${cafeRow.logo_data}`
+            : null,
       },
       stats,
       recentEvents: recentEvents.filter(Boolean),
@@ -1372,6 +2135,103 @@ app.get("/cafes/:cafeId/overview", requireApiKey, (req, res) => {
     });
   } catch (err) {
     console.error("Error in /cafes/:cafeId/overview:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Update cafe public profile (about text + logo) for the logged-in cafe
+app.put("/cafes/me/profile", requireApiKey, (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+
+    const current = getCafeById.get(cafeRow.id);
+    if (!current) {
+      return res.status(404).json({ error: "cafe_not_found" });
+    }
+
+    const body = req.body || {};
+
+    let aboutText = current.about_text || null;
+    if (Object.prototype.hasOwnProperty.call(body, "about")) {
+      const rawAbout = body.about == null ? "" : String(body.about);
+      const trimmed = rawAbout.trim();
+      aboutText = trimmed ? trimmed.slice(0, 1200) : null;
+    }
+
+    let redeemMessage = current.redeem_message || null;
+    if (Object.prototype.hasOwnProperty.call(body, "redeemMessage")) {
+      const rawMsg =
+        body.redeemMessage == null ? "" : String(body.redeemMessage);
+      const trimmed = rawMsg.trim();
+      redeemMessage = trimmed ? trimmed.slice(0, 600) : null;
+    }
+
+    let logoMime = current.logo_mime || null;
+    let logoData = current.logo_data || null;
+    if (Object.prototype.hasOwnProperty.call(body, "logoDataUrl")) {
+      const raw = body.logoDataUrl;
+      if (!raw) {
+        logoMime = null;
+        logoData = null;
+      } else {
+        const s = String(raw);
+        const m =
+          /^data:(image\/(png|jpeg|jpg|svg\+xml));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+            s
+          );
+        if (!m) {
+          return res.status(400).json({ error: "invalid_logo_format" });
+        }
+        const mime =
+          m[1].toLowerCase() === "image/jpg"
+            ? "image/jpeg"
+            : m[1].toLowerCase();
+        const base64 = String(m[3] || "").replace(/\s+/g, "");
+
+        // Rough size guard: base64 chars ~ 4/3 bytes
+        if (base64.length > 300_000) {
+          return res.status(413).json({ error: "logo_too_large" });
+        }
+
+        logoMime = mime;
+        logoData = base64;
+      }
+    }
+
+    const now = Date.now();
+    updateCafeProfileById.run(
+      aboutText,
+      redeemMessage,
+      logoMime,
+      logoData,
+      now,
+      cafeRow.id
+    );
+
+    const updated = getCafeById.get(cafeRow.id);
+    res.json({
+      ok: true,
+      cafe: {
+        id: updated.id,
+        name: updated.name || null,
+        address: updated.address || null,
+        about: updated.about_text || null,
+        redeemMessage: updated.redeem_message || null,
+        logoDataUrl:
+          updated.logo_data && updated.logo_mime
+            ? `data:${updated.logo_mime};base64,${updated.logo_data}`
+            : null,
+        updatedAt:
+          updated.updated_at != null ? Number(updated.updated_at) : null,
+      },
+    });
+  } catch (err) {
+    console.error("Error in PUT /cafes/me/profile:", err);
     res
       .status(500)
       .json({ error: String(err && err.message ? err.message : err) });
@@ -1970,13 +2830,11 @@ app.get("/debug/info", async (req, res) => {
     // compute ABI functions defensively (some ethers Contract shapes can be unexpected)
     let abiFunctions = null;
     try {
-      if (
-        contract &&
-        contract.interface &&
-        contract.interface.functions &&
-        typeof contract.interface.functions === "object"
-      ) {
-        abiFunctions = Object.keys(contract.interface.functions);
+      const dbg = getStampCardContract(provider);
+      if (dbg && dbg.interface && dbg.interface.fragments) {
+        abiFunctions = dbg.interface.fragments
+          .filter((f) => f && f.type === "function")
+          .map((f) => f.format());
       }
     } catch (e) {
       console.warn(
@@ -1985,7 +2843,7 @@ app.get("/debug/info", async (req, res) => {
       );
       abiFunctions = null;
     }
-    const contractAddr = process.env.STAMPCARD_ADDRESS || null;
+    const contractAddr = getActiveStampcardAddress() || null;
     let contractCodeStatus = null;
     if (contractAddr) {
       try {
@@ -2050,7 +2908,7 @@ app.get("/debug/getStamps/:addr", async (req, res) => {
     if (!wallet || !wallet.address) {
       return res.status(500).json({ error: "wallet_not_initialized" });
     }
-    const contractAddr = process.env.STAMPCARD_ADDRESS;
+    const contractAddr = getActiveStampcardAddress();
     if (!contractAddr)
       return res.status(500).json({ error: "no_contract_address" });
     const code = await provider.getCode(contractAddr);
@@ -2061,7 +2919,7 @@ app.get("/debug/getStamps/:addr", async (req, res) => {
 
     // Try to get cafe address from query or use server wallet as fallback
     const cafeAddr = req.query.cafe || wallet.address;
-    const raw = await contract.getStamps(cafeAddr, user);
+    const raw = await getStampCardContract(provider).getStamps(cafeAddr, user);
     // try to normalize
     let normalized = null;
     try {
@@ -2093,12 +2951,94 @@ app.get("/debug/getStamps/:addr", async (req, res) => {
 // Temporary: expose masked env for local debugging only
 app.get("/debug/env", (req, res) => {
   const mask = (s) => (s ? s.replace(/.(?=.{4})/g, "*") : null);
+  const activeStampcard = getActiveStampcardAddress();
+  const fileStampcard =
+    readEnvLocalValue("SEPOLIA_STAMPCARD_ADDRESS") ||
+    readEnvLocalValue("STAMPCARD_ADDRESS");
   res.json({
     ok: true,
     rpcUrl: RPC_URL || null,
-    stampcard: process.env.STAMPCARD_ADDRESS || null,
+    stampcard: activeStampcard || null,
+    stampcardFromFile: fileStampcard || null,
     cafeApiKeyMasked: mask(process.env.CAFE_API_KEY || null),
   });
+});
+
+app.post("/debug/sync/onchain", async (req, res) => {
+  try {
+    const blocksRaw = req.query?.blocks ?? req.query?.range ?? null;
+    const blocks = blocksRaw != null ? Number(blocksRaw) : NaN;
+    const maxBlocksPerRun =
+      Number.isFinite(blocks) && blocks > 0 ? Math.floor(blocks) : 10;
+    const chunksRaw = req.query?.chunks ?? null;
+    const chunks = chunksRaw != null ? Number(chunksRaw) : NaN;
+    const maxChunksPerRun =
+      Number.isFinite(chunks) && chunks > 0 ? Math.floor(chunks) : 3;
+    const result = await syncStampEventsFromChain({
+      maxBlocksPerRun,
+      maxChunksPerRun,
+    });
+    const ok = result && result.ok === false ? false : true;
+    res.json({ ok, ...result, lastSyncedBlock: getLastSyncedBlock() });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+// Debug: compare DB vs on-chain stamps for a specific cafe+user
+app.get("/debug/consistency", async (req, res) => {
+  try {
+    const cafe = String(req.query?.cafe || "").trim();
+    const user = String(req.query?.user || "").trim();
+    if (
+      !/^0x[0-9a-fA-F]{40}$/.test(cafe) ||
+      !/^0x[0-9a-fA-F]{40}$/.test(user)
+    ) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "missing_or_invalid_cafe_or_user" });
+    }
+
+    const dbConfirmed = Number(
+      countEventsByCafeUser.get(cafe, user)?.total ?? 0
+    );
+    const dbAll = db
+      .prepare(
+        "SELECT status, COALESCE(SUM(delta),0) as total FROM stamp_events WHERE LOWER(cafe)=LOWER(?) AND LOWER(user)=LOWER(?) GROUP BY status"
+      )
+      .all(cafe, user);
+
+    let chain = null;
+    try {
+      const read = getStampCardContract(provider);
+      const n = await read.getStamps(cafe, user);
+      chain = Number(n);
+    } catch (e) {
+      chain = { error: String(e && e.message ? e.message : e) };
+    }
+
+    const recent = db
+      .prepare(
+        "SELECT id, ts, cafe, user, txhash, status, event_type, delta FROM stamp_events WHERE LOWER(cafe)=LOWER(?) AND LOWER(user)=LOWER(?) ORDER BY id DESC LIMIT 20"
+      )
+      .all(cafe, user);
+
+    res.json({
+      ok: true,
+      cafe,
+      user,
+      chain,
+      dbConfirmed,
+      dbByStatus: dbAll,
+      recent,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
 });
 
 // Error handler: log raw body on JSON parse errors to help debugging malformed payloads
@@ -2144,6 +3084,13 @@ app.post("/cafes/register", async (req, res) => {
       name: name,
       api_key: api_key,
       encrypted_key: encrypted,
+      address: newWallet.address,
+      password_hash: null,
+      about_text: null,
+      redeem_message: null,
+      logo_mime: null,
+      logo_data: null,
+      updated_at: Date.now(),
       created_at: Date.now(),
     };
     const r = insertCafe.run(info);
@@ -2169,10 +3116,6 @@ app.post("/cafes/login", async (req, res) => {
   try {
     const { name, apiKey, password } = req.body || {};
 
-    if (!password) {
-      return res.status(400).json({ error: "Passwort erforderlich" });
-    }
-
     if (!name && !apiKey) {
       return res.status(400).json({ error: "Name oder API-Key erforderlich" });
     }
@@ -2191,17 +3134,25 @@ app.post("/cafes/login", async (req, res) => {
       }
     }
 
-    if (!cafe.password_hash) {
-      return res.status(401).json({
-        error:
-          "Passwort nicht konfiguriert. Bitte kontaktiere den Administrator.",
-      });
-    }
+    // If a cafe has no password configured (e.g., created via /cafes/register),
+    // allow API-key-only login.
+    if (cafe.password_hash) {
+      if (!password) {
+        return res.status(400).json({ error: "Passwort erforderlich" });
+      }
 
-    const passwordValid = await bcrypt.compare(password, cafe.password_hash);
-
-    if (!passwordValid) {
-      return res.status(401).json({ error: "Falsches Passwort" });
+      const passwordValid = await bcrypt.compare(password, cafe.password_hash);
+      if (!passwordValid) {
+        return res.status(401).json({ error: "Falsches Passwort" });
+      }
+    } else {
+      // Without a configured password, only API-key login is permitted.
+      if (!apiKey) {
+        return res.status(401).json({
+          error:
+            "Passwort nicht konfiguriert. Bitte nutze den API-Key oder kontaktiere den Administrator.",
+        });
+      }
     }
 
     // Return cafe info (without sensitive data)
@@ -2264,6 +3215,11 @@ app.post("/cafes/register-with-email", async (req, res) => {
       encrypted_key,
       address,
       password_hash,
+      about_text: null,
+      redeem_message: null,
+      logo_mime: null,
+      logo_data: null,
+      updated_at: Date.now(),
       created_at: Date.now(),
     };
 
@@ -2329,6 +3285,13 @@ app.post("/cafes/register-self", async (req, res) => {
       api_key,
       encrypted_key:
         typeof keystore === "string" ? keystore : JSON.stringify(keystore),
+      address,
+      password_hash: null,
+      about_text: null,
+      redeem_message: null,
+      logo_mime: null,
+      logo_data: null,
+      updated_at: Date.now(),
       created_at: Date.now(),
     };
     const r = insertCafe.run(info);
@@ -2371,6 +3334,99 @@ app.get("/cafes", (req, res) => {
     });
 
     res.json(rowsWithAddress);
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+// Public café list (safe for customer-facing apps)
+app.get("/cafes/public", (req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        "SELECT id, name, address, encrypted_key, about_text, logo_data, created_at, updated_at FROM cafes ORDER BY id DESC"
+      )
+      .all();
+
+    const cafes = rows
+      .map((row) => {
+        let address = row.address || null;
+        if (!address && row.encrypted_key) {
+          try {
+            const priv = decryptPrivateKey(row.encrypted_key);
+            const wallet = new ethers.Wallet(priv);
+            address = wallet.address;
+          } catch (e) {
+            address = null;
+          }
+        }
+        return {
+          id: row.id,
+          name: row.name || null,
+          address,
+          about: row.about_text ? String(row.about_text).slice(0, 280) : null,
+          hasLogo: !!(row.logo_data && String(row.logo_data).length),
+          createdAt: row.created_at != null ? Number(row.created_at) : null,
+          updatedAt: row.updated_at != null ? Number(row.updated_at) : null,
+        };
+      })
+      .filter((c) => c.address);
+
+    res.json({ ok: true, cafes });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+// Public café profile (full about + logo) for customer-facing apps
+app.get("/cafes/public/:id", (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+    }
+
+    const row = db
+      .prepare(
+        "SELECT id, name, address, encrypted_key, about_text, redeem_message, logo_mime, logo_data, created_at, updated_at FROM cafes WHERE id = ?"
+      )
+      .get(id);
+
+    if (!row) {
+      return res.status(404).json({ ok: false, error: "cafe_not_found" });
+    }
+
+    let address = row.address || null;
+    if (!address && row.encrypted_key) {
+      try {
+        const priv = decryptPrivateKey(row.encrypted_key);
+        const wallet = new ethers.Wallet(priv);
+        address = wallet.address;
+      } catch (e) {
+        address = null;
+      }
+    }
+
+    res.json({
+      ok: true,
+      cafe: {
+        id: row.id,
+        name: row.name || null,
+        address,
+        about: row.about_text || null,
+        redeemMessage: row.redeem_message || null,
+        logoDataUrl:
+          row.logo_data && row.logo_mime
+            ? `data:${row.logo_mime};base64,${row.logo_data}`
+            : null,
+        createdAt: row.created_at != null ? Number(row.created_at) : null,
+        updatedAt: row.updated_at != null ? Number(row.updated_at) : null,
+      },
+    });
   } catch (e) {
     res
       .status(500)
@@ -2516,18 +3572,65 @@ app.get("/customers/:customerAddress/cards", (req, res) => {
 
 app.post("/customers/register", async (req, res) => {
   try {
-    const { name, email } = req.body || {};
+    const { username, email, password } = req.body || {};
+    const uname = username != null ? String(username).trim() : "";
+    const em = email != null ? String(email).trim() : "";
+    const pw = password != null ? String(password) : "";
+
+    if (!uname || uname.length < 2) {
+      return res.status(400).json({ error: "invalid_username" });
+    }
+    if (!em || !/^\S+@\S+\.\S+$/.test(em)) {
+      return res.status(400).json({ error: "invalid_email" });
+    }
+
+    if (!pw || pw.length < 6) {
+      return res.status(400).json({ error: "invalid_password" });
+    }
+
+    // If email already exists: treat as login (requires password)
+    const existing = getCustomerAuthByEmail.get(em);
+    if (existing && existing.address) {
+      if (existing.password_hash) {
+        const okPw = await bcrypt.compare(pw, existing.password_hash);
+        if (!okPw) return res.status(401).json({ error: "wrong_password" });
+      } else {
+        // Legacy account: allow first-time password set
+        const newHash = await bcrypt.hash(pw, 10);
+        setCustomerPasswordHashById.run(newHash, existing.id);
+      }
+
+      return res.json({
+        ok: true,
+        existed: true,
+        customer_id: existing.customer_id,
+        username: existing.username || uname,
+        email: existing.email || em,
+        address: existing.address,
+        createdAt: existing.created_at || null,
+      });
+    }
+
     const customer_id = randomHex(8).slice(2);
 
     // create wallet for customer
     const newWallet = ethers.Wallet.createRandom();
+    const seedPhrase =
+      newWallet && newWallet.mnemonic && newWallet.mnemonic.phrase
+        ? newWallet.mnemonic.phrase
+        : null;
     const priv = newWallet.privateKey; // 0x...
     const encrypted = encryptPrivateKey(priv);
 
+    const password_hash = await bcrypt.hash(pw, 10);
+
     const info = {
       customer_id: customer_id,
+      username: uname,
+      email: em,
       address: newWallet.address,
       encrypted_key: encrypted,
+      password_hash,
       created_at: Date.now(),
     };
     insertCustomer.run(info);
@@ -2536,8 +3639,10 @@ app.post("/customers/register", async (req, res) => {
       ok: true,
       customer_id,
       address: newWallet.address,
-      name: name || null,
-      email: email || null,
+      username: uname,
+      email: em,
+      createdAt: info.created_at,
+      seedPhrase,
     });
   } catch (err) {
     console.error(
@@ -2550,6 +3655,47 @@ app.post("/customers/register", async (req, res) => {
   }
 });
 
+app.post("/customers/login", (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const em = email != null ? String(email).trim() : "";
+    const pw = password != null ? String(password) : "";
+    if (!em || !/^\S+@\S+\.\S+$/.test(em)) {
+      return res.status(400).json({ error: "invalid_email" });
+    }
+    if (!pw) {
+      return res.status(400).json({ error: "invalid_password" });
+    }
+
+    const row = getCustomerAuthByEmail.get(em);
+    if (!row) return res.status(404).json({ error: "not_found" });
+
+    if (!row.password_hash) {
+      return res.status(401).json({ error: "password_not_set" });
+    }
+
+    bcrypt
+      .compare(pw, row.password_hash)
+      .then((okPw) => {
+        if (!okPw) return res.status(401).json({ error: "wrong_password" });
+        res.json({
+          ok: true,
+          customer_id: row.customer_id,
+          username: row.username || null,
+          email: row.email || em,
+          address: row.address,
+          createdAt: row.created_at || null,
+        });
+      })
+      .catch((e) => {
+        res.status(500).json({ error: String(e && e.message ? e.message : e) });
+      });
+    return;
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
 // Get customer by customer_id (dev/debug)
 app.get("/customers/:cid", (req, res) => {
   try {
@@ -2557,7 +3703,7 @@ app.get("/customers/:cid", (req, res) => {
     if (!cid) return res.status(400).json({ error: "missing customer id" });
     const row = db
       .prepare(
-        "SELECT id, customer_id, address, substr(encrypted_key,1,48) as encrypted_preview, created_at FROM customers WHERE customer_id = ?"
+        "SELECT id, customer_id, username, email, address, substr(encrypted_key,1,48) as encrypted_preview, created_at FROM customers WHERE customer_id = ?"
       )
       .get(cid);
     if (!row) return res.status(404).json({ error: "not_found" });
@@ -2571,16 +3717,17 @@ app.get("/customers/:cid", (req, res) => {
 app.get("/debug/routes", (req, res) => {
   try {
     const routes = [];
-    if (app && app._router && app._router.stack) {
-      app._router.stack.forEach((layer) => {
-        if (layer.route && layer.route.path) {
-          const methods = Object.keys(layer.route.methods || {})
-            .map((m) => m.toUpperCase())
-            .join(",");
-          routes.push({ path: layer.route.path, methods });
-        }
-      });
-    }
+    const router = (app && (app._router || app.router)) || null;
+    const stack = (router && router.stack) || [];
+
+    stack.forEach((layer) => {
+      if (layer && layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods || {})
+          .map((m) => m.toUpperCase())
+          .join(",");
+        routes.push({ path: layer.route.path, methods });
+      }
+    });
     res.json({ ok: true, routes });
   } catch (e) {
     res

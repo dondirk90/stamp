@@ -22,7 +22,12 @@ async function main() {
     // ignore read errors, we'll recreate the file
   }
 
-  env.STAMPCARD_ADDRESS = address;
+  const networkName = (hre.network && hre.network.name) || "unknown";
+  if (networkName === "sepolia") {
+    env.SEPOLIA_STAMPCARD_ADDRESS = address;
+  } else {
+    env.STAMPCARD_ADDRESS = address;
+  }
 
   const out =
     Object.keys(env)

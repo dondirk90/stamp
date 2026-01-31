@@ -12,6 +12,19 @@ contracts/.env
 **/build/
 **/.cache/
 
+# Hardhat / Solidity build outputs
+artifacts/
+cache/
+
+# Local databases
+data/*.db
+data/*.db-*
+
+# Local server logs
+*.log
+api/.api.*.log
+apps/.apps-server.*.log
+
 # OS/IDE
 .DS_Store
 .vscode/*

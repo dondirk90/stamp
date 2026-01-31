@@ -76,33 +76,33 @@
   <div class="card">
     <h2>Schritt 1: API starten</h2>
     <p>Auf deinem Computer (PowerShell):</p>
-    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd C:\Users\dirkb\Documents\GitHub\stamp<br/>pnpm run dev</code>
+    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>node api\server.cjs</code>
     <p>Erwartet: <span class="success">🚀 API listening on http://127.0.0.1:3000</span></p>
   </div>
 
   <div class="card">
     <h2>Schritt 1b: Apps-Server starten</h2>
     <p>In einem **zweiten** Terminal (PowerShell):</p>
-    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd C:\Users\dirkb\Documents\GitHub\stamp\apps<br/>node server.cjs</code>
-    <p>Erwartet: <span class="success">📱 Apps Server running on http://localhost:8080</span></p>
+    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>$env:PORT=8080; node apps\server.cjs</code>
+    <p>Erwartet: <span class="success">📱 Apps Server running on http://localhost:8080</span> (wichtig: Port 8080 im LAN erreichbar)</p>
   </div>
 
-  <div class="card">
-    <h2>Schritt 2: Apps öffnen</h2>
   <div class="card">
     <h2>Schritt 2: Apps öffnen</h2>
     <div class="highlight">
       <strong>Auf deinem Computer (Desktop/Laptop):</strong>
       <ul>
-        <li>Café-App: <code>http://localhost:8080/cafe/</code></li>
-        <li>Customer-App: <code>http://localhost:8080/customer/</code></li>
+        <li>Customer QR: <code>http://localhost:8080/customer-qr.html</code></li>
+        <li>Café Scanner: <code>http://localhost:8080/cafe-scanner.html</code></li>
+        <li>Café Issuer: <code>http://localhost:8080/cafe-issuer-web.html</code></li>
       </ul>
     </div>
     <div class="highlight">
       <strong>Auf deinem Smartphone (im gleichen WLAN):</strong>
       <ul>
-        <li>Café-App: <code id="cafeUrl">http://<IP>:8080/cafe/</code></li>
-        <li>Customer-App: <code id="customerUrl">http://<IP>:8080/customer/</code></li>
+        <li>Customer QR: <code id="customerQrUrl">http://<IP>:8080/customer-qr.html</code></li>
+        <li>Café Scanner: <code id="scannerUrl">http://<IP>:8080/cafe-scanner.html</code></li>
+        <li>Café Issuer: <code id="issuerUrl">http://<IP>:8080/cafe-issuer-web.html</code></li>
       </ul>
     </div>
     <p style="font-size:12px;color:#666">Der Apps-Server läuft auf Port 8080. Die API läuft auf Port 3000.</p>
@@ -112,9 +112,9 @@
   <div class="card">
     <h2>Schritt 3: Flow testen</h2>
     <ol>
-      <li><strong>Café-App (Desktop oder Smartphone):</strong> "Issue QR" klicken → QR-Code wird angezeigt</li>
-      <li><strong>Customer-App (Smartphone):</strong> "Start Camera" klicken, Private Key eingeben, QR scannen</li>
-      <li><strong>Sign & Send:</strong> Transaktion wird gesendet und bestätigt</li>
+      <li><strong>Café Issuer:</strong> Café anlegen / API-Key notieren (falls nötig)</li>
+      <li><strong>Customer QR:</strong> QR anzeigen (Stempel oder Redeem, je nach Stand)</li>
+      <li><strong>Café Scanner:</strong> QR öffnen → Stempeln oder 🎁 Einlösen</li>
     </ol>
   </div>
 
@@ -159,8 +159,9 @@
 
     function updateUrls(ip) {
       if (ip && ip !== 'Bitte manuelle eingeben (siehe unten)') {
-        document.getElementById('cafeUrl').textContent = `http://${ip}:8080/cafe/`;
-        document.getElementById('customerUrl').textContent = `http://${ip}:8080/customer/`;
+        document.getElementById('customerQrUrl').textContent = `http://${ip}:8080/customer-qr.html`;
+        document.getElementById('scannerUrl').textContent = `http://${ip}:8080/cafe-scanner.html`;
+        document.getElementById('issuerUrl').textContent = `http://${ip}:8080/cafe-issuer-web.html`;
         document.getElementById('apiHealthUrl').textContent = `http://${ip}:3000/health`;
       }
     }

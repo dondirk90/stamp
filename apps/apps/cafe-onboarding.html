@@ -1,10 +1,17 @@
 ﻿<!DOCTYPE html>
 <html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>Café Registrierung</title>
-</head>
-<body>
-<h1>Test</h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Café Registrierung</title>
+    <script>
+      const apiBase =
+        location.protocol === "file:"
+          ? "http://127.0.0.1:3000"
+          : `${location.origin}/api`;
+      let currentStep = 1;
+    </script>
+  </head>
+  <body>
+    <h1>Test</h1>
+  </body>
 </html>

@@ -16,10 +16,12 @@
     "lint": "echo \"(todo) run repo-wide linters\"",
     "dev": "node api/server.cjs",
     "restart:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/restart-all.ps1",
+    "stop:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-all.ps1",
     "chain": "hardhat node",
     "deploy": "hardhat run scripts/deploy.cjs --network localhost",
     "dev:api": "tsx watch api/server.ts",
-    "api": "tsx api/server.ts"
+    "api": "tsx api/server.ts",
+    "reset:cafes": "node scripts/reset-cafes.cjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.1.2",
