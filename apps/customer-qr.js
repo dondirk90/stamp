@@ -87,6 +87,8 @@
   let toastTimer = null;
   let lastFullToastKey = null;
   let qrMode = "stamp"; // 'stamp' | 'redeem'
+  let activeRedeemToken = null;
+  let activeRedeemTokenKey = "";
 
   function normalizeAddr(v) {
     return v ? String(v).toLowerCase() : "";
@@ -108,7 +110,10 @@
 
   function cafeNameByAddress(addr) {
     const a = normalizeAddr(addr);
-    const c = cafes.find((x) => normalizeAddr(x.address) === a);
+    const c = cafes.find(
+      (x) =>
+        normalizeAddr(x.cafeAddress) === a || normalizeAddr(x.address) === a
+    );
     return c ? c.name : addr ? String(addr) : "(unbekannt)";
   }
 
@@ -175,7 +180,9 @@
     if (!el.historyList) return;
 
     const filtered = Array.isArray(events) ? events.slice() : [];
-    const cafeFilter = selectedCafe ? normalizeAddr(selectedCafe.address) : "";
+    const cafeFilter = selectedCafe
+      ? normalizeAddr(selectedCafe.cafeAddress || selectedCafe.address)
+      : "";
     const visible = cafeFilter
       ? filtered.filter((ev) => normalizeAddr(ev.cafe) === cafeFilter)
       : filtered;
@@ -269,7 +276,9 @@
     if (!el.walletList) return;
 
     const filtered = Array.isArray(events) ? events.slice() : [];
-    const cafeFilter = selectedCafe ? normalizeAddr(selectedCafe.address) : "";
+    const cafeFilter = selectedCafe
+      ? normalizeAddr(selectedCafe.cafeAddress || selectedCafe.address)
+      : "";
     const visible = cafeFilter
       ? filtered.filter((ev) => normalizeAddr(ev.cafe) === cafeFilter)
       : filtered;
@@ -488,7 +497,9 @@
     if (!Number.isFinite(n)) return;
     if (n < REWARD_THRESHOLD) return;
 
-    const cafeAddr = selectedCafe ? normalizeAddr(selectedCafe.address) : "";
+    const cafeAddr = selectedCafe
+      ? normalizeAddr(selectedCafe.cafeAddress)
+      : "";
     const userAddr = session ? normalizeAddr(session.address) : "";
     const key = `${userAddr}|${cafeAddr}|${REWARD_THRESHOLD}`;
     if (lastFullToastKey === key) return;
@@ -562,14 +573,7 @@
     if (data.username) lines.push(`Username: ${data.username}`);
     if (data.email) lines.push(`E-Mail: ${data.email}`);
     if (data.customer_id) lines.push(`Customer ID: ${data.customer_id}`);
-    if (data.address) lines.push(`Wallet Adresse: ${data.address}`);
-    if (data.seedPhrase) {
-      lines.push("");
-      lines.push(
-        "Wichtig: Diese Seed Phrase wird nur einmal angezeigt und nicht gespeichert. Bitte sicher notieren."
-      );
-      lines.push(`Seed Phrase: ${data.seedPhrase}`);
-    }
+    if (data.address) lines.push(`Kunden-Adresse: ${data.address}`);
 
     el.credsPanel.className = "notice";
     el.credsPanel.style.display = "block";
@@ -665,6 +669,7 @@
         id: c.id,
         name: c.name || "(ohne Namen)",
         address: c.address,
+        cafeAddress: c.cafeAddress || null,
         hasLogo: !!c.hasLogo,
         about: c.about || null,
       }))
@@ -679,7 +684,7 @@
 
     for (const cafe of cafes) {
       const opt = document.createElement("option");
-      opt.value = cafe.address;
+      opt.value = cafe.cafeAddress || cafe.address;
       opt.textContent = cafe.name;
       el.cafeSelect.appendChild(opt);
     }
@@ -687,14 +692,14 @@
     // Apply selection priority: URL param -> previous selection -> auto-select single cafe
     const preferred =
       pendingCafeFromUrl ||
-      (selectedCafe && selectedCafe.address) ||
+      (selectedCafe && (selectedCafe.cafeAddress || selectedCafe.address)) ||
       loadSelectedCafeAddress() ||
-      (cafes.length === 1 ? cafes[0].address : null);
+      (cafes.length === 1 ? cafes[0].cafeAddress || cafes[0].address : null);
 
     if (preferred) {
       setSelectedCafeByAddress(preferred);
-      if (selectedCafe && selectedCafe.address) {
-        el.cafeSelect.value = selectedCafe.address;
+      if (selectedCafe && (selectedCafe.cafeAddress || selectedCafe.address)) {
+        el.cafeSelect.value = selectedCafe.cafeAddress || selectedCafe.address;
       }
     }
 
@@ -829,7 +834,14 @@
       return 0;
     }
     const addr = encodeURIComponent(session.address);
-    const cafe = encodeURIComponent(selectedCafe.address);
+    const cafeId = selectedCafe.cafeAddress || "";
+    if (!cafeId) {
+      currentStampCount = 0;
+      renderStampGrid(0);
+      updateRedeemUi();
+      return 0;
+    }
+    const cafe = encodeURIComponent(cafeId);
     const data = await apiFetch(`/stamps/${addr}?fallback=1&cafe=${cafe}`);
     const stamps = data && (data.stamps ?? data.count ?? 0);
     const n = Math.max(0, Number(stamps || 0));
@@ -892,7 +904,7 @@
       if (!myAddr || !evUser || evUser !== myAddr) return;
 
       const cafeFilter = selectedCafe
-        ? normalizeAddr(selectedCafe.address)
+        ? normalizeAddr(selectedCafe.cafeAddress)
         : "";
       const evCafe = normalizeAddr(ev && ev.cafe);
       if (cafeFilter && evCafe && evCafe !== cafeFilter) return;
@@ -931,10 +943,11 @@
   }
 
   function setSelectedCafeByAddress(address) {
+    const wanted = String(address || "").toLowerCase();
     const match = cafes.find(
       (c) =>
-        c.address &&
-        c.address.toLowerCase() === String(address || "").toLowerCase()
+        (c.cafeAddress && c.cafeAddress.toLowerCase() === wanted) ||
+        (c.address && c.address.toLowerCase() === wanted)
     );
     selectedCafe = match || null;
     selectedCafeProfile = null;
@@ -944,10 +957,12 @@
     if (el.qrModeStamp) el.qrModeStamp.classList.add("active");
     if (el.qrModeRedeem) el.qrModeRedeem.classList.remove("active");
 
-    if (selectedCafe && selectedCafe.address) {
-      saveSelectedCafeAddress(selectedCafe.address);
+    if (selectedCafe && (selectedCafe.cafeAddress || selectedCafe.address)) {
+      saveSelectedCafeAddress(selectedCafe.cafeAddress || selectedCafe.address);
       try {
-        if (el.cafeSelect) el.cafeSelect.value = selectedCafe.address;
+        if (el.cafeSelect)
+          el.cafeSelect.value =
+            selectedCafe.cafeAddress || selectedCafe.address;
       } catch (e) {}
     }
 
@@ -1023,22 +1038,48 @@
 
   function buildCafeBoundLink() {
     if (!session || !selectedCafe) return null;
-    const cafeScannerUrl = `${getQrAppsBase()}/cafe-scanner.html`;
+    const cafeScannerUrl = `${getQrAppsBase()}/cafe-scanner-new.html`;
     const u = new URL(cafeScannerUrl);
     u.searchParams.set("customer", session.address);
     u.searchParams.set("customerName", session.username || "");
-    u.searchParams.set("cafe", selectedCafe.address);
+    // IMPORTANT: `cafe` must be the café identifier (0x...), not the physical address.
+    if (selectedCafe.cafeAddress) {
+      u.searchParams.set("cafe", selectedCafe.cafeAddress);
+    }
     return u.toString();
   }
 
   function buildRedeemLink() {
     if (!session || !selectedCafe) return null;
-    const cafeScannerUrl = `${getQrAppsBase()}/cafe-scanner.html`;
+    const cafeScannerUrl = `${getQrAppsBase()}/cafe-scanner-new.html`;
     const u = new URL(cafeScannerUrl);
     u.searchParams.set("customer", session.address);
     u.searchParams.set("customerName", session.username || "");
-    u.searchParams.set("cafe", selectedCafe.address);
+    // IMPORTANT: `cafe` must be the café identifier (0x...), not the physical address.
+    if (selectedCafe.cafeAddress) {
+      u.searchParams.set("cafe", selectedCafe.cafeAddress);
+    }
     u.searchParams.set("action", "redeem");
+
+    // Single-use redeem token (one QR => one redeem attempt)
+    try {
+      const cafeAddr = selectedCafe.cafeAddress || selectedCafe.address || "";
+      const userAddr = session.address || "";
+      const key = `${String(userAddr).toLowerCase()}|${String(
+        cafeAddr
+      ).toLowerCase()}`;
+      if (!activeRedeemToken || activeRedeemTokenKey !== key) {
+        const bytes = new Uint8Array(16);
+        (window.crypto || crypto).getRandomValues(bytes);
+        activeRedeemToken = Array.from(bytes)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        activeRedeemTokenKey = key;
+      }
+      u.searchParams.set("rt", activeRedeemToken);
+    } catch (e) {
+      // If crypto isn't available, the server will fall back to stamp-balance checks.
+    }
     return u.toString();
   }
 
@@ -1166,13 +1207,12 @@
           address: data.address,
         });
 
-        // Show wallet info + seed phrase once (not stored server-side)
+        // Show account info once
         showCreds({
           customer_id: data.customer_id,
           username: data.username || username,
           email: data.email || email,
           address: data.address,
-          seedPhrase: data.seedPhrase || null,
         });
       } else {
         const data = await apiFetch("/customers/login", {

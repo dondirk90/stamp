@@ -5,18 +5,19 @@ const db = new Database(path.join(__dirname, "../data/stamps.db"));
 
 console.log("\n📋 Aktuelles Café in der Datenbank:\n");
 const cafe = db
-  .prepare("SELECT id, name, api_key, created_at FROM cafes WHERE id = 2")
+  .prepare(
+    "SELECT id, name, email, address, location_address, password_hash, created_at FROM cafes WHERE id = 2"
+  )
   .get();
 
 if (cafe) {
   console.log("ID:", cafe.id);
   console.log("Name:", cafe.name);
-  console.log("API-Key:", cafe.api_key);
+  console.log("E-Mail:", cafe.email || null);
+  console.log("Café Identifier:", cafe.address || null);
+  console.log("Location:", cafe.location_address || null);
+  console.log("Passwort gesetzt:", cafe.password_hash ? "ja" : "nein");
   console.log("Erstellt:", new Date(cafe.created_at).toLocaleString());
-  console.log("\n✅ Das ist der GLEICHE API-Key wie vorher!");
-  console.log(
-    "   Der alte (ccc5f5a...) wurde nur aus dem Browser-localStorage gelöscht."
-  );
 } else {
   console.log("❌ Kein Café gefunden");
 }

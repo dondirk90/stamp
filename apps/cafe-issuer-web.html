@@ -189,8 +189,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="label">API Key</label>
-          <input type="text" id="apiKey" value="supersecret-dev-key" />
+          <label class="label">Session Token (Bearer)</label>
+          <input type="text" id="apiKey" value="" />
         </div>
         <div class="form-group">
           <label class="label">Café ID</label>
@@ -310,9 +310,9 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": apiKeyEl.value,
+              Authorization: `Bearer ${apiKeyEl.value}`,
             },
-            body: JSON.stringify({ cafeId, ttl }),
+            body: JSON.stringify({ ttl }),
           });
 
           if (!response.ok) {
@@ -534,7 +534,7 @@
 
       async function giveStamps() {
         const apiBase = apiBaseEl.value.replace(/\/$/, "");
-        const apiKey = apiKeyEl.value;
+        const token = apiKeyEl.value;
         const customer = customerAddrEl.value.trim();
         const count = Number(document.getElementById("stampCount").value || 1);
         if (!/^0x[0-9a-fA-F]{40}$/.test(customer)) {
@@ -559,7 +559,7 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": apiKey,
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ customer, count }),
           });
@@ -577,9 +577,9 @@
 
           const data = await resp.json();
           if (data.success) {
-            scanStatus.textContent = `✅ ${
-              data.count
-            } Stempel gesetzt. TXs: ${data.txHashes.join(", ")}`;
+            scanStatus.textContent = `✅ ${data.count} Stempel gesetzt. TX: ${
+              data.txHash || "—"
+            }`;
             scanStatus.className = "status success";
           } else {
             scanStatus.textContent = "❌ Error: " + JSON.stringify(data);

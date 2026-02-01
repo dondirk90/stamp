@@ -1261,8 +1261,13 @@
             customer.email || customer.address.slice(0, 10) + "...";
 
           // Load cafes
-          const cafesRes = await fetch(`${apiBase}/cafes`);
-          cafes = await cafesRes.json();
+          const cafesRes = await fetch(`${apiBase}/cafes/public`);
+          const cafesData = await cafesRes.json();
+          cafes = Array.isArray(cafesData)
+            ? cafesData
+            : Array.isArray(cafesData && cafesData.cafes)
+            ? cafesData.cafes
+            : [];
 
           // If no cafes configured, show helpful message and stop
           if (!Array.isArray(cafes) || cafes.length === 0) {
@@ -1272,7 +1277,7 @@
             emptyState.innerHTML = `
               <div style="text-align:center;color:#2d3748">
                 <div style="font-size:18px;margin-bottom:8px">Noch keine Cafés eingerichtet</div>
-                <div style="font-size:14px;color:#4a5568;margin-bottom:12px">Bitte ein Café in der API registrieren (Route /cafes) oder das Café-Setup verwenden.</div>
+                  <div style="font-size:14px;color:#4a5568;margin-bottom:12px">Bitte ein Café registrieren (z.B. über das Café-Onboarding) und eine Standort-Adresse angeben.</div>
                 <div style="font-size:13px;color:#718096">Tipp: Öffne <code style="background:#edf2f7;padding:2px 6px;border-radius:4px">http://&lt;PC-IP&gt;:8080/cafe-issuer-web.html</code> (oder nutze <code style="background:#edf2f7;padding:2px 6px;border-radius:4px">lan-setup.html</code>) und folge der Einrichtung.</div>
               </div>`;
             return;
@@ -1595,11 +1600,10 @@
       function showStampDetails(stamp) {
         modalCafe.textContent = selectedCafe.name;
         modalTime.textContent = new Date(stamp.ts).toLocaleString("de-DE");
-        modalTxHash.innerHTML = `<a href="https://etherscan.io/tx/${
-          stamp.txhash
-        }" target="_blank">${stamp.txhash.slice(0, 10)}...${stamp.txhash.slice(
-          -8
-        )}</a>`;
+        const tx = stamp.txhash || stamp.tx_id || stamp.tx || null;
+        modalTxHash.textContent = tx
+          ? `${String(tx).slice(0, 10)}...${String(tx).slice(-8)}`
+          : "-";
 
         modal.classList.add("show");
       }

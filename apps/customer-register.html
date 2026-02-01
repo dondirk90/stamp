@@ -444,7 +444,7 @@
               word-break: break-all;
             "
           >
-            <strong>Wallet:</strong> <span id="displayAddress">-</span>
+            <strong>Kunden-Adresse:</strong> <span id="displayAddress">-</span>
           </div>
         </div>
 
@@ -511,8 +511,13 @@
       async function loadCafes() {
         try {
           apiBase = await detectAPI();
-          const res = await fetch(apiBase + "/cafes");
-          cafes = await res.json();
+          const res = await fetch(apiBase + "/cafes/public");
+          const data = await res.json();
+          cafes = Array.isArray(data)
+            ? data
+            : Array.isArray(data && data.cafes)
+            ? data.cafes
+            : [];
           renderCafes();
         } catch (e) {
           console.error("Failed to load cafes:", e);

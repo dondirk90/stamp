@@ -539,10 +539,6 @@
 
         refs.metaInfo.textContent = `Datenstand: ${generatedAt} • Events pro Café: ${eventsPerCafe} • Kundenlimit: ${customerLimit}`;
 
-        const explorerBase = state.config.apiBase.includes("sepolia")
-          ? "https://sepolia.etherscan.io/tx/"
-          : "https://etherscan.io/tx/";
-
         refs.cafesContainer.innerHTML = data.cafes
           .map((cafe) => {
             const stats = cafe.stats || {};
@@ -576,12 +572,11 @@
                   const nameCell = ev.customerName
                     ? escapeHtml(ev.customerName)
                     : "—";
-                  const txCell = ev.txhash
-                    ? `<a href="${explorerBase}${
-                        ev.txhash
-                      }" target="_blank" rel="noopener">${escapeHtml(
-                        shortenAddress(ev.txhash, 6)
-                      )}</a>`
+                  const tx = ev.txhash || ev.tx_id || ev.tx || null;
+                  const txCell = tx
+                    ? `<span class="address" title="${escapeHtml(
+                        String(tx)
+                      )}">${escapeHtml(shortenAddress(String(tx), 6))}</span>`
                     : "—";
                   return `
                   <tr>

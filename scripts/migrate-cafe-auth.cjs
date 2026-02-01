@@ -32,7 +32,7 @@ try {
   // Set default password hash for existing cafes (password: "test123")
   const defaultPasswordHash = bcrypt.hashSync("test123", 10);
   const cafesWithoutPassword = db
-    .prepare("SELECT id, name, api_key FROM cafes WHERE password_hash IS NULL")
+    .prepare("SELECT id, name, email FROM cafes WHERE password_hash IS NULL")
     .all();
 
   if (cafesWithoutPassword.length > 0) {

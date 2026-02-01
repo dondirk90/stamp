@@ -31,7 +31,7 @@ function proxyApi(req, res, parsedUrl) {
       "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       "Access-Control-Allow-Headers":
         req.headers["access-control-request-headers"] ||
-        "Content-Type, Authorization, x-api-key",
+        "Content-Type, Authorization",
     });
     res.end();
     return;

@@ -144,6 +144,52 @@
         <div class="stack" style="gap: 12px">
           <div>
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Standort (für Kunden-Karte)
+            </div>
+            <input
+              id="profileLocationAddress"
+              class="input"
+              type="text"
+              maxlength="256"
+              placeholder="z.B. Musterstraße 12, 10115 Berlin"
+              style="width: 100%"
+            />
+            <div class="muted" style="margin-top: 6px">
+              Diese Adresse kann später für eine Kunden-Map genutzt werden.
+            </div>
+          </div>
+
+          <div class="logoRow" style="align-items: flex-end">
+            <div style="flex: 1">
+              <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                Latitude (optional)
+              </div>
+              <input
+                id="profileLat"
+                class="input"
+                type="number"
+                step="any"
+                placeholder="52.5200"
+                style="width: 100%"
+              />
+            </div>
+            <div style="flex: 1">
+              <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                Longitude (optional)
+              </div>
+              <input
+                id="profileLng"
+                class="input"
+                type="number"
+                step="any"
+                placeholder="13.4050"
+                style="width: 100%"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Über das Café
             </div>
             <textarea
@@ -252,7 +298,29 @@
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
         const logoPreview = document.getElementById("profileLogoPreview");
+        const locEl = document.getElementById("profileLocationAddress");
+        const latEl = document.getElementById("profileLat");
+        const lngEl = document.getElementById("profileLng");
         if (!aboutEl || !logoPreview) return;
+
+        if (locEl) {
+          locEl.value =
+            cafeInfo && cafeInfo.locationAddress
+              ? String(cafeInfo.locationAddress)
+              : "";
+        }
+        if (latEl) {
+          latEl.value =
+            cafeInfo && cafeInfo.lat != null && cafeInfo.lat !== ""
+              ? String(cafeInfo.lat)
+              : "";
+        }
+        if (lngEl) {
+          lngEl.value =
+            cafeInfo && cafeInfo.lng != null && cafeInfo.lng !== ""
+              ? String(cafeInfo.lng)
+              : "";
+        }
 
         aboutEl.value =
           cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
@@ -281,6 +349,9 @@
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
         const logoInput = document.getElementById("profileLogo");
+        const locEl = document.getElementById("profileLocationAddress");
+        const latEl = document.getElementById("profileLat");
+        const lngEl = document.getElementById("profileLng");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -306,16 +377,24 @@
           const redeemMessage = redeemEl
             ? String(redeemEl.value || "").trim()
             : "";
+
+          const locationAddress = locEl ? String(locEl.value || "").trim() : "";
+          const lat = latEl ? String(latEl.value || "").trim() : "";
+          const lng = lngEl ? String(lngEl.value || "").trim() : "";
+
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": cafe.apiKey,
+              Authorization: `Bearer ${cafe.token}`,
             },
             body: JSON.stringify({
               about,
               redeemMessage,
               logoDataUrl: logoDataUrl || null,
+              locationAddress: locationAddress || null,
+              lat: lat || null,
+              lng: lng || null,
             }),
           });
 
@@ -394,7 +473,7 @@
           const overview = await apiFetch(
             "/cafes/me/overview?eventsLimit=5&customers=5",
             {
-              headers: { "x-api-key": cafe.apiKey },
+              headers: { Authorization: `Bearer ${cafe.token}` },
             }
           );
 

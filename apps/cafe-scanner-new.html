@@ -398,28 +398,16 @@
               color: white;
               border: none;
             "
-            onclick="showTab('apikey')"
+            type="button"
           >
-            🔑 API-Key
-          </button>
-          <button
-            id="tabRestore"
-            class="secondary"
-            style="flex: 1; margin: 0; padding: 12px; font-size: 14px"
-            onclick="showTab('wallet')"
-          >
-            🔄 Wallet
+            ✉️ E-Mail
           </button>
         </div>
 
-        <!-- API Key Login -->
+        <!-- Email Login -->
         <div id="apiKeyTab">
-          <label>🔑 API-Key</label>
-          <input
-            id="apiKeyInput"
-            type="text"
-            placeholder="Dein API-Key (von der Registrierung)"
-          />
+          <label>✉️ E-Mail</label>
+          <input id="apiKeyInput" type="email" placeholder="cafe@example.com" />
           <label style="margin-top: 15px">🔒 Passwort</label>
           <input
             id="passwordInput"
@@ -444,23 +432,6 @@
               >Jetzt registrieren</a
             >
           </div>
-        </div>
-
-        <!-- Wallet Login -->
-        <div id="walletTab" style="display: none">
-          <label>🌱 Seed Phrase oder Private Key</label>
-          <textarea
-            id="seedInput"
-            type="password"
-            placeholder="12 Wörter durch Leerzeichen getrennt oder 0x..."
-            style="
-              min-height: 80px;
-              resize: vertical;
-              font-family: monospace;
-              font-size: 14px;
-            "
-          ></textarea>
-          <button id="walletLoginBtn">🔑 Mit Wallet anmelden</button>
         </div>
       </div>
     </div>
@@ -535,7 +506,7 @@
               <strong>Name:</strong> <span id="customerName">-</span>
             </div>
             <div class="value">
-              <strong>Wallet:</strong>
+              <strong>Kunden-ID:</strong>
               <span
                 id="customerAddress"
                 style="font-family: monospace; font-size: 12px"
@@ -567,7 +538,6 @@
 
     <div id="toast" class="toast">✅ Stempel vergeben!</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
       // Elements
@@ -685,36 +655,6 @@
         setTimeout(() => (toast.style.display = "none"), 3000);
       }
 
-      // Tab switching
-      window.showTab = function (tab) {
-        const apiKeyTab = document.getElementById("apiKeyTab");
-        const walletTab = document.getElementById("walletTab");
-        const tabApiKey = document.getElementById("tabApiKey");
-        const tabRestore = document.getElementById("tabRestore");
-
-        if (tab === "apikey") {
-          apiKeyTab.style.display = "block";
-          walletTab.style.display = "none";
-          tabApiKey.style.background =
-            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-          tabApiKey.style.color = "white";
-          tabApiKey.style.border = "none";
-          tabRestore.style.background = "#f7fafc";
-          tabRestore.style.color = "#4a5568";
-          tabRestore.style.border = "2px solid #e2e8f0";
-        } else {
-          apiKeyTab.style.display = "none";
-          walletTab.style.display = "block";
-          tabRestore.style.background =
-            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-          tabRestore.style.color = "white";
-          tabRestore.style.border = "none";
-          tabApiKey.style.background = "#f7fafc";
-          tabApiKey.style.color = "#4a5568";
-          tabApiKey.style.border = "2px solid #e2e8f0";
-        }
-      };
-
       // Update café badge
       function updateCafeBadge() {
         if (!cafe) {
@@ -731,11 +671,11 @@
 
       // Login
       loginBtn.onclick = async () => {
-        const apiKey = apiKeyInput.value.trim();
+        const email = apiKeyInput.value.trim();
         const password = document.getElementById("passwordInput").value;
 
-        if (!apiKey || !password) {
-          alert("Bitte gib API-Key und Passwort ein");
+        if (!email || !email.includes("@") || !password) {
+          alert("Bitte gib E-Mail und Passwort ein");
           return;
         }
 
@@ -745,11 +685,11 @@
         try {
           apiBase = await detectAPI();
 
-          // Login with API-Key + Password
+          // Login with Email + Password
           const loginRes = await fetch(apiBase + "/cafes/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ apiKey, password }),
+            body: JSON.stringify({ email, password }),
           });
 
           if (!loginRes.ok) {
@@ -763,10 +703,10 @@
 
           // Store session
           cafe = {
-            apiKey: loginData.apiKey,
-            name: loginData.name,
-            id: loginData.id,
-            address: loginData.address,
+            token: loginData.token,
+            cafeId: loginData.cafe?.id,
+            cafeAddress: loginData.cafe?.cafeAddress || null,
+            name: loginData.cafe?.name || null,
           };
           localStorage.setItem("cafe_session", JSON.stringify(cafe));
 
@@ -785,95 +725,6 @@
         }
       };
 
-      // Wallet Login
-      document.getElementById("walletLoginBtn").onclick = async () => {
-        const seedInput = document.getElementById("seedInput").value.trim();
-        if (!seedInput) {
-          alert("Bitte gib deine Seed Phrase oder Private Key ein");
-          return;
-        }
-
-        const btn = document.getElementById("walletLoginBtn");
-        btn.disabled = true;
-        btn.textContent = "Wird verarbeitet...";
-
-        try {
-          apiBase = await detectAPI();
-          let wallet;
-
-          // Try as mnemonic first
-          if (seedInput.split(" ").length >= 12) {
-            wallet = ethers.Wallet.fromPhrase(seedInput);
-          } else {
-            // Try as private key
-            wallet = new ethers.Wallet(
-              seedInput.startsWith("0x") ? seedInput : "0x" + seedInput
-            );
-          }
-
-          // Check if this wallet exists as a café
-          const cafesRes = await fetch(apiBase + "/cafes");
-          const cafes = await cafesRes.json();
-
-          console.log("Suche Wallet:", wallet.address);
-          console.log(
-            "Verfügbare Cafés:",
-            cafes.map((c) => ({
-              id: c.id,
-              name: c.name,
-              address: c.address,
-              hasApiKey: !!c.api_key,
-            }))
-          );
-
-          const matchingCafe = cafes.find((c) => {
-            // Try to get address from encrypted_key if available
-            if (c.address) {
-              return c.address.toLowerCase() === wallet.address.toLowerCase();
-            }
-            return false;
-          });
-
-          if (matchingCafe) {
-            console.log("Gefundenes Café:", matchingCafe);
-
-            if (!matchingCafe.api_key) {
-              throw new Error(
-                "Café gefunden, aber kein API-Key vorhanden. ID: " +
-                  matchingCafe.id
-              );
-            }
-
-            // Use existing API key
-            cafe = {
-              apiKey: matchingCafe.api_key,
-              name: matchingCafe.name || "Café",
-              address: wallet.address,
-              id: matchingCafe.id,
-            };
-            localStorage.setItem("cafe_session", JSON.stringify(cafe));
-
-            updateCafeBadge();
-            showAppUI();
-            showView(pendingScan ? "scan" : "home");
-            updateHomeStatus();
-            loadPendingScan();
-            showToast("✅ Erfolgreich angemeldet!");
-          } else {
-            const addresses = cafes
-              .map((c) => c.address || "keine Adresse")
-              .join(", ");
-            throw new Error(
-              `Kein Café mit Wallet ${wallet.address} gefunden.\nRegistrierte Adressen: ${addresses}`
-            );
-          }
-        } catch (e) {
-          alert("Fehler: " + e.message);
-          btn.disabled = false;
-          btn.textContent = "🔑 Mit Wallet anmelden";
-        }
-      };
-
       // Logout
       function doLogout() {
         if (!confirm("Möchtest du dich wirklich abmelden?")) return;
@@ -886,7 +737,6 @@
         customerInfo.style.display = "none";
         if (scanHint) scanHint.style.display = "block";
         apiKeyInput.value = "";
-        document.getElementById("seedInput").value = "";
       }
       logoutBtn.onclick = doLogout;
       navLogout.onclick = doLogout;
@@ -910,11 +760,15 @@
           const params = new URLSearchParams(window.location.search);
           const c = params.get("customer");
           if (c) {
+            const legacyRedeem = params.get("redeem") === "true";
             pendingScan = {
               address: c,
               name: params.get("customerName") || "Unbekannt",
-              cafe: params.get("cafe") || null, // Café wallet address from QR code
-              action: params.get("action") || "stamp",
+              cafe: params.get("cafe") || params.get("qrCafe") || null,
+              action:
+                params.get("action") || (legacyRedeem ? "redeem" : "stamp"),
+              redeemToken:
+                params.get("rt") || params.get("redeemToken") || null,
             };
             pendingAction =
               String(pendingScan.action || "stamp").toLowerCase() === "redeem"
@@ -972,8 +826,11 @@
         }
 
         // Validate QR code belongs to this café
-        if (pendingScan.cafe && cafe.address) {
-          if (pendingScan.cafe.toLowerCase() !== cafe.address.toLowerCase()) {
+        const loggedInCafeAddr = String(
+          (cafe && (cafe.cafeAddress || cafe.address)) || ""
+        ).toLowerCase();
+        if (pendingScan.cafe && loggedInCafeAddr) {
+          if (pendingScan.cafe.toLowerCase() !== loggedInCafeAddr) {
             // Attempt to resolve café name for humor
             let scannedName = pendingScan.cafe;
             try {
@@ -996,7 +853,7 @@
             );
             console.warn("QR validation failed:", {
               qrCafe: pendingScan.cafe,
-              loggedInCafe: cafe.address,
+              loggedInCafe: loggedInCafeAddr,
             });
             return;
           }
@@ -1019,10 +876,11 @@
         );
         try {
           const strict = pendingAction === "redeem" ? "&strict=1" : "";
+          const cafeForQuery = String(
+            (cafe && (cafe.cafeAddress || cafe.address)) || ""
+          );
           const res = await fetch(
-            `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${
-              cafe.address || ""
-            }${strict}`
+            `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${cafeForQuery}${strict}`
           );
           const data = await res.json();
           customerName.textContent = scannedCustomer.name;
@@ -1046,10 +904,16 @@
         if (!scannedCustomer || !cafe) return;
 
         const isRedeem = pendingAction === "redeem";
+        if (isRedeem && !(pendingScan && pendingScan.redeemToken)) {
+          showToast(
+            "❌ Dieser Einlöse-QR ist veraltet. Bitte einen neuen Einlöse-QR öffnen.",
+            true
+          );
+          return;
+        }
         const amount = !isRedeem ? parseInt(stampAmount.value) || 1 : 0;
         console.log(isRedeem ? "Redeem attempt:" : "Award attempt:", {
           cafe,
-          apiKey: cafe.apiKey,
           customer: scannedCustomer.address,
           action: pendingAction,
         });
@@ -1065,34 +929,24 @@
                 customer: scannedCustomer.address,
                 customerName: scannedCustomer.name,
                 qrCafe: pendingScan ? pendingScan.cafe : null,
+                redeemToken: pendingScan ? pendingScan.redeemToken : null,
               }
             : {
                 customer: scannedCustomer.address,
                 customerName: scannedCustomer.name,
                 count: amount,
+                // ensure the API can block cross-café stamping when a QR carries a different cafe
+                qrCafe: pendingScan ? pendingScan.cafe : null,
               };
 
           const res = await fetch(apiBase + endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": cafe.apiKey,
+              Authorization: `Bearer ${cafe.token}`,
             },
             body: JSON.stringify(payload),
           });
-
-          // Funding flow (202) is non-fatal: show message and let barista retry.
-          if (res.status === 202) {
-            const data202 = await res.json().catch(() => null);
-            showToast(
-              (data202 && data202.message) ||
-                "Wallet wird gerade gefunded. Bitte kurz warten und erneut versuchen.",
-              false
-            );
-            awardBtn.disabled = false;
-            applyActionUi();
-            return;
-          }
 
           if (!res.ok) {
             const text = await res.text();
@@ -1107,6 +961,19 @@
             if (
               detail &&
               typeof detail === "object" &&
+              (detail.error === "redeem_token_used" ||
+                detail.error === "redeem_token_missing")
+            ) {
+              const msg =
+                detail.error === "redeem_token_used"
+                  ? "Dieser Einlöse-QR wurde bereits verwendet.\nBitte einen neuen QR öffnen."
+                  : "Einlöse-Token fehlt. Bitte einen neuen QR öffnen.";
+              throw new Error(msg);
+            }
+
+            if (
+              detail &&
+              typeof detail === "object" &&
               detail.error === "insufficient_stamps"
             ) {
               const cur =
@@ -1115,9 +982,7 @@
                   : parseInt(currentStamps.textContent) || 0;
               const reqd =
                 detail.required != null ? Number(detail.required) : 10;
-              throw new Error(
-                `Zu wenige Stempel (on-chain): ${cur}/${reqd}. Wenn du gerade gestempelt hast, kurz warten bis die Transaktion bestätigt ist.`
-              );
+              throw new Error(`Zu wenige Stempel: ${cur}/${reqd}.`);
             }
             const errMsg =
               detail && typeof detail === "object"
@@ -1131,7 +996,9 @@
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;
             currentStamps.textContent = Math.max(0, cur - 10);
-            showToast("🎉 Belohnung eingelöst!");
+            showToast(
+              "🎉 Belohnung eingelöst!\nEinlöse-QR ist jetzt ungültig."
+            );
           } else {
             // Update stamps display
             currentStamps.textContent =
@@ -1165,40 +1032,32 @@
           if (saved) {
             cafe = JSON.parse(saved);
 
-            // Validate café against server to ensure API key still exists
+            // Validate saved session token
             try {
-              const cafesRes = await fetch(`${apiBase}/cafes`);
-              const cafesData = await cafesRes.json();
-              const cafes = Array.isArray(cafesData)
-                ? cafesData
-                : cafesData.cafes || [];
-              console.log(
-                "Auto-Login: Checking API key",
-                cafe.apiKey,
-                "against cafes:",
-                cafes
+              const cafeId = cafe.cafeId != null ? String(cafe.cafeId) : "me";
+              const ovRes = await fetch(
+                `${apiBase}/cafes/${encodeURIComponent(
+                  cafeId
+                )}/overview?eventsLimit=1&customerLimit=1`,
+                {
+                  headers: { Authorization: `Bearer ${cafe.token}` },
+                }
               );
-              const validCafe = cafes.find((c) => c.api_key === cafe.apiKey);
 
-              if (!validCafe) {
-                console.warn(
-                  "⚠️ Gespeichertes Café nicht mehr gültig, lösche localStorage"
-                );
+              const ovData = await ovRes.json().catch(() => ({}));
+              if (!ovRes.ok || !ovData.ok) {
                 localStorage.removeItem("cafe_session");
                 localStorage.removeItem("last_scanned_customer");
                 location.reload();
                 return;
               }
 
-              console.log("✅ Café validation successful:", validCafe);
-
-              // Update café object with fresh data
-              cafe.name = validCafe.name;
-              cafe.id = validCafe.id;
-              if (validCafe.address) cafe.address = validCafe.address;
+              cafe.name = ovData.cafe?.name || cafe.name;
+              cafe.cafeId = ovData.cafe?.id || cafe.cafeId;
+              cafe.cafeAddress = ovData.cafe?.address || cafe.cafeAddress;
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
             } catch (err) {
-              console.error("Café validation failed:", err);
+              console.error("Session validation failed:", err);
             }
 
             console.log("Auto-Login für Café:", cafe);
@@ -1227,7 +1086,7 @@
                 const stampsRes = await fetch(
                   `${apiBase}/stamps/${
                     scannedCustomer.address
-                  }?fallback=1&cafe=${cafe.address || ""}`
+                  }?fallback=1&cafe=${cafe.cafeAddress || cafe.address || ""}`
                 );
                 const stampsData = await stampsRes.json();
                 const stamps = stampsData.stamps ?? stampsData.count ?? 0;

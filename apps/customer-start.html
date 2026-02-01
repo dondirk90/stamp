@@ -727,14 +727,14 @@
       async function renderCardQr(canvas, cafeId) {
         const session = await ensureCustomerSession();
         // Customer QR should open the Barista/Scanner page (not the customer page).
-        // The scanner is protected by cafe login (API key) and server-side checks.
+        // The scanner is protected by cafe login (email/password) and server-side checks.
         const u = new URL(window.location.origin + "/cafe-scanner-new.html");
 
         // Scanner parsing supports various aliases; provide multiple to be robust.
         u.searchParams.set("customer", session.address);
         u.searchParams.set("address", session.address);
 
-        // Prefer cafe wallet address in QR (server enforces wrong_cafe by comparing qrCafe vs logged-in cafe).
+        // Prefer cafe address in QR (server enforces wrong_cafe by comparing qrCafe vs logged-in cafe).
         const cafe = cafeId
           ? cafes.find((c) => String(c.id) === String(cafeId))
           : null;
@@ -974,12 +974,18 @@
         updateSelectionUI();
 
         try {
-          const r = await fetch(`${apiBase}/cafes`, { cache: "no-store" });
+          const r = await fetch(`${apiBase}/cafes/public`, {
+            cache: "no-store",
+          });
           if (!r.ok) {
             throw new Error(`HTTP ${r.status}`);
           }
           const data = await r.json();
-          cafes = Array.isArray(data) ? data : [];
+          cafes = Array.isArray(data)
+            ? data
+            : Array.isArray(data && data.cafes)
+            ? data.cafes
+            : [];
           renderCafes();
           renderCards();
           hideStatus();

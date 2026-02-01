@@ -38,24 +38,20 @@ Erwartet: `📱 Apps Server running on http://localhost:8080`
 
 ### 3. Café-App (Computer ODER Smartphone)
 
-- **URL Computer:** `http://localhost:8080/cafe/`
-- **URL Smartphone:** `http://192.168.1.100:8080/cafe/` (deine LAN-IP!)
-- **API Base:** `http://127.0.0.1:3000` (Computer) oder `http://192.168.1.100:3000` (Smartphone)
-- **Klick:** "Issue QR" → QR-Code wird angezeigt
+- **URL Computer:** `http://localhost:8080/cafe-onboarding`
+- **URL Smartphone:** `http://192.168.1.100:8080/cafe-onboarding` (deine LAN-IP!)
+- Registriere dein Café und logge dich mit **E-Mail + Passwort** ein.
+- Danach: `http://localhost:8080/cafe-scanner` (oder LAN-IP) öffnen und einloggen.
 
 ### 4. Customer-App (Smartphone)
 
-- **URL:** `http://192.168.1.100:8080/customer/` (deine LAN-IP!)
-- **API Base:** `http://192.168.1.100:3000` (deine LAN-IP!)
-- **Private Key:** `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`
-- **Klick:** "Start Camera" → Kamera fordert Erlaubnis an
-- **Aktion:** QR-Code von Café-App scannen
-- **Klick:** "Sign & Send" → Transaktion wird abgesendet
+- **URL:** `http://192.168.1.100:8080/customer-qr` (deine LAN-IP!)
+- Registrieren oder einloggen (E-Mail + Passwort).
+- Öffne den QR-Code, damit das Café ihn scannen kann.
 
 ### 5. Erfolg ✅
 
-- Result-Feld auf Smartphone zeigt: `{"success":true,"txHash":"0x..."}`
-- Fertig! Transaktoin wurde auf der Blockchain gespeichert
+- Du siehst Stempel/Belohnungen in der Customer-App, und der Café-Scanner zeigt die aktualisierte Anzahl.
 
 ---
 
@@ -67,16 +63,6 @@ Erwartet: `📱 Apps Server running on http://localhost:8080`
 | "Camera not working"    | Browser-Erlaubnis für Kamera geben. Manche Browser brauchen HTTPS. |
 | "Invalid QR code"       | QR muss mit `STAMP:` anfangen (wird automatisch hinzugefügt).      |
 | "API Base URL falsch"   | Nicht `127.0.0.1` auf Smartphone! Deine LAN-IP verwenden.          |
-| "Private Key rejected"  | Format muss `0x` + 64 hex Zeichen sein.                            |
-
----
-
-## Test-Konten
-
-Für lokales Testen (Hardhat):
-
-- **Café:** `0xac0974bec39a17e36ba4a6b4d238ff944bacb476caded54eafb0f85fb6fe5e0c`
-- **Customer:** `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` ← Dieser!
 
 ---
 

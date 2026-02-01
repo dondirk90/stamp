@@ -193,11 +193,11 @@
           </div>
         </div>
 
-        <!-- Enhanced Customer Scanner -->
+        <!-- Customer QR / Wallet -->
         <div class="card">
           <div class="card-header">
-            <h2>📱 Customer Scanner</h2>
-            <p>Scan QR & Sign Transactions</p>
+            <h2>📱 Customer</h2>
+            <p>QR / Wallet / History</p>
           </div>
           <div class="card-content">
             <div class="status">✅ Recommended (Enhanced version)</div>
@@ -205,13 +205,12 @@
             <ul class="features">
               <li>Native camera support</li>
               <li>Live QR scanning</li>
-              <li>EIP-712 signing</li>
+              <li>Serverseitige Validierung</li>
               <li>Mobile-first design</li>
             </ul>
           </div>
           <div class="card-footer">
-            <a href="customer-scanner-web.html" target="_blank">📱 Open App</a>
-            <a href="customer/" class="secondary">📖 Original Version</a>
+            <a href="customer-qr" target="_blank">📱 Open App</a>
           </div>
         </div>
 
@@ -263,16 +262,12 @@
         <div style="margin-bottom: 20px">
           <h3 style="margin-bottom: 12px">APIs & Services</h3>
           <div class="info-box">
-            <div class="label">Stamp Card Contract API</div>
+            <div class="label">Stamp API</div>
             http://127.0.0.1:3000
           </div>
           <div class="info-box">
             <div class="label">Apps Static Server</div>
             http://127.0.0.1:8080 (or LAN IP)
-          </div>
-          <div class="info-box">
-            <div class="label">Hardhat Local Node</div>
-            http://127.0.0.1:8545
           </div>
         </div>
 
@@ -285,18 +280,6 @@
           <div class="info-box">
             <div class="label">Terminal 2: Apps Server</div>
             cd stamp/apps && node server.cjs
-          </div>
-        </div>
-
-        <div style="margin-bottom: 20px">
-          <h3 style="margin-bottom: 12px">Test Accounts (Hardhat)</h3>
-          <div class="info-box">
-            <div class="label">Café (Account #0)</div>
-            0xac0974bec39a17e36ba4a6b4d238ff944bacb476caded54eafb0f85fb6fe5e0c
-          </div>
-          <div class="info-box">
-            <div class="label">Customer (Account #1) ← Use this!</div>
-            0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
           </div>
         </div>
       </div>
@@ -333,7 +316,7 @@
       >
         <p>🚀 Stamp Card — Café QR Loyalty System</p>
         <p style="font-size: 12px; opacity: 0.7">
-          Powered by Hardhat • Ethers.js • React Native / Web
+          Powered by Node.js • SQLite • Web
         </p>
       </div>
     </div>

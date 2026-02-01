@@ -35,8 +35,8 @@
       <input id="api" value="http://127.0.0.1:3000" style="width: 320px"
     /></label>
     <label
-      >API Key (x-api-key):
-      <input id="key" value="supersecret-dev-key" style="width: 320px"
+      >Session Token (Authorization: Bearer …):
+      <input id="key" value="" style="width: 320px"
     /></label>
     <label
       >Café ID: <input id="cafeId" value="cafetest-01" style="width: 200px"
@@ -78,10 +78,9 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-api-key": keyEl.value,
+              Authorization: `Bearer ${keyEl.value}`,
             },
             body: JSON.stringify({
-              cafeId: cafeId,
               ttl: Number(ttlEl.value),
             }),
           });

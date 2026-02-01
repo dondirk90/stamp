@@ -355,11 +355,32 @@
       <h1>☕ Café Registrierung</h1>
       <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
 
+      <div class="button-group" style="margin-top: 0; margin-bottom: 20px">
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="modeRegisterBtn"
+          onclick="setMode('register')"
+        >
+          Registrieren
+        </button>
+        <button
+          class="btn btn-secondary"
+          type="button"
+          id="modeLoginBtn"
+          onclick="setMode('login')"
+        >
+          Einloggen
+        </button>
+      </div>
+
       <!-- Step Indicators -->
       <div class="step-indicators">
         <div class="step-indicator active" data-step="1">1</div>
         <div class="step-line"></div>
         <div class="step-indicator" data-step="2">2</div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="3">3</div>
       </div>
 
       <div class="error-message" id="errorMessage"></div>
@@ -370,50 +391,132 @@
           Grundinformationen
         </h2>
 
-        <div class="form-group">
-          <label for="cafeName">Name des Cafés *</label>
-          <input
-            type="text"
-            id="cafeName"
-            placeholder="z.B. Café Latte"
-            required
-          />
+        <!-- Login UI (existing account) -->
+        <div id="loginBox" style="display: none">
+          <div class="warning-box" style="margin-top: 0">
+            <strong>Schon ein Konto?</strong>
+            Melde dich mit deiner E-Mail und deinem Passwort an.
+          </div>
+
+          <div class="form-group">
+            <label for="loginEmail">E-Mail *</label>
+            <input
+              type="email"
+              id="loginEmail"
+              placeholder="cafe@example.com"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Passwort *</label>
+            <input
+              type="password"
+              id="loginPassword"
+              placeholder="Dein Passwort"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <div class="button-group">
+            <button
+              class="btn btn-primary"
+              type="button"
+              onclick="submitLogin()"
+            >
+              Anmelden →
+            </button>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="email">E-Mail Adresse *</label>
-          <input
-            type="email"
-            id="email"
-            placeholder="cafe@example.com"
-            required
-          />
-        </div>
+        <!-- Registration UI (new account) -->
+        <div id="registerBox">
+          <div class="form-group">
+            <label for="cafeName">Name des Cafés *</label>
+            <input
+              type="text"
+              id="cafeName"
+              placeholder="z.B. Café Latte"
+              required
+            />
+          </div>
 
-        <div class="form-group">
-          <label for="password">Passwort *</label>
-          <input
-            type="password"
-            id="password"
-            placeholder="Mindestens 6 Zeichen"
-            required
-          />
-        </div>
+          <div class="form-group">
+            <label for="street">Straße *</label>
+            <input
+              type="text"
+              id="street"
+              placeholder="z.B. Musterstraße"
+              required
+            />
+          </div>
 
-        <div class="form-group">
-          <label for="confirmPassword">Passwort bestätigen *</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            placeholder="Passwort wiederholen"
-            required
-          />
-        </div>
+          <div class="form-group">
+            <label for="houseNumber">Hausnummer</label>
+            <input type="text" id="houseNumber" placeholder="z.B. 12" />
+          </div>
 
-        <div class="button-group">
-          <button class="btn btn-primary" onclick="submitRegistration()">
-            Registrieren →
-          </button>
+          <div class="form-group">
+            <label for="postalCode">PLZ *</label>
+            <input
+              type="text"
+              id="postalCode"
+              placeholder="z.B. 10115"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="city">Stadt *</label>
+            <input type="text" id="city" placeholder="z.B. Berlin" required />
+          </div>
+
+          <div class="form-group">
+            <label for="country">Land *</label>
+            <input
+              type="text"
+              id="country"
+              placeholder="z.B. Deutschland"
+              value="Deutschland"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="email">E-Mail Adresse *</label>
+            <input
+              type="email"
+              id="email"
+              placeholder="cafe@example.com"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Passwort *</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Mindestens 6 Zeichen"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Passwort bestätigen *</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="Passwort wiederholen"
+              required
+            />
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-primary" type="button" onclick="goToStep2()">
+              Weiter →
+            </button>
+          </div>
         </div>
       </div>
 
@@ -529,29 +632,14 @@
           <strong id="successEmail"></strong> gesendet.
         </p>
 
-        <div class="warning-box">
-          <strong>⚠️ Wichtig:</strong>
-          Bitte speichere diese Informationen sicher ab. Der Seed Phrase
-          ermöglicht den Zugriff auf dein Wallet und kann nicht
-          wiederhergestellt werden!
-        </div>
-
         <div class="credentials-box" id="credentialsBox">
           <div class="credential-item">
             <div class="credential-label">Café Name</div>
             <div class="credential-value" id="showCafeName"></div>
           </div>
           <div class="credential-item">
-            <div class="credential-label">API Key</div>
-            <div class="credential-value" id="showApiKey"></div>
-          </div>
-          <div class="credential-item">
-            <div class="credential-label">Wallet Adresse</div>
-            <div class="credential-value" id="showAddress"></div>
-          </div>
-          <div class="credential-item">
-            <div class="credential-label">Seed Phrase (12 Wörter)</div>
-            <div class="credential-value" id="showSeedPhrase"></div>
+            <div class="credential-label">Café Adresse</div>
+            <div class="credential-value" id="showLocationAddress"></div>
           </div>
         </div>
 
@@ -578,6 +666,81 @@
           ? "http://127.0.0.1:3000"
           : `${location.origin}/api`;
       let currentStep = 1;
+      let currentMode = "register";
+
+      function setMode(mode) {
+        currentMode = mode === "login" ? "login" : "register";
+        const regBtn = document.getElementById("modeRegisterBtn");
+        const loginBtn = document.getElementById("modeLoginBtn");
+        const loginBox = document.getElementById("loginBox");
+        const registerBox = document.getElementById("registerBox");
+
+        if (currentMode === "login") {
+          if (regBtn) {
+            regBtn.classList.remove("btn-primary");
+            regBtn.classList.add("btn-secondary");
+          }
+          if (loginBtn) {
+            loginBtn.classList.remove("btn-secondary");
+            loginBtn.classList.add("btn-primary");
+          }
+          if (loginBox) loginBox.style.display = "block";
+          if (registerBox) registerBox.style.display = "none";
+        } else {
+          if (regBtn) {
+            regBtn.classList.remove("btn-secondary");
+            regBtn.classList.add("btn-primary");
+          }
+          if (loginBtn) {
+            loginBtn.classList.remove("btn-primary");
+            loginBtn.classList.add("btn-secondary");
+          }
+          if (loginBox) loginBox.style.display = "none";
+          if (registerBox) registerBox.style.display = "block";
+        }
+      }
+
+      async function submitLogin() {
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPassword").value;
+
+        if (!email || !email.includes("@") || !password) {
+          showError("Bitte gib E-Mail und Passwort ein");
+          return;
+        }
+
+        // Show loading
+        document.getElementById("step1").style.display = "none";
+        document.getElementById("loading").classList.add("show");
+
+        try {
+          const loginRes = await fetch(`${apiBase}/cafes/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await loginRes.json().catch(() => ({}));
+          if (!loginRes.ok || !data.ok) {
+            throw new Error(data.error || "Login fehlgeschlagen");
+          }
+
+          const cafeSession = {
+            token: data.token,
+            cafeId: data.cafe?.id,
+            cafeAddress: data.cafe?.cafeAddress || null,
+            name: data.cafe?.name || null,
+          };
+          localStorage.setItem("cafe_session", JSON.stringify(cafeSession));
+
+          // Go straight to the scanner
+          window.location.href = "/cafe-scanner";
+        } catch (e) {
+          document.getElementById("loading").classList.remove("show");
+          document.getElementById("step1").style.display = "block";
+          showError(e && e.message ? e.message : "Ein Fehler ist aufgetreten");
+        }
+      }
 
       // Toggle product list visibility based on stamp mode
       document.querySelectorAll('input[name="stampMode"]').forEach((radio) => {
@@ -626,6 +789,10 @@
       function goToStep2() {
         // Validate Step 1
         const cafeName = document.getElementById("cafeName").value.trim();
+        const street = document.getElementById("street").value.trim();
+        const postalCode = document.getElementById("postalCode").value.trim();
+        const city = document.getElementById("city").value.trim();
+        const country = document.getElementById("country").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
         const confirmPassword =
@@ -635,12 +802,16 @@
           showError("Bitte gib einen Café-Namen ein");
           return;
         }
+        if (!street || !postalCode || !city || !country) {
+          showError("Bitte gib die vollständige Adresse ein");
+          return;
+        }
         if (!email || !email.includes("@")) {
           showError("Bitte gib eine gültige E-Mail Adresse ein");
           return;
         }
-        if (password.length < 6) {
-          showError("Das Passwort muss mindestens 6 Zeichen lang sein");
+        if (password.length < 8) {
+          showError("Das Passwort muss mindestens 8 Zeichen lang sein");
           return;
         }
         if (password !== confirmPassword) {
@@ -675,32 +846,47 @@
       }
 
       async function submitRegistration() {
-        // Validate Step 1
         const cafeName = document.getElementById("cafeName").value.trim();
+        const street = document.getElementById("street").value.trim();
+        const houseNumber = document.getElementById("houseNumber").value.trim();
+        const postalCode = document.getElementById("postalCode").value.trim();
+        const city = document.getElementById("city").value.trim();
+        const country = document.getElementById("country").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
-        const confirmPassword =
-          document.getElementById("confirmPassword").value;
 
-        if (!cafeName) {
-          showError("Bitte gib einen Café-Namen ein");
+        const stampMode =
+          document.querySelector('input[name="stampMode"]:checked')?.value ||
+          "general";
+        const stampsForReward = Number(
+          document.getElementById("stampsForReward").value || 10
+        );
+        const rewardDescription = document
+          .getElementById("rewardDescription")
+          .value.trim();
+        const products = Array.from(document.querySelectorAll(".product-input"))
+          .map((el) => String(el.value || "").trim())
+          .filter(Boolean);
+
+        if (!cafeName || !street || !postalCode || !city || !country) {
+          showError("Bitte fülle alle Pflichtfelder aus");
           return;
         }
         if (!email || !email.includes("@")) {
           showError("Bitte gib eine gültige E-Mail Adresse ein");
           return;
         }
-        if (password.length < 6) {
-          showError("Das Passwort muss mindestens 6 Zeichen lang sein");
+        if (password.length < 8) {
+          showError("Das Passwort muss mindestens 8 Zeichen lang sein");
           return;
         }
-        if (password !== confirmPassword) {
-          showError("Die Passwörter stimmen nicht überein");
+        if (!rewardDescription) {
+          showError("Bitte gib eine Belohnungs-Beschreibung ein");
           return;
         }
 
         // Show loading
-        document.getElementById("step1").style.display = "none";
+        document.getElementById("step2").style.display = "none";
         document.getElementById("loading").classList.add("show");
 
         try {
@@ -711,10 +897,15 @@
               name: cafeName,
               email: email,
               password: password,
-              stampMode: "general",
-              stampsForReward: 10,
-              rewardDescription: "Ein Freigetränk deiner Wahl",
-              products: [],
+              street,
+              houseNumber,
+              postalCode,
+              city,
+              country,
+              stampMode,
+              stampsForReward,
+              rewardDescription,
+              products,
             }),
           });
 
@@ -724,26 +915,59 @@
             throw new Error(data.error || "Registrierung fehlgeschlagen");
           }
 
+          // Store session (bearer token)
+          try {
+            const cafeSession = {
+              token: data.token,
+              cafeId: data.cafe?.id,
+              cafeAddress: data.cafe?.cafeAddress || null,
+              name: data.cafe?.name || null,
+            };
+            localStorage.setItem("cafe_session", JSON.stringify(cafeSession));
+          } catch (e) {}
+
           // Show success screen
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step3").classList.add("active");
-          currentStep = 2;
-          updateStepIndicators(2);
+          currentStep = 3;
+          updateStepIndicators(3);
 
           // Fill credentials
           document.getElementById("successEmail").textContent =
             document.getElementById("email").value;
-          document.getElementById("showCafeName").textContent = data.name;
-          document.getElementById("showApiKey").textContent = data.apiKey;
-          document.getElementById("showAddress").textContent = data.address;
-          document.getElementById("showSeedPhrase").textContent =
-            data.seedPhrase;
+          document.getElementById("showCafeName").textContent =
+            data.cafe?.name || cafeName;
+          document.getElementById("showLocationAddress").textContent =
+            data.cafe?.locationAddress || "";
         } catch (error) {
           document.getElementById("loading").classList.remove("show");
-          document.getElementById("step1").style.display = "block";
+          document.getElementById("step2").style.display = "block";
           showError(error.message || "Ein Fehler ist aufgetreten");
         }
       }
+
+      // Default state
+      (function initMode() {
+        try {
+          const saved = localStorage.getItem("cafe_session");
+          if (saved) {
+            // If already logged in, default to login mode (quick access)
+            setMode("login");
+            const loginBox = document.getElementById("loginBox");
+            if (loginBox) {
+              const info = document.createElement("div");
+              info.className = "warning-box";
+              info.innerHTML =
+                "<strong>Du bist bereits eingeloggt.</strong> Du kannst direkt zum Scanner wechseln.";
+              loginBox.insertBefore(info, loginBox.firstChild);
+            }
+          } else {
+            setMode("register");
+          }
+        } catch (e) {
+          setMode("register");
+        }
+      })();
     </script>
   </body>
 </html>

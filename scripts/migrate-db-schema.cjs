@@ -51,13 +51,15 @@ schema.forEach((col) => {
 });
 
 // Show existing cafes
-const cafes = db.prepare("SELECT id, name, api_key, address FROM cafes").all();
+const cafes = db
+  .prepare("SELECT id, name, email, address, location_address FROM cafes")
+  .all();
 console.log(`\n📊 Existing cafes: ${cafes.length}`);
 cafes.forEach((cafe) => {
   console.log(
     `  - ${cafe.name || "Unnamed"} (ID: ${cafe.id}, Address: ${
       cafe.address || "NULL"
-    })`
+    }, Email: ${cafe.email || "NULL"})`
   );
 });
 

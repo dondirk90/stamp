@@ -223,53 +223,11 @@
           <div class="card stat-card">
             <div class="stat-label">Kunden</div>
             <div class="stat-value" id="uniqueCustomers">0</div>
-            <div class="stat-subtitle">einzigartige Wallets</div>
+            <div class="stat-subtitle">einzigartige Kunden</div>
           </div>
         </div>
 
         <div class="split">
-          <div class="card" style="padding: var(--space-5)">
-            <h2 class="sectionTitle">Blockchain Check</h2>
-            <div class="muted" style="margin-bottom: var(--space-3)">
-              Vergleich: DB-Netto vs. aktueller On-Chain Stand (letzte Kunden)
-            </div>
-            <div style="overflow: auto">
-              <table class="history-table">
-                <thead>
-                  <tr>
-                    <th>Kunde</th>
-                    <th>DB Netto</th>
-                    <th>On-Chain</th>
-                    <th>Diff</th>
-                  </tr>
-                </thead>
-                <tbody id="chainBody"></tbody>
-              </table>
-            </div>
-            <div class="muted" id="chainMeta" style="margin-top: 10px"></div>
-          </div>
-
-          <div class="card" style="padding: var(--space-5)">
-            <h2 class="sectionTitle">Netzwerk</h2>
-            <div class="muted" style="margin-bottom: var(--space-3)">
-              Live-Info aus der Blockchain-Verbindung
-            </div>
-            <div class="stack" style="gap: 10px">
-              <div>
-                <span class="muted">Chain ID:</span>
-                <span class="mono" id="chainId">—</span>
-              </div>
-              <div>
-                <span class="muted">Block:</span>
-                <span class="mono" id="blockNumber">—</span>
-              </div>
-              <div>
-                <span class="muted">Contract:</span>
-                <span class="mono" id="contractAddr">—</span>
-              </div>
-            </div>
-          </div>
-
           <div class="card" style="padding: var(--space-5)">
             <h2 class="sectionTitle">Top Kunden</h2>
             <div class="muted" style="margin-bottom: var(--space-3)">
@@ -420,7 +378,7 @@
         const overview = await apiFetch(
           `/cafes/me/overview?eventsLimit=50&customers=50`,
           {
-            headers: { "x-api-key": cafe.apiKey },
+            headers: { Authorization: `Bearer ${cafe.token}` },
           }
         );
 
@@ -433,21 +391,10 @@
         document.getElementById("uniqueCustomers").textContent =
           stats.uniqueCustomers ?? 0;
 
-        const chainOk = await renderNetwork();
-        await renderChainCheck(
-          overview.cafe?.address,
-          overview.customers || []
-        );
         renderTopCustomers(overview.customers || []);
         renderRecentEvents(overview.recentEvents || []);
 
-        setBadge(
-          "sourceBadge",
-          chainOk
-            ? "Quelle: DB + Blockchain"
-            : "Quelle: DB (Blockchain nicht erreichbar)",
-          chainOk ? "ok" : "warn"
-        );
+        setBadge("sourceBadge", "Quelle: DB", "ok");
         setBadge(
           "refreshBadge",
           `Aktualisiert: ${new Date().toLocaleTimeString("de-DE", {
@@ -457,81 +404,6 @@
           })}`,
           ""
         );
-      }
-
-      async function renderNetwork() {
-        try {
-          const info = await apiFetch("/debug/contract");
-          document.getElementById("chainId").textContent =
-            info && info.chainId != null ? String(info.chainId) : "—";
-          document.getElementById("blockNumber").textContent =
-            info && info.blockNumber != null ? String(info.blockNumber) : "—";
-          document.getElementById("contractAddr").textContent =
-            info && info.stampcardAddress ? String(info.stampcardAddress) : "—";
-          return true;
-        } catch (e) {
-          document.getElementById("chainId").textContent = "—";
-          document.getElementById("blockNumber").textContent = "—";
-          document.getElementById("contractAddr").textContent = "—";
-          return false;
-        }
-      }
-
-      async function renderChainCheck(cafeAddr, customers) {
-        const tbody = document.getElementById("chainBody");
-        const meta = document.getElementById("chainMeta");
-        if (!tbody) return;
-
-        if (!cafeAddr || !customers || !customers.length) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="4" class="muted" style="padding: 18px;">
-                Noch keine Kunden-Events vorhanden.
-              </td>
-            </tr>
-          `;
-          if (meta) meta.textContent = "";
-          return;
-        }
-
-        const sample = customers.slice(0, 10);
-        const rows = [];
-
-        for (const c of sample) {
-          const addr = c.address;
-          const dbNet = Number(c.netStamps || 0);
-          let onChain = null;
-
-          try {
-            const r = await apiFetch(
-              `/stamps/${encodeURIComponent(addr)}?cafe=${encodeURIComponent(
-                cafeAddr
-              )}&fallback=1`
-            );
-            onChain = Number(r && r.stamps != null ? r.stamps : 0);
-          } catch (e) {
-            onChain = null;
-          }
-
-          const diff =
-            onChain == null ? "—" : String(Number(onChain) - Number(dbNet));
-
-          rows.push(`
-            <tr>
-              <td><strong>${
-                c.customerName || shortAddr(addr)
-              }</strong><div class="muted mono">${shortAddr(addr)}</div></td>
-              <td class="mono">${dbNet}</td>
-              <td class="mono">${onChain == null ? "—" : onChain}</td>
-              <td class="mono">${diff}</td>
-            </tr>
-          `);
-        }
-
-        tbody.innerHTML = rows.join("");
-        if (meta)
-          meta.textContent =
-            "Hinweis: On-Chain Werte sind live vom Contract; DB ist Event-Log.";
       }
 
       function renderTopCustomers(customers) {
@@ -589,14 +461,8 @@
               ? '<span class="badge badge-redemption">🎁 Redeem</span>'
               : '<span class="badge badge-success">☕ Stamp</span>';
 
-            const tx = e.txhash || "";
-            const isRealTx = /^0x[0-9a-fA-F]{64}$/.test(tx);
-            const txCell = isRealTx
-              ? `<a href="https://sepolia.etherscan.io/tx/${tx}" target="_blank" rel="noreferrer" class="mono">${tx.slice(
-                  0,
-                  10
-                )}…</a>`
-              : tx
+            const tx = e.txhash || e.tx_id || e.tx || "";
+            const txCell = tx
               ? `<span class="mono">${shortAddr(tx)}</span>`
               : "—";
 
