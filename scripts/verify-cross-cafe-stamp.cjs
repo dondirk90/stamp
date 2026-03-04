@@ -50,10 +50,20 @@ async function registerCafe(name, email) {
   if (!res.ok) {
     throw new Error(`register failed (${res.status}): ${text}`);
   }
-  if (!json || !json.ok || !json.token || !json.cafe || !json.cafe.cafeAddress) {
+  if (
+    !json ||
+    !json.ok ||
+    !json.token ||
+    !json.cafe ||
+    !json.cafe.cafeAddress
+  ) {
     throw new Error(`register unexpected response: ${text}`);
   }
-  return { token: json.token, cafeAddress: json.cafe.cafeAddress, cafe: json.cafe };
+  return {
+    token: json.token,
+    cafeAddress: json.cafe.cafeAddress,
+    cafe: json.cafe,
+  };
 }
 
 (async () => {

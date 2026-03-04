@@ -58,7 +58,7 @@ function proxyApi(req, res, parsedUrl) {
       };
       res.writeHead(upstreamRes.statusCode || 502, headers);
       upstreamRes.pipe(res);
-    }
+    },
   );
 
   upstreamReq.on("error", (err) => {
@@ -72,7 +72,7 @@ function proxyApi(req, res, parsedUrl) {
       JSON.stringify({
         error: "api_proxy_error",
         message: String(err && err.message ? err.message : err),
-      })
+      }),
     );
   });
 
@@ -121,9 +121,112 @@ function pickLanIpv4() {
 }
 
 const server = http.createServer((req, res) => {
+  // Basic request log (helps diagnose LAN/phone reachability).
+  try {
+    const remoteAddr =
+      (req && req.socket && req.socket.remoteAddress) || "(unknown)";
+    const remotePort =
+      (req && req.socket && req.socket.remotePort) || "(unknown)";
+    console.log(`[REQ] ${remoteAddr}:${remotePort} ${req.method} ${req.url}`);
+  } catch (e) {}
+
   // Parse URL
   const parsedUrl = url.parse(req.url, true);
   let pathname = parsedUrl.pathname;
+
+  // Human-friendly diagnostics page (useful on iPhone without devtools)
+  if (pathname === "/__diag") {
+    try {
+      const ip = pickLanIpv4();
+      const remoteAddr =
+        (req && req.socket && req.socket.remoteAddress) || "(unknown)";
+      const ua =
+        req && req.headers ? String(req.headers["user-agent"] || "") : "";
+
+      const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stamp Diagnostics</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif; margin: 18px; line-height: 1.4; }
+      .box { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 12px 0; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      a { color: #175cd3; }
+    </style>
+  </head>
+  <body>
+    <h2>Diagnostics</h2>
+    <div class="box">
+      <div><b>Server</b>: ${ip || "(unknown)"}:${PORT}</div>
+      <div><b>Remote</b>: ${remoteAddr}</div>
+      <div><b>User-Agent</b>: <small>${ua.replace(/</g, "&lt;")}</small></div>
+    </div>
+    <div class="box">
+      <div><a href="/__ping">Open /__ping</a></div>
+      <div><a href="/customer-qr">Open /customer-qr</a></div>
+      <div><a href="/lan-setup.html">Open /lan-setup.html</a></div>
+    </div>
+    <div class="box">
+      <div>If you see this page on iPhone, LAN reachability is OK.</div>
+    </div>
+  </body>
+</html>`;
+
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        Pragma: "no-cache",
+      });
+      res.end(html);
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("diag_error");
+    }
+    return;
+  }
+
+  // Diagnostic endpoint: helps verify phone->PC reachability and shows remote address.
+  if (pathname === "/__ping") {
+    try {
+      const remoteAddr =
+        (req && req.socket && req.socket.remoteAddress) || "(unknown)";
+      const remotePort =
+        (req && req.socket && req.socket.remotePort) || "(unknown)";
+      const ua =
+        req && req.headers ? String(req.headers["user-agent"] || "") : "";
+      const body = JSON.stringify(
+        {
+          ok: true,
+          now: new Date().toISOString(),
+          remoteAddress: remoteAddr,
+          remotePort,
+          method: req.method,
+          url: req.url,
+          userAgent: ua,
+        },
+        null,
+        2,
+      );
+
+      console.log(
+        `[PING] ${remoteAddr}:${remotePort} ${req.method} ${req.url} UA=${ua.slice(0, 80)}`,
+      );
+
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        Pragma: "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      });
+      res.end(body);
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("ping_error");
+    }
+    return;
+  }
 
   // Helper endpoint: return LAN IP for QR generation
   if (pathname === "/__lanip") {
@@ -152,13 +255,29 @@ const server = http.createServer((req, res) => {
 
   // Default: index.html wenn Ordner angefordert
   if (pathname === "/" || pathname.endsWith("/")) {
-    pathname = pathname === "/" ? "/lan-setup.html" : pathname + "index.html";
+    pathname = pathname === "/" ? "/index.html" : pathname + "index.html";
   }
 
+  // Allow trailing slash access for single-page routes
+  if (pathname === "/customer-profile/index.html")
+    pathname = "/customer-profile.html";
+  if (pathname === "/cafe/index.html") pathname = "/cafe-public.html";
+
   // Aliase ohne .html Endung für wichtige Seiten
-  if (pathname === "/customer-register") pathname = "/customer-register.html";
-  if (pathname === "/customer-home" || pathname === "/")
-    pathname = "/customer-home.html";
+  if (pathname === "/customer-register") pathname = "/customer-qr-modern.html";
+  if (pathname === "/customer-profile") pathname = "/customer-profile.html";
+  if (pathname === "/customer-home" || pathname === "/customer-home.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/customer-start" || pathname === "/customer-start.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/customer-map" || pathname === "/customer-map.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/customer-wallet" || pathname === "/customer-wallet.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/customer-history" || pathname === "/customer-history.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/cafe" || pathname === "/cafe-public")
+    pathname = "/cafe-public.html";
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
     pathname = "/cafe-scanner-new.html";
@@ -229,32 +348,43 @@ const server = http.createServer((req, res) => {
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
     console.error(
-      `Error: Port ${PORT} already in use. Set PORT environment variable to a free port and restart.`
+      `Error: Port ${PORT} already in use. The Apps Server is likely already running.`,
+    );
+    console.error(
+      `Tip: netstat -ano | findstr ":${PORT}"  then  taskkill /PID <PID> /F`,
     );
   } else {
     console.error("Apps server error:", err && err.stack ? err.stack : err);
   }
+  if (err && err.code === "EADDRINUSE") process.exit(0);
   process.exit(1);
 });
 
 server.listen(PORT, "0.0.0.0", () => {
+  const lanIp = pickLanIpv4();
   console.log(`📱 Apps Server running on http://localhost:${PORT}`);
-  console.log(`📱 From Smartphone (same WiFi): http://<YOUR_LAN_IP>:${PORT}`);
-  console.log(`📱 Example: http://192.168.1.100:${PORT}`);
+  if (lanIp) {
+    console.log(`📱 From Smartphone (same WiFi): http://${lanIp}:${PORT}`);
+  } else {
+    console.log(`📱 From Smartphone (same WiFi): http://<YOUR_LAN_IP>:${PORT}`);
+    console.log(`📱 Example: http://192.168.1.100:${PORT}`);
+  }
   console.log(`\n📁 Available apps (recommended):`);
   console.log(
-    `  🏪 Café Issuer (Enhanced): http://localhost:${PORT}/cafe-issuer-web.html`
+    `  🏪 Café Issuer (Enhanced): http://localhost:${PORT}/cafe-issuer-web.html`,
   );
   console.log(
-    `  🧾 Customer — Create QR: http://localhost:${PORT}/customer-qr.html`
+    `  🧾 Customer App (Wallet/QR): http://localhost:${PORT}/customer-qr`,
   );
   console.log(
-    `  🧾 Customer Register: http://localhost:${PORT}/customer-register.html`
+    `  👤 Customer Profile: http://localhost:${PORT}/customer-profile`,
   );
-  console.log(`  📷 Café Scanner: http://localhost:${PORT}/cafe-scanner.html`);
+  console.log(
+    `  📷 Café Scanner (neu): http://localhost:${PORT}/cafe-scanner.html`,
+  );
   console.log(`  🔧 LAN Setup Helper: http://localhost:${PORT}/lan-setup.html`);
   console.log(
-    `\n✨ Recommended: Use the Café Issuer and Customer QR apps. The dedicated scanner app is no longer required.`
+    `\n✨ Recommended: Use Customer QR + Café Scanner for stamping/redeeming.`,
   );
   console.log(`\n🔗 Make sure your API is also running: pnpm run dev`);
 });

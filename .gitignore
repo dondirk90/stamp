@@ -12,6 +12,9 @@ contracts/.env
 **/build/
 **/.cache/
 
+# Local tooling artifacts
+scripts/.bin/
+
 # Hardhat / Solidity build outputs
 artifacts/
 cache/

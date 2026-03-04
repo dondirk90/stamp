@@ -1,17 +1,27 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="de">
   <head>
-    <meta charset="UTF-8" />
-    <title>Café Registrierung</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weiterleitung…</title>
+    <meta http-equiv="refresh" content="0; url=/cafe-onboarding" />
+    <link rel="stylesheet" href="/theme.css" />
     <script>
-      const apiBase =
-        location.protocol === "file:"
-          ? "http://127.0.0.1:3000"
-          : `${location.origin}/api`;
-      let currentStep = 1;
+      try {
+        const target = "/cafe-onboarding" + (location.search || "") + (location.hash || "");
+        location.replace(target);
+      } catch (e) {}
     </script>
   </head>
-  <body>
-    <h1>Test</h1>
+  <body class="page">
+    <div class="container">
+      <div class="card" style="padding: var(--space-5)">
+        <h1 style="margin-top: 0">Weiterleitung…</h1>
+        <p class="subtitle">
+          Diese Seite wurde ersetzt. Falls die Weiterleitung nicht klappt:
+          <a href="/cafe-onboarding">Café Onboarding öffnen</a>
+        </p>
+      </div>
+    </div>
   </body>
 </html>

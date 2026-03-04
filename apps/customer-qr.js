@@ -1,3 +1,863 @@
+// Customer QR (modern): map + wallet passes + history + auth
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "customer_session_v1";
+  const STORAGE_KEY_V2 = "customer_session_v2"; // backward-compat read
+  const LEGACY_FAVORITES_KEY = "customer_favorites_v1";
+  const WALLET_KEY_PREFIX = "customer_wallet_v1:"; // + customerAddressLower
+
+  const REWARD_THRESHOLD = 10;
+
+  const el = {
+    buildBadge: document.getElementById("buildBadge"),
+    sessionBadge: document.getElementById("sessionBadge"),
+    logoutBtn: document.getElementById("logoutBtn"),
+
+    authPanel: document.getElementById("authPanel"),
+    mainPanel: document.getElementById("mainPanel"),
+
+    modeRegister: document.getElementById("modeRegister"),
+    modeLogin: document.getElementById("modeLogin"),
+    registerFields: document.getElementById("registerFields"),
+    username: document.getElementById("username"),
+    email: document.getElementById("email"),
+    password: document.getElementById("password"),
+    confirmPassword: document.getElementById("confirmPassword"),
+    confirmPasswordWrap: document.getElementById("confirmPasswordWrap"),
+    authSubmit: document.getElementById("authSubmit"),
+    authMsg: document.getElementById("authMsg"),
+
+    mainModeHome: document.getElementById("mainModeHome"),
+    mainModeMap: document.getElementById("mainModeMap"),
+    mainModeWallet: document.getElementById("mainModeWallet"),
+    mainModeHistory: document.getElementById("mainModeHistory"),
+    layoutGrid: document.getElementById("layoutGrid"),
+
+    mapPanel: document.getElementById("mapPanel"),
+    cafeMap: document.getElementById("cafeMap"),
+    mapList: document.getElementById("mapList"),
+
+    discoverPick: document.getElementById("discoverPick"),
+    discoverPickName: document.getElementById("discoverPickName"),
+    discoverPickAddr: document.getElementById("discoverPickAddr"),
+    discoverPickAddBtn: document.getElementById("discoverPickAddBtn"),
+
+    walletPanel: document.getElementById("walletPanel"),
+    walletSubtitle: document.getElementById("walletSubtitle"),
+    walletEmpty: document.getElementById("walletEmpty"),
+    walletList: document.getElementById("walletList"),
+
+    historyPanel: document.getElementById("historyPanel"),
+    historySubtitle: document.getElementById("historySubtitle"),
+    historyError: document.getElementById("historyError"),
+    historyEmpty: document.getElementById("historyEmpty"),
+    historyList: document.getElementById("historyList"),
+
+    cafeModalBackdrop: document.getElementById("cafeModalBackdrop"),
+    cafeModalClose: document.getElementById("cafeModalClose"),
+    cafeModalName: document.getElementById("cafeModalName"),
+    cafeModalAddr: document.getElementById("cafeModalAddr"),
+    cafeModalImageWrap: document.getElementById("cafeModalImageWrap"),
+    cafeModalImage: document.getElementById("cafeModalImage"),
+    cafeModalGallery: document.getElementById("cafeModalGallery"),
+    cafeModalAbout: document.getElementById("cafeModalAbout"),
+    cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
+    cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
+    cafeModalProfileLink: document.getElementById("cafeModalProfileLink"),
+  };
+
+  const DEFAULT_API_BASE =
+    location.protocol === "file:"
+      ? "http://127.0.0.1:3000"
+      : `${location.origin}/api`;
+  const apiBase = DEFAULT_API_BASE;
+
+  /** @type {{customer_id?:string, username?:string, email?:string, address?:string}|null} */
+  let session = null;
+
+  /** @type {Array<{id:number,name:string|null,address:string|null,cafeAddress:string|null,lat:number|null,lng:number|null,about:string|null,hasLogo:boolean,cardTheme:string}>} */
+  let cafes = [];
+  /** @type {Map<string, any>} */
+  const cafesByCafeAddress = new Map();
+  /** @type {Map<number, any>} */
+  const cafesById = new Map();
+
+  // Wallet state (shared by carousel + stack)
+  const walletState = {
+    mode: "stack",
+    cards: [],
+    stackDrag: null,
+    ignoreClickUntil: 0,
+    scrollStopTimer: null,
+  };
+
+  function nowMs() {
+    return Date.now();
+  }
+
+  function clamp(v, min, max) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return min;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function isIOS() {
+    try {
+      const ua = navigator.userAgent || "";
+      return /iP(hone|ad|od)/.test(ua);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyWalletStackVisibility(scroller) {
+    if (!scroller) return;
+    const cards = Array.from(scroller.querySelectorAll(".passCard"));
+    for (let i = 0; i < cards.length; i++) {
+      const node = cards[i];
+      node.style.display = i === 0 ? "block" : "none";
+      if (i === 0) {
+        node.style.setProperty("--wheel-tx", "0px");
+        node.style.setProperty("--wheel-rz", "0deg");
+        node.style.setProperty("--wheel-opacity", "1");
+      }
+    }
+  }
+
+  function enableWalletStackMode(scroller) {
+    if (!scroller) return;
+    walletState.mode = "stack";
+    scroller.classList.add("isStack");
+    applyWalletStackVisibility(scroller);
+
+    function cycleTopToBottom(scroller2, direction) {
+      const cardEl = scroller2.querySelector(".passCard");
+      if (!cardEl) return;
+      cardEl.classList.add("isSwapping");
+
+      const out = (direction || 1) * 340;
+      cardEl.style.setProperty("--wheel-tx", `${out}px`);
+      cardEl.style.setProperty("--wheel-opacity", "0");
+
+      window.setTimeout(() => {
+        try {
+          const first = walletState.cards.shift();
+          if (first) walletState.cards.push(first);
+          if (cardEl.parentElement === scroller2) scroller2.appendChild(cardEl);
+        } catch (e) {}
+
+        try {
+          cardEl.classList.remove("isSwapping");
+          cardEl.style.setProperty("--wheel-tx", "0px");
+          cardEl.style.setProperty("--wheel-opacity", "1");
+          cardEl.style.setProperty("--wheel-rz", "0deg");
+        } catch (e2) {}
+        applyWalletStackVisibility(scroller2);
+      }, 160);
+    }
+
+    function onPointerDown(ev) {
+      const top = scroller.querySelector(".passCard");
+      if (!top) return;
+      walletState.stackDrag = {
+        id: ev.pointerId,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        lastX: ev.clientX,
+        lastY: ev.clientY,
+        moved: false,
+        activeEl: top,
+      };
+      try {
+        top.setPointerCapture(ev.pointerId);
+      } catch (e) {}
+    }
+
+    function onPointerMove(ev) {
+      const d = walletState.stackDrag;
+      if (!d || d.id !== ev.pointerId) return;
+      const dx = ev.clientX - d.startX;
+      const dy = ev.clientY - d.startY;
+      d.lastX = ev.clientX;
+      d.lastY = ev.clientY;
+
+      if (!d.moved) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+          walletState.stackDrag = null;
+          return;
+        }
+        d.moved = true;
+        scroller.classList.add("isDragging");
+      }
+
+      const card = d.activeEl;
+      const tx = clamp(dx, -260, 260);
+      const rz = clamp(dx / 18, -10, 10);
+      const op = 1 - Math.min(0.55, Math.abs(dx) / 520);
+      card.style.setProperty("--wheel-tx", `${tx.toFixed(2)}px`);
+      card.style.setProperty("--wheel-rz", `${rz.toFixed(2)}deg`);
+      card.style.setProperty("--wheel-opacity", `${op.toFixed(3)}`);
+    }
+
+    function onPointerUp(ev) {
+      const d = walletState.stackDrag;
+      if (!d || d.id !== ev.pointerId) return;
+      walletState.stackDrag = null;
+      scroller.classList.remove("isDragging");
+
+      const dx = ev.clientX - d.startX;
+      const dy = ev.clientY - d.startY;
+      const moved = !!d.moved;
+      const card = d.activeEl;
+      if (!card) return;
+
+      const w = Math.max(1, card.getBoundingClientRect().width || 0);
+      const threshold = Math.min(110, Math.max(70, w * 0.22));
+
+      if (moved && Math.abs(dx) > threshold && Math.abs(dx) > Math.abs(dy)) {
+        walletState.ignoreClickUntil = nowMs() + 260;
+        cycleTopToBottom(scroller, dx >= 0 ? 1 : -1);
+        return;
+      }
+
+      card.style.setProperty("--wheel-tx", "0px");
+      card.style.setProperty("--wheel-rz", "0deg");
+      card.style.setProperty("--wheel-opacity", "1");
+      if (moved) walletState.ignoreClickUntil = nowMs() + 180;
+    }
+
+    scroller.addEventListener("pointerdown", onPointerDown, { passive: true });
+    scroller.addEventListener("pointermove", onPointerMove, { passive: true });
+    scroller.addEventListener("pointerup", onPointerUp, { passive: true });
+    scroller.addEventListener("pointercancel", onPointerUp, { passive: true });
+  }
+
+  function enableWalletCarouselMode(scroller) {
+    if (!scroller) return;
+    walletState.mode = "carousel";
+    scroller.classList.remove("isStack");
+
+    const onScroll = () => {
+      setWalletScrolling(scroller, true);
+      scheduleWalletWheel(scroller);
+      if (walletState.scrollStopTimer) {
+        window.clearTimeout(walletState.scrollStopTimer);
+      }
+      walletState.scrollStopTimer = window.setTimeout(() => {
+        setWalletScrolling(scroller, false);
+      }, 140);
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", () => scheduleWalletWheel(scroller), {
+      passive: true,
+    });
+    scheduleWalletWheel(scroller);
+  }
+
+  function createPassCard(card) {
+    const pass = document.createElement("div");
+    pass.className = "passCard";
+    pass.setAttribute("data-cafe", String(card.cafeAddress || ""));
+    pass.setAttribute("data-pass-theme", String(card.cardTheme || "paper"));
+
+    const flip = document.createElement("div");
+    flip.className = "passFlip";
+
+    const main = document.createElement("button");
+    main.className = "passMain";
+    main.type = "button";
+
+    const head = document.createElement("div");
+    head.className = "passHead";
+
+    const left = document.createElement("div");
+    left.style.minWidth = "0";
+
+    const title = document.createElement("h4");
+    title.className = "passTitle";
+    title.textContent = card.cafeName || "Café";
+
+    const sub = document.createElement("div");
+    sub.className = "passSub";
+    const stampCount = clamp(card.netStamps || 0, 0, 999);
+    sub.textContent = `${clamp(stampCount, 0, REWARD_THRESHOLD)} / ${REWARD_THRESHOLD} Stempel`;
+
+    left.appendChild(title);
+    left.appendChild(sub);
+
+    const right = document.createElement("div");
+    right.className = "passRight";
+
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent =
+      stampCount >= REWARD_THRESHOLD
+        ? "Voll"
+        : `${clamp(stampCount, 0, REWARD_THRESHOLD)}/${REWARD_THRESHOLD}`;
+    right.appendChild(badge);
+
+    const logoWrap = document.createElement("div");
+    logoWrap.className = "passLogoWrap";
+    const logo = document.createElement("img");
+    logo.className = "passLogo";
+    logo.alt = "";
+    logo.loading = "lazy";
+    logo.decoding = "async";
+    logoWrap.appendChild(logo);
+    right.appendChild(logoWrap);
+
+    head.appendChild(left);
+    head.appendChild(right);
+
+    const hint = document.createElement("div");
+    hint.className = "passHint";
+    hint.textContent = "Tippe für den QR-Code";
+
+    const grid = buildStampGrid(stampCount);
+
+    main.appendChild(head);
+    main.appendChild(hint);
+    main.appendChild(grid);
+
+    const qr = document.createElement("div");
+    qr.className = "passQr";
+
+    const qrHint = document.createElement("div");
+    qrHint.className = "passHint";
+    qrHint.textContent =
+      stampCount >= REWARD_THRESHOLD
+        ? "Belohnung einlösen"
+        : "Zeig den QR an der Kasse";
+
+    const qrBox = document.createElement("div");
+    qrBox.className = "passQrBox";
+    qrBox.setAttribute("role", "button");
+    qrBox.setAttribute("aria-label", "QR schließen");
+
+    const canvas = document.createElement("canvas");
+    qrBox.appendChild(canvas);
+    qr.appendChild(qrHint);
+    qr.appendChild(qrBox);
+
+    flip.appendChild(main);
+    flip.appendChild(qr);
+    pass.appendChild(flip);
+
+    const state = {
+      qrRendered: false,
+      qrText: "",
+      logoLoaded: false,
+    };
+
+    async function ensureLogo() {
+      if (state.logoLoaded) return;
+      state.logoLoaded = true;
+      try {
+        if (card.cafeId == null) return;
+        const cafeId = Number(card.cafeId);
+        if (!Number.isFinite(cafeId) || cafeId <= 0) return;
+        const profile = await getCafeProfile(cafeId);
+        if (!profile || !profile.logoDataUrl) return;
+        logo.src = String(profile.logoDataUrl);
+        logoWrap.style.display = "flex";
+        logo.addEventListener(
+          "load",
+          () => {
+            try {
+              scheduleWalletWheel(el.walletList);
+            } catch (e) {}
+          },
+          { once: true },
+        );
+      } catch (e) {}
+    }
+
+    async function ensureQr() {
+      const stamps = clamp(card.netStamps || 0, 0, 999);
+      const action = stamps >= REWARD_THRESHOLD ? "redeem" : "stamp";
+      const redeemToken = action === "redeem" ? `rt_${randomHex(16)}` : "";
+
+      state.qrText = buildScannerUrl({
+        customerAddr: session && session.address ? session.address : "",
+        customerName:
+          session && (session.username || session.email)
+            ? session.username || session.email
+            : "",
+        cafeAddr: card.cafeAddress || "",
+        action,
+        redeemToken,
+      });
+      await renderQrToCanvas(canvas, state.qrText);
+      state.qrRendered = true;
+    }
+
+    function openCard() {
+      if (nowMs() < walletState.ignoreClickUntil) return;
+      pass.classList.add("open");
+      void ensureQr();
+    }
+
+    function closeCard() {
+      pass.classList.remove("open");
+    }
+
+    main.addEventListener("click", (ev) => {
+      try {
+        ev.stopPropagation();
+      } catch (e) {}
+      if (nowMs() < walletState.ignoreClickUntil) return;
+      if (pass.classList.contains("open")) closeCard();
+      else openCard();
+      void ensureLogo();
+    });
+
+    qrBox.addEventListener("click", (ev) => {
+      try {
+        ev.stopPropagation();
+      } catch (e) {}
+      closeCard();
+    });
+
+    // Lazy-load logo once inserted.
+    window.setTimeout(() => void ensureLogo(), 30);
+
+    return pass;
+  }
+
+  async function refreshWallet() {
+    if (!el.walletList || !el.walletEmpty) return;
+    if (!session || !session.address) {
+      el.walletList.innerHTML = "";
+      el.walletEmpty.style.display = "block";
+      walletState.cards = [];
+      return;
+    }
+
+    const saved = loadWalletCafeAddresses();
+
+    const renderCards = (cards) => {
+      walletState.cards = Array.isArray(cards) ? cards : [];
+      el.walletList.innerHTML = "";
+
+      if (!walletState.cards.length) {
+        el.walletEmpty.style.display = "block";
+        // Empty wallet: keep carousel mode so strict checks don't expect a visible stack card.
+        walletState.mode = "carousel";
+        el.walletList.classList.remove("isStack");
+        return;
+      }
+
+      el.walletEmpty.style.display = "none";
+      for (const card of walletState.cards) {
+        el.walletList.appendChild(createPassCard(card));
+      }
+
+      if (WALLET_MODE === "stack" || (WALLET_MODE === "auto" && isIOS())) {
+        enableWalletStackMode(el.walletList);
+      } else {
+        enableWalletCarouselMode(el.walletList);
+      }
+
+      window.setTimeout(() => scheduleWalletWheel(el.walletList), 0);
+      window.setTimeout(() => scheduleWalletWheel(el.walletList), 60);
+    };
+
+    // Fast path: render placeholders from saved favorites immediately (no API wait).
+    if (saved.length) {
+      const placeholders = saved
+        .map((cafeAddr) => {
+          const cafeMeta =
+            cafesByCafeAddress.get(normalizeAddr(cafeAddr)) || null;
+          return {
+            cafeAddress:
+              cafeMeta && cafeMeta.cafeAddress
+                ? cafeMeta.cafeAddress
+                : cafeAddr,
+            cafeName:
+              (cafeMeta && cafeMeta.name) || cafeNameByAddress(cafeAddr),
+            cafeId:
+              cafeMeta && Number.isFinite(Number(cafeMeta.id))
+                ? Number(cafeMeta.id)
+                : null,
+            netStamps: 0,
+            lastActivityTs: 0,
+            cardTheme: (cafeMeta && cafeMeta.cardTheme) || "paper",
+          };
+        })
+        .filter((x) => !!x.cafeAddress);
+      renderCards(placeholders);
+    }
+
+    let cardsSummary = [];
+    try {
+      const addr = encodeURIComponent(session.address);
+      const data = await apiFetch(`/customers/${addr}/cards?eventsPerCafe=5`);
+      cardsSummary = data && Array.isArray(data.cards) ? data.cards : [];
+    } catch (e) {
+      cardsSummary = [];
+    }
+
+    const byCafe = new Map();
+
+    for (const c of cardsSummary) {
+      const cafeAddr = normalizeAddr(c.cafeAddress);
+      if (!cafeAddr) continue;
+      byCafe.set(cafeAddr, c);
+    }
+
+    for (const cafeAddr of saved) {
+      if (byCafe.has(cafeAddr)) continue;
+      byCafe.set(cafeAddr, {
+        cafeAddress: cafeAddr,
+        cafeName: null,
+        cafeId: null,
+        stats: { netStamps: 0, lastActivityTs: null },
+        recentEvents: [],
+      });
+    }
+
+    const merged = Array.from(byCafe.values()).map((raw) => {
+      const cafeAddr = normalizeAddr(raw.cafeAddress);
+      const cafeMeta = cafesByCafeAddress.get(cafeAddr) || null;
+      const netStamps = raw && raw.stats ? Number(raw.stats.netStamps || 0) : 0;
+      const lastTs =
+        raw && raw.stats ? Number(raw.stats.lastActivityTs || 0) : 0;
+      const cafeId =
+        raw.cafeId != null
+          ? Number(raw.cafeId)
+          : cafeMeta
+            ? Number(cafeMeta.id)
+            : null;
+      return {
+        cafeAddress:
+          cafeMeta && cafeMeta.cafeAddress
+            ? cafeMeta.cafeAddress
+            : raw.cafeAddress,
+        cafeName:
+          (cafeMeta && cafeMeta.name) ||
+          raw.cafeName ||
+          cafeNameByAddress(raw.cafeAddress),
+        cafeId: Number.isFinite(cafeId) ? cafeId : null,
+        netStamps: Number.isFinite(netStamps) ? netStamps : 0,
+        lastActivityTs: Number.isFinite(lastTs) ? lastTs : 0,
+        cardTheme: (cafeMeta && cafeMeta.cardTheme) || "paper",
+      };
+    });
+
+    merged.sort((a, b) => {
+      if ((b.lastActivityTs || 0) !== (a.lastActivityTs || 0))
+        return (b.lastActivityTs || 0) - (a.lastActivityTs || 0);
+      return String(a.cafeName || "").localeCompare(String(b.cafeName || ""));
+    });
+
+    renderCards(merged);
+  }
+
+  function hideDiscoverPick() {
+    if (!el.discoverPick) return;
+    el.discoverPick.style.display = "none";
+    pickedCafe = null;
+  }
+
+  function showDiscoverPick(cafe) {
+    pickedCafe = cafe;
+    if (el.discoverPickName)
+      el.discoverPickName.textContent =
+        cafe && cafe.name ? String(cafe.name) : "Café";
+    if (el.discoverPickAddr)
+      el.discoverPickAddr.textContent =
+        cafe && cafe.address ? String(cafe.address) : "";
+    if (el.discoverPick) el.discoverPick.style.display = "block";
+  }
+
+  function teardownMap() {
+    try {
+      if (leafletMarkers && leafletMarkers.length) {
+        for (const m of leafletMarkers) {
+          try {
+            m.remove();
+          } catch (e) {}
+        }
+      }
+      leafletMarkers = [];
+    } catch (e) {}
+    try {
+      if (leafletMap) leafletMap.remove();
+    } catch (e) {}
+    leafletMap = null;
+  }
+
+  function initMapIfReady() {
+    if (!el.cafeMap) return;
+    if (leafletMap) return;
+    if (!window.L || !window.L.map) return;
+    if (!cafes.length) return;
+
+    const firstWithPos = cafes.find(
+      (c) => Number.isFinite(c.lat) && Number.isFinite(c.lng),
+    );
+    const center = firstWithPos
+      ? [firstWithPos.lat, firstWithPos.lng]
+      : [52.52, 13.405];
+
+    leafletMap = window.L.map(el.cafeMap, {
+      zoomControl: false,
+      attributionControl: false,
+    }).setView(center, firstWithPos ? 14 : 5);
+
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+    }).addTo(leafletMap);
+
+    leafletMap.on("click", () => hideDiscoverPick());
+
+    for (const cafe of cafes) {
+      if (!Number.isFinite(cafe.lat) || !Number.isFinite(cafe.lng)) continue;
+      const marker = window.L.marker([cafe.lat, cafe.lng]);
+      marker.addTo(leafletMap);
+      marker.on("click", () => {
+        showDiscoverPick(cafe);
+      });
+      leafletMarkers.push(marker);
+    }
+  }
+
+  function renderMapList() {
+    if (!el.mapList) return;
+    if (!cafes.length) {
+      el.mapList.textContent = "Noch keine Cafés.";
+      return;
+    }
+    el.mapList.innerHTML = "";
+    const list = document.createElement("div");
+    list.className = "stack";
+    list.style.gap = "8px";
+
+    for (const cafe of cafes.slice(0, 12)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn secondary";
+      btn.textContent = cafe.name ? String(cafe.name) : "Café";
+      btn.addEventListener("click", () => openCafeModal(cafe));
+      list.appendChild(btn);
+    }
+    el.mapList.appendChild(list);
+  }
+
+  function closeCafeModal() {
+    if (!el.cafeModalBackdrop) return;
+    el.cafeModalBackdrop.style.display = "none";
+  }
+
+  async function openCafeModal(cafe) {
+    if (!el.cafeModalBackdrop) return;
+    if (el.cafeModalName)
+      el.cafeModalName.textContent =
+        cafe && cafe.name ? String(cafe.name) : "Café";
+    if (el.cafeModalAddr)
+      el.cafeModalAddr.textContent =
+        cafe && cafe.address ? String(cafe.address) : "";
+    if (el.cafeModalAbout) el.cafeModalAbout.style.display = "none";
+    if (el.cafeModalAboutEmpty) el.cafeModalAboutEmpty.style.display = "none";
+    if (el.cafeModalImageWrap) el.cafeModalImageWrap.style.display = "none";
+    if (el.cafeModalGallery) el.cafeModalGallery.innerHTML = "";
+
+    if (el.cafeModalProfileLink) {
+      el.cafeModalProfileLink.href =
+        cafe && cafe.id
+          ? `/cafe-public.html?id=${encodeURIComponent(String(cafe.id))}`
+          : "#";
+    }
+
+    el.cafeModalBackdrop.style.display = "flex";
+
+    try {
+      const profile = await getCafeProfile(cafe.id);
+      if (profile) {
+        const about = profile.about ? String(profile.about).trim() : "";
+        if (about && el.cafeModalAbout) {
+          el.cafeModalAbout.textContent = about;
+          el.cafeModalAbout.style.display = "block";
+        } else if (el.cafeModalAboutEmpty) {
+          el.cafeModalAboutEmpty.style.display = "block";
+        }
+
+        const images = Array.isArray(profile.images)
+          ? profile.images.filter(Boolean)
+          : [];
+        if (images.length && el.cafeModalImage && el.cafeModalImageWrap) {
+          el.cafeModalImage.src = images[0];
+          el.cafeModalImageWrap.style.display = "block";
+        }
+        if (images.length > 1 && el.cafeModalGallery) {
+          for (const src of images.slice(1, 6)) {
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "";
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.addEventListener("click", () => {
+              try {
+                if (el.cafeModalImage) el.cafeModalImage.src = src;
+                if (el.cafeModalImageWrap)
+                  el.cafeModalImageWrap.style.display = "block";
+              } catch (e) {}
+            });
+            el.cafeModalGallery.appendChild(img);
+          }
+        }
+      }
+    } catch (e) {}
+
+    if (el.cafeModalAddBtn) {
+      el.cafeModalAddBtn.onclick = () => {
+        addCafeToWallet(cafe.cafeAddress);
+        closeCafeModal();
+        navSetActive("wallet");
+        scrollToPanel(el.walletPanel);
+      };
+    }
+  }
+
+  async function bootAuthed() {
+    // Render wallet immediately (from favorites) without waiting on cafes.
+    await refreshWallet().catch(() => {});
+
+    const cafesPromise = loadCafes().catch(() => {});
+    await cafesPromise;
+    renderMapList();
+
+    // Re-render wallet once cafes are known (names/themes/logos).
+    await refreshWallet().catch(() => {});
+
+    // Leaflet is loaded with defer; poll until ready.
+    let tries = 0;
+    const timer = window.setInterval(() => {
+      tries++;
+      initMapIfReady();
+      if (leafletMap || tries > 40) {
+        window.clearInterval(timer);
+      }
+    }, 120);
+
+    await refreshWallet().catch(() => {});
+
+    if (activeNav === "history") {
+      if (el.historyPanel) el.historyPanel.style.display = "block";
+      await refreshHistory().catch(() => {});
+    }
+  }
+
+  function wireNavigation() {
+    if (el.mainModeHome) {
+      el.mainModeHome.addEventListener("click", () => {
+        navSetActive("home");
+        if (el.historyPanel) el.historyPanel.style.display = "none";
+        scrollToPanel(el.mapPanel);
+      });
+    }
+    if (el.mainModeMap) {
+      el.mainModeMap.addEventListener("click", () => {
+        navSetActive("map");
+        if (el.historyPanel) el.historyPanel.style.display = "none";
+        scrollToPanel(el.mapPanel);
+      });
+    }
+    if (el.mainModeWallet) {
+      el.mainModeWallet.addEventListener("click", () => {
+        navSetActive("wallet");
+        if (el.historyPanel) el.historyPanel.style.display = "none";
+        scrollToPanel(el.walletPanel);
+      });
+    }
+    if (el.mainModeHistory) {
+      el.mainModeHistory.addEventListener("click", () => {
+        navSetActive("history");
+        if (el.historyPanel) el.historyPanel.style.display = "block";
+        void refreshHistory();
+        scrollToPanel(el.historyPanel);
+      });
+    }
+  }
+
+  function wireModalAndPick() {
+    if (el.discoverPickAddBtn) {
+      el.discoverPickAddBtn.addEventListener("click", () => {
+        if (!pickedCafe) return;
+        addCafeToWallet(pickedCafe.cafeAddress);
+        hideDiscoverPick();
+        navSetActive("wallet");
+        scrollToPanel(el.walletPanel);
+      });
+    }
+    if (el.cafeModalClose) {
+      el.cafeModalClose.addEventListener("click", closeCafeModal);
+    }
+    if (el.cafeModalBackdrop) {
+      el.cafeModalBackdrop.addEventListener("click", (ev) => {
+        if (ev.target === el.cafeModalBackdrop) closeCafeModal();
+      });
+    }
+  }
+
+  function wireAuth() {
+    if (el.modeRegister)
+      el.modeRegister.addEventListener("click", () => setAuthMode("register"));
+    if (el.modeLogin)
+      el.modeLogin.addEventListener("click", () => setAuthMode("login"));
+    if (el.authSubmit)
+      el.authSubmit.addEventListener("click", () => void handleAuthSubmit());
+  }
+
+  function wireLogout() {
+    if (!el.logoutBtn) return;
+    el.logoutBtn.addEventListener("click", () => {
+      clearSession();
+      teardownMap();
+      if (el.historyPanel) el.historyPanel.style.display = "none";
+      if (el.walletList) el.walletList.innerHTML = "";
+      if (el.walletEmpty) el.walletEmpty.style.display = "block";
+      navSetActive("home");
+      setAuthedUI();
+    });
+  }
+
+  function main() {
+    if (isIOS()) {
+      try {
+        document.documentElement.classList.add("ios");
+      } catch (e) {}
+    }
+    setBuildBadge();
+    wireAuth();
+    wireLogout();
+    wireNavigation();
+    wireModalAndPick();
+
+    const s = loadSession();
+    if (s) saveSession(s);
+    setAuthedUI();
+    setAuthMode("register");
+    navSetActive("home");
+
+    if (session && session.address) {
+      void bootAuthed().finally(setBootOk);
+    } else {
+      setBootOk();
+    }
+  }
+
+  main();
+})();
+/*
+ * Legacy customer app (flippable stamp card) — DISABLED.
+ *
+ * This block was accidentally concatenated onto the modern wallet UI script.
+ * Leaving it here (commented) to keep the diff small and to avoid accidental
+ * reintroduction. It must not execute because it overrides DOM/state.
+ 
 // Customer app (no manual wallet input): signup/login with username+email,
 // then show a flippable stamp card and cafe-bound QR.
 (function () {
@@ -1361,3 +2221,4 @@
 
   boot();
 })();
+*/

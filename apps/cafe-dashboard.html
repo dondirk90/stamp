@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
@@ -368,9 +368,8 @@
           }, 30000);
         } catch (err) {
           console.error("Init error:", err);
-          document.getElementById(
-            "loading"
-          ).textContent = `Fehler: ${err.message}`;
+          document.getElementById("loading").textContent =
+            `Fehler: ${err.message}`;
         }
       }
 
@@ -379,7 +378,7 @@
           `/cafes/me/overview?eventsLimit=50&customers=50`,
           {
             headers: { Authorization: `Bearer ${cafe.token}` },
-          }
+          },
         );
 
         const stats = overview.stats || {};
@@ -402,7 +401,7 @@
             minute: "2-digit",
             second: "2-digit",
           })}`,
-          ""
+          "",
         );
       }
 
@@ -429,8 +428,8 @@
             return `
               <tr>
                 <td><strong>${who}</strong><div class="muted mono">${shortAddr(
-              c.address
-            )}</div></td>
+                  c.address,
+                )}</div></td>
                 <td class="mono">${Number(c.netStamps || 0)}</td>
                 <td class="mono">${Number(c.stampsAwarded || 0)}</td>
                 <td class="mono">${Number(c.redemptions || 0)}</td>
@@ -455,25 +454,37 @@
 
         tbody.innerHTML = events
           .map((e) => {
-            const delta = Number(e.delta || 0);
-            const isRedeem = delta < 0;
+            const delta = Number((e && e.delta) || 0);
+
+            // Support both API shapes:
+            // - DB rows:   { ts, cafe, user, customer_name, txhash, event_type, delta }
+            // - Summaries: { timestamp, customer, customerName, txHash, eventType, delta }
+            const ts =
+              (e && (e.ts ?? e.timestamp ?? e.createdAt ?? e.time)) || null;
+            const user = (e && (e.user || e.customer || e.address)) || null;
+            const who =
+              (e && (e.customerName || e.customer_name)) || shortAddr(user);
+
+            const typ = String(
+              (e && (e.eventType || e.event_type)) ||
+                (delta < 0 ? "redeem" : "stamp"),
+            ).toLowerCase();
+            const isRedeem = typ === "redeem" || delta < 0;
             const badge = isRedeem
               ? '<span class="badge badge-redemption">🎁 Redeem</span>'
               : '<span class="badge badge-success">☕ Stamp</span>';
 
-            const tx = e.txhash || e.tx_id || e.tx || "";
+            const tx = (e && (e.txhash || e.txHash || e.tx_id || e.tx)) || "";
             const txCell = tx
               ? `<span class="mono">${shortAddr(tx)}</span>`
               : "—";
 
-            const who = e.customerName || shortAddr(e.user);
-
             return `
               <tr>
-                <td class="mono">${fmtTs(e.ts)}</td>
+                <td class="mono">${fmtTs(ts)}</td>
                 <td><strong>${who}</strong><div class="muted mono">${shortAddr(
-              e.user
-            )}</div></td>
+                  user,
+                )}</div></td>
                 <td class="mono">${delta}</td>
                 <td>${badge}</td>
                 <td>${txCell}</td>

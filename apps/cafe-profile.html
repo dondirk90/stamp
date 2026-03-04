@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
@@ -91,7 +91,8 @@
         border-radius: 999px;
         border: 1px solid var(--border);
         background: var(--surface-muted);
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
         display: none;
       }
 
@@ -102,6 +103,53 @@
       .msg {
         font-size: 13px;
         color: var(--text-muted);
+      }
+
+      .galleryList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+      }
+
+      .galleryItem {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .galleryItem img {
+        width: 100%;
+        height: 96px;
+        object-fit: cover;
+        display: block;
+        background: var(--surface-muted);
+      }
+
+      .galleryItem .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        padding: 10px;
+      }
+
+      .galleryItem .meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .galleryItem button {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        cursor: pointer;
+        font-weight: 800;
       }
     </style>
   </head>
@@ -198,6 +246,23 @@
               maxlength="1200"
               placeholder="Kurze Beschreibung: Was macht euer Café besonders? Öffnungszeiten? Spezialitäten?"
             ></textarea>
+            <div class="muted" style="margin-top: 8px">
+              Formatierung: <strong>**fett**</strong>, Überschrift:
+              <strong># Groß</strong> oder <strong>## Mittel</strong>.
+            </div>
+            <div
+              class="card"
+              style="
+                margin-top: 10px;
+                padding: 12px 14px;
+                background: var(--surface-muted);
+              "
+            >
+              <div class="muted" style="margin-bottom: 6px; font-weight: 800">
+                Vorschau
+              </div>
+              <div id="profileAboutPreview" style="color: var(--text)"></div>
+            </div>
           </div>
 
           <div>
@@ -233,6 +298,36 @@
             </div>
           </div>
 
+          <div>
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Kartendesign
+            </div>
+            <select id="profileCardTheme" class="input" style="width: 100%">
+              <option value="paper">Paper (Standard)</option>
+              <option value="clean">Clean (Weiß)</option>
+              <option value="ink">Ink (Dunkel)</option>
+            </select>
+            <div class="muted" style="margin-top: 6px">
+              Das Design wird in der Kunden-Wallet automatisch verwendet.
+            </div>
+          </div>
+
+          <div>
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Bilder (optional)
+            </div>
+            <input
+              id="profileGallery"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+            />
+            <div class="muted" style="margin-top: 6px">
+              Ein Titelbild (Cover). Wenn du ein neues Bild auswählst, ersetzt
+              es das alte.
+            </div>
+            <div id="galleryList" class="galleryList"></div>
+          </div>
+
           <div class="logoRow" style="justify-content: space-between">
             <button class="btn" id="profileSaveBtn" type="button">
               Speichern
@@ -255,6 +350,8 @@
 
       let profileState = {
         logoDataUrl: null,
+        images: [],
+        cardTheme: "paper",
       };
 
       async function resolveApiBase() {
@@ -293,6 +390,42 @@
           reader.readAsDataURL(file);
         });
       }
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatRichText(raw) {
+        const src = String(raw || "");
+        if (!src.trim()) return "";
+        const lines = src.split(/\r?\n/);
+        const out = [];
+        for (const line of lines) {
+          const trimmed = String(line || "").trim();
+          if (!trimmed) {
+            out.push('<div style="height:10px"></div>');
+            continue;
+          }
+          let tag = "div";
+          let style = "font-weight:700;font-size:13px;line-height:1.45";
+          let content = trimmed;
+          if (/^##\s+/.test(content)) {
+            style = "font-weight:950;font-size:15px;line-height:1.2";
+            content = content.replace(/^##\s+/, "");
+          } else if (/^#\s+/.test(content)) {
+            style = "font-weight:950;font-size:18px;line-height:1.15";
+            content = content.replace(/^#\s+/, "");
+          }
+          let safe = escapeHtml(content);
+          safe = safe.replace(/\*\*([^*][\s\S]*?)\*\*/g, "<strong>$1</strong>");
+          out.push(`<${tag} style="${style}">${safe}</${tag}>`);
+        }
+        return out.join("");
+      }
 
       function renderProfile(cafeInfo) {
         const aboutEl = document.getElementById("profileAbout");
@@ -301,6 +434,7 @@
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
+        const themeEl = document.getElementById("profileCardTheme");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -325,6 +459,11 @@
         aboutEl.value =
           cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
 
+        const aboutPreview = document.getElementById("profileAboutPreview");
+        if (aboutPreview) {
+          const txt = String(aboutEl.value || "");
+          aboutPreview.innerHTML = formatRichText(txt);
+        }
         if (redeemEl) {
           redeemEl.value =
             cafeInfo && cafeInfo.redeemMessage
@@ -336,12 +475,157 @@
             ? String(cafeInfo.logoDataUrl)
             : null;
 
+        // Keep the current selection if the API response doesn't include a theme.
+        const allowedThemes = new Set(["paper", "clean", "ink"]);
+        const incomingTheme =
+          cafeInfo && cafeInfo.cardTheme != null
+            ? String(cafeInfo.cardTheme).trim().toLowerCase()
+            : "";
+        const currentUiTheme = themeEl
+          ? String(themeEl.value || "")
+              .trim()
+              .toLowerCase()
+          : "";
+        const nextTheme = allowedThemes.has(incomingTheme)
+          ? incomingTheme
+          : allowedThemes.has(currentUiTheme)
+            ? currentUiTheme
+            : allowedThemes.has(
+                  String(profileState.cardTheme || "").toLowerCase(),
+                )
+              ? String(profileState.cardTheme).toLowerCase()
+              : "paper";
+
+        profileState.cardTheme = nextTheme;
+        if (themeEl) themeEl.value = nextTheme;
+
         if (profileState.logoDataUrl) {
           logoPreview.src = profileState.logoDataUrl;
           logoPreview.style.display = "block";
         } else {
           logoPreview.removeAttribute("src");
           logoPreview.style.display = "none";
+        }
+      }
+
+      function renderGallery(images) {
+        const list = document.getElementById("galleryList");
+        if (!list) return;
+        list.innerHTML = "";
+        const arr = Array.isArray(images) ? images : [];
+        if (!arr.length) {
+          list.innerHTML =
+            '<div class="muted" style="grid-column: 1 / -1">Noch keine Bilder hochgeladen.</div>';
+          return;
+        }
+        for (const img of arr) {
+          if (!img || !img.dataUrl) continue;
+          const wrap = document.createElement("div");
+          wrap.className = "galleryItem";
+
+          const imageEl = document.createElement("img");
+          imageEl.src = String(img.dataUrl);
+          imageEl.alt = "Café Bild";
+
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = img.createdAt
+            ? new Date(Number(img.createdAt)).toLocaleString()
+            : "";
+
+          const del = document.createElement("button");
+          del.type = "button";
+          del.textContent = "Entfernen";
+          del.addEventListener("click", async () => {
+            if (!cafe || !img.id) return;
+            if (!confirm("Bild wirklich löschen?")) return;
+            try {
+              await apiFetch(
+                `/cafes/me/images/${encodeURIComponent(String(img.id))}`,
+                {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${cafe.token}` },
+                },
+              );
+              await refreshGallery();
+              setMsg("Bild entfernt ✔️");
+            } catch (e) {
+              setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+            }
+          });
+
+          bar.appendChild(meta);
+          bar.appendChild(del);
+          wrap.appendChild(imageEl);
+          wrap.appendChild(bar);
+          list.appendChild(wrap);
+        }
+      }
+
+      async function refreshGallery() {
+        if (!cafe) return;
+        try {
+          const data = await apiFetch("/cafes/me/images", {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          const images = data && data.images ? data.images : [];
+          profileState.images = Array.isArray(images) ? images : [];
+          renderGallery(profileState.images);
+        } catch (e) {
+          renderGallery([]);
+        }
+      }
+
+      async function uploadGalleryFiles(files) {
+        if (!cafe) return;
+        const arr = files ? Array.from(files) : [];
+        if (!arr.length) return;
+        setMsg("Lade Bilder hoch…");
+        // Single cover image UX: replace existing images with the new one.
+        const file = arr[0];
+        if (!file) return;
+        try {
+          if (file.size > 450 * 1024) {
+            throw new Error(
+              "Bild zu groß (max ~450KB). Bitte kleineres Bild wählen.",
+            );
+          }
+          setMsg("Bild wird hochgeladen…");
+
+          // Delete existing images first
+          await refreshGallery();
+          for (const img of Array.isArray(profileState.images)
+            ? profileState.images
+            : []) {
+            if (!img || !img.id) continue;
+            try {
+              await apiFetch(
+                `/cafes/me/images/${encodeURIComponent(String(img.id))}`,
+                {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${cafe.token}` },
+                },
+              );
+            } catch (e) {}
+          }
+
+          const dataUrl = await readFileAsDataUrl(file);
+          await apiFetch("/cafes/me/images", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({ dataUrl }),
+          });
+
+          await refreshGallery();
+          setMsg("Bild aktualisiert ✔️");
+        } catch (e) {
+          console.error("Cover upload failed", e);
+          setMsg(`Fehler: ${e && e.message ? e.message : e}`);
         }
       }
 
@@ -352,6 +636,7 @@
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
+        const themeEl = document.getElementById("profileCardTheme");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -367,7 +652,7 @@
           if (file) {
             if (file.size > 220 * 1024) {
               throw new Error(
-                "Logo zu groß (max ~220KB). Bitte kleineres Bild wählen."
+                "Logo zu groß (max ~220KB). Bitte kleineres Bild wählen.",
               );
             }
             logoDataUrl = await readFileAsDataUrl(file);
@@ -381,6 +666,11 @@
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
           const lng = lngEl ? String(lngEl.value || "").trim() : "";
+          const cardTheme = themeEl
+            ? String(themeEl.value || "")
+                .trim()
+                .toLowerCase()
+            : "";
 
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
@@ -395,8 +685,11 @@
               locationAddress: locationAddress || null,
               lat: lat || null,
               lng: lng || null,
+              cardTheme: cardTheme || null,
             }),
           });
+
+          if (cardTheme) profileState.cardTheme = cardTheme;
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
@@ -444,6 +737,28 @@
           const btn = document.getElementById("profileSaveBtn");
           if (btn) btn.addEventListener("click", saveProfile);
 
+          const aboutEl = document.getElementById("profileAbout");
+          const aboutPreview = document.getElementById("profileAboutPreview");
+          if (aboutEl && aboutPreview) {
+            aboutEl.addEventListener("input", () => {
+              try {
+                aboutPreview.innerHTML = formatRichText(aboutEl.value || "");
+              } catch (e) {}
+            });
+          }
+
+          const galleryInput = document.getElementById("profileGallery");
+          if (galleryInput) {
+            galleryInput.addEventListener("change", async () => {
+              try {
+                const files = galleryInput.files;
+                await uploadGalleryFiles(files);
+              } finally {
+                galleryInput.value = "";
+              }
+            });
+          }
+
           const logoInput = document.getElementById("profileLogo");
           const logoPreview = document.getElementById("profileLogoPreview");
           if (logoInput && logoPreview) {
@@ -474,10 +789,12 @@
             "/cafes/me/overview?eventsLimit=5&customers=5",
             {
               headers: { Authorization: `Bearer ${cafe.token}` },
-            }
+            },
           );
 
           renderProfile(overview && overview.cafe ? overview.cafe : null);
+
+          await refreshGallery();
 
           document.getElementById("loadingCard").style.display = "none";
           document.getElementById("profileCard").style.display = "block";

@@ -1,108 +1,90 @@
-# 🚀 Quick Start — Smartphone QR Scanning
+# Quick Start — Customer Flow (off-chain)
 
-## Was du brauchst (vor dem Start)
+Dieses Projekt läuft vollständig **off-chain** (SQLite Ledger + SSE). Kein API-Key, keine Wallet/Private Keys.
 
-- Computer und Smartphone im gleichen WiFi
-- Terminal-Fenster(1): API Server
-- Terminal-Fenster 2: Apps Server
-- Browser auf Computer und Smartphone
+## Voraussetzungen
 
----
+- Computer und Smartphone im gleichen Wi‑Fi
+- 2 Terminals: API + Apps
 
-## ⚡ 3-Schritt Setup
+## Starten
 
-### Terminal 1: API starten
+### Terminal 0 (optional): Postgres (recommended)
+
+If you are using Postgres locally (recommended for cloud-only parity):
 
 ```powershell
-cd C:\Users\dirkb\Documents\GitHub\stamp
+cd D:\stamp
+docker compose -f infra/docker/docker-compose.yml up -d
+```
+
+Set `DATABASE_URL` (PowerShell example):
+
+```powershell
+$env:DATABASE_URL = "postgres://stempel:stempel@127.0.0.1:5432/stempel"
+pnpm run db:migrate
+```
+
+### Terminal 1: API
+
+```powershell
+cd D:\stamp
 pnpm run dev
+# alternativ:
+# node api/server.cjs
 ```
 
-**Erwartet:** `🚀 API listening on http://127.0.0.1:3000`
+Erwartet: API auf `http://127.0.0.1:3000`
 
-### Terminal 2: Apps Server starten
+### Terminal 2: Apps
 
 ```powershell
-cd C:\Users\dirkb\Documents\GitHub\stamp\apps
-node server.cjs
+cd D:\stamp
+node apps/server.cjs
 ```
 
-**Erwartet:** `📱 Apps Server running on http://localhost:8080`
+Erwartet: Apps auf `http://localhost:8080`
 
-### Deine LAN-IP herausfinden
+### LAN-IP (für Smartphone-URL)
 
 ```powershell
-ipconfig
+ipconfig | Select-String -Pattern 'IPv4'
 ```
 
-**Suche:** "IPv4-Adresse" unter WiFi (z.B. `192.168.1.100`)
+## URLs
 
----
+- Computer: `http://localhost:8080`
+- Smartphone: `http://<LAN_IP>:8080`
 
-## 🌐 URLs
+## Test (End-to-End)
 
-| Geräte         | API                         | Apps                        |
-| -------------- | --------------------------- | --------------------------- |
-| **Computer**   | `http://127.0.0.1:3000`     | `http://localhost:8080`     |
-| **Smartphone** | `http://192.168.1.100:3000` | `http://192.168.1.100:8080` |
+1. Computer: Café anlegen / einloggen
 
-_Ersetze `192.168.1.100` mit deiner tatsächlichen LAN-IP_
+- `http://localhost:8080/cafe-onboarding.html`
 
----
+2. Computer: Café Scanner öffnen
 
-## ✅ Test durchführen
+- `http://localhost:8080/cafe-scanner-new.html`
 
-### 1️⃣ Cafe-App (Computer)
+3. Smartphone: Customer öffnen
 
-- Öffne: **`http://localhost:8080/cafe/`**
-- API Base: `http://127.0.0.1:3000`
-- Klick: **"Issue QR"**
-- ➜ QR-Code wird auf Bildschirm angezeigt
+- `http://<LAN_IP>:8080/customer-qr.html`
+- Registrieren oder Login
+- Café auswählen
+- Auf die Stempelkarte tippen (QR anzeigen)
 
-### 2️⃣ Customer-App (Smartphone)
+4. Stempel setzen
 
-- Öffne: **`http://192.168.1.100:8080/customer/`**
-- API Base: `http://192.168.1.100:3000`
-- Private Key: `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`
-- Klick: **"Start Camera"**
-- ➜ Gib Smartphone-Kamera-Erlaubnis
+- Im Café Scanner den QR scannen → es sollte ein "Stempel erhalten" Toast kommen
 
-### 3️⃣ QR Scannen
+5. Einlösen (nur wenn Karte voll)
 
-- Smartphone-Kamera auf Computer-Bildschirm richten (wo QR-Code angezeigt)
-- QR wird automatisch gescannt
-- Payload wird im Customer-App angezeigt
+- Im Customer-QR: QR-Modus "Einlösen" auswählen und QR scannen
+- Erwartet: "Eingelöst" Toast
+- Beim erneuten Scannen derselben Einlöse-QR: klare Meldung "bereits benutzt" (single-use)
 
-### 4️⃣ Sign & Send
+## Troubleshooting
 
-- Klick: **"Sign & Send"**
-- ➜ Signatur wird erstellt, API wird aufgerufen
-- Result: `{"success": true, "txHash": "0x..."}`
-- ✅ Transaktion erfolgreich!
-
----
-
-## 🔧 Troubleshooting
-
-| Problem                         | Lösung                                                |
-| ------------------------------- | ----------------------------------------------------- |
-| "Cannot GET" auf Smartphone     | Apps Server läuft? (`node server.cjs`)                |
-| "Cannot connect to API"         | API läuft? (`pnpm run dev`) Firewall Port 3000 offen? |
-| "Camera permission denied"      | Browser-Erlaubnis geben (Browser-Einstellungen)       |
-| Smartphone sieht Computer nicht | Beide im gleichen WiFi? LAN-IP korrekt?               |
-| QR-Code wird nicht gescannt     | QR muss groß genug sein, gute Lichtverhältnisse       |
-
----
-
-## 📱 Fortgeschrittene Tipps
-
-- **Web-Server nicht erreichbar?** Firewall prüfen: Port 3000 (API) & Port 8080 (Apps) erlauben
-- **IP ändert sich?** Statische IP im Router setzen oder DynDNS verwenden
-- **Mehrere Smartphones?** Jedes kann die gleiche URL `192.168.1.100:8080` nutzen
-- **Von außerhalb testen?** Ngrok oder Tailscale verwenden (siehe README)
-
----
-
-## 🎉 Fertig!
-
-Du kannst jetzt QR-Codes auf deinem Smartphone scannen und Transaktionen signieren. Genießen!
+- Smartphone lädt Seite nicht: Windows-Firewall → eingehend `node.exe` für Port 8080 erlauben
+- Customer zeigt keine Cafés: erst ein Café anlegen und prüfen, ob es im Public Listing ist
+- Kein Live-Update: Seite neu laden (SSE verbindet dann neu)

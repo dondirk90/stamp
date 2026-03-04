@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Customer — Profil</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: var(--space-5);
+      }
+
+      .shell {
+        max-width: 820px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .panel {
+        padding: var(--space-5);
+      }
+
+      .formRow {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+
+      @media (min-width: 720px) {
+        .formRow {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: var(--space-4) 0;
+      }
+
+      .smallHint {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .tokenBox {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        word-break: break-all;
+      }
+
+      a.btn {
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div class="container">
+        <div class="notice danger">JavaScript ist deaktiviert.</div>
+      </div>
+    </noscript>
+
+    <div class="shell">
+      <div class="topbar">
+        <div class="stack" style="gap: 4px">
+          <h1>Profil</h1>
+          <div class="subtitle" id="buildBadge">build</div>
+        </div>
+        <div class="row">
+          <a class="btn secondary" href="/customer-qr.html">Zurück</a>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="row" style="justify-content: space-between">
+          <div class="stack" style="gap: 6px">
+            <div class="badge" id="sessionBadge">Nicht eingeloggt</div>
+            <div class="smallHint" id="profileSub">
+              Verwalte deine Zugangsdaten.
+            </div>
+          </div>
+          <button
+            class="btn secondary"
+            id="logoutBtn"
+            type="button"
+            style="display: none"
+          >
+            Logout
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div id="notLoggedIn" class="notice" style="display: none">
+          Du bist nicht eingeloggt. Du kannst trotzdem einen Reset-Link
+          anfordern.
+        </div>
+
+        <div id="authedOnly" class="stack" style="display: none">
+          <div class="stack" style="gap: 6px">
+            <div style="font-weight: 900; color: var(--brand)">Account</div>
+            <div class="tokenBox" id="profileInfo"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="stack" style="gap: 10px">
+            <div style="font-weight: 900; color: var(--brand)">
+              Passwort ändern
+            </div>
+            <div class="formRow">
+              <div class="stack" style="gap: 6px">
+                <label for="currentPassword">Aktuelles Passwort</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  autocomplete="current-password"
+                />
+              </div>
+              <div></div>
+              <div class="stack" style="gap: 6px">
+                <label for="newPassword">Neues Passwort</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="stack" style="gap: 6px">
+                <label for="newPassword2">Neues Passwort bestätigen</label>
+                <input
+                  id="newPassword2"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
+            </div>
+            <button class="btn primary" id="changePwBtn" type="button">
+              Passwort ändern
+            </button>
+            <div id="changePwMsg" class="notice" style="display: none"></div>
+            <div class="smallHint">
+              Aus Sicherheitsgründen brauchst du dein aktuelles Passwort.
+            </div>
+          </div>
+
+          <div class="divider"></div>
+        </div>
+
+        <div id="forgotPanel" class="stack" style="gap: 10px">
+          <div style="font-weight: 900; color: var(--brand)">
+            Passwort vergessen
+          </div>
+          <div class="formRow">
+            <div class="stack" style="gap: 6px">
+              <label for="resetEmail">E-Mail</label>
+              <input
+                id="resetEmail"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+              />
+            </div>
+            <div></div>
+          </div>
+          <button class="btn secondary" id="forgotPwBtn" type="button">
+            Reset-Link senden
+          </button>
+          <div id="forgotPwMsg" class="notice" style="display: none"></div>
+          <div id="devResetBox" style="display: none">
+            <div class="smallHint" style="margin-top: 6px">Dev: Reset-Link</div>
+            <div class="tokenBox" id="devResetUrl"></div>
+          </div>
+          <div class="smallHint">
+            Wenn die E-Mail existiert, bekommst du eine Nachricht. (Kein
+            Hinweis, ob der Account existiert.)
+          </div>
+        </div>
+
+        <div id="resetPanel" class="stack" style="display: none">
+          <div class="divider"></div>
+          <div style="font-weight: 900; color: var(--brand)">
+            Neues Passwort setzen
+          </div>
+          <div class="formRow">
+            <div class="stack" style="gap: 6px">
+              <label for="resetNewPw">Neues Passwort</label>
+              <input
+                id="resetNewPw"
+                type="password"
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="stack" style="gap: 6px">
+              <label for="resetNewPw2">Neues Passwort bestätigen</label>
+              <input
+                id="resetNewPw2"
+                type="password"
+                autocomplete="new-password"
+              />
+            </div>
+          </div>
+          <button class="btn primary" id="resetPwBtn" type="button">
+            Passwort setzen
+          </button>
+          <div id="resetPwMsg" class="notice" style="display: none"></div>
+          <div class="smallHint">
+            Der Link ist nur begrenzt gültig und kann nur einmal benutzt werden.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/customer-profile.js"></script>
+  </body>
+</html>

@@ -1,5 +1,19 @@
 Schritte (PowerShell / Windows):
 
+Cloud-only (Production) Hinweis:
+
+- In Production verwenden wir Postgres über `DATABASE_URL`.
+- Schema/Migrations laufen explizit vor dem API-Start: `pnpm run db:migrate`.
+
+Lokale Postgres-Variante (empfohlen, entspricht der Cloud):
+
+```powershell
+cd D:\stamp
+docker compose -f infra/docker/docker-compose.yml up -d
+$env:DATABASE_URL = "postgres://stempel:stempel@127.0.0.1:5432/stempel"
+pnpm run db:migrate
+```
+
 Starte das Backend/API:
 
 # direkt
@@ -10,6 +24,12 @@ node api/server.cjs
 
 pnpm run dev
 
+Wenn `DATABASE_URL` gesetzt ist, nutzt die API automatisch Postgres.
+Wenn `DATABASE_URL` NICHT gesetzt ist, nutzt die API lokal SQLite (Fallback).
+
+Hinweis: Starte entweder `node api/server.cjs` ODER `pnpm run dev` (nicht beides gleichzeitig),
+sonst ist Port 3000 doppelt belegt und `node api/server.cjs` endet mit "Port already in use".
+
 Die API im repo lauscht standardmäßig auf Port 3000 (siehe server.cjs).
 
 Starte den Apps-Server (statische Browser-Apps)
@@ -18,18 +38,118 @@ node apps/server.cjs
 
 Dieser startet einen kleinen Static-Server auf Port 8080 und zeigt beim Start direkt die wichtigsten URLs in der Console.
 
+UI / Design automatisch prüfen (Screenshots + harte Checks)
+
+Wenn du nach UI-Änderungen schnell prüfen willst, ob das Layout wirklich passt (Desktop + Mobile), nutze:
+
+```powershell
+cd D:\stamp
+pnpm run ui:shots -- --base http://127.0.0.1:8080 --strict
+```
+
+Die Ergebnisse landen unter:
+
+- `artifacts/ui-check/latest/*.png`
+- `artifacts/ui-check/latest/report.json`
+
+iPhone-Zugriff (stabil)
+
+LAN (gleiches Wi‑Fi):
+
+```powershell
+cd D:\stamp
+pnpm run share:ios -- --no-tunnel
+```
+
+Schnelltest (entscheidet sofort ob LAN grundsätzlich geht):
+
+- Öffne am iPhone zuerst: `http://<DEINE_LAN_IP>:8080/__ping`
+  - Wenn das NICHT lädt → das ist kein App-Problem, sondern Netzwerk/Firewall/Router (Client/AP-Isolation, Guest-WLAN, VLAN).
+  - Dann ist der Tunnel die nachhaltige Lösung.
+
+Wenn LAN am iPhone manchmal geht und manchmal nicht, ist es fast immer Windows-Firewall.
+Falls du KEINE Admin-Rechte hast (New-NetFirewallRule → Zugriff verweigert), nutze den Tunnel:
+
+```powershell
+cd D:\stamp
+pnpm run share:ios
+```
+
+Komfort (öffnet + kopiert die Public-URL am PC):
+
+## Tunnel (recommended fallback)
+
+Run (auto: tries localtunnel, falls back to Cloudflare quick tunnel):
+
+- `pnpm run share:ios -- --open`
+
+If localtunnel is flaky/down, force Cloudflare quick tunnel:
+
+- `pnpm run share:ios -- --tunnel cloudflared -- --open`
+
+This prints a public URL you can open on iPhone.
+
+```powershell
+cd D:\stamp
+pnpm run share:ios -- --open
+```
+
+Dann die ausgegebene `Public (...)` URL am iPhone öffnen (funktioniert auch ohne Firewall-Regeln, benötigt Internet).
+
+Tipp (Windows): URL schnell im Browser öffnen
+
+```powershell
+Start-Process "https://<public-tunnel-host>.loca.lt/customer-qr"
+# oder
+Start-Process "http://<DEINE_LAN_IP>:8080/customer-qr"
+```
+
+Nachhaltige Alternative ohne Router-Änderungen:
+
+- Windows "Mobiler Hotspot" aktivieren und iPhone mit diesem Hotspot verbinden.
+  - Dadurch ist Client-Isolation vom Router umgangen.
+  - Danach funktioniert `http://<PC-IP>:8080/__ping` in der Regel sofort.
+
+Saubere LAN-Lösung (einmalig, als Admin)
+
+Wenn du Admin bist, richte die Firewall-Regeln einmal sauber ein (Ports 8080 + 3000, Profil Private):
+
+```powershell
+cd D:\stamp
+pnpm run firewall:setup
+```
+
+Danach ist der Zugriff im selben WLAN stabil über die LAN-URL aus `pnpm run share:ios -- --no-tunnel`.
+
 Öffne die Apps (Beispiele)
 Im gleichen Rechner (Desktop):
 
+Start (Rollen-Auswahl): http://localhost:8080/
 LAN Setup: http://localhost:8080/lan-setup.html
-Café Onboarding (Registrierung/Login): http://localhost:8080/cafe-onboarding.html
-Customer — QR / History: http://localhost:8080/customer-qr.html
-Café Scanner (neu): http://localhost:8080/cafe-scanner-new.html
+Café Onboarding (Registrierung/Login): http://localhost:8080/cafe-onboarding
+Café Scanner: http://localhost:8080/cafe-scanner
+Customer App (Wallet/QR): http://localhost:8080/customer-qr
+Customer — Profil / Passwort: http://localhost:8080/customer-profile
+Customer — Cafés finden (Map): öffne Customer App und wähle den Tab „Karte“
 Alternatives Verzeichnis-Index (falls vorhanden): http://localhost:8080/cafe/ oder http://localhost:8080/customer/
 Vom Smartphone im selben Wi‑Fi: ersetze localhost durch deine LAN-IP (z.B. 192.168.1.100):
 
 Beispiel: http://192.168.1.100:8080/customer-qr
-So findest du deine LAN-IP auf Windows (PowerShell):
+
+Hinweis: Nutze bevorzugt die kanonischen Routen ohne ".html" (z.B. /customer-qr, /cafe-scanner).
+
+Wenn es am Smartphone NICHT lädt (häufigster Grund): Windows-Firewall / Netzwerkprofil
+
+1. Prüfe, dass dein Windows-Netzwerk auf "Privat" steht (nicht "Öffentlich").
+2. Erlaube eingehende Verbindungen für Port 8080 (Apps) und 3000 (API) auf Private-Netzwerke:
+
+PowerShell (als Administrator):
+
+New-NetFirewallRule -DisplayName "Stamp Apps (8080)" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080 -Profile Private
+New-NetFirewallRule -DisplayName "Stamp API (3000)" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private
+
+3. Router/Wi‑Fi prüfen: "AP isolation" / "Client isolation" / Gastnetz deaktivieren (sonst können Geräte sich nicht erreichen).
+   So findest du deine LAN-IP auf Windows (PowerShell):
 
 ipconfig | Select-String -Pattern 'IPv4'
 
@@ -41,5 +161,13 @@ CORS: Wenn du die Apps über http://localhost:8080 öffnest, laufen API Calls ü
 API-URLs: Falls du die API separat aufrufst, ist sie standardmäßig unter http://<LAN_IP>:3000 erreichbar.
 Firewall: Falls das Smartphone die Seite nicht lädt, prüfe Windows-Firewall (erlaube node.exe eingehende Verbindungen für Port 8080).
 Logs: Wenn etwas nicht klappt, sieh in die Terminals (API und Apps-Server) — sie loggen Requests & URLs.
+
+Wenn du im Browser siehst: `GET http://<LAN_IP>:8080/api/health 502 (Bad Gateway)`
+
+- Dann läuft die API auf Port 3000 gerade nicht (oder ist abgestürzt).
+- Lösung: Starte/halte die API am Laufen: `node api/server.cjs` (Terminal offen lassen) und lade die Seite neu.
+- Quick-Check im Browser:
+  - API direkt: `http://127.0.0.1:3000/health` (am PC)
+  - Proxy über Apps-Server: `http://<LAN_IP>:8080/api/health`
 
 Auth-Hinweis: Cafés melden sich per Email + Passwort an (keine API-Keys, keine Wallet). Die Web-Apps speichern danach ein Bearer-Token und senden es als `Authorization: Bearer <token>`.
