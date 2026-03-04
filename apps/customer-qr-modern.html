@@ -1,13 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
     <title>Customer — Stamp</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      /* New design: cafe-brown elements floating in a black, empty space */
+      :root {
+        --bg: #000000;
+        --surface: rgba(255, 255, 255, 0.06);
+        --surface-muted: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --text-muted: rgba(255, 255, 255, 0.62);
+        /* Minimal / scandi: no shadows */
+        --shadow-sm: none;
+        --shadow-md: none;
+        --shadow-lg: none;
+        --focus: rgba(255, 255, 255, 0.1);
+      }
+
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+      }
+
+      /* Boot fallback: visible only when JS boot takes too long. */
+      .bootOverlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+        background: var(--bg);
+        z-index: 9999;
+      }
+
+      .bootCard {
+        width: min(520px, 100%);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        padding: var(--space-4);
+        box-shadow: none;
+      }
+
+      .bootTitle {
+        font-weight: 950;
+        letter-spacing: -0.01em;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+
+      .bootSub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .bootDiag {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text);
+        opacity: 0.92;
+      }
+
+      /* Phones (portrait): reduce outer padding so the pass fits on screen */
+      @media (max-width: 520px) and (orientation: portrait) {
+        body {
+          padding: calc(var(--space-3) + var(--safe-top, 0px))
+            calc(var(--space-3) + var(--safe-right, 0px))
+            calc(var(--space-3) + var(--safe-bottom, 0px))
+            calc(var(--space-3) + var(--safe-left, 0px));
+        }
+
+        .topbar {
+          padding: var(--space-3);
+          margin-bottom: var(--space-3);
+        }
+      }
+
+      .card {
+        backdrop-filter: none;
       }
 
       .shell {
@@ -17,10 +105,88 @@
 
       .topbar {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-3);
         margin-bottom: var(--space-4);
+        flex-wrap: wrap;
+
+        padding: var(--space-4);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: none;
+      }
+
+      /* Strava-like top menu (mobile-first) */
+      .topMenu {
+        flex: 1 0 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+      }
+
+      .topMenuBtn {
+        flex: 0 0 auto;
+        width: 86px;
+        min-width: 0;
+        background: transparent !important;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        touch-action: manipulation;
+        color: var(--text) !important;
+      }
+
+      /* Avoid horizontal overflow on small phones (topbar has padding). */
+      @media (max-width: 420px) {
+        .topMenu {
+          justify-content: space-between;
+        }
+
+        .topMenuBtn {
+          width: auto;
+          flex: 1 1 0;
+        }
+      }
+
+      .topMenuBtn .ico {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        box-shadow: none;
+        margin: 0 auto;
+        font-weight: 950;
+        letter-spacing: 0.02em;
+        user-select: none;
+      }
+
+      .topMenuBtn .lbl {
+        display: block;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 6px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .topMenuBtn.active .ico {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .topMenuBtn.active .lbl {
+        color: var(--text);
       }
 
       .brand {
@@ -32,16 +198,35 @@
       .brand h1 {
         margin: 0;
         font-size: 18px;
+        line-height: 1.15;
+        font-weight: 950;
       }
 
       .brand .subtitle {
-        font-size: 13px;
+        font-size: 12px;
+      }
+
+      #buildBadge {
+        max-width: 260px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: var(--space-4);
+        min-width: 0;
+      }
+
+      .grid > * {
+        min-width: 0;
+      }
+
+      /* When authed we hide the auth panel; avoid leaving an empty desktop column */
+      .grid.authed {
+        grid-template-columns: 1fr !important;
       }
 
       @media (min-width: 860px) {
@@ -55,6 +240,31 @@
         padding: var(--space-5);
       }
 
+      .panelHeader {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+      }
+
+      .panelHeader h2,
+      .panelHeader h3 {
+        margin: 0;
+      }
+
+      .panelBody {
+        margin-top: var(--space-4);
+      }
+
+      .stack.tight {
+        gap: 2px;
+      }
+
+      .row.between {
+        justify-content: space-between;
+      }
+
       .seg {
         display: inline-flex;
         border: 1px solid var(--border);
@@ -62,15 +272,21 @@
         border-radius: 999px;
         padding: 4px;
         gap: 4px;
+        position: relative;
+        z-index: 2;
       }
 
       .seg button {
         border-radius: 999px;
-        padding: 8px 12px;
+        padding: 10px 14px;
+        min-height: 44px;
         font-weight: 800;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
+        cursor: pointer;
+        pointer-events: auto;
+        touch-action: manipulation;
       }
 
       .seg button.active {
@@ -98,6 +314,109 @@
 
       .navRow select {
         min-width: 260px;
+      }
+
+      /* Logged-in shell: left menu + main content */
+      .appGrid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+        align-items: start;
+      }
+
+      @media (min-width: 860px) {
+        .appGrid {
+          grid-template-columns: 260px 1fr;
+        }
+      }
+
+      .sidebar {
+        position: sticky;
+        top: var(--space-5);
+      }
+
+      .sideNav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: var(--space-4);
+      }
+
+      .sideNav button {
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sideNav button {
+        background: var(--surface-muted) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border);
+        font-weight: 800;
+        min-height: 44px;
+        padding: 12px 14px;
+      }
+
+      .sideNav button.active {
+        background: var(--surface) !important;
+        border-color: var(--brand);
+      }
+
+      .cafeList {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: var(--space-2);
+      }
+
+      .cafeList button {
+        width: 100%;
+        text-align: left;
+        background: var(--surface-muted) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border);
+        font-weight: 900;
+        min-height: 44px;
+        padding: 12px 14px;
+      }
+
+      .cafeList button.active {
+        background: var(--surface) !important;
+        border-color: var(--brand);
+      }
+
+      .cafeList .sub {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Wallet frame for the stamp card */
+      .walletWrap {
+        position: relative;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-3);
+        overflow: hidden;
+      }
+
+      .walletInner {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Let the wallet frame provide the depth; keep the card itself clean */
+      .walletWrap .face {
+        box-shadow: none;
       }
 
       /* Flip card */
@@ -148,10 +467,12 @@
       .cafeLogo {
         width: 32px;
         height: 32px;
-        border-radius: 999px;
+        border-radius: 10px;
         border: 1px solid var(--border);
         background: var(--surface-muted);
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
+        padding: 2px;
         display: none;
         flex: 0 0 auto;
       }
@@ -184,26 +505,42 @@
         gap: 10px;
         padding: 6px;
         border-radius: var(--radius-sm);
-        background: var(--surface-muted);
+        background: var(--surface);
         border: 1px solid var(--border);
       }
 
       .stamp {
         aspect-ratio: 1 / 1;
-        border-radius: 999px;
-        border: 2px dashed var(--border);
-        background: var(--surface);
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        background: var(--surface-muted);
         display: grid;
         place-items: center;
         font-weight: 900;
         color: var(--text-muted);
         user-select: none;
+        --stamp-jx: 0px;
+        --stamp-jy: 0px;
+        --stamp-jr: 0deg;
       }
 
       .stamp .stampIcon {
         width: 64%;
         height: 64%;
         display: block;
+        transition:
+          transform 160ms ease,
+          opacity 160ms ease;
+      }
+
+      .stamp.empty .stampIcon {
+        opacity: 0.18;
+      }
+
+      .stamp.filled .stampIcon {
+        opacity: 0.92;
+        transform: translate(var(--stamp-jx), var(--stamp-jy))
+          rotate(calc(-8deg + var(--stamp-jr)));
       }
 
       .stamp.empty {
@@ -211,11 +548,95 @@
       }
 
       .stamp.filled {
-        border-style: solid;
         border-color: var(--brand);
-        background: var(--brand-50);
+        background: transparent;
         color: var(--brand);
       }
+
+      /* Wallet-style: no colored panel behind stamps (only the 10 slots). */
+      .passCard .stampGrid,
+      .face .stampGrid {
+        background: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      /* Wallet pass: simple empty circles; filled stamps get an ink mark */
+      .passCard .stamp,
+      .face .stamp {
+        /* iOS Safari can sometimes fail to honor aspect-ratio for grid items;
+           ensure a stable square box so 999px radius renders as a circle. */
+        aspect-ratio: auto;
+        grid-template: 1fr / 1fr;
+        border-radius: 999px;
+        background: transparent;
+        border: 2px solid var(--pass-stamp-ring, rgba(32, 24, 20, 0.18));
+        color: var(--pass-ink, var(--brand-700));
+        position: relative;
+        overflow: hidden;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.3),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.06);
+      }
+
+      .passCard .stamp::before,
+      .face .stamp::before {
+        content: "";
+        grid-area: 1 / 1;
+        width: 100%;
+        padding-top: 100%;
+      }
+
+      .passCard .stamp > .stampIcon,
+      .face .stamp > .stampIcon {
+        grid-area: 1 / 1;
+      }
+
+      .passCard .stamp.empty,
+      .face .stamp.empty {
+        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.14));
+        background: transparent;
+      }
+
+      .passCard .stamp.filled,
+      .face .stamp.filled {
+        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.24));
+        background: transparent;
+      }
+
+      @keyframes inkStampIn {
+        0% {
+          opacity: 0;
+          transform: translate(var(--stamp-jx), var(--stamp-jy))
+            rotate(calc(-18deg + var(--stamp-jr))) scale(1.18);
+        }
+        55% {
+          opacity: 1;
+          transform: translate(var(--stamp-jx), var(--stamp-jy))
+            rotate(calc(-10deg + var(--stamp-jr))) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(var(--stamp-jx), var(--stamp-jy))
+            rotate(calc(-10deg + var(--stamp-jr))) scale(1);
+        }
+      }
+
+      /* Minimal: no bloom / shading layer */
+      .passCard .stamp.filled::after,
+      .face .stamp.filled::after {
+        display: none;
+      }
+
+      .passCard .stamp.filled .stampIcon,
+      .face .stamp.filled .stampIcon {
+        opacity: 0.92;
+        will-change: transform, opacity;
+        animation: inkStampIn 420ms cubic-bezier(0.2, 0.95, 0.22, 1) both;
+      }
+
+      /* The base .stampIcon transitions are defined globally; wallet pass overrides above. */
 
       .qrBox {
         display: grid;
@@ -310,9 +731,1006 @@
         pointer-events: none;
         user-select: none;
       }
+
+      .mapBox {
+        width: 100%;
+        height: min(52vh, 420px);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        background: var(--surface-muted);
+      }
+
+      @media (min-width: 860px) {
+        .mapBox {
+          height: min(58vh, 520px);
+        }
+      }
+
+      /* Home layout: Map hero + Wallet dock */
+      .home {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        min-width: 0;
+      }
+
+      .home > * {
+        min-width: 0;
+      }
+
+      .mapHero {
+        padding: var(--space-4);
+      }
+
+      .mapStage {
+        position: relative;
+        margin-top: var(--space-3);
+      }
+
+      #mapList {
+        margin-top: var(--space-3);
+      }
+
+      #discoverPickName {
+        font-weight: 950;
+      }
+
+      #discoverPickAddr {
+        font-size: 12px;
+      }
+
+      /* Floating pick overlay (modern, wallet-like) */
+      .discoverPickOverlay {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + var(--safe-bottom, 0px));
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: none;
+        padding: 10px 12px;
+        backdrop-filter: none;
+      }
+
+      .walletDock {
+        padding: var(--space-4);
+        /* iOS Safari: perspective on a scroll container is buggy; apply it on the non-scrolling parent */
+        perspective: 1200px;
+        -webkit-perspective: 1200px;
+        perspective-origin: 50% 50%;
+        -webkit-perspective-origin: 50% 50%;
+        --wheel-rx: 6deg;
+      }
+
+      /* Wallet: black space with a single card in focus.
+         The panel is only a layout container (no "window" behind the card). */
+      #walletPanel.walletDock {
+        width: min(760px, 96vw);
+        margin-left: auto;
+        margin-right: auto;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        overflow: visible;
+      }
+
+      #walletPanel.walletDock h3 {
+        color: var(--brand-700);
+      }
+
+      #walletPanel.walletDock .hint {
+        color: rgba(32, 24, 20, 0.62);
+      }
+
+      /* In Wallet tab, reduce padding so the card "floats" on black. */
+      html.walletMode #walletPanel.walletDock {
+        padding: 0;
+      }
+
+      html.walletMode .walletDockHead {
+        padding: 0 var(--space-1);
+      }
+
+      /* Wallet label away: show only the card on black. */
+      html.walletMode #walletPanel .walletDockHead {
+        display: none;
+      }
+
+      html.walletMode .walletCarousel {
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      /* Mobile/WebView: slightly flatter for smoother motion */
+      @media (hover: none) and (pointer: coarse) {
+        .walletDock {
+          --wheel-rx: 3deg;
+        }
+      }
+
+      /* iOS Safari tends to jank with heavy 3D; keep it subtle */
+      .ios .walletDock {
+        --wheel-rx: 2deg;
+      }
+
+      .walletDockHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+      }
+
+      #walletSubtitle {
+        max-width: 360px;
+        text-align: right;
+      }
+
+      @media (max-width: 520px) {
+        #walletSubtitle {
+          max-width: none;
+          text-align: left;
+        }
+      }
+
+      .walletCarousel {
+        --cardW: min(360px, 84vw, 62svh);
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+        overflow-y: visible;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        min-width: 0;
+        padding: 14px 14px;
+        scroll-padding-left: 50%;
+        scroll-padding-right: 50%;
+        max-width: 100%;
+        /* Safari: keep the scroller itself “flat”, use parent perspective */
+        perspective: none;
+        -webkit-perspective: none;
+        transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
+      }
+
+      /* Allow slight overlap like a wallet stack (works with scroll-snap). */
+      .walletCarousel .passCard + .passCard {
+        margin-left: -108px;
+      }
+
+      @media (max-width: 520px) {
+        .walletCarousel .passCard + .passCard {
+          margin-left: -78px;
+        }
+      }
+
+      /* Make individual cards read as separate layers. */
+      .walletCarousel .passCard {
+        box-shadow: none;
+        will-change: transform;
+      }
+
+      /* During active scrolling, disable transitions to avoid jitter. */
+      .walletCarousel.isScrolling .passCard {
+        transition: none !important;
+      }
+
+      /* iOS Wallet-like stack: only the top card is visible; swipe switches cards */
+      .walletCarousel.isStack {
+        --cardW: min(420px, calc(100% - 2px), 62svh);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        overflow-x: hidden;
+        overflow-y: visible;
+        scroll-snap-type: none;
+        padding: 18px 0 10px;
+        justify-items: center;
+        /* iOS deck: JS handles free-direction swipe-to-cycle. */
+        touch-action: none;
+      }
+
+      .walletCarousel.isStack::before,
+      .walletCarousel.isStack::after {
+        display: none;
+      }
+
+      .walletCarousel.isStack .passCard {
+        grid-area: 1 / 1;
+        margin: 0 auto;
+      }
+
+      .walletCarousel.isStack.isDragging .passCard {
+        transition: none !important;
+      }
+
+      /* Ensure the first/last card can truly snap centered */
+      .walletCarousel::before,
+      .walletCarousel::after {
+        content: "";
+        flex: 0 0 calc((100% - var(--cardW)) / 2);
+        width: calc((100% - var(--cardW)) / 2);
+        height: 1px;
+        scroll-snap-align: center;
+      }
+
+      .walletSpacer {
+        flex: 0 0 0px;
+        width: 0px;
+        height: 1px;
+        scroll-snap-align: center;
+      }
+
+      .walletCarousel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .passCard {
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        flex: 0 0 auto;
+        width: var(--cardW);
+        position: relative;
+        overflow: visible;
+        box-shadow:
+          0 18px 55px rgba(0, 0, 0, 0.55),
+          0 1px 0 rgba(255, 255, 255, 0.04);
+        --pass-accent: var(--brand);
+        --pass-border: rgba(32, 24, 20, 0.14);
+        --pass-stamp-ring: rgba(32, 24, 20, 0.18);
+        transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+        transform: translateY(var(--stack-swipe-y, 0px))
+          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 6deg))
+          translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
+          rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
+          scale(var(--wheel-scale, 1));
+        opacity: var(--wheel-opacity, 1);
+        transition:
+          transform 220ms ease,
+          opacity 220ms ease;
+        will-change: transform;
+        transform-origin: center center;
+        -webkit-transform: translateY(var(--stack-swipe-y, 0px))
+          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 6deg))
+          translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
+          rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
+          scale(var(--wheel-scale, 1));
+      }
+
+      /* Physical edge shading (paper feel) */
+      .passFlip {
+        border-radius: 12px;
+        border: 1px solid var(--pass-border, var(--border));
+        overflow: hidden;
+        isolation: isolate;
+        background-color: var(--pass-bg, var(--brand-50));
+        background-image:
+          linear-gradient(
+            180deg,
+            var(--pass-hi, rgba(255, 255, 255, 0.22)) 0%,
+            transparent 46%
+          ),
+          linear-gradient(
+            180deg,
+            transparent 62%,
+            var(--pass-lo, rgba(0, 0, 0, 0.08)) 100%
+          );
+        color: var(--pass-ink, var(--brand-700));
+        background-clip: padding-box;
+      }
+
+      .passFlip > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Physical edge shading (paper feel) */
+      .passFlip::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        opacity: 0.22;
+        background-image:
+          linear-gradient(
+            180deg,
+            var(--pass-border, var(--border)) 0%,
+            transparent 18%,
+            transparent 82%,
+            var(--pass-border, var(--border)) 100%
+          ),
+          linear-gradient(
+            90deg,
+            var(--pass-border, var(--border)) 0%,
+            transparent 18%,
+            transparent 82%,
+            var(--pass-border, var(--border)) 100%
+          );
+      }
+
+      /* Built-in card templates (selected by cafés) */
+      .passCard[data-pass-theme="paper"] {
+        --pass-bg: var(--brand-50);
+        --pass-ink: var(--brand-700);
+        --pass-border: rgba(32, 24, 20, 0.14);
+        --pass-stamp-ring: rgba(32, 24, 20, 0.18);
+        --stamp-seam: var(--surface);
+        --pass-badge-bg: rgba(255, 255, 255, 0.55);
+        --pass-badge-ink: var(--brand-700);
+        --pass-hi: rgba(255, 255, 255, 0.26);
+        --pass-lo: rgba(0, 0, 0, 0.06);
+      }
+
+      .passCard[data-pass-theme="paper"] .passFlip::before {
+        opacity: 0.28;
+      }
+
+      .passCard[data-pass-theme="paper"] .passFlip::after {
+        opacity: 0.22;
+      }
+
+      .passCard[data-pass-theme="clean"] {
+        /* Fully opaque + readable on the black app background */
+        --pass-bg: #ffffff;
+        --pass-ink: var(--brand-700);
+        --pass-border: rgba(32, 24, 20, 0.14);
+        --pass-stamp-ring: rgba(32, 24, 20, 0.16);
+        --stamp-seam: var(--surface);
+        --pass-badge-bg: var(--brand-50);
+        --pass-badge-ink: var(--brand-700);
+        --pass-hi: rgba(255, 255, 255, 0.18);
+        --pass-lo: rgba(0, 0, 0, 0.06);
+      }
+
+      .passCard[data-pass-theme="ink"] {
+        --pass-bg: var(--brand-700);
+        --pass-ink: var(--brand-50);
+        --pass-border: rgba(242, 233, 224, 0.22);
+        --pass-stamp-ring: rgba(242, 233, 224, 0.22);
+        --stamp-seam: var(--brand-700);
+        --pass-badge-bg: rgba(242, 233, 224, 0.14);
+        --pass-badge-ink: var(--brand-50);
+        --pass-hi: rgba(255, 255, 255, 0.08);
+        --pass-lo: rgba(0, 0, 0, 0.18);
+      }
+
+      .passCard .badge {
+        border-color: var(--pass-border, var(--border));
+        background: var(--pass-badge-bg, var(--surface-muted));
+        color: var(--pass-badge-ink, var(--text));
+      }
+
+      /* Paper/ink texture (iOS friendly; uses theme variables only) */
+      .passFlip::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        opacity: 0.14;
+        background-image:
+          radial-gradient(
+            circle at 12% 18%,
+            var(--pass-border, var(--border)) 0.6px,
+            transparent 0.75px
+          ),
+          radial-gradient(
+            circle at 78% 62%,
+            var(--pass-border, var(--border)) 0.55px,
+            transparent 0.7px
+          ),
+          radial-gradient(
+            circle at 40% 88%,
+            var(--pass-border, var(--border)) 0.5px,
+            transparent 0.65px
+          ),
+          radial-gradient(
+            circle at 88% 14%,
+            var(--pass-border, var(--border)) 0.45px,
+            transparent 0.6px
+          );
+        background-size:
+          9px 9px,
+          11px 11px,
+          13px 13px,
+          17px 17px;
+        background-position:
+          0 0,
+          3px 4px,
+          7px 1px,
+          9px 10px;
+        filter: blur(0.15px);
+      }
+
+      .passCard[data-pass-theme="clean"] .passFlip::after {
+        opacity: 0.12;
+      }
+
+      .passCard[data-pass-theme="ink"] .passFlip::after {
+        opacity: 0.08;
+      }
+
+      /* 3D flip: flip an inner wrapper so swipe/stack transforms stay stable. */
+      .passFlip {
+        position: relative;
+        width: 100%;
+        display: grid;
+        z-index: 1;
+        transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+        transform: rotateY(0deg);
+        -webkit-transform: rotateY(0deg);
+        transition: transform 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        will-change: transform;
+      }
+
+      .passCard.open .passFlip {
+        transform: rotateY(180deg);
+        -webkit-transform: rotateY(180deg);
+      }
+
+      .passMain,
+      .passQr {
+        grid-area: 1 / 1;
+      }
+
+      .passMain,
+      .passQr {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        transform-style: preserve-3d;
+      }
+
+      .passMain {
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        color: inherit;
+        padding: var(--space-4);
+        min-height: 44px;
+        cursor: pointer;
+        touch-action: pan-x;
+        transform: rotateY(0deg) translateZ(1px);
+        position: relative;
+        z-index: 1;
+      }
+
+      .passHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+
+      .passRight {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+      }
+
+      .passLogoWrap {
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        border: 1px solid var(--pass-border, var(--border));
+        background: var(--pass-badge-bg, var(--surface-muted));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px;
+        flex: 0 0 auto;
+      }
+
+      .passLogo {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        object-fit: contain;
+        object-position: center;
+      }
+
+      .passTitle {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 950;
+        color: var(--pass-ink, var(--brand-700));
+        line-height: 1.15;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+
+      .passSub {
+        margin-top: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.78;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+
+      .passHint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.72;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+      }
+
+      .passQr {
+        border-top: 1px solid var(--pass-border, var(--border));
+        background: var(--pass-bg, var(--brand-50));
+        padding: var(--space-4);
+        transform: rotateY(180deg) translateZ(1px);
+        pointer-events: none;
+        touch-action: pan-x;
+
+        /* Keep as grid item so it contributes to height (prevents clipping). */
+        position: relative;
+        z-index: 2;
+      }
+
+      /* Prevent iOS/Safari backface bleed-through: only show QR on the backside */
+      .passMain,
+      .passQr {
+        transition: opacity 120ms ease;
+      }
+
+      .passQr {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .passCard.open .passMain {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .passCard.open .passQr {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .passCard.open .passMain {
+        pointer-events: none;
+      }
+
+      .passCard.open .passQr {
+        pointer-events: auto;
+      }
+
+      /* Backside layout: keep QR visually centered on the card */
+      .passQr {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      /* Mobile: reduce card height a bit so it fits below the large top bar */
+      @media (max-width: 420px) {
+        .walletDock {
+          padding: var(--space-3);
+        }
+
+        .walletCarousel {
+          --cardW: min(340px, 86vw);
+          padding: 12px 10px;
+        }
+
+        .walletCarousel.isStack {
+          --cardW: min(360px, calc(100% - 18px));
+        }
+
+        .passMain,
+        .passQr {
+          padding: var(--space-3);
+        }
+
+        .passTitle {
+          font-size: 15px;
+        }
+
+        .passHint {
+          margin-top: 6px;
+        }
+
+        .passCard .stampGrid {
+          gap: 8px;
+          padding: 0;
+          border-radius: 0;
+        }
+
+        .passCard .stamp {
+          border-radius: 999px;
+        }
+
+        .passQrBox {
+          max-width: 320px;
+          padding: var(--space-3);
+        }
+      }
+
+      @media (max-width: 520px) and (orientation: portrait) {
+        .walletDock {
+          padding: var(--space-3) !important;
+        }
+
+        #walletPanel.walletDock {
+          width: min(420px, 96vw);
+        }
+
+        .walletDockHead {
+          padding: 0 var(--space-2);
+        }
+
+        #walletEmpty {
+          padding: 0 var(--space-2);
+        }
+
+        .walletDockHead {
+          gap: var(--space-2);
+        }
+
+        .walletCarousel {
+          /* Tie card width to viewport height as well (Safari URL bar steals vertical space). */
+          --cardW: min(300px, 82vw, 38svh);
+          padding: 10px 0;
+        }
+
+        .walletCarousel.isStack {
+          --cardW: min(320px, calc(100% - 26px), 38svh);
+        }
+
+        /* iOS: size by available width so the card feels like Wallet */
+        .ios .walletCarousel {
+          --cardW: min(calc(100% - 18px), 94vw);
+        }
+
+        .ios .walletCarousel.isStack {
+          --cardW: min(calc(100% - 14px), 96vw);
+        }
+
+        .passMain,
+        .passQr {
+          padding: var(--space-2);
+        }
+
+        .passTitle {
+          font-size: 14px;
+        }
+
+        .passSub {
+          margin-top: 4px;
+        }
+
+        .passHint {
+          margin-top: 6px;
+          font-size: 11px;
+        }
+
+        .passCard .stampGrid {
+          gap: 6px;
+          padding: 0;
+          border-radius: 0;
+        }
+
+        .passCard .stamp {
+          border-radius: 999px;
+          border-width: 1.5px;
+        }
+      }
+
+      /* Very short viewports: tighten one more notch (browser chrome visible). */
+      @media (max-width: 520px) and (max-height: 760px) {
+        .walletCarousel {
+          --cardW: min(285px, 78vw, 36svh);
+        }
+
+        .walletCarousel.isStack {
+          --cardW: min(305px, calc(100% - 28px), 36svh);
+        }
+
+        .ios .walletCarousel {
+          --cardW: min(calc(100% - 26px), 92vw);
+        }
+
+        .ios .walletCarousel.isStack {
+          --cardW: min(calc(100% - 22px), 94vw);
+        }
+      }
+
+      .passQrBox {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        min-height: 220px;
+        max-width: 340px;
+        margin: 0 auto;
+        border-radius: 14px;
+        border: 1px dashed var(--border);
+        background: transparent;
+        padding: var(--space-4);
+        cursor: pointer;
+        touch-action: manipulation;
+        flex: 0 0 auto;
+      }
+
+      /* iOS Safari: avoid 3D backface glitches; use simple show/hide */
+      .ios .passFlip,
+      .ios .passCard.open .passFlip {
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+
+      .ios .passMain,
+      .ios .passQr {
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+
+      /* iOS: avoid overlapping grid items (can cause content clipping). */
+      .ios .passFlip {
+        display: block;
+      }
+
+      .ios .passMain,
+      .ios .passQr {
+        grid-area: auto;
+        backface-visibility: visible;
+        -webkit-backface-visibility: visible;
+      }
+
+      .ios .passQr {
+        display: none;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .ios .passCard.open .passMain {
+        display: none;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: none;
+      }
+
+      .ios .passCard.open .passQr {
+        display: flex;
+      }
+
+      .ios .passCard.isSwapping {
+        animation: iosPassSwap 320ms ease-in-out;
+      }
+
+      @keyframes iosPassSwap {
+        0% {
+          opacity: 1;
+          filter: none;
+          transform: translateY(var(--stack-swipe-y, 0px))
+            translateY(var(--stack-y, 0px)) translateX(0px)
+            rotateX(var(--wheel-rx, 6deg)) translateX(var(--wheel-tx, 0px))
+            translateZ(var(--wheel-tz, 0px)) rotateZ(var(--wheel-rz, 0deg))
+            rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
+        }
+        45% {
+          opacity: 0.72;
+          filter: blur(0.6px);
+          transform: translateY(var(--stack-swipe-y, 0px))
+            translateY(var(--stack-y, 0px)) translateX(-10px)
+            rotateX(var(--wheel-rx, 6deg)) translateX(var(--wheel-tx, 0px))
+            translateZ(var(--wheel-tz, 0px)) rotateZ(var(--wheel-rz, 0deg))
+            rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
+        }
+        100% {
+          opacity: 1;
+          filter: none;
+          transform: translateY(var(--stack-swipe-y, 0px))
+            translateY(var(--stack-y, 0px)) translateX(0px)
+            rotateX(var(--wheel-rx, 6deg)) translateX(var(--wheel-tx, 0px))
+            translateZ(var(--wheel-tz, 0px)) rotateZ(var(--wheel-rz, 0deg))
+            rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ios .passCard.isSwapping {
+          animation: none;
+        }
+      }
+
+      .passQr canvas {
+        width: min(260px, 100%);
+        height: auto;
+        max-width: 260px;
+        aspect-ratio: 1 / 1;
+        display: block;
+      }
+
+      /* Café detail modal ("Fenster") */
+      .modalBackdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: calc(18px + var(--safe-top, 0px))
+          calc(18px + var(--safe-right, 0px))
+          calc(18px + var(--safe-bottom, 0px))
+          calc(18px + var(--safe-left, 0px));
+        background: rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+      }
+
+      .modal {
+        width: min(720px, 96vw);
+        border-radius: 22px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transform: translateY(10px) scale(0.98);
+        opacity: 0;
+        transition:
+          transform 180ms ease,
+          opacity 180ms ease;
+      }
+
+      .modalBackdrop.open .modal {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+
+      .modalHero {
+        position: relative;
+        background: linear-gradient(135deg, var(--brand-50), var(--surface));
+        border-bottom: 1px solid var(--border);
+        padding: var(--space-5);
+      }
+
+      .modalHeroRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+
+      .modalTitle {
+        margin: 0;
+        font-weight: 950;
+        font-size: 18px;
+        line-height: 1.1;
+      }
+
+      .modalAddr {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .modalImage {
+        margin-top: var(--space-4);
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .modalGallery {
+        display: none;
+        gap: var(--space-2);
+        overflow-x: auto;
+        padding-top: var(--space-3);
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .modalThumb {
+        width: 92px;
+        height: 64px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        object-fit: cover;
+        flex: 0 0 auto;
+        cursor: pointer;
+      }
+
+      .modalImage img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        display: block;
+      }
+
+      @media (min-width: 860px) {
+        .modalImage img {
+          height: 260px;
+        }
+      }
+
+      .modalBody {
+        padding: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+      }
+
+      .modalAbout {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+
+      .rt-h1 {
+        font-size: 18px;
+        font-weight: 950;
+        line-height: 1.15;
+        margin: 0;
+      }
+      .rt-h2 {
+        font-size: 15px;
+        font-weight: 950;
+        line-height: 1.2;
+        margin: 0;
+      }
+      .rt-p {
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      .rt-sp {
+        height: 10px;
+      }
+
+      .modalActions {
+        display: flex;
+        gap: var(--space-2);
+      }
+
+      .modalActions button {
+        flex: 1;
+      }
     </style>
   </head>
   <body>
+    <div id="bootOverlay" class="bootOverlay" role="status" aria-live="polite">
+      <div class="bootCard">
+        <div class="bootTitle">Lade…</div>
+        <div class="bootSub" id="bootSub">Initialisiere App…</div>
+        <pre class="bootDiag" id="bootDiag" style="display: none"></pre>
+      </div>
+    </div>
+
     <noscript>
       <div class="container">
         <div class="notice danger">
@@ -325,10 +1743,12 @@
       <div class="topbar">
         <div class="brand">
           <h1>Deine Stempelkarte</h1>
-          <div class="subtitle" id="buildBadge">build</div>
+          <div class="badge muted" id="buildBadge">build</div>
         </div>
         <div class="row">
-          <span class="badge" id="sessionBadge">Nicht eingeloggt</span>
+          <button class="btn secondary" id="sessionBadge" type="button">
+            Account
+          </button>
           <button
             class="btn secondary"
             id="logoutBtn"
@@ -338,12 +1758,31 @@
             Logout
           </button>
         </div>
+
+        <div class="topMenu" aria-label="Navigation">
+          <button class="topMenuBtn ghost" id="mainModeMap" type="button">
+            <span class="ico" aria-hidden="true">C</span>
+            <span class="lbl">Cafés</span>
+          </button>
+          <button
+            class="topMenuBtn ghost active"
+            id="mainModeWallet"
+            type="button"
+          >
+            <span class="ico" aria-hidden="true">W</span>
+            <span class="lbl">Wallet</span>
+          </button>
+          <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verlauf</span>
+          </button>
+        </div>
       </div>
 
-      <div class="grid">
+      <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
-          <div class="row" style="justify-content: space-between">
-            <h2 style="margin: 0">Account</h2>
+          <div class="panelHeader">
+            <h2>Account</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
               <button id="modeRegister" class="active" type="button">
                 Neu
@@ -352,7 +1791,7 @@
             </div>
           </div>
 
-          <div class="stack" style="margin-top: var(--space-4)">
+          <div class="stack panelBody">
             <div id="registerFields" class="stack">
               <div class="stack" style="gap: 6px">
                 <label for="username">Username</label>
@@ -361,7 +1800,12 @@
             </div>
             <div class="stack" style="gap: 6px">
               <label for="email">E-Mail</label>
-              <input id="email" type="text" autocomplete="email" />
+              <input
+                id="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+              />
             </div>
 
             <div class="stack" style="gap: 6px">
@@ -388,6 +1832,10 @@
               </button>
             </div>
 
+            <div class="hint" style="margin-top: 6px">
+              <a href="/customer-profile">Passwort vergessen?</a>
+            </div>
+
             <div id="authMsg" class="notice" style="display: none"></div>
             <div id="credsPanel" class="notice" style="display: none"></div>
             <div class="hint">
@@ -398,152 +1846,302 @@
         </div>
 
         <div class="stack" id="mainPanel" style="display: none">
-          <div class="card panel">
-            <div class="navRow">
-              <div class="stack" style="gap: 6px">
-                <div class="badge" id="welcomeBadge">Willkommen</div>
-                <div class="muted" id="addressLine" style="display: none"></div>
-              </div>
+          <select id="cafeSelect" style="display: none"></select>
 
-              <div class="row wrap">
-                <label for="cafeSelect" style="font-weight: 800">Café</label>
-                <select id="cafeSelect"></select>
-              </div>
-            </div>
-
-            <div
-              class="row"
-              style="justify-content: flex-end; margin-top: var(--space-3)"
-            >
-              <div
-                class="seg"
-                id="mainModeSeg"
-                role="tablist"
-                aria-label="Ansicht"
-              >
-                <button id="mainModeCard" class="active" type="button">
-                  Karte
-                </button>
-                <button id="mainModeWallet" type="button">Wallet</button>
-                <button id="mainModeHistory" type="button">Historie</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="flip" id="flipCard" aria-label="Stempelkarte">
-            <div class="flipInner">
-              <div class="face front">
-                <div class="cardHead">
-                  <div class="brandRow">
-                    <img id="cafeLogo" class="cafeLogo" alt="Café Logo" />
-                    <div class="cardTitleWrap">
-                      <h3 class="cardTitle" id="cafeTitle">Wähle ein Café</h3>
-                    </div>
+          <div class="home" aria-label="Start">
+            <div class="card panel mapHero" id="mapPanel">
+              <div class="walletDockHead">
+                <div class="stack tight">
+                  <div class="badge" id="welcomeBadge">Willkommen</div>
+                  <div class="hint" id="mapHint">
+                    Tippe auf einen Marker und hole dir die Stempelkarte.
                   </div>
-                  <span class="badge" id="stampCountBadge">0 / 10</span>
-                </div>
-                <div class="stampGrid" id="stampGrid"></div>
-                <div class="cafeAbout" id="cafeAbout"></div>
-
-                <div
-                  id="redeemNotice"
-                  class="notice success"
-                  style="display: none"
-                ></div>
-                <div
-                  id="redeemActions"
-                  class="row"
-                  style="display: none; margin-top: var(--space-3)"
-                >
-                  <button
-                    class="btn primary"
-                    id="showRedeemQrBtn"
-                    type="button"
+                  <div
+                    class="stack"
+                    style="gap: 8px; margin-top: var(--space-3)"
                   >
-                    QR zum Einlösen anzeigen
-                  </button>
-                </div>
-
-                <div class="hint">
-                  Tippe auf die Karte, um den QR-Code zu zeigen. Tippe auf einen
-                  Stempel für die Historie.
+                    <div class="muted" style="font-size: 12px">Café suchen</div>
+                    <input
+                      id="cafeSearch"
+                      type="search"
+                      placeholder="Name eingeben…"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div
+                    class="muted"
+                    id="addressLine"
+                    style="display: none"
+                  ></div>
                 </div>
               </div>
-              <div class="face back">
-                <div class="cardHead">
-                  <h3 class="cardTitle" id="qrTitle">QR für den Barista</h3>
-                  <span class="badge" id="qrCafeBadge">Café</span>
-                </div>
+
+              <div class="mapStage">
+                <div id="cafeMap" class="mapBox" aria-label="Café Karte"></div>
 
                 <div
-                  class="seg"
-                  id="qrModeSeg"
-                  style="display: none; margin: 0 0 var(--space-3) 0"
-                  role="tablist"
-                  aria-label="QR Modus"
+                  id="discoverPick"
+                  class="discoverPickOverlay"
+                  style="display: none"
                 >
-                  <button id="qrModeStamp" class="active" type="button">
-                    Stempeln
-                  </button>
-                  <button id="qrModeRedeem" type="button">Einlösen</button>
-                </div>
-
-                <div class="qrBox">
-                  <canvas id="qrCanvas"></canvas>
-                </div>
-                <div class="hint" id="qrHint">
-                  Dieser QR ist an das ausgewählte Café gebunden.
+                  <div class="row between">
+                    <div class="stack" style="gap: 2px; min-width: 0">
+                      <div id="discoverPickName">Café</div>
+                      <div id="discoverPickAddr" class="muted"></div>
+                    </div>
+                    <button
+                      class="btn primary"
+                      id="discoverPickAddBtn"
+                      type="button"
+                    >
+                      Stempelkarte holen
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              <div
+                id="cafeResults"
+                class="stack"
+                style="gap: 8px; margin-top: var(--space-3)"
+              ></div>
+
+              <div id="mapList" class="hint"></div>
+            </div>
+
+            <div class="card panel walletDock" id="walletPanel">
+              <div class="walletDockHead">
+                <h3 style="margin: 0">Wallet</h3>
+                <div class="hint" id="walletSubtitle">
+                  Wische durch deine Karten. Tippe eine Karte für den QR.
+                </div>
+              </div>
+              <div
+                id="walletEmpty"
+                class="hint"
+                style="display: none; margin-top: var(--space-3)"
+              >
+                Noch keine Karten. Wähle ein Café auf der Karte und tippe
+                „Stempelkarte holen“.
+              </div>
+              <div
+                id="walletList"
+                class="walletCarousel"
+                aria-label="Wallet Karten"
+              ></div>
+            </div>
+
+            <div class="card panel" id="historyPanel" style="display: none">
+              <div class="panelHeader">
+                <h3>Stempel-Historie</h3>
+              </div>
+              <div class="hint" id="historySubtitle">
+                Letzte Transaktionen (mehrere Stempel werden zusammengefasst).
+              </div>
+              <div
+                id="historyError"
+                class="notice danger"
+                style="display: none"
+              ></div>
+              <div id="historyEmpty" class="hint" style="display: none">
+                Noch keine Einträge.
+              </div>
+              <div id="historyList" class="historyList"></div>
+            </div>
+
+            <div class="notice" id="noCafesNotice" style="display: none">
+              Es sind noch keine Cafés registriert. Bitte zuerst ein Café
+              anlegen (z.B. über die Café-Tools).
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <div class="card panel" id="historyPanel" style="display: none">
-            <div class="row" style="justify-content: space-between">
-              <h3 style="margin: 0">Stempel-Historie</h3>
-              <button class="btn secondary" id="historyCloseBtn" type="button">
-                Schließen
-              </button>
+    <div
+      id="cafeModalBackdrop"
+      class="modalBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Café Details"
+    >
+      <div class="modal" id="cafeModal">
+        <div class="modalHero">
+          <div class="modalHeroRow">
+            <div style="min-width: 0">
+              <h3 class="modalTitle" id="cafeModalName">Café</h3>
+              <div class="modalAddr" id="cafeModalAddr"></div>
             </div>
-            <div class="hint" id="historySubtitle">
-              Letzte Transaktionen (mehrere Stempel werden zusammengefasst).
-            </div>
-            <div
-              id="historyError"
-              class="notice danger"
-              style="display: none"
-            ></div>
-            <div id="historyEmpty" class="hint" style="display: none">
-              Noch keine Einträge.
-            </div>
-            <div id="historyList" class="historyList"></div>
+            <button
+              class="btn secondary"
+              id="cafeModalClose"
+              type="button"
+              aria-label="Schließen"
+            >
+              Schließen
+            </button>
           </div>
 
-          <div class="card panel" id="walletPanel" style="display: none">
-            <div class="row" style="justify-content: space-between">
-              <h3 style="margin: 0">Wallet</h3>
-              <button class="btn secondary" id="walletCloseBtn" type="button">
-                Schließen
-              </button>
-            </div>
-            <div class="hint" id="walletSubtitle">
-              Eingelöste Karten (ohne QR-Code).
-            </div>
-            <div id="walletEmpty" class="hint" style="display: none">
-              Noch keine eingelösten Karten.
-            </div>
-            <div id="walletList" class="historyList"></div>
+          <div class="modalImage" id="cafeModalImageWrap" style="display: none">
+            <img id="cafeModalImage" alt="Café Bild" />
           </div>
 
-          <div class="notice" id="noCafesNotice" style="display: none">
-            Es sind noch keine Cafés registriert. Bitte zuerst ein Café anlegen
-            (z.B. über die Café-Tools).
+          <div class="modalGallery" id="cafeModalGallery"></div>
+        </div>
+
+        <div class="modalBody">
+          <div
+            class="modalAbout"
+            id="cafeModalAbout"
+            style="display: none"
+          ></div>
+          <div class="hint" id="cafeModalAboutEmpty" style="display: none">
+            Noch keine Beschreibung.
+          </div>
+
+          <div class="modalActions">
+            <a class="btn secondary" id="cafeModalProfileLink" href="#">
+              Profil öffnen
+            </a>
+            <button class="btn primary" id="cafeModalAddBtn" type="button">
+              Stempelkarte holen
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <script src="/vendor/qrcode.min.js"></script>
-    <script src="/customer-qr.js"></script>
+    <script src="/customer-qr-modern.js"></script>
+
+    <script>
+      (function () {
+        var overlay = document.getElementById("bootOverlay");
+        var sub = document.getElementById("bootSub");
+        var diag = document.getElementById("bootDiag");
+        if (!overlay) return;
+
+        function hideOverlay() {
+          try {
+            overlay.style.display = "none";
+          } catch (e) {}
+        }
+
+        function showOverlay() {
+          try {
+            overlay.style.display = "flex";
+          } catch (e) {}
+        }
+
+        function setSub(msg) {
+          try {
+            if (sub) sub.textContent = String(msg || "");
+          } catch (e) {}
+        }
+
+        function setDiag(lines) {
+          try {
+            if (!diag) return;
+            diag.style.display = "block";
+            diag.textContent = String((lines || []).join("\n") || "");
+          } catch (e) {}
+        }
+
+        function xhrJson(path, cb) {
+          try {
+            var x = new XMLHttpRequest();
+            x.open("GET", path, true);
+            x.timeout = 2000;
+            x.onreadystatechange = function () {
+              if (x.readyState !== 4) return;
+              var ok = x.status >= 200 && x.status < 300;
+              var body = null;
+              try {
+                body = JSON.parse(x.responseText || "null");
+              } catch (e) {}
+              cb(null, { ok: ok, status: x.status, body: body });
+            };
+            x.ontimeout = function () {
+              cb(new Error("timeout"));
+            };
+            x.onerror = function () {
+              cb(new Error("network"));
+            };
+            x.send();
+          } catch (e) {
+            cb(e);
+          }
+        }
+
+        try {
+          if (window.__STAMP_BOOT_OK) {
+            hideOverlay();
+            return;
+          }
+        } catch (e) {}
+
+        try {
+          window.addEventListener("stamp:boot-ok", hideOverlay, { once: true });
+        } catch (e) {}
+
+        window.setTimeout(function () {
+          try {
+            if (window.__STAMP_BOOT_OK) {
+              hideOverlay();
+              return;
+            }
+          } catch (e) {}
+
+          showOverlay();
+          setSub(
+            "Laden dauert l\u00e4nger \u2014 pr\u00fcfe Netzwerk/API\u2026",
+          );
+
+          var lines = [];
+          try {
+            lines.push("Host: " + String(location.host || ""));
+          } catch (e) {}
+
+          xhrJson("/__ping", function (err, r) {
+            if (err || !r || !r.ok) {
+              lines.push("/__ping: NICHT erreichbar");
+            } else {
+              try {
+                lines.push(
+                  "/__ping: ok (remote " +
+                    String((r.body && r.body.remoteAddress) || "?") +
+                    ")",
+                );
+              } catch (e) {
+                lines.push("/__ping: ok");
+              }
+            }
+
+            xhrJson("/api/health", function (err2, r2) {
+              if (err2 || !r2 || !r2.ok) {
+                lines.push("/api/health: nicht ok (API evtl. aus)");
+              } else {
+                lines.push("/api/health: ok");
+              }
+              lines.push("Tipp: Teste direkt /__diag.");
+              setDiag(lines);
+            });
+          });
+        }, 3500);
+      })();
+    </script>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+      defer
+    ></script>
   </body>
 </html>

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Café Profil</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: var(--space-5);
+      }
+      .shell {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-4);
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .hero {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .hero img {
+        width: 100%;
+        height: 240px;
+        object-fit: cover;
+        display: block;
+        background: var(--surface-muted);
+      }
+      @media (min-width: 860px) {
+        .hero img {
+          height: 320px;
+        }
+      }
+      .gallery {
+        display: none;
+        gap: var(--space-2);
+        overflow-x: auto;
+        padding-top: var(--space-3);
+        -webkit-overflow-scrolling: touch;
+      }
+      .thumb {
+        width: 110px;
+        height: 76px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        object-fit: cover;
+        flex: 0 0 auto;
+        cursor: pointer;
+      }
+      .about {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+      .actions {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+      }
+      .actions .btn {
+        flex: 1;
+        min-width: 220px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          <h1 id="title">Café Profil</h1>
+          <div class="subtitle" id="addr">—</div>
+        </div>
+        <div class="actions">
+          <a class="btn secondary" href="/customer-wallet">Zur Karte</a>
+        </div>
+      </div>
+
+      <div class="card" style="padding: var(--space-5)">
+        <div id="error" class="notice danger" style="display: none"></div>
+
+        <div class="hero" id="heroWrap" style="display: none">
+          <img id="heroImg" alt="Café Bild" />
+        </div>
+        <div class="gallery" id="gallery"></div>
+
+        <div
+          class="stack"
+          style="gap: var(--space-4); margin-top: var(--space-4)"
+        >
+          <div id="about" class="about" style="display: none"></div>
+          <div id="aboutEmpty" class="hint" style="display: none">
+            Noch keine Beschreibung.
+          </div>
+
+          <div id="redeem" class="notice" style="display: none"></div>
+
+          <div class="actions">
+            <button class="btn primary" id="addBtn" type="button">
+              Stempelkarte holen
+            </button>
+            <a class="btn secondary" id="backToWallet" href="/customer-wallet"
+              >Zum Wallet</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const FAVORITES_KEY = "customer_favorites_v1";
+
+      function normalizeAddr(v) {
+        return v ? String(v).toLowerCase() : "";
+      }
+
+      function loadFavorites() {
+        try {
+          const raw = localStorage.getItem(FAVORITES_KEY);
+          const arr = raw ? JSON.parse(raw) : [];
+          const set = new Set();
+          for (const v of Array.isArray(arr) ? arr : []) {
+            const s = normalizeAddr(v);
+            if (s) set.add(s);
+          }
+          return set;
+        } catch {
+          return new Set();
+        }
+      }
+
+      function saveFavorites(set) {
+        try {
+          localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(set)));
+        } catch {}
+      }
+
+      async function apiFetch(path) {
+        const res = await fetch(`${location.origin}/api${path}`, {
+          cache: "no-store",
+        });
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = text;
+        }
+
+        function escapeHtml(s) {
+          return String(s || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function formatRichText(raw) {
+          const src = String(raw || "");
+          if (!src.trim()) return "";
+          const lines = src.split(/\r?\n/);
+          const out = [];
+          for (const line of lines) {
+            const trimmed = String(line || "").trim();
+            if (!trimmed) {
+              out.push('<div style="height:10px"></div>');
+              continue;
+            }
+            let style = "font-weight:700;font-size:13px;line-height:1.45";
+            let content = trimmed;
+            if (/^##\s+/.test(content)) {
+              style = "font-weight:950;font-size:15px;line-height:1.2";
+              content = content.replace(/^##\s+/, "");
+            } else if (/^#\s+/.test(content)) {
+              style = "font-weight:950;font-size:18px;line-height:1.15";
+              content = content.replace(/^#\s+/, "");
+            }
+            let safe = escapeHtml(content);
+            safe = safe.replace(
+              /\*\*([^*][\s\S]*?)\*\*/g,
+              "<strong>$1</strong>",
+            );
+            out.push(`<div style="${style}">${safe}</div>`);
+          }
+          return out.join("");
+        }
+        if (!res.ok) {
+          const msg =
+            data && typeof data === "object"
+              ? data.error || data.message
+              : String(data || "HTTP " + res.status);
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      function setError(msg) {
+        const el = document.getElementById("error");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.style.display = msg ? "block" : "none";
+      }
+
+      function setHero(src) {
+        const wrap = document.getElementById("heroWrap");
+        const img = document.getElementById("heroImg");
+        if (!wrap || !img) return;
+        if (!src) {
+          wrap.style.display = "none";
+          img.removeAttribute("src");
+          return;
+        }
+        img.src = src;
+        wrap.style.display = "block";
+      }
+
+      function renderGallery(list) {
+        const g = document.getElementById("gallery");
+        if (!g) return;
+        g.innerHTML = "";
+        const arr = Array.isArray(list) ? list : [];
+        if (arr.length <= 1) {
+          g.style.display = "none";
+          return;
+        }
+        for (const src of arr) {
+          const img = document.createElement("img");
+          img.className = "thumb";
+          img.alt = "Café Bild";
+          img.src = src;
+          img.addEventListener("click", () => setHero(src));
+          g.appendChild(img);
+        }
+        g.style.display = "flex";
+      }
+
+      (async function boot() {
+        try {
+          const params = new URLSearchParams(location.search);
+          const id = params.get("id");
+          if (!id) {
+            setError("Fehlende Café-ID (Parameter 'id').");
+            return;
+          }
+
+          const data = await apiFetch(
+            `/cafes/public/${encodeURIComponent(id)}`,
+          );
+          const cafe = data && data.cafe ? data.cafe : null;
+          if (!cafe) throw new Error("cafe_not_found");
+
+          const title = document.getElementById("title");
+          const addr = document.getElementById("addr");
+          if (title) title.textContent = cafe.name || "Café";
+          if (addr) addr.textContent = cafe.address || "";
+
+          const about = cafe.about ? String(cafe.about).trim() : "";
+          const aboutEl = document.getElementById("about");
+          const aboutEmpty = document.getElementById("aboutEmpty");
+          if (aboutEl) {
+            aboutEl.innerHTML = formatRichText(about);
+            aboutEl.style.display = about ? "block" : "none";
+          }
+          if (aboutEmpty) aboutEmpty.style.display = about ? "none" : "block";
+
+          const redeem = cafe.redeemMessage
+            ? String(cafe.redeemMessage).trim()
+            : "";
+          const redeemEl = document.getElementById("redeem");
+          if (redeemEl) {
+            redeemEl.textContent = redeem;
+            redeemEl.style.display = redeem ? "block" : "none";
+          }
+
+          const images = [];
+          if (cafe.logoDataUrl) {
+            const s = String(cafe.logoDataUrl);
+            if (s && !images.includes(s)) images.push(s);
+          }
+          if (Array.isArray(cafe.images)) {
+            for (const x of cafe.images) {
+              if (!x) continue;
+              const s = String(x);
+              if (s && !images.includes(s)) images.push(s);
+            }
+          }
+          setHero(images[0] || "");
+          renderGallery(images);
+
+          const cafeAddress = cafe.cafeAddress ? String(cafe.cafeAddress) : "";
+          const addBtn = document.getElementById("addBtn");
+          const backToWallet = document.getElementById("backToWallet");
+          const href = cafeAddress
+            ? `/customer-wallet?cafe=${encodeURIComponent(cafeAddress)}`
+            : "/customer-wallet";
+          if (backToWallet) backToWallet.href = href;
+
+          if (addBtn) {
+            const fav = loadFavorites();
+            const key = normalizeAddr(cafeAddress);
+            addBtn.textContent =
+              key && fav.has(key) ? "In Wallet" : "Stempelkarte holen";
+            addBtn.addEventListener("click", () => {
+              if (!cafeAddress) {
+                location.href = "/customer-wallet";
+                return;
+              }
+              const set = loadFavorites();
+              set.add(normalizeAddr(cafeAddress));
+              saveFavorites(set);
+              location.href = href;
+            });
+          }
+        } catch (e) {
+          setError(`Fehler: ${e && e.message ? e.message : e}`);
+        }
+      })();
+    </script>
+  </body>
+</html>
