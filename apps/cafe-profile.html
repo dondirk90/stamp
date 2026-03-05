@@ -306,6 +306,9 @@
               <option value="paper">Paper (Standard)</option>
               <option value="clean">Clean (Weiß)</option>
               <option value="ink">Ink (Dunkel)</option>
+              <option value="brand">Brand (Akzent)</option>
+              <option value="latte">Latte (Warm)</option>
+              <option value="mono">Mono (Neutral)</option>
             </select>
             <div class="muted" style="margin-top: 6px">
               Das Design wird in der Kunden-Wallet automatisch verwendet.
@@ -476,7 +479,14 @@
             : null;
 
         // Keep the current selection if the API response doesn't include a theme.
-        const allowedThemes = new Set(["paper", "clean", "ink"]);
+        const allowedThemes = new Set([
+          "paper",
+          "clean",
+          "ink",
+          "brand",
+          "latte",
+          "mono",
+        ]);
         const incomingTheme =
           cafeInfo && cafeInfo.cardTheme != null
             ? String(cafeInfo.cardTheme).trim().toLowerCase()

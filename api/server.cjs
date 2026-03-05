@@ -1909,7 +1909,14 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       }
     }
 
-    const allowedCardThemes = new Set(["paper", "clean", "ink"]);
+    const allowedCardThemes = new Set([
+      "paper",
+      "clean",
+      "ink",
+      "brand",
+      "latte",
+      "mono",
+    ]);
     let cardTheme = current.card_theme || "paper";
     if (Object.prototype.hasOwnProperty.call(body, "cardTheme")) {
       const raw = body.cardTheme == null ? "" : String(body.cardTheme);

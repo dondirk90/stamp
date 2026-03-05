@@ -9,6 +9,20 @@
     <title>Café Scanner - Stamp</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      /* Match Customer UI: black canvas + subtle translucent surfaces, no shadows */
+      :root {
+        --bg: #000000;
+        --surface: rgba(255, 255, 255, 0.06);
+        --surface-muted: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --text-muted: rgba(255, 255, 255, 0.62);
+        --shadow-sm: none;
+        --shadow-md: none;
+        --shadow-lg: none;
+        --focus: rgba(255, 255, 255, 0.1);
+      }
+
       * {
         margin: 0;
         padding: 0;
@@ -121,7 +135,7 @@
         align-items: center;
         gap: 12px;
         z-index: 1000;
-        backdrop-filter: blur(10px);
+        backdrop-filter: none;
       }
       .user-badge .avatar {
         width: 32px;

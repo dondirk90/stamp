@@ -1104,6 +1104,43 @@
         --pass-lo: rgba(0, 0, 0, 0.18);
       }
 
+      /* Extra themes (café selectable) */
+      .passCard[data-pass-theme="brand"] {
+        --pass-bg: var(--brand);
+        --pass-ink: #ffffff;
+        --pass-border: rgba(255, 255, 255, 0.28);
+        --pass-stamp-ring: rgba(255, 255, 255, 0.24);
+        --stamp-seam: rgba(0, 0, 0, 0.12);
+        --pass-badge-bg: rgba(0, 0, 0, 0.14);
+        --pass-badge-ink: #ffffff;
+        --pass-hi: rgba(255, 255, 255, 0.16);
+        --pass-lo: rgba(0, 0, 0, 0.22);
+      }
+
+      .passCard[data-pass-theme="latte"] {
+        --pass-bg: var(--brand-50);
+        --pass-ink: var(--brand-700);
+        --pass-border: rgba(32, 24, 20, 0.18);
+        --pass-stamp-ring: rgba(32, 24, 20, 0.16);
+        --stamp-seam: var(--surface);
+        --pass-badge-bg: rgba(255, 255, 255, 0.65);
+        --pass-badge-ink: var(--brand-700);
+        --pass-hi: rgba(255, 255, 255, 0.28);
+        --pass-lo: rgba(0, 0, 0, 0.06);
+      }
+
+      .passCard[data-pass-theme="mono"] {
+        --pass-bg: rgba(255, 255, 255, 0.92);
+        --pass-ink: rgba(0, 0, 0, 0.86);
+        --pass-border: rgba(0, 0, 0, 0.12);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.14);
+        --stamp-seam: var(--surface);
+        --pass-badge-bg: rgba(0, 0, 0, 0.06);
+        --pass-badge-ink: rgba(0, 0, 0, 0.86);
+        --pass-hi: rgba(255, 255, 255, 0.12);
+        --pass-lo: rgba(0, 0, 0, 0.08);
+      }
+
       .passCard .badge {
         border-color: var(--pass-border, var(--border));
         background: var(--pass-badge-bg, var(--surface-muted));
