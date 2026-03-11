@@ -8,20 +8,22 @@
   --safe-bottom: env(safe-area-inset-bottom);
   --safe-left: env(safe-area-inset-left);
 
-  --bg: #fbf7f1;
+  /* Holm-like: bright white canvas, charcoal ink, subtle lines */
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-muted: #f6efe6;
+  --surface-muted: #f5f5f4;
 
-  --text: #201814;
-  --text-muted: #6b5b52;
+  --text: #111111;
+  --text-muted: #666666;
 
-  --border: #e6dbcf;
-  --shadow: rgba(32, 24, 20, 0.12);
+  --border: rgba(17, 17, 17, 0.14);
+  --shadow: rgba(0, 0, 0, 0);
 
-  /* Café brown */
-  --brand: #6f4e37;
-  --brand-700: #5b3e2b;
-  --brand-50: #f2e9e0;
+  /* Brand accent: charcoal */
+  --brand: #111111;
+  --brand-700: #000000;
+  --brand-50: #f3f1ee;
+  --on-brand: #ffffff;
 
   /* Subtle status colors (avoid purple legacy) */
   --danger: #b42318;
@@ -31,8 +33,9 @@
   --info: #175cd3;
   --info-bg: #eff8ff;
 
-  --radius: 16px;
-  --radius-sm: 12px;
+  /* Completely rectangular */
+  --radius: 0px;
+  --radius-sm: 0px;
 
   --space-1: 6px;
   --space-2: 10px;
@@ -48,11 +51,29 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 
-  --shadow-sm: 0 6px 18px rgba(32, 24, 20, 0.08);
-  --shadow-md: 0 18px 45px rgba(32, 24, 20, 0.12);
-  --shadow-lg: 0 30px 70px rgba(32, 24, 20, 0.16);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 
-  --focus: rgba(111, 78, 55, 0.14);
+  --focus: rgba(17, 17, 17, 0.14);
+}
+
+/* Inverted (café) theme: same layout tokens, swapped canvas/ink */
+.theme-invert {
+  --bg: #111111;
+  --surface: #111111;
+  --surface-muted: rgba(255, 255, 255, 0.04);
+
+  --text: rgba(255, 255, 255, 0.92);
+  --text-muted: rgba(255, 255, 255, 0.62);
+
+  --border: rgba(255, 255, 255, 0.18);
+  --focus: rgba(255, 255, 255, 0.16);
+
+  --brand: #ffffff;
+  --brand-700: #ffffff;
+  --brand-50: rgba(255, 255, 255, 0.08);
+  --on-brand: #111111;
 }
 
 * {
@@ -69,7 +90,7 @@ body {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text);
-  line-height: 1.4;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -90,17 +111,18 @@ a:hover {
 
 /* Common page container used across many static pages */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  /* Avoid “cards everywhere”: default to a simple section wrapper */
+  background: transparent;
+  border: none;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 h1,
 h2,
 h3 {
-  color: var(--brand);
-  letter-spacing: -0.01em;
+  color: var(--text);
+  letter-spacing: -0.015em;
 }
 
 /* Legacy pages often use gradient text on headings; keep it simple. */
@@ -128,9 +150,10 @@ input,
 select,
 textarea {
   color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   padding: 10px 12px;
   box-shadow: none;
 }
@@ -145,12 +168,12 @@ textarea:focus {
 
 button {
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand, #fff);
   border: none;
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 /* Some legacy pages still have inline purple button backgrounds.
@@ -182,7 +205,7 @@ button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
 
 button.secondary,
 button.ghost {
-  background: var(--surface-muted);
+  background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
 }
@@ -223,9 +246,9 @@ button.ghost {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--surface-muted);
+  background: transparent;
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -242,31 +265,163 @@ button.ghost {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
   touch-action: manipulation;
 }
 
 .btn.primary {
   background: var(--brand) !important;
-  color: #fff;
+  color: var(--on-brand, #fff);
 }
 
 .btn.secondary {
-  background: var(--surface-muted) !important;
+  background: transparent !important;
   color: var(--text) !important;
   border: 1px solid var(--border);
 }
 
+/* Clean top navigation (Holm-like): text links on white */
+.topbar {
+  background: var(--bg);
+}
+
+/* Header should not look like boxed UI */
+.topbar .btn,
+.topbar a.btn,
+.topbar button.btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 0;
+  min-height: auto;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text) !important;
+}
+
+.topbar .btn.secondary {
+  color: var(--text-muted) !important;
+}
+
+.topbar .badge {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.topbar .nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.topbar .nav .btn {
+  background: transparent !important;
+  border: none !important;
+}
+
+.topbar .nav .btn.secondary {
+  color: var(--text-muted) !important;
+}
+
+/* Many pages mark the current location by omitting `.secondary`. */
+.topbar .nav .btn:not(.secondary) {
+  border-bottom: 2px solid var(--text) !important;
+}
+
+/* Clean top menu (Holm-like): centered, uppercase, underline active
+   Used by customer + cafe pages for consistent navigation. */
+.topMenu {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: none;
+}
+
+.topMenuBtn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  display: inline-block;
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  color: var(--text) !important;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  box-shadow: none !important;
+  text-decoration: none;
+}
+
+/* Global theme styles `button.ghost` with a border; ensure top menu is borderless. */
+button.topMenuBtn.ghost {
+  border: none !important;
+}
+
+/* Avoid horizontal overflow on small phones */
+@media (max-width: 420px) {
+  .topMenu {
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .topMenuBtn {
+    width: auto;
+    flex: 0 0 auto;
+  }
+}
+
+.topMenuBtn .ico {
+  display: none;
+}
+
+.topMenuBtn .lbl {
+  display: block;
+  text-align: left;
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topMenuBtn.active {
+  border-bottom: 2px solid var(--text) !important;
+}
+
+.topMenuBtn:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+}
+
+.topMenuBtn.active .lbl {
+  color: var(--text);
+}
+
 .btn:active {
-  transform: translateY(1px);
+  transform: none;
 }
 
 .notice {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--surface-muted);
+  background: transparent;
   color: var(--text);
 }
 

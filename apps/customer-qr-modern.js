@@ -9,8 +9,15 @@
   var REWARD_THRESHOLD = 10;
   var WALLET_MODE = "stack"; // parity across desktop/iOS/Android
 
+  // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
+  // while the customer holds it up to be scanned.
+  var redeemTokenState = {
+    byKey: {},
+  };
+
   var el = {
     buildBadge: document.getElementById("buildBadge"),
+    liveBadge: document.getElementById("liveBadge"),
     sessionBadge: document.getElementById("sessionBadge"),
     logoutBtn: document.getElementById("logoutBtn"),
 
@@ -81,6 +88,17 @@
   var session = null;
   var authMode = "register";
 
+  var toastState = {
+    el: null,
+    t: 0,
+  };
+
+  var sseState = {
+    es: null,
+    retryT: 0,
+    lastToastAt: 0,
+  };
+
   var cafesByCafeAddress = {};
 
   var cafes = [];
@@ -128,6 +146,75 @@
     return v ? String(v).trim().toLowerCase() : "";
   }
 
+  function dedupeCafes(list) {
+    var src = Array.isArray(list) ? list : [];
+    var out = [];
+    var seen = {};
+    for (var i = 0; i < src.length; i++) {
+      var c = src[i] || {};
+      var id = c.id != null ? String(c.id) : "";
+      var addr = normalizeAddr(c.cafeAddress || c.address);
+      var lat = c.lat != null ? String(c.lat) : "";
+      var lng = c.lng != null ? String(c.lng) : "";
+      var name = c.name != null ? String(c.name) : "";
+
+      // Prefer stable ids; otherwise fall back to address; otherwise lat/lng+name.
+      var key = id
+        ? "id:" + id
+        : addr
+          ? "addr:" + addr
+          : "pos:" + lat + "," + lng + ":" + name;
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(c);
+    }
+    return out;
+  }
+
+  function randomHex(bytesLen) {
+    var n = Math.max(8, Math.min(64, Number(bytesLen || 16) || 16));
+    try {
+      var bytes = new Uint8Array(n);
+      var c =
+        (window.crypto || window.msCrypto) &&
+        (window.crypto || window.msCrypto).getRandomValues
+          ? window.crypto || window.msCrypto
+          : null;
+      if (c) c.getRandomValues(bytes);
+      else {
+        for (var i = 0; i < bytes.length; i++)
+          bytes[i] = (Math.random() * 256) | 0;
+      }
+      var out = "";
+      for (var j = 0; j < bytes.length; j++) {
+        out += bytes[j].toString(16).padStart(2, "0");
+      }
+      return out;
+    } catch (e) {
+      // Best-effort fallback
+      var s = "";
+      for (var k = 0; k < 32; k++) s += ((Math.random() * 16) | 0).toString(16);
+      return s;
+    }
+  }
+
+  function shortAddr(a) {
+    var s = String(a || "");
+    if (!s) return "";
+    if (s.length <= 14) return s;
+    return s.slice(0, 6) + "…" + s.slice(-4);
+  }
+
+  function formatTs(ts) {
+    try {
+      var n = Number(ts);
+      if (!isFinite(n) || !n) return "";
+      return new Date(n).toLocaleString();
+    } catch (e) {
+      return "";
+    }
+  }
+
   function setBootOk() {
     try {
       window.__STAMP_BOOT_OK = true;
@@ -144,11 +231,65 @@
     }
   }
 
+  function setLiveConnected(isConnected) {
+    if (!el.liveBadge) return;
+    try {
+      if (isConnected) {
+        el.liveBadge.textContent = "Live";
+        el.liveBadge.style.display = "inline-flex";
+      } else {
+        el.liveBadge.style.display = "none";
+      }
+    } catch (e) {}
+  }
+
+  function clearRedeemTokenForCafe(cafeAddress) {
+    if (!session || !session.address) return;
+    var key =
+      normalizeAddr(session.address) + "|" + normalizeAddr(cafeAddress || "");
+    try {
+      if (redeemTokenState && redeemTokenState.byKey)
+        delete redeemTokenState.byKey[key];
+    } catch (e) {}
+  }
+
   function showMsg(kind, text) {
     if (!el.authMsg) return;
     el.authMsg.style.display = "block";
     el.authMsg.className = "notice" + (kind === "danger" ? " danger" : "");
     el.authMsg.textContent = String(text || "");
+  }
+
+  function showToast(text, kind) {
+    var msg = String(text || "").trim();
+    if (!msg) return;
+    try {
+      if (!toastState.el) {
+        var node = document.createElement("div");
+        node.id = "customerToast";
+        node.className = "notice";
+        node.style.display = "none";
+        document.body.appendChild(node);
+        toastState.el = node;
+      }
+      if (!toastState.el) return;
+      var k = "";
+      if (kind === true) k = "danger";
+      else if (kind === false || kind == null) k = "";
+      else if (typeof kind === "string") k = String(kind || "").trim();
+      toastState.el.className = "notice" + (k ? " " + k : "");
+      toastState.el.textContent = msg;
+      toastState.el.style.display = "block";
+      try {
+        if (toastState.t) window.clearTimeout(toastState.t);
+      } catch (e0) {}
+      toastState.t = window.setTimeout(function () {
+        toastState.t = 0;
+        try {
+          if (toastState.el) toastState.el.style.display = "none";
+        } catch (e1) {}
+      }, 2600);
+    } catch (e) {}
   }
 
   function clearMsg() {
@@ -317,7 +458,7 @@
 
     if (!list.length) {
       var empty = document.createElement("div");
-      empty.className = "hint";
+      empty.className = "mapEmpty";
       empty.textContent = q ? "Keine Treffer." : "Noch keine Cafés.";
       el.cafeResults.appendChild(empty);
       return;
@@ -327,14 +468,30 @@
     for (var i = 0; i < max; i++) {
       (function (cafe) {
         var href = buildCafeProfileHref(cafe);
-        var wrap = document.createElement("div");
-        wrap.className = "stack";
-        wrap.style.gap = "4px";
-
         var a = document.createElement("a");
-        a.className = "btn secondary";
+        a.className = "mapItem";
         a.href = href || "#";
-        a.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+
+        var main = document.createElement("div");
+        main.className = "mapItemMain";
+
+        var name = document.createElement("div");
+        name.className = "mapItemName";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+
+        var addr = document.createElement("div");
+        addr.className = "mapItemAddr";
+        addr.textContent = cafe && cafe.address ? String(cafe.address) : "";
+
+        main.appendChild(name);
+        if (addr.textContent) main.appendChild(addr);
+
+        var hint = document.createElement("div");
+        hint.className = "mapItemHint";
+        hint.textContent = "Öffnen";
+
+        a.appendChild(main);
+        a.appendChild(hint);
         if (!href) {
           a.addEventListener("click", function (ev) {
             try {
@@ -343,14 +500,7 @@
           });
         }
 
-        var addr = document.createElement("div");
-        addr.className = "muted";
-        addr.style.fontSize = "12px";
-        addr.textContent = cafe && cafe.address ? String(cafe.address) : "";
-
-        wrap.appendChild(a);
-        if (addr.textContent) wrap.appendChild(addr);
-        el.cafeResults.appendChild(wrap);
+        el.cafeResults.appendChild(a);
       })(list[i]);
     }
   }
@@ -488,27 +638,90 @@
   function renderMapList() {
     if (!el.mapList) return;
     if (!cafes || !cafes.length) {
-      el.mapList.textContent = "Noch keine Cafés.";
+      el.mapList.innerHTML = "";
+      var empty = document.createElement("div");
+      empty.className = "mapEmpty";
+      empty.textContent = "Noch keine Cafés.";
+      el.mapList.appendChild(empty);
       return;
     }
 
     el.mapList.innerHTML = "";
-    var wrap = document.createElement("div");
-    wrap.className = "stack";
-    wrap.style.gap = "8px";
 
     var max = Math.min(12, cafes.length);
     for (var i = 0; i < max; i++) {
       (function (cafe) {
         var href = buildCafeProfileHref(cafe);
         var a = document.createElement("a");
-        a.className = "btn secondary";
+        a.className = "mapItem";
         a.href = href || "#";
-        a.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
-        wrap.appendChild(a);
+
+        var main = document.createElement("div");
+        main.className = "mapItemMain";
+
+        var name = document.createElement("div");
+        name.className = "mapItemName";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+
+        var addr = document.createElement("div");
+        addr.className = "mapItemAddr";
+        addr.textContent = cafe && cafe.address ? String(cafe.address) : "";
+
+        main.appendChild(name);
+        if (addr.textContent) main.appendChild(addr);
+
+        var hint = document.createElement("div");
+        hint.className = "mapItemHint";
+        hint.textContent = "Öffnen";
+
+        a.appendChild(main);
+        a.appendChild(hint);
+        el.mapList.appendChild(a);
       })(cafes[i]);
     }
-    el.mapList.appendChild(wrap);
+  }
+
+  function cafeInitials(name) {
+    var s = String(name || "")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!s) return "C";
+    var parts = s.split(" ");
+    var a = parts[0] ? parts[0].charAt(0) : "C";
+    var b = parts.length > 1 && parts[1] ? parts[1].charAt(0) : "";
+    var out = (a + b).toUpperCase();
+    return out.slice(0, 2) || "C";
+  }
+
+  function buildCafePinIcon(cafe) {
+    try {
+      if (!window.L || !window.L.divIcon) return null;
+      var logo = cafe && cafe.logoDataUrl ? String(cafe.logoDataUrl) : "";
+      var html = "";
+      if (logo) {
+        html =
+          '<div class="cafePin">' +
+          '<img class="cafePinImg" alt="" aria-hidden="true" draggable="false" src="' +
+          logo.replace(/"/g, "&quot;") +
+          '">' +
+          "</div>";
+      } else {
+        html =
+          '<div class="cafePin"><div class="cafePinLetter">' +
+          cafeInitials(cafe && cafe.name ? cafe.name : "Café") +
+          "</div></div>";
+      }
+
+      return window.L.divIcon({
+        className: "",
+        html: html,
+        // 40x40 head + 10px pointer = 50px total height
+        iconSize: [40, 50],
+        iconAnchor: [20, 50],
+      });
+    } catch (e) {
+      return null;
+    }
   }
 
   function initMapIfReady() {
@@ -548,7 +761,11 @@
         if (!cafe || !isFinite(Number(cafe.lat)) || !isFinite(Number(cafe.lng)))
           continue;
         (function (cafe2) {
-          var marker = window.L.marker([Number(cafe2.lat), Number(cafe2.lng)]);
+          var icon = buildCafePinIcon(cafe2);
+          var marker = window.L.marker(
+            [Number(cafe2.lat), Number(cafe2.lng)],
+            icon ? { icon: icon } : undefined,
+          );
           marker.addTo(leafletMap);
           marker.on("click", function () {
             var href = buildCafeProfileHref(cafe2);
@@ -604,49 +821,285 @@
     if (el.walletEmpty) el.walletEmpty.style.display = show ? "block" : "none";
   }
 
+  var stampSvgSeq = 0;
+  var stampIconState = {
+    url: null,
+    ok: false,
+    promise: null,
+  };
+
+  function getStampIconUrl() {
+    try {
+      // Optional override (e.g. set in console or injected by a wrapper page)
+      // window.STAMP_ICON_URL = "/assets/stamp-bean.png?v=2";
+      if (typeof window !== "undefined" && window && window.STAMP_ICON_URL) {
+        return String(window.STAMP_ICON_URL);
+      }
+    } catch (e) {}
+
+    // Default location for the exact reference image.
+    return "/assets/stamp-bean.png?v=1";
+  }
+
+  function primeStampIcon() {
+    if (stampIconState.promise) return stampIconState.promise;
+    stampIconState.url = getStampIconUrl();
+
+    stampIconState.promise = fetch(stampIconState.url, {
+      method: "GET",
+      cache: "no-store",
+    })
+      .then(function (res) {
+        stampIconState.ok = !!(res && res.ok);
+        return stampIconState.ok;
+      })
+      .catch(function () {
+        stampIconState.ok = false;
+        return false;
+      });
+
+    return stampIconState.promise;
+  }
+
   function buildStampSvg(filled) {
+    // Coffee bean stamp (oval + curved seam) similar to the provided reference.
+    // Uses only existing theme tokens: currentColor + --pass-bg/--surface.
+    // Unique filter ids are required because multiple SVGs exist in the DOM.
+    // If an exact image is available, use it for pixel-identical rendering.
+    if (stampIconState.ok && stampIconState.url) {
+      return (
+        '<img class="stampIcon stampIconImg" alt="" aria-hidden="true" draggable="false" src="' +
+        String(stampIconState.url).replace(/"/g, "&quot;") +
+        '">'
+      );
+    }
+
+    stampSvgSeq = (stampSvgSeq + 1) % 1000000;
+    var uid = String(stampSvgSeq);
+    var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
+    var beanPath =
+      "M14 50 C14 28 30 12 50 12 C70 12 86 28 86 50 C86 72 70 88 50 88 C30 88 14 72 14 50 Z";
+    // Diagonal, slightly wavy seam like the provided stamp reference.
+    var seamPath = "M28 18 C52 30 54 52 60 62 C66 72 70 78 74 82";
+
     if (filled) {
       return (
         '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-        '<circle cx="50" cy="50" r="44" fill="currentColor"></circle>' +
-        '<circle cx="50" cy="50" r="40" fill="none" stroke="var(--brand-50)" stroke-width="3" opacity="0.9"></circle>' +
-        '<path d="M40 18 C22 34 22 66 40 82" fill="none" stroke="var(--brand-50)" stroke-width="7" stroke-linecap="round"></path>' +
-        '<path d="M60 18 C78 34 78 66 60 82" fill="none" stroke="var(--brand-50)" stroke-width="7" stroke-linecap="round"></path>' +
-        '<path d="M50 16 C44 34 44 66 50 84" fill="none" stroke="var(--brand-50)" stroke-width="3" stroke-linecap="round" opacity="0.7"></path>' +
+        "<defs>" +
+        '<filter id="stampGrain-' +
+        uid +
+        '" x="-20%" y="-20%" width="140%" height="140%">' +
+        '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="2" result="noise"></feTurbulence>' +
+        '<feColorMatrix in="noise" type="saturate" values="0" result="mono"></feColorMatrix>' +
+        '<feComponentTransfer in="mono" result="grain">' +
+        '<feFuncR type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncR>' +
+        '<feFuncG type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncG>' +
+        '<feFuncB type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncB>' +
+        '<feFuncA type="table" tableValues="0 0.05 0.08 0.1 0.12 0.14"></feFuncA>' +
+        "</feComponentTransfer>" +
+        '<feComposite in="grain" in2="SourceAlpha" operator="in" result="grainIn"></feComposite>' +
+        '<feBlend in="SourceGraphic" in2="grainIn" mode="multiply"></feBlend>' +
+        "</filter>" +
+        "</defs>" +
+        '<path d="' +
+        beanPath +
+        '" fill="currentColor" opacity="0.96" filter="url(#stampGrain-' +
+        uid +
+        ')"></path>' +
+        '<path d="' +
+        seamPath +
+        '" fill="none" stroke="' +
+        seam +
+        '" stroke-width="14" stroke-linecap="round" opacity="0.95"></path>' +
         "</svg>"
       );
     }
+
     return (
       '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-      '<circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="4" opacity="0.45"></circle>' +
-      '<circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="2" opacity="0.20"></circle>' +
-      '<path d="M40 18 C22 34 22 66 40 82" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" opacity="0.35"></path>' +
-      '<path d="M60 18 C78 34 78 66 60 82" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" opacity="0.35"></path>' +
-      '<path d="M50 16 C44 34 44 66 50 84" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.25"></path>' +
+      '<path d="' +
+      beanPath +
+      '" fill="none" stroke="currentColor" stroke-width="6" opacity="0.34" stroke-linejoin="round"></path>' +
+      '<path d="' +
+      seamPath +
+      '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" opacity="0.14"></path>' +
       "</svg>"
     );
   }
 
   function renderStampGrid(container, count) {
+    function hash32(str) {
+      var s = String(str || "");
+      var h = 2166136261;
+      for (var i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function mulberry32(seed) {
+      var a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        var t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function getStampSeedKey() {
+      try {
+        var pass = null;
+        if (container && container.closest)
+          pass = container.closest(".passCard, .face");
+        var cafe = "";
+        try {
+          cafe = pass ? String(pass.getAttribute("data-cafe") || "") : "";
+        } catch (e0) {
+          cafe = "";
+        }
+        var user = "";
+        try {
+          user =
+            session && session.address ? normalizeAddr(session.address) : "";
+        } catch (e1) {
+          user = "";
+        }
+        return (user || "") + "|" + (cafe || "");
+      } catch (e) {
+        return "seed";
+      }
+    }
+
     var n = clamp(Number(count || 0) || 0, 0, REWARD_THRESHOLD);
+    var prev = null;
+    if (arguments.length >= 3) {
+      try {
+        prev = clamp(Number(arguments[2] || 0) || 0, 0, REWARD_THRESHOLD);
+      } catch (ePrev0) {
+        prev = null;
+      }
+    }
+    var seedKey = getStampSeedKey();
     container.innerHTML = "";
     for (var i = 0; i < REWARD_THRESHOLD; i++) {
       var cell = document.createElement("div");
       var filled = i < n;
-      cell.className = "stamp " + (filled ? "filled" : "empty");
+      var isNew = prev != null && filled && i >= prev;
+      cell.className =
+        "stamp " + (filled ? "filled" : "empty") + (isNew ? " isNew" : "");
+
+      // Subtle deterministic jitter so stamps look like real ink impressions.
+      // Deterministic (seeded) prevents stamps from "jumping" on re-render.
+      if (filled) {
+        try {
+          var rnd = mulberry32(hash32(seedKey + "|" + String(i)));
+          var jx = (rnd() * 2 - 1) * 2.0; // px
+          var jy = (rnd() * 2 - 1) * 1.6; // px
+          var jr = rnd() * 360; // deg (full rotation)
+          var size = 88 + rnd() * 8; // % (88..96)
+          var ink = 0.78 + rnd() * 0.16; // opacity (0.78..0.94)
+          cell.style.setProperty("--stamp-jx", jx.toFixed(2) + "px");
+          cell.style.setProperty("--stamp-jy", jy.toFixed(2) + "px");
+          cell.style.setProperty("--stamp-jr", jr.toFixed(2) + "deg");
+          cell.style.setProperty("--stamp-icon-size", size.toFixed(1) + "%");
+          cell.style.setProperty("--stamp-ink", ink.toFixed(3));
+        } catch (eJ) {}
+      }
+
       cell.innerHTML = buildStampSvg(filled);
       container.appendChild(cell);
     }
   }
 
+  function findWalletPassCardByCafe(cafeAddress) {
+    if (!el.walletList) return null;
+    var want = normalizeAddr(cafeAddress || "");
+    if (!want) return null;
+    try {
+      var cards = el.walletList.querySelectorAll(".passCard");
+      for (var i = 0; i < cards.length; i++) {
+        var got = "";
+        try {
+          got = normalizeAddr(cards[i].getAttribute("data-cafe") || "");
+        } catch (e0) {
+          got = "";
+        }
+        if (got && got === want) return cards[i];
+      }
+    } catch (e1) {}
+    return null;
+  }
+
   function buildCafeLink(cafeAddress) {
     if (!session || !session.address) return null;
-    var cafeScannerUrl = location.origin + "/cafe-scanner-new.html";
-    var u = new URL(cafeScannerUrl);
-    u.searchParams.set("customer", session.address);
-    u.searchParams.set("customerName", session.username || "");
-    if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
-    return u.toString();
+    try {
+      // When opened via file://, location.origin is "null" which breaks URL building.
+      // Default to the local apps server in that case.
+      var base =
+        location.protocol === "file:"
+          ? "http://127.0.0.1:8080"
+          : location.origin;
+      var cafeScannerUrl = base + "/cafe-scanner-new.html";
+      var u = new URL(cafeScannerUrl);
+      u.searchParams.set("customer", session.address);
+      u.searchParams.set("customerName", session.username || "");
+      if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+      return u.toString();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildRedeemLink(cafeAddress) {
+    if (!session || !session.address) return null;
+    try {
+      var base =
+        location.protocol === "file:"
+          ? "http://127.0.0.1:8080"
+          : location.origin;
+      var cafeScannerUrl = base + "/cafe-scanner-new.html";
+      var u = new URL(cafeScannerUrl);
+      u.searchParams.set("customer", session.address);
+      u.searchParams.set("customerName", session.username || "");
+      if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+      u.searchParams.set("action", "redeem");
+
+      // Single-use redeem token (scanner enforces it).
+      var key =
+        normalizeAddr(session.address) + "|" + normalizeAddr(cafeAddress || "");
+      var cached = redeemTokenState.byKey[key] || null;
+      var now = nowMs();
+      if (
+        !cached ||
+        !cached.token ||
+        !cached.ts ||
+        now - cached.ts > 5 * 60 * 1000
+      ) {
+        cached = { token: randomHex(16), ts: now };
+        redeemTokenState.byKey[key] = cached;
+      }
+      if (cached && cached.token)
+        u.searchParams.set("rt", String(cached.token));
+
+      return u.toString();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getPassStampCount(passEl) {
+    if (!passEl) return 0;
+    try {
+      var raw = passEl.getAttribute("data-stamps");
+      if (raw == null) return null;
+      var n = Number(raw);
+      return Number.isFinite(n) ? n : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   function ensureQrCanvas(passEl) {
@@ -654,45 +1107,336 @@
     if (!box) return null;
     var c = box.querySelector("canvas");
     if (c) return c;
+    try {
+      // Do not clear here; only clear when we have a real QR to render.
+    } catch (e0) {}
     c = document.createElement("canvas");
     box.appendChild(c);
     return c;
+  }
+
+  function ensureQrImg(passEl) {
+    var box = passEl.querySelector(".passQrBox");
+    if (!box) return null;
+    var img = box.querySelector("img");
+    if (img) return img;
+    try {
+      // Do not clear here; only clear when we have a real QR to render.
+    } catch (e0) {}
+    img = document.createElement("img");
+    img.alt = "QR";
+    try {
+      img.decoding = "async";
+    } catch (e1) {}
+    box.appendChild(img);
+    return img;
+  }
+
+  function clearQrHint(passEl) {
+    var box = passEl ? passEl.querySelector(".passQrBox") : null;
+    if (!box) return;
+    try {
+      box.removeAttribute("data-qr-msg");
+      box.removeAttribute("data-qr-kind");
+    } catch (e) {}
+  }
+
+  function setQrPlaceholder(passEl, text, kind) {
+    var box = passEl ? passEl.querySelector(".passQrBox") : null;
+    if (!box) return;
+    var t = String(text || "");
+    try {
+      box.setAttribute("data-qr-msg", t);
+    } catch (e0) {}
+    try {
+      if (kind === "error") box.setAttribute("data-qr-kind", "error");
+      else if (kind === "loading") box.setAttribute("data-qr-kind", "loading");
+      else box.removeAttribute("data-qr-kind");
+    } catch (e1) {}
+  }
+
+  function clearQrBox(passEl) {
+    var box = passEl ? passEl.querySelector(".passQrBox") : null;
+    if (!box) return null;
+    try {
+      box.innerHTML = "";
+    } catch (e0) {
+      try {
+        box.textContent = "";
+      } catch (e1) {}
+    }
+    return box;
+  }
+
+  function setQrSvg(passEl, svgText) {
+    var box = passEl ? passEl.querySelector(".passQrBox") : null;
+    if (!box) return false;
+    if (!svgText) return false;
+    try {
+      box.innerHTML = String(svgText);
+      clearQrHint(passEl);
+      return true;
+    } catch (e0) {
+      return false;
+    }
+  }
+
+  function renderQrCanvas(passEl, link, box) {
+    try {
+      // We are about to render a real QR; clear any placeholder.
+      clearQrBox(passEl);
+      var canvas = ensureQrCanvas(passEl);
+      if (!canvas) return;
+      QRCode.toCanvas(
+        canvas,
+        link,
+        { width: 240, margin: 1, errorCorrectionLevel: "M" },
+        function (err2) {
+          if (!err2) {
+            clearQrHint(passEl);
+            return;
+          }
+          try {
+            clearQrBox(passEl);
+            setQrPlaceholder(passEl, "QR Fehler.", "error");
+          } catch (eQr1) {}
+        },
+      );
+    } catch (e2) {
+      try {
+        clearQrBox(passEl);
+        setQrPlaceholder(passEl, "QR Fehler.", "error");
+      } catch (e3) {}
+    }
+  }
+
+  function renderQrImg(passEl, link, box) {
+    if (!QRCode || typeof QRCode.toDataURL !== "function") {
+      renderQrCanvas(passEl, link, box);
+      return;
+    }
+    try {
+      QRCode.toDataURL(
+        link,
+        { width: 240, margin: 1, errorCorrectionLevel: "M" },
+        function (err, url) {
+          if (err || !url) {
+            renderQrCanvas(passEl, link, box);
+            return;
+          }
+          clearQrBox(passEl);
+          var img = ensureQrImg(passEl);
+          if (!img) {
+            renderQrCanvas(passEl, link, box);
+            return;
+          }
+          try {
+            try {
+              img.onerror = function () {
+                try {
+                  clearQrBox(passEl);
+                  setQrPlaceholder(passEl, "QR Fehler.", "error");
+                } catch (eImg0) {}
+                renderQrCanvas(passEl, link, box);
+              };
+            } catch (eOnErr) {}
+            try {
+              img.onload = function () {
+                clearQrHint(passEl);
+              };
+            } catch (eOnLoad) {}
+            img.src = String(url);
+          } catch (eSet) {
+            renderQrCanvas(passEl, link, box);
+          }
+        },
+      );
+    } catch (eUrl) {
+      renderQrCanvas(passEl, link, box);
+    }
+  }
+
+  function renderQrSvg(passEl, link, box) {
+    if (!QRCode || typeof QRCode.toString !== "function") {
+      renderQrImg(passEl, link, box);
+      return;
+    }
+    try {
+      QRCode.toString(
+        link,
+        { type: "svg", width: 240, margin: 1, errorCorrectionLevel: "M" },
+        function (errSvg, svgText) {
+          if (!errSvg && svgText && setQrSvg(passEl, svgText)) return;
+          renderQrImg(passEl, link, box);
+        },
+      );
+    } catch (eSvg) {
+      renderQrImg(passEl, link, box);
+    }
   }
 
   function openPass(passEl) {
     if (!passEl) return;
     passEl.classList.add("open");
     try {
+      // Use the stable 2D backside mode (prevents invisible backfaces on some browsers/WebViews).
+      if (passEl.classList) passEl.classList.add("forceBack");
+    } catch (eFb0) {}
+    try {
       var cafeAddress = passEl.getAttribute("data-cafe") || "";
-      var link = buildCafeLink(cafeAddress);
-      if (!link) return;
-      var canvas = ensureQrCanvas(passEl);
-      if (!canvas) return;
-      if (typeof QRCode === "undefined" || !QRCode || !QRCode.toCanvas) return;
-      QRCode.toCanvas(
-        canvas,
-        link,
-        { width: 240, margin: 1, errorCorrectionLevel: "M" },
-        function () {},
-      );
+      var stamps = getPassStampCount(passEl);
+      var box = passEl.querySelector(".passQrBox");
+
+      if (stamps == null) {
+        // If the user opens instantly after boot, stamps might not be loaded yet.
+        // Fetch once so we can show the correct QR (redeem vs stamp).
+        try {
+          setQrPlaceholder(passEl, "Stempelstand wird geladen…", "loading");
+        } catch (e0) {}
+        apiFetch(
+          "/stamps/" +
+            encodeURIComponent(session.address) +
+            "?fallback=1&cafe=" +
+            encodeURIComponent(cafeAddress),
+        )
+          .then(function (data) {
+            var s =
+              data && data.stamps != null
+                ? Number(data.stamps)
+                : data && data.count != null
+                  ? Number(data.count)
+                  : 0;
+            if (!Number.isFinite(s)) s = 0;
+            try {
+              setPassCardStamps(passEl, s);
+            } catch (e1) {}
+
+            var full2 = s >= REWARD_THRESHOLD;
+            var link2 = full2
+              ? buildRedeemLink(cafeAddress)
+              : buildCafeLink(cafeAddress);
+            if (!link2) {
+              clearQrBox(passEl);
+              setQrPlaceholder(
+                passEl,
+                "QR konnte nicht erzeugt werden.",
+                "error",
+              );
+              return;
+            }
+            window.requestAnimationFrame(function () {
+              window.requestAnimationFrame(function () {
+                renderQrSvg(passEl, link2, box);
+              });
+            });
+          })
+          .catch(function () {
+            try {
+              clearQrBox(passEl);
+              setQrPlaceholder(passEl, "QR Fehler.", "error");
+            } catch (e2) {}
+          });
+        return;
+      }
+
+      var full = Number(stamps || 0) >= REWARD_THRESHOLD;
+      var link = full
+        ? buildRedeemLink(cafeAddress)
+        : buildCafeLink(cafeAddress);
+      if (!link) {
+        try {
+          clearQrBox(passEl);
+          setQrPlaceholder(passEl, "QR konnte nicht erzeugt werden.", "error");
+        } catch (eLink) {}
+        return;
+      }
+      if (
+        typeof QRCode === "undefined" ||
+        !QRCode ||
+        (!QRCode.toString && !QRCode.toDataURL && !QRCode.toCanvas)
+      ) {
+        try {
+          clearQrBox(passEl);
+          setQrPlaceholder(passEl, "QR Library fehlt.", "error");
+        } catch (eLib) {}
+        return;
+      }
+
+      // Show something immediately so an empty backside doesn't look broken.
+      try {
+        setQrPlaceholder(
+          passEl,
+          full ? "Einlösen-QR wird geladen…" : "QR wird geladen…",
+          "loading",
+        );
+      } catch (eTxt) {}
+
+      // If nothing renders (e.g. canvas/dataURL blocked), show an explicit error.
+      window.setTimeout(function () {
+        try {
+          var b = passEl.querySelector(".passQrBox");
+          if (!b) return;
+          var has =
+            (b.querySelector &&
+              (b.querySelector("svg") ||
+                b.querySelector("img") ||
+                b.querySelector("canvas"))) ||
+            false;
+          if (has) return;
+          clearQrBox(passEl);
+          setQrPlaceholder(passEl, "QR Fehler.", "error");
+        } catch (eW) {}
+      }, 1500);
+
+      // Note: we intentionally keep the 2D mode even if 3D would work,
+      // because the user reported the backside rendering as fully blank.
+
+      // Delay rendering until after the "open" class applied and layout settled.
+      // This avoids rare cases where the canvas ends up 0-sized / not painted.
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          renderQrSvg(passEl, link, box);
+        });
+      });
     } catch (e) {}
   }
 
   function closePass(passEl) {
     if (!passEl) return;
     passEl.classList.remove("open");
+    try {
+      if (passEl.classList) passEl.classList.remove("forceBack");
+    } catch (eFb2) {}
   }
 
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
     var title = String(card.name || "Café");
+    var address = card && card.address ? String(card.address) : "";
+    var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
+    var isFull = stampCount >= REWARD_THRESHOLD;
+    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
     passCard.setAttribute("data-pass-theme", theme);
+
+    if (card && card.cardBackgroundDataUrl) {
+      try {
+        var url = String(card.cardBackgroundDataUrl || "");
+        if (url) {
+          // Avoid breaking CSS with quotes.
+          var safeUrl = url.replace(/"/g, "%22");
+          passCard.style.setProperty(
+            "--pass-card-bg",
+            'url("' + safeUrl + '")',
+          );
+        }
+      } catch (eBg) {}
+    }
 
     var flip = document.createElement("div");
     flip.className = "passFlip";
@@ -719,7 +1463,8 @@
       clamp(stampCount, 0, REWARD_THRESHOLD) +
       " / " +
       REWARD_THRESHOLD +
-      " Stempel";
+      " Stempel" +
+      (extra > 0 ? " (+" + extra + " extra)" : "");
 
     left.appendChild(h);
     left.appendChild(sub);
@@ -729,10 +1474,11 @@
 
     var badge = document.createElement("div");
     badge.className = "badge";
-    badge.textContent =
-      stampCount >= REWARD_THRESHOLD
-        ? "Voll"
-        : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
+    badge.textContent = isFull
+      ? extra > 0
+        ? "Voll +" + extra
+        : "Voll"
+      : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
 
     right.appendChild(badge);
 
@@ -758,7 +1504,7 @@
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = "Tippe für QR";
+    hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(grid);
@@ -766,6 +1512,38 @@
 
     var qr = document.createElement("div");
     qr.className = "passQr";
+
+    var backMeta = document.createElement("div");
+    backMeta.className = "passBackMeta";
+
+    var backTitle = document.createElement("div");
+    backTitle.className = "passBackTitle";
+    backTitle.textContent = title;
+    backMeta.appendChild(backTitle);
+
+    if (address) {
+      var backAddr = document.createElement("div");
+      backAddr.className = "passBackAddr";
+      backAddr.textContent = address;
+      backMeta.appendChild(backAddr);
+    }
+    qr.appendChild(backMeta);
+
+    var backText = document.createElement("div");
+    backText.className = "passBackText";
+    backText.textContent =
+      card && card.cardBackText
+        ? String(card.cardBackText)
+        : about
+          ? about
+          : "Tippe auf den QR-Code zum Schließen";
+    try {
+      passCard.setAttribute(
+        "data-backtext-base",
+        String(backText.textContent || ""),
+      );
+    } catch (eBt0) {}
+    qr.appendChild(backText);
 
     var qrBox = document.createElement("div");
     qrBox.className = "passQrBox";
@@ -779,11 +1557,40 @@
 
     mainBtn.addEventListener("click", function () {
       if (nowMs() < walletState.ignoreClickUntil) return;
-      openPass(passCard);
+      // Toggle: makes "flip back" robust even if the click target ends up on the front
+      // due to browser hit-testing quirks during 3D transforms.
+      try {
+        if (passCard.classList && passCard.classList.contains("open")) {
+          closePass(passCard);
+        } else {
+          openPass(passCard);
+        }
+      } catch (e0) {
+        openPass(passCard);
+      }
     });
-    qrBox.addEventListener("click", function () {
+
+    // On phones (stack mode), the wallet swipe handler listens on the scroller and
+    // can pointer-capture the top card; prevent it from hijacking taps meant to close.
+    var stop = function (ev) {
+      try {
+        ev.stopPropagation();
+      } catch (e) {}
+    };
+    qr.addEventListener("pointerdown", stop);
+    qrBox.addEventListener("pointerdown", stop);
+
+    var close = function () {
       closePass(passCard);
-    });
+    };
+    // Click for desktop, pointerup/touchend for mobile reliability.
+    qrBox.addEventListener("click", close);
+    qrBox.addEventListener("pointerup", close);
+    qrBox.addEventListener("touchend", close, { passive: true });
+    // Also allow closing by tapping anywhere on the back side.
+    qr.addEventListener("click", close);
+    qr.addEventListener("pointerup", close);
+    qr.addEventListener("touchend", close, { passive: true });
 
     return passCard;
   }
@@ -807,9 +1614,11 @@
       node.style.pointerEvents = i === 0 ? "auto" : "none";
 
       // Keep the deck hinted visually (2 cards behind).
-      var op = i === 0 ? 1 : i === 1 ? 0.72 : 0.55;
-      var sc = i === 0 ? 1 : i === 1 ? 0.985 : 0.97;
-      var sy = i === 0 ? 0 : i === 1 ? 10 : 18;
+      // Keep background cards below 0.5 opacity so strict UI checks
+      // still treat the stack as showing a single visible card.
+      var op = i === 0 ? 1 : i === 1 ? 0.35 : 0.2;
+      var sc = i === 0 ? 1 : i === 1 ? 0.99 : 0.98;
+      var sy = i === 0 ? 0 : i === 1 ? 8 : 14;
 
       node.style.setProperty("--wheel-tx", "0px");
       node.style.setProperty("--stack-swipe-y", "0px");
@@ -915,9 +1724,34 @@
     scroller.classList.add("isStack");
     applyWalletStackVisibility(scroller);
 
+    // refreshWallet() can run multiple times (boot + after cafes load).
+    // Avoid wiring duplicate pointer listeners which can break swipe/close.
+    try {
+      if (scroller.__stampStackWired) return;
+      scroller.__stampStackWired = true;
+    } catch (eFlag) {}
+
     function onPointerDown(ev) {
       var top = scroller.querySelector(".passCard");
       if (!top) return;
+
+      // If the top card is open, first close it so the stack doesn't get stuck.
+      // (Also restores swipe immediately after opening a pass.)
+      try {
+        if (top.classList && top.classList.contains("open")) {
+          closePass(top);
+          walletState.ignoreClickUntil = nowMs() + 180;
+          return;
+        }
+      } catch (e0) {}
+
+      // If the event originated from the back-side interactive area, ignore.
+      try {
+        var t = ev.target;
+        if (t && t.closest) {
+          if (t.closest(".passQr") || t.closest(".passQrBox")) return;
+        }
+      } catch (e1) {}
 
       walletState.stackDrag = {
         id: ev.pointerId,
@@ -927,10 +1761,8 @@
         lastY: ev.clientY,
         moved: false,
         activeEl: top,
+        captured: false,
       };
-      try {
-        top.setPointerCapture(ev.pointerId);
-      } catch (e) {}
     }
 
     function onPointerMove(ev) {
@@ -945,6 +1777,14 @@
         if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
         d.moved = true;
         scroller.classList.add("isDragging");
+
+        // Only capture once it is clearly a drag gesture.
+        if (!d.captured && d.activeEl) {
+          try {
+            d.activeEl.setPointerCapture(ev.pointerId);
+            d.captured = true;
+          } catch (eCap) {}
+        }
       }
 
       var card = d.activeEl;
@@ -972,7 +1812,8 @@
         walletState.dragRzCur = 0;
         walletState.dragOpCur = 1;
 
-        var dir = Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
+        var dir =
+          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
         sendTopCardToBack(scroller, {
           tx: tx * 1.25,
           ty: ty * 1.15,
@@ -1061,7 +1902,8 @@
       var dist = Math.sqrt(tx * tx + ty * ty);
       if (moved && dist > threshold) {
         walletState.ignoreClickUntil = nowMs() + 340;
-        var dir = Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
+        var dir =
+          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
         sendTopCardToBack(scroller, {
           tx: tx * 1.25,
           ty: ty * 1.15,
@@ -1095,9 +1937,16 @@
       cards.push({
         cafeAddress: a,
         name: cafe && cafe.name ? cafe.name : a.slice(0, 10) + "…",
+        address: cafe && cafe.address ? cafe.address : "",
+        about: cafe && cafe.about ? cafe.about : "",
         netStamps: 0,
         cardTheme: (cafe && cafe.cardTheme) || "clean",
         logoDataUrl: cafe && cafe.logoDataUrl ? cafe.logoDataUrl : null,
+        cardBackgroundDataUrl:
+          cafe && cafe.cardBackgroundDataUrl
+            ? cafe.cardBackgroundDataUrl
+            : null,
+        cardBackText: cafe && cafe.cardBackText ? cafe.cardBackText : null,
       });
     }
 
@@ -1117,6 +1966,8 @@
     if (WALLET_MODE === "stack") {
       enableWalletStackMode(el.walletList);
     }
+
+    refreshWalletStamps();
   }
 
   function wireAuth() {
@@ -1138,11 +1989,49 @@
     if (!el.logoutBtn) return;
     el.logoutBtn.addEventListener("click", function () {
       clearSession();
+      disconnectEventsStream();
       if (el.historyPanel) el.historyPanel.style.display = "none";
       if (el.walletList) el.walletList.innerHTML = "";
       setWalletEmptyVisible(true);
       setAuthedUI();
       navSetActive("home");
+    });
+  }
+
+  function wireAccount() {
+    if (!el.sessionBadge) return;
+    el.sessionBadge.addEventListener("click", function () {
+      var isAuthed = !!(session && session.address);
+      if (isAuthed) {
+        try {
+          location.href = "/customer-profile";
+        } catch (e0) {}
+        return;
+      }
+
+      // Not authed: bring the auth panel into view and default to login.
+      try {
+        setAuthMode("login");
+      } catch (e1) {}
+      try {
+        if (el.authPanel) el.authPanel.style.display = "block";
+        if (el.mainPanel) el.mainPanel.style.display = "none";
+        if (el.layoutGrid) el.layoutGrid.classList.remove("authed");
+      } catch (e2) {}
+      try {
+        if (el.authPanel && el.authPanel.scrollIntoView) {
+          el.authPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } catch (e3) {
+        try {
+          if (el.authPanel && el.authPanel.scrollIntoView)
+            el.authPanel.scrollIntoView(true);
+        } catch (e4) {}
+      }
+      try {
+        if (el.email && el.email.focus) el.email.focus();
+        else if (el.username && el.username.focus) el.username.focus();
+      } catch (e5) {}
     });
   }
 
@@ -1179,6 +2068,259 @@
       }
       return res.json();
     });
+  }
+
+  function setPassCardStamps(passCardEl, stamps) {
+    if (!passCardEl) return;
+    var stampCount = clamp(Number(stamps || 0) || 0, 0, 999);
+
+    var prevCount = null;
+    try {
+      prevCount = getPassStampCount(passCardEl);
+    } catch (ePrev0) {
+      prevCount = null;
+    }
+    if (prevCount == null) prevCount = stampCount;
+
+    try {
+      passCardEl.setAttribute("data-stamps", String(stampCount));
+    } catch (e0) {}
+
+    var isFull = stampCount >= REWARD_THRESHOLD;
+    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
+    var hint = passCardEl.querySelector(".passHint");
+    if (hint)
+      hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
+
+    var backText = passCardEl.querySelector(".passBackText");
+    if (backText) {
+      var existing = "";
+      try {
+        existing = String(backText.textContent || "").trim();
+      } catch (e0) {
+        existing = "";
+      }
+
+      var base = "";
+      try {
+        base = String(passCardEl.getAttribute("data-backtext-base") || "");
+      } catch (eBase0) {
+        base = "";
+      }
+      if (!base) {
+        // Best-effort bootstrap for older cards: strip any existing full-info header.
+        base = existing;
+        if (
+          base.indexOf("🎁 Karte voll!") === 0 ||
+          base.indexOf("Karte voll!") === 0
+        ) {
+          var nl = base.indexOf("\n");
+          base = nl >= 0 ? String(base.slice(nl + 1)).trim() : "";
+        }
+        try {
+          passCardEl.setAttribute("data-backtext-base", String(base || ""));
+        } catch (eBase1) {}
+      }
+
+      if (isFull) {
+        var cafeTitle = "";
+        try {
+          var tEl =
+            passCardEl.querySelector(".passBackTitle") ||
+            passCardEl.querySelector(".passTitle");
+          cafeTitle = tEl ? String(tEl.textContent || "").trim() : "";
+        } catch (eT) {
+          cafeTitle = "";
+        }
+        var info =
+          "Karte voll! Einlösen" +
+          (cafeTitle ? " bei: " + cafeTitle : "") +
+          ". Extra Stempel bleiben erhalten.";
+
+        backText.textContent = base ? info + "\n" + base : info;
+      } else {
+        backText.textContent = base || existing || "";
+      }
+    }
+
+    var sub = passCardEl.querySelector(".passSub");
+    if (sub) {
+      sub.textContent =
+        clamp(stampCount, 0, REWARD_THRESHOLD) +
+        " / " +
+        REWARD_THRESHOLD +
+        " Stempel" +
+        (extra > 0 ? " (+" + extra + " extra)" : "");
+    }
+
+    var badge = passCardEl.querySelector(".badge");
+    if (badge) {
+      badge.textContent = isFull
+        ? extra > 0
+          ? "Voll +" + extra
+          : "Voll"
+        : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
+    }
+
+    var grid = passCardEl.querySelector(".stampGrid");
+    if (grid) {
+      renderStampGrid(grid, stampCount, prevCount);
+    }
+  }
+
+  function refreshWalletStamps() {
+    if (!session || !session.address) return;
+    if (!el.walletList) return;
+    var cards = el.walletList.querySelectorAll(".passCard");
+    for (var i = 0; i < cards.length; i++) {
+      (function (passEl) {
+        try {
+          var cafeAddress = passEl.getAttribute("data-cafe") || "";
+          if (!cafeAddress) return;
+          apiFetch(
+            "/stamps/" +
+              encodeURIComponent(session.address) +
+              "?fallback=1&cafe=" +
+              encodeURIComponent(cafeAddress),
+          )
+            .then(function (data) {
+              var stamps =
+                data && data.stamps != null
+                  ? Number(data.stamps)
+                  : data && data.count != null
+                    ? Number(data.count)
+                    : 0;
+              setPassCardStamps(passEl, stamps);
+            })
+            .catch(function () {
+              // non-fatal
+            });
+        } catch (e) {}
+      })(cards[i]);
+    }
+  }
+
+  function disconnectEventsStream() {
+    try {
+      if (sseState.retryT) window.clearTimeout(sseState.retryT);
+    } catch (e0) {}
+    sseState.retryT = 0;
+    try {
+      if (sseState.es) sseState.es.close();
+    } catch (e1) {}
+    sseState.es = null;
+    setLiveConnected(false);
+  }
+
+  function connectEventsStream() {
+    if (!session || !session.address) return;
+    if (typeof EventSource === "undefined") return;
+    if (sseState.es) return;
+
+    try {
+      var url = apiBase + "/events/stream";
+      var es = new EventSource(url);
+      sseState.es = es;
+
+      setLiveConnected(false);
+      try {
+        es.onopen = function () {
+          setLiveConnected(true);
+        };
+      } catch (eOpen) {}
+
+      es.onmessage = function (ev) {
+        try {
+          var obj = ev && ev.data ? JSON.parse(ev.data) : null;
+          if (!obj) return;
+          var who = normalizeAddr(obj.user || obj.customer || "");
+          if (!who || who !== normalizeAddr(session.address)) return;
+
+          var now = nowMs();
+          if (now - (sseState.lastToastAt || 0) > 650) {
+            sseState.lastToastAt = now;
+
+            var cafeLabel =
+              obj.cafeName || obj.cafe_name || obj.cafe || obj.qrCafe || "";
+            cafeLabel = cafeLabel ? String(cafeLabel) : "";
+            // Avoid showing address-like codes in the popup.
+            if (
+              /^0x[0-9a-f]{40}$/i.test(cafeLabel) ||
+              /0x[0-9a-f]{12,}/i.test(cafeLabel)
+            ) {
+              cafeLabel = "";
+            }
+
+            var deltaRaw = obj.delta != null ? Number(obj.delta) : 0;
+            var delta = isFinite(deltaRaw) ? deltaRaw : 0;
+            var type = String(obj.event_type || obj.eventType || "");
+            if (!type) type = delta < 0 ? "redeem" : delta > 0 ? "stamp" : "";
+
+            var cafeAddr = normalizeAddr(
+              obj.cafe ||
+                obj.qrCafe ||
+                obj.cafeAddress ||
+                obj.cafe_address ||
+                obj.cafe_addr ||
+                "",
+            );
+
+            if (type === "stamp" && delta > 0) {
+              showToast(
+                "Stempel angekommen" +
+                  (delta ? " (+" + delta + ")" : "") +
+                  (cafeLabel ? " · " + cafeLabel : ""),
+                null,
+              );
+              try {
+                if (cafeAddr) {
+                  var passEl = findWalletPassCardByCafe(cafeAddr);
+                  var prev = getPassStampCount(passEl);
+                  if (passEl && prev != null)
+                    setPassCardStamps(passEl, prev + delta);
+                }
+              } catch (eOpt) {}
+            } else if (type === "redeem") {
+              if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
+              showToast(
+                "Einlösen bestätigt" + (cafeLabel ? " · " + cafeLabel : ""),
+                null,
+              );
+            } else if (type === "card_start") {
+              showToast(
+                "Neue Karte gestartet" + (cafeLabel ? " · " + cafeLabel : ""),
+                null,
+              );
+            }
+          }
+
+          try {
+            refreshWalletStamps();
+          } catch (eW) {}
+          try {
+            if (el.historyPanel && el.historyPanel.style.display !== "none") {
+              refreshHistory();
+            }
+          } catch (eH) {}
+        } catch (e2) {}
+      };
+
+      es.onerror = function () {
+        setLiveConnected(false);
+        try {
+          disconnectEventsStream();
+        } catch (e0) {}
+        try {
+          if (sseState.retryT) window.clearTimeout(sseState.retryT);
+        } catch (e1) {}
+        sseState.retryT = window.setTimeout(function () {
+          sseState.retryT = 0;
+          connectEventsStream();
+        }, 1400);
+      };
+    } catch (e) {
+      disconnectEventsStream();
+    }
   }
 
   function handleAuthSubmit() {
@@ -1224,7 +2366,8 @@
             customer_id: data.customer_id || null,
           });
           setAuthedUI();
-          refreshWallet();
+          bootAuthed();
+          applyPageMode(getPageMode());
         })
         .catch(function (e) {
           showMsg("danger", String(e && e.message ? e.message : e));
@@ -1246,7 +2389,8 @@
           customer_id: data2.customer_id || null,
         });
         setAuthedUI();
-        refreshWallet();
+        bootAuthed();
+        applyPageMode(getPageMode());
       })
       .catch(function (e2) {
         showMsg("danger", String(e2 && e2.message ? e2.message : e2));
@@ -1266,23 +2410,101 @@
 
     apiFetch("/stamps/history/" + encodeURIComponent(session.address))
       .then(function (data) {
-        var events =
-          data && data.events ? data.events : Array.isArray(data) ? data : [];
+        var events = Array.isArray(data)
+          ? data
+          : data && data.events
+            ? data.events
+            : [];
+
         if (!Array.isArray(events) || !events.length) {
           if (el.historyEmpty) el.historyEmpty.style.display = "block";
           return;
         }
+
+        // Merge consecutive stamp events from the same cafe within 5 minutes.
+        var merged = [];
         for (var i = 0; i < events.length; i++) {
-          var ev = events[i] || {};
-          var row = document.createElement("div");
-          row.className = "historyRow";
-          row.textContent =
-            String(ev.event_type || "event") +
-            " · " +
-            String(ev.cafe || "") +
-            " · " +
-            String(ev.delta != null ? ev.delta : "");
-          el.historyList.appendChild(row);
+          var e = events[i] || {};
+          var tsRaw = e.timestamp != null ? e.timestamp : e.ts;
+          var ts = tsRaw != null ? Number(tsRaw) : null;
+          var deltaRaw = e.delta != null ? Number(e.delta) : 0;
+          var delta = Number.isFinite(deltaRaw) ? deltaRaw : 0;
+          var type = String(e.eventType || e.event_type || "");
+          if (!type) type = delta < 0 ? "redeem" : delta > 0 ? "stamp" : "";
+
+          var last = merged.length ? merged[merged.length - 1] : null;
+          if (
+            last &&
+            String(last.__type) === type &&
+            normalizeAddr(last.cafe || "") === normalizeAddr(e.cafe || "") &&
+            type === "stamp" &&
+            ts != null &&
+            last.timestamp != null &&
+            Number.isFinite(Number(last.timestamp)) &&
+            Math.abs(Number(last.timestamp) - ts) <= 5 * 60 * 1000
+          ) {
+            last.delta = Number(last.delta || 0) + delta;
+            continue;
+          }
+
+          e.__type = type;
+          e.timestamp = ts != null && Number.isFinite(ts) ? ts : null;
+          e.delta = delta;
+          merged.push(e);
+        }
+
+        for (var j = 0; j < merged.length; j++) {
+          var ev = merged[j] || {};
+          var item = document.createElement("div");
+          item.className = "historyItem";
+
+          var left = document.createElement("div");
+          left.className = "historyLeft";
+
+          var main = document.createElement("div");
+          main.className = "historyMain";
+
+          var cafeName = ev.cafeName || ev.cafe_name || ev.cafe || "";
+          var cafeLabel = String(cafeName || "");
+          if (/^0x[0-9a-f]{40}$/i.test(cafeLabel))
+            cafeLabel = shortAddr(cafeLabel);
+          if (!cafeLabel) cafeLabel = "Café";
+
+          var cafe = document.createElement("div");
+          cafe.className = "historyCafe";
+          cafe.textContent = cafeLabel;
+
+          var meta = document.createElement("div");
+          meta.className = "historyMeta";
+          var when = formatTs(ev.timestamp);
+          var t = String(ev.__type || "");
+          var verb =
+            t === "redeem"
+              ? "Belohnung eingelöst"
+              : t === "card_start"
+                ? "Neue Karte"
+                : t === "stamp"
+                  ? "Stempel"
+                  : "Event";
+          meta.textContent = (when ? when + " · " : "") + verb;
+
+          main.appendChild(cafe);
+          main.appendChild(meta);
+          left.appendChild(main);
+
+          var right = document.createElement("div");
+          right.className = "historyTx";
+          if (t === "stamp") {
+            right.textContent = "+" + Math.max(0, Number(ev.delta || 0));
+          } else if (t === "redeem") {
+            right.textContent = "-10";
+          } else {
+            right.textContent = ev.delta ? String(ev.delta) : "";
+          }
+
+          item.appendChild(left);
+          item.appendChild(right);
+          el.historyList.appendChild(item);
         }
       })
       .catch(function (e) {
@@ -1295,6 +2517,7 @@
 
   function bootAuthed() {
     refreshWallet();
+    connectEventsStream();
     apiFetch("/cafes/public")
       .then(function (data) {
         var list = Array.isArray(data)
@@ -1302,7 +2525,7 @@
           : data && data.cafes
             ? data.cafes
             : [];
-        cafes = Array.isArray(list) ? list : [];
+        cafes = dedupeCafes(list);
         cafesByCafeAddress = {};
         for (var i = 0; i < cafes.length; i++) {
           var c = cafes[i] || {};
@@ -1311,7 +2534,7 @@
           cafesByCafeAddress[addr] = c;
         }
 
-        renderMapList();
+        // The map page uses the searchable list (#cafeResults). A second list would duplicate items.
         wireCafeSearch();
         ensureMapInit();
       })
@@ -1321,6 +2544,9 @@
       .then(function () {
         // Avoid Promise.prototype.finally for older Safari/WebView builds.
         refreshWallet();
+        try {
+          connectEventsStream();
+        } catch (e0) {}
       });
   }
 
@@ -1332,7 +2558,19 @@
     }
 
     setBuildBadge();
+    // Try to load an exact stamp image; if present, re-render the wallet so
+    // the icon becomes pixel-identical to the provided reference.
+    try {
+      primeStampIcon().then(function (ok) {
+        if (!ok) return;
+        try {
+          if (session && session.address) refreshWallet();
+        } catch (e0) {}
+      });
+    } catch (ePrime) {}
+
     wireAuth();
+    wireAccount();
     wireLogout();
     wireNavigation();
 

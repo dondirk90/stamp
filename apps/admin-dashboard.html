@@ -1,23 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>☕ Café Übersicht (Admin)</title>
+    <link rel="stylesheet" href="/theme.css" />
     <style>
       :root {
-        color-scheme: light dark;
+        color-scheme: light;
       }
       * {
         box-sizing: border-box;
       }
       body {
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: var(--font-sans);
+        background: var(--bg);
         margin: 0;
         padding: 24px;
         min-height: 100vh;
-        color: #1a202c;
+        color: var(--text);
       }
       a {
         color: inherit;
@@ -31,7 +32,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 24px;
-        color: #fff;
+        color: var(--text);
       }
       .header h1 {
         margin: 0;
@@ -39,41 +40,42 @@
       }
       .header p {
         margin: 4px 0 0;
-        opacity: 0.85;
+        opacity: 1;
+        color: var(--text-muted);
       }
       .action-buttons {
         display: flex;
         gap: 12px;
       }
       .btn {
-        border: none;
-        border-radius: 10px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
         padding: 10px 18px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
         font-size: 14px;
       }
       .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--brand);
         color: #fff;
       }
       .btn-secondary {
-        background: rgba(255, 255, 255, 0.18);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
       }
       .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        filter: none;
       }
       .card {
-        background: rgba(255, 255, 255, 0.94);
-        backdrop-filter: blur(10px);
-        border-radius: 18px;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         padding: 22px;
         margin-bottom: 20px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        box-shadow: none;
       }
       .config-grid {
         display: grid;
@@ -82,8 +84,8 @@
       }
       label {
         font-size: 13px;
-        font-weight: 600;
-        color: #4a5568;
+        font-weight: 700;
+        color: var(--text);
         display: block;
         margin-bottom: 6px;
       }
@@ -91,22 +93,23 @@
       select {
         width: 100%;
         padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid #cbd5f5;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
         font-size: 14px;
         outline: none;
-        transition: border 0.2s, box-shadow 0.2s;
+        background: var(--surface);
+        color: var(--text);
       }
       input:focus {
-        border-color: #764ba2;
-        box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.2);
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px var(--focus);
       }
       .error {
-        background: rgba(255, 67, 67, 0.1);
-        border: 1px solid rgba(255, 67, 67, 0.35);
-        color: #7f1d1d;
+        background: var(--danger-bg);
+        border: 1px solid rgba(180, 35, 24, 0.25);
+        color: var(--danger);
         padding: 16px;
-        border-radius: 12px;
+        border-radius: var(--radius-sm);
         margin-bottom: 20px;
         display: none;
       }
@@ -117,22 +120,23 @@
         margin-bottom: 20px;
       }
       .summary-card {
-        background: rgba(255, 255, 255, 0.92);
-        border-radius: 16px;
+        background: transparent;
+        border-radius: 0;
         padding: 18px;
-        border: 1px solid rgba(102, 126, 234, 0.18);
+        border: none;
+        border-top: 1px solid var(--border);
       }
       .summary-label {
         font-size: 12px;
-        text-transform: uppercase;
-        color: #718096;
-        letter-spacing: 0.04em;
+        text-transform: none;
+        color: var(--text-muted);
+        letter-spacing: 0;
       }
       .summary-value {
         font-size: 28px;
         font-weight: 700;
         margin-top: 4px;
-        color: #2d3748;
+        color: var(--text);
       }
       .cafe-card {
         margin-bottom: 24px;
@@ -148,7 +152,7 @@
       .cafe-name {
         font-size: 22px;
         font-weight: 700;
-        color: #2d3748;
+        color: var(--text);
       }
       .badge {
         display: inline-flex;
@@ -160,17 +164,19 @@
         margin-left: 8px;
       }
       .badge-neutral {
-        background: #edf2f7;
-        color: #4a5568;
+        background: var(--surface-muted);
+        color: var(--text);
+        border: 1px solid var(--border);
       }
       .badge-warning {
-        background: #fef3c7;
-        color: #92400e;
+        background: var(--brand-50);
+        color: var(--text);
+        border: 1px solid var(--border);
       }
       .table-wrapper {
         overflow-x: auto;
-        border-radius: 14px;
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
         margin-top: 16px;
       }
       table {
@@ -185,45 +191,45 @@
       }
       th {
         font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #4a5568;
-        background: rgba(99, 102, 241, 0.12);
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--text-muted);
+        background: var(--surface-muted);
       }
       tr:nth-child(even) td {
-        background: rgba(247, 250, 252, 0.9);
+        background: var(--surface-muted);
       }
       tr:hover td {
-        background: rgba(235, 248, 255, 0.9);
+        background: var(--brand-50);
       }
       .delta-positive {
-        color: #047857;
-        font-weight: 600;
+        color: var(--success);
+        font-weight: 700;
       }
       .delta-negative {
-        color: #b45309;
-        font-weight: 600;
+        color: var(--danger);
+        font-weight: 700;
       }
       .timestamp {
-        font-family: "Fira Mono", "Courier New", monospace;
+        font-family: var(--font-mono);
         font-size: 12px;
-        color: #4a5568;
+        color: var(--text-muted);
       }
       .address {
-        font-family: "Fira Mono", "Courier New", monospace;
+        font-family: var(--font-mono);
         font-size: 13px;
-        color: #2d3748;
+        color: var(--text);
       }
       .section-title {
         font-size: 16px;
         font-weight: 700;
         margin-top: 24px;
         margin-bottom: 8px;
-        color: #1a202c;
+        color: var(--text);
       }
       .meta-info {
         font-size: 13px;
-        color: #4a5568;
+        color: var(--text-muted);
         margin-bottom: 8px;
       }
       .hidden {
@@ -340,6 +346,13 @@
       const DEFAULT_API_BASE = (() => {
         const { protocol, hostname } = window.location;
         const port = protocol === "https:" ? 443 : 3000;
+        if (window.location.protocol === "file:")
+          return "http://127.0.0.1:3000";
+
+        // When served by the apps server (typically :8080), prefer the same-origin /api proxy.
+        if (window.location.port === "8080")
+          return `${window.location.origin}/api`;
+
         if (hostname && hostname !== "") {
           if (hostname.includes(":")) {
             return `${protocol}//${hostname.split(":")[0]}:${port}`;
@@ -448,11 +461,11 @@
         const url = new URL("/admin/cafes/activity", state.config.apiBase);
         url.searchParams.set(
           "eventsPerCafe",
-          String(state.config.eventsPerCafe)
+          String(state.config.eventsPerCafe),
         );
         url.searchParams.set(
           "customerLimit",
-          String(state.config.customerLimit)
+          String(state.config.customerLimit),
         );
 
         try {
@@ -491,19 +504,19 @@
         const totalCafes = data.cafes.length;
         const totalEvents = data.cafes.reduce(
           (sum, c) => sum + (c.stats?.totalEvents || 0),
-          0
+          0,
         );
         const totalStamps = data.cafes.reduce(
           (sum, c) => sum + (c.stats?.stampsAwarded || 0),
-          0
+          0,
         );
         const totalRedeemed = data.cafes.reduce(
           (sum, c) => sum + (c.stats?.stampsRedeemed || 0),
-          0
+          0,
         );
         const totalRedeemCount = data.cafes.reduce(
           (sum, c) => sum + (c.stats?.redemptions || 0),
-          0
+          0,
         );
 
         refs.summaryGrid.innerHTML = `
@@ -550,7 +563,7 @@
               : "";
             const address = cafe.address
               ? `<span class="address" title="${escapeHtml(
-                  cafe.address
+                  cafe.address,
                 )}">${escapeHtml(shortenAddress(cafe.address))}</span>`
               : '<span class="address">—</span>';
             const created = cafe.createdAt ? formatDate(cafe.createdAt) : "—";
@@ -566,7 +579,7 @@
                     ev.eventType === "redeem" ? "Einlösung" : "Stempel";
                   const customerAddr = ev.user
                     ? `<span class="address" title="${escapeHtml(
-                        ev.user
+                        ev.user,
                       )}">${escapeHtml(shortenAddress(ev.user))}</span>`
                     : "—";
                   const nameCell = ev.customerName
@@ -575,7 +588,7 @@
                   const tx = ev.txhash || ev.tx_id || ev.tx || null;
                   const txCell = tx
                     ? `<span class="address" title="${escapeHtml(
-                        String(tx)
+                        String(tx),
                       )}">${escapeHtml(shortenAddress(String(tx), 6))}</span>`
                     : "—";
                   return `
@@ -591,7 +604,7 @@
                 .join("") ||
               `
                 <tr>
-                  <td colspan="6" style="text-align:center; padding: 18px; color: #718096;">
+                  <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
                     Keine Aktivitäten innerhalb des Limits
                   </td>
                 </tr>`;
@@ -603,7 +616,7 @@
                     cust.netStamps >= 0 ? "delta-positive" : "delta-negative";
                   const customerAddr = cust.user
                     ? `<span class="address" title="${escapeHtml(
-                        cust.user
+                        cust.user,
                       )}">${escapeHtml(shortenAddress(cust.user))}</span>`
                     : "—";
                   const nameCell = cust.customerName
@@ -616,15 +629,15 @@
                     <td>${formatNumber(cust.stampsAwarded)}</td>
                     <td>${formatNumber(cust.stampsRedeemed)}</td>
                     <td class="${balanceClass}">${formatNumber(
-                    cust.netStamps
-                  )}</td>
+                      cust.netStamps,
+                    )}</td>
                     <td>${formatDate(cust.lastActivityTs)}</td>
                   </tr>`;
                 })
                 .join("") ||
               `
                 <tr>
-                  <td colspan="6" style="text-align:center; padding: 18px; color: #718096;">
+                  <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
                     Keine Kunden im Limit
                   </td>
                 </tr>`;
@@ -636,7 +649,7 @@
                     <span class="cafe-name">${cafeName}</span>
                     ${badge}
                   </div>
-                  <div style="font-size: 13px; color: #4a5568;">
+                  <div style="font-size: 13px; color: var(--text-muted);">
                     Wallet: ${address} • Erstellt: ${created}
                   </div>
                 </div>
@@ -645,31 +658,31 @@
                   <div class="summary-card">
                     <div class="summary-label">Stempel vergeben</div>
                     <div class="summary-value">${formatNumber(
-                      stats.stampsAwarded
+                      stats.stampsAwarded,
                     )}</div>
                   </div>
                   <div class="summary-card">
                     <div class="summary-label">Stempel eingelöst</div>
                     <div class="summary-value">${formatNumber(
-                      stats.stampsRedeemed
+                      stats.stampsRedeemed,
                     )}</div>
                   </div>
                   <div class="summary-card">
                     <div class="summary-label">Saldo</div>
                     <div class="summary-value">${formatNumber(
-                      stats.netStamps
+                      stats.netStamps,
                     )}</div>
                   </div>
                   <div class="summary-card">
                     <div class="summary-label">Einlösungen</div>
                     <div class="summary-value">${formatNumber(
-                      stats.redemptions
+                      stats.redemptions,
                     )}</div>
                   </div>
                   <div class="summary-card">
                     <div class="summary-label">Aktive Kunden</div>
                     <div class="summary-value">${formatNumber(
-                      stats.uniqueCustomers
+                      stats.uniqueCustomers,
                     )}</div>
                   </div>
                 </div>

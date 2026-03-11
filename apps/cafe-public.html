@@ -7,7 +7,10 @@
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
       }
       .shell {
         max-width: 860px;
@@ -20,24 +23,67 @@
         gap: var(--space-3);
         flex-wrap: wrap;
         margin-bottom: var(--space-4);
+
+        padding: var(--space-4) 0;
       }
       .brand {
         display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+      }
+
+      .brandText {
+        display: flex;
         flex-direction: column;
         gap: 2px;
+        min-width: 0;
+      }
+
+      .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: var(--bg);
+        flex: 0 0 auto;
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+      }
+
+      .logo .fallback {
+        font-weight: 950;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text);
       }
       .brand h1 {
         margin: 0;
         font-size: 18px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .subtitle {
         font-size: 13px;
         color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .hero {
-        border-radius: 18px;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         overflow: hidden;
       }
       .hero img {
@@ -62,7 +108,7 @@
       .thumb {
         width: 110px;
         height: 76px;
-        border-radius: 12px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface);
         object-fit: cover;
@@ -70,14 +116,18 @@
         cursor: pointer;
       }
       .about {
-        border-radius: 16px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        padding: 12px 14px;
+        border-top: 1px solid var(--border);
+        padding: var(--space-4) 0;
         font-size: 13px;
         line-height: 1.45;
         color: var(--text);
         white-space: pre-wrap;
+      }
+      .section {
+        padding: var(--space-4) 0;
+      }
+      .section + .section {
+        border-top: 1px solid var(--border);
       }
       .actions {
         display: flex;
@@ -94,15 +144,23 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <h1 id="title">Café Profil</h1>
-          <div class="subtitle" id="addr">—</div>
+          <div class="logo" id="logoWrap" style="display: none">
+            <img id="logoImg" alt="" />
+            <div class="fallback" id="logoFallback" style="display: none">
+              C
+            </div>
+          </div>
+          <div class="brandText">
+            <h1 id="title">Café Profil</h1>
+            <div class="subtitle" id="addr">—</div>
+          </div>
         </div>
         <div class="actions">
-          <a class="btn secondary" href="/customer-wallet">Zur Karte</a>
+          <a class="btn secondary" href="/customer-map">Zur Map</a>
         </div>
       </div>
 
-      <div class="card" style="padding: var(--space-5)">
+      <div class="card" style="padding: 0">
         <div id="error" class="notice danger" style="display: none"></div>
 
         <div class="hero" id="heroWrap" style="display: none">
@@ -110,18 +168,17 @@
         </div>
         <div class="gallery" id="gallery"></div>
 
-        <div
-          class="stack"
-          style="gap: var(--space-4); margin-top: var(--space-4)"
-        >
+        <div class="section" style="margin-top: var(--space-3)">
           <div id="about" class="about" style="display: none"></div>
           <div id="aboutEmpty" class="hint" style="display: none">
             Noch keine Beschreibung.
           </div>
+        </div>
 
+        <div class="section">
           <div id="redeem" class="notice" style="display: none"></div>
 
-          <div class="actions">
+          <div class="actions" style="margin-top: var(--space-3)">
             <button class="btn primary" id="addBtn" type="button">
               Stempelkarte holen
             </button>
@@ -135,6 +192,42 @@
 
     <script>
       const FAVORITES_KEY = "customer_favorites_v1";
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatRichText(raw) {
+        const src = String(raw || "");
+        if (!src.trim()) return "";
+        const lines = src.split(/\r?\n/);
+        const out = [];
+        for (const line of lines) {
+          const trimmed = String(line || "").trim();
+          if (!trimmed) {
+            out.push('<div style="height:10px"></div>');
+            continue;
+          }
+          let style = "font-weight:700;font-size:13px;line-height:1.45";
+          let content = trimmed;
+          if (/^##\s+/.test(content)) {
+            style = "font-weight:950;font-size:15px;line-height:1.2";
+            content = content.replace(/^##\s+/, "");
+          } else if (/^#\s+/.test(content)) {
+            style = "font-weight:950;font-size:18px;line-height:1.15";
+            content = content.replace(/^#\s+/, "");
+          }
+          let safe = escapeHtml(content);
+          safe = safe.replace(/\*\*([^*][\s\S]*?)\*\*/g, "<strong>$1</strong>");
+          out.push(`<div style="${style}">${safe}</div>`);
+        }
+        return out.join("");
+      }
 
       function normalizeAddr(v) {
         return v ? String(v).toLowerCase() : "";
@@ -162,7 +255,11 @@
       }
 
       async function apiFetch(path) {
-        const res = await fetch(`${location.origin}/api${path}`, {
+        const base =
+          location.protocol === "file:"
+            ? "http://127.0.0.1:8080"
+            : location.origin;
+        const res = await fetch(`${base}/api${path}`, {
           cache: "no-store",
         });
         const text = await res.text();
@@ -171,45 +268,6 @@
           data = text ? JSON.parse(text) : null;
         } catch {
           data = text;
-        }
-
-        function escapeHtml(s) {
-          return String(s || "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-        }
-
-        function formatRichText(raw) {
-          const src = String(raw || "");
-          if (!src.trim()) return "";
-          const lines = src.split(/\r?\n/);
-          const out = [];
-          for (const line of lines) {
-            const trimmed = String(line || "").trim();
-            if (!trimmed) {
-              out.push('<div style="height:10px"></div>');
-              continue;
-            }
-            let style = "font-weight:700;font-size:13px;line-height:1.45";
-            let content = trimmed;
-            if (/^##\s+/.test(content)) {
-              style = "font-weight:950;font-size:15px;line-height:1.2";
-              content = content.replace(/^##\s+/, "");
-            } else if (/^#\s+/.test(content)) {
-              style = "font-weight:950;font-size:18px;line-height:1.15";
-              content = content.replace(/^#\s+/, "");
-            }
-            let safe = escapeHtml(content);
-            safe = safe.replace(
-              /\*\*([^*][\s\S]*?)\*\*/g,
-              "<strong>$1</strong>",
-            );
-            out.push(`<div style="${style}">${safe}</div>`);
-          }
-          return out.join("");
         }
         if (!res.ok) {
           const msg =
@@ -281,6 +339,34 @@
           if (title) title.textContent = cafe.name || "Café";
           if (addr) addr.textContent = cafe.address || "";
 
+          // Logo in header (separate from hero/gallery)
+          const logoWrap = document.getElementById("logoWrap");
+          const logoImg = document.getElementById("logoImg");
+          const logoFallback = document.getElementById("logoFallback");
+          const logo = cafe.logoDataUrl ? String(cafe.logoDataUrl) : "";
+          if (logoWrap) {
+            if (logo) {
+              if (logoImg) {
+                logoImg.src = logo;
+                logoImg.style.display = "block";
+              }
+              if (logoFallback) logoFallback.style.display = "none";
+              logoWrap.style.display = "grid";
+            } else {
+              // Fallback initial
+              const initial = (cafe.name || "C")
+                .trim()
+                .slice(0, 1)
+                .toUpperCase();
+              if (logoFallback) {
+                logoFallback.textContent = initial || "C";
+                logoFallback.style.display = "block";
+              }
+              if (logoImg) logoImg.style.display = "none";
+              logoWrap.style.display = "grid";
+            }
+          }
+
           const about = cafe.about ? String(cafe.about).trim() : "";
           const aboutEl = document.getElementById("about");
           const aboutEmpty = document.getElementById("aboutEmpty");
@@ -299,11 +385,8 @@
             redeemEl.style.display = redeem ? "block" : "none";
           }
 
+          // Hero/gallery prefer real photos; avoid using the logo as the hero image.
           const images = [];
-          if (cafe.logoDataUrl) {
-            const s = String(cafe.logoDataUrl);
-            if (s && !images.includes(s)) images.push(s);
-          }
           if (Array.isArray(cafe.images)) {
             for (const x of cafe.images) {
               if (!x) continue;
@@ -311,8 +394,8 @@
               if (s && !images.includes(s)) images.push(s);
             }
           }
-          setHero(images[0] || "");
-          renderGallery(images);
+          setHero(images[0] || logo || "");
+          renderGallery(images.length ? images : logo ? [logo] : []);
 
           const cafeAddress = cafe.cafeAddress ? String(cafe.cafeAddress) : "";
           const addBtn = document.getElementById("addBtn");

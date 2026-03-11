@@ -22,6 +22,9 @@ function proxyApi(req, res, parsedUrl) {
   const upstreamPath = incomingPath.replace(/^\/api\b/, "") || "/";
   const upstreamUrl = upstreamPath + (parsedUrl.search || "");
 
+  const incomingHost = req && req.headers ? String(req.headers.host || "") : "";
+  const forwardedProto = "http";
+
   // Handle OPTIONS quickly
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -45,6 +48,8 @@ function proxyApi(req, res, parsedUrl) {
       path: upstreamUrl,
       headers: {
         ...req.headers,
+        "x-forwarded-host": incomingHost,
+        "x-forwarded-proto": forwardedProto,
         host: `${API_TARGET_HOST}:${API_TARGET_PORT}`,
       },
     },
@@ -165,7 +170,7 @@ const server = http.createServer((req, res) => {
     </div>
     <div class="box">
       <div><a href="/__ping">Open /__ping</a></div>
-      <div><a href="/customer-qr">Open /customer-qr</a></div>
+      <div><a href="/customer-wallet">Open /customer-wallet</a></div>
       <div><a href="/lan-setup.html">Open /lan-setup.html</a></div>
     </div>
     <div class="box">
@@ -362,29 +367,25 @@ server.on("error", (err) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   const lanIp = pickLanIpv4();
-  console.log(`📱 Apps Server running on http://localhost:${PORT}`);
+  console.log(`Apps Server running on http://localhost:${PORT}`);
   if (lanIp) {
-    console.log(`📱 From Smartphone (same WiFi): http://${lanIp}:${PORT}`);
+    console.log(`From Smartphone (same WiFi): http://${lanIp}:${PORT}`);
   } else {
-    console.log(`📱 From Smartphone (same WiFi): http://<YOUR_LAN_IP>:${PORT}`);
-    console.log(`📱 Example: http://192.168.1.100:${PORT}`);
+    console.log(`From Smartphone (same WiFi): http://<YOUR_LAN_IP>:${PORT}`);
+    console.log(`Example: http://192.168.1.100:${PORT}`);
   }
-  console.log(`\n📁 Available apps (recommended):`);
+  console.log(`\nAvailable apps (recommended):`);
   console.log(
-    `  🏪 Café Issuer (Enhanced): http://localhost:${PORT}/cafe-issuer-web.html`,
+    `  Café Issuer (Enhanced): http://localhost:${PORT}/cafe-issuer-web.html`,
   );
   console.log(
-    `  🧾 Customer App (Wallet/QR): http://localhost:${PORT}/customer-qr`,
+    `  Customer App (Wallet/QR): http://localhost:${PORT}/customer-wallet`,
   );
+  console.log(`  Customer Profile: http://localhost:${PORT}/customer-profile`);
+  console.log(`  Café Scanner: http://localhost:${PORT}/cafe-scanner`);
+  console.log(`  LAN Setup Helper: http://localhost:${PORT}/lan-setup.html`);
   console.log(
-    `  👤 Customer Profile: http://localhost:${PORT}/customer-profile`,
+    `\nRecommended: Use Customer Wallet + Café Scanner for stamping/redeeming.`,
   );
-  console.log(
-    `  📷 Café Scanner (neu): http://localhost:${PORT}/cafe-scanner.html`,
-  );
-  console.log(`  🔧 LAN Setup Helper: http://localhost:${PORT}/lan-setup.html`);
-  console.log(
-    `\n✨ Recommended: Use Customer QR + Café Scanner for stamping/redeeming.`,
-  );
-  console.log(`\n🔗 Make sure your API is also running: pnpm run dev`);
+  console.log(`\nMake sure your API is also running: pnpm run dev`);
 });

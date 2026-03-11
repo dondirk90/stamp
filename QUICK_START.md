@@ -64,11 +64,11 @@ ipconfig | Select-String -Pattern 'IPv4'
 
 2. Computer: Café Scanner öffnen
 
-- `http://localhost:8080/cafe-scanner-new.html`
+- `http://localhost:8080/cafe-scanner`
 
 3. Smartphone: Customer öffnen
 
-- `http://<LAN_IP>:8080/customer-qr.html`
+- `http://<LAN_IP>:8080/customer-wallet`
 - Registrieren oder Login
 - Café auswählen
 - Auf die Stempelkarte tippen (QR anzeigen)
@@ -79,7 +79,7 @@ ipconfig | Select-String -Pattern 'IPv4'
 
 5. Einlösen (nur wenn Karte voll)
 
-- Im Customer-QR: QR-Modus "Einlösen" auswählen und QR scannen
+- Im Customer Wallet: QR-Modus "Einlösen" auswählen und QR scannen
 - Erwartet: "Eingelöst" Toast
 - Beim erneuten Scannen derselben Einlöse-QR: klare Meldung "bereits benutzt" (single-use)
 

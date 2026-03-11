@@ -70,7 +70,9 @@
   const DEFAULT_API_BASE =
     location.protocol === "file:"
       ? "http://127.0.0.1:3000"
-      : `${location.origin}/api`;
+      : location.port === "3000"
+        ? location.origin
+        : `${location.origin}/api`;
   const apiBase = DEFAULT_API_BASE;
 
   /** @type {{customer_id?:string, username?:string, email?:string, address?:string}|null} */
@@ -927,7 +929,9 @@
   const DEFAULT_API_BASE =
     location.protocol === "file:"
       ? "http://127.0.0.1:3000"
-      : `${location.origin}/api`;
+      : location.port === "3000"
+        ? location.origin
+        : `${location.origin}/api`;
 
   let apiBase = DEFAULT_API_BASE;
   let mode = "register";
@@ -1370,7 +1374,7 @@
       selectedCafeProfile && selectedCafeProfile.redeemMessage
         ? String(selectedCafeProfile.redeemMessage).trim()
         : "";
-    const lines = [`🎁 Karte voll bei ${cafeName}!`];
+    const lines = [`Karte voll bei ${cafeName}!`];
     if (custom) lines.push(custom);
     lines.push("Lass dir dein Getränk schenken.");
     const msg = lines.join("\n");
@@ -1397,7 +1401,7 @@
 
     if (el.redeemNotice) {
       if (full) {
-        const lines = [`🎁 Karte voll bei ${cafeName}!`];
+        const lines = [`Karte voll bei ${cafeName}!`];
         if (custom) lines.push(custom);
         lines.push("Lass dir dein Getränk schenken.");
         const msg = lines.join("\n");
@@ -1789,7 +1793,7 @@
         } else {
           showToast(
             "success",
-            `🎁 Eingelöst!\n${cafeName}\nLass dir dein Getränk schenken.`,
+            `Eingelöst!\n${cafeName}\nLass dir dein Getränk schenken.`,
             4200
           );
         }

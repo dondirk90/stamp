@@ -65,7 +65,9 @@ async function run(label, contextOptions) {
     );
   });
 
-  await page.goto(`${baseUrl}/customer-qr`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${baseUrl}/customer-wallet`, {
+    waitUntil: "domcontentloaded",
+  });
   await page
     .waitForFunction(() => !!window.__STAMP_BOOT_OK, { timeout: 1200 })
     .catch(() => null);

@@ -10,20 +10,7 @@
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/theme.css" />
     <style>
-      /* New design: cafe-brown elements floating in a black, empty space */
-      :root {
-        --bg: #000000;
-        --surface: rgba(255, 255, 255, 0.06);
-        --surface-muted: rgba(255, 255, 255, 0.04);
-        --border: rgba(255, 255, 255, 0.12);
-        --text: rgba(255, 255, 255, 0.92);
-        --text-muted: rgba(255, 255, 255, 0.62);
-        /* Minimal / scandi: no shadows */
-        --shadow-sm: none;
-        --shadow-md: none;
-        --shadow-lg: none;
-        --focus: rgba(255, 255, 255, 0.1);
-      }
+      /* Page-specific tweaks only; theme comes from /theme.css */
 
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
@@ -111,78 +98,79 @@
         margin-bottom: var(--space-4);
         flex-wrap: wrap;
 
-        padding: var(--space-4);
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: var(--surface);
-        box-shadow: none;
+        padding: var(--space-4) 0;
+        border-radius: 0;
+        border: none;
+        border-bottom: none;
+        background: var(--bg);
       }
 
-      /* Strava-like top menu (mobile-first) */
+      /* Clean top menu (Holm-like) */
       .topMenu {
         flex: 1 0 100%;
         display: flex;
-        align-items: flex-start;
-        justify-content: flex-start;
-        gap: var(--space-2);
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
         margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: none;
       }
 
       .topMenuBtn {
         flex: 0 0 auto;
-        width: 86px;
+        width: auto;
         min-width: 0;
         background: transparent !important;
-        border: none;
-        padding: 0;
+        border: none !important;
+        padding: 8px 0;
         cursor: pointer;
         touch-action: manipulation;
         color: var(--text) !important;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        box-shadow: none !important;
       }
 
-      /* Avoid horizontal overflow on small phones (topbar has padding). */
+      /* Global theme styles `button.ghost` with a border; ensure top menu is borderless. */
+      button.topMenuBtn.ghost {
+        border: none !important;
+      }
+
+      /* Avoid horizontal overflow on small phones */
       @media (max-width: 420px) {
         .topMenu {
-          justify-content: space-between;
+          justify-content: center;
+          gap: 18px;
+          flex-wrap: wrap;
         }
 
         .topMenuBtn {
           width: auto;
-          flex: 1 1 0;
+          flex: 0 0 auto;
         }
       }
 
       .topMenuBtn .ico {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        box-shadow: none;
-        margin: 0 auto;
-        font-weight: 950;
-        letter-spacing: 0.02em;
-        user-select: none;
+        display: none;
       }
 
       .topMenuBtn .lbl {
         display: block;
-        text-align: center;
-        font-size: 11px;
-        font-weight: 800;
-        margin-top: 6px;
+        text-align: left;
+        font-size: inherit;
+        font-weight: inherit;
+        margin: 0;
         color: var(--text-muted);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      .topMenuBtn.active .ico {
-        border-color: var(--brand);
-        background: var(--brand);
-        color: #fff;
+      .topMenuBtn.active {
+        border-bottom: 2px solid var(--text);
       }
 
       .topMenuBtn.active .lbl {
@@ -267,31 +255,32 @@
 
       .seg {
         display: inline-flex;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        border-radius: 999px;
-        padding: 4px;
+        border: none;
+        background: transparent;
+        border-radius: 0;
+        padding: 0;
         gap: 4px;
         position: relative;
         z-index: 2;
       }
 
       .seg button {
-        border-radius: 999px;
+        border-radius: 0;
         padding: 10px 14px;
         min-height: 44px;
         font-weight: 800;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
+        border-bottom: 1px solid transparent;
         cursor: pointer;
         pointer-events: auto;
         touch-action: manipulation;
       }
 
       .seg button.active {
-        background: var(--surface) !important;
-        border: 1px solid var(--border);
+        background: transparent !important;
+        border-bottom-color: var(--brand);
       }
 
       .actions {
@@ -351,17 +340,18 @@
       }
 
       .sideNav button {
-        background: var(--surface-muted) !important;
+        background: transparent !important;
         color: var(--text) !important;
-        border: 1px solid var(--border);
+        border: none;
+        border-bottom: 1px solid var(--border);
         font-weight: 800;
         min-height: 44px;
         padding: 12px 14px;
       }
 
       .sideNav button.active {
-        background: var(--surface) !important;
-        border-color: var(--brand);
+        background: transparent !important;
+        border-bottom-color: var(--brand);
       }
 
       .cafeList {
@@ -374,17 +364,18 @@
       .cafeList button {
         width: 100%;
         text-align: left;
-        background: var(--surface-muted) !important;
+        background: transparent !important;
         color: var(--text) !important;
-        border: 1px solid var(--border);
+        border: none;
+        border-bottom: 1px solid var(--border);
         font-weight: 900;
         min-height: 44px;
         padding: 12px 14px;
       }
 
       .cafeList button.active {
-        background: var(--surface) !important;
-        border-color: var(--brand);
+        background: transparent !important;
+        border-bottom-color: var(--brand);
       }
 
       .cafeList .sub {
@@ -402,10 +393,10 @@
       .walletWrap {
         position: relative;
         border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border: none;
+        background: transparent;
         box-shadow: var(--shadow-lg);
-        padding: var(--space-3);
+        padding: 0;
         overflow: hidden;
       }
 
@@ -467,7 +458,7 @@
       .cafeLogo {
         width: 32px;
         height: 32px;
-        border-radius: 10px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface-muted);
         object-fit: contain;
@@ -483,9 +474,9 @@
 
       .cafeAbout {
         padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
+        border-radius: 0;
+        border: none;
+        background: transparent;
         color: var(--text);
         font-size: 13px;
         line-height: 1.35;
@@ -503,34 +494,41 @@
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         gap: 10px;
-        padding: 6px;
-        border-radius: var(--radius-sm);
-        background: var(--surface);
-        border: 1px solid var(--border);
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
       }
 
       .stamp {
         aspect-ratio: 1 / 1;
-        border-radius: 14px;
+        border-radius: 0;
         border: 1.5px solid var(--border);
-        background: var(--surface-muted);
+        background: transparent;
         display: grid;
         place-items: center;
         font-weight: 900;
         color: var(--text-muted);
         user-select: none;
+        --stamp-icon-size: 64%;
         --stamp-jx: 0px;
         --stamp-jy: 0px;
         --stamp-jr: 0deg;
       }
 
       .stamp .stampIcon {
-        width: 64%;
-        height: 64%;
+        width: var(--stamp-icon-size, 64%);
+        height: var(--stamp-icon-size, 64%);
         display: block;
         transition:
           transform 160ms ease,
           opacity 160ms ease;
+      }
+
+      .stamp .stampIconImg {
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
       }
 
       .stamp.empty .stampIcon {
@@ -538,7 +536,7 @@
       }
 
       .stamp.filled .stampIcon {
-        opacity: 0.92;
+        opacity: var(--stamp-ink, 0.92);
         transform: translate(var(--stamp-jx), var(--stamp-jy))
           rotate(calc(-8deg + var(--stamp-jr)));
       }
@@ -569,15 +567,18 @@
            ensure a stable square box so 999px radius renders as a circle. */
         aspect-ratio: auto;
         grid-template: 1fr / 1fr;
-        border-radius: 999px;
+        border-radius: 0;
         background: transparent;
-        border: 2px solid var(--pass-stamp-ring, rgba(32, 24, 20, 0.18));
+        border: 1px solid
+          var(--pass-stamp-ring, var(--pass-border, var(--border)));
         color: var(--pass-ink, var(--brand-700));
+        --stamp-seam: var(--pass-bg, var(--surface));
+        --stamp-icon-size: 92%;
         position: relative;
         overflow: hidden;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.3),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.06);
+        -webkit-clip-path: none;
+        clip-path: none;
+        box-shadow: none;
       }
 
       .passCard .stamp::before,
@@ -631,8 +632,13 @@
 
       .passCard .stamp.filled .stampIcon,
       .face .stamp.filled .stampIcon {
-        opacity: 0.92;
+        opacity: var(--stamp-ink, 0.92);
         will-change: transform, opacity;
+        animation: none;
+      }
+
+      .passCard .stamp.filled.isNew .stampIcon,
+      .face .stamp.filled.isNew .stampIcon {
         animation: inkStampIn 420ms cubic-bezier(0.2, 0.95, 0.22, 1) both;
       }
 
@@ -661,11 +667,24 @@
         color: var(--text-muted);
       }
 
+      /* Map welcome should not look like a boxed badge */
+      #welcomeBadge.badge {
+        border: none;
+        background: transparent;
+        padding: 0;
+        gap: 0;
+        font-size: 18px;
+        font-weight: 950;
+        letter-spacing: -0.015em;
+        text-transform: none;
+      }
+
       .historyList {
         display: flex;
         flex-direction: column;
         gap: 10px;
         margin-top: var(--space-3);
+        border-top: 1px solid var(--border);
       }
 
       .historyItem {
@@ -673,10 +692,11 @@
         align-items: center;
         justify-content: space-between;
         gap: var(--space-3);
-        padding: 10px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
-        background: var(--surface);
+        padding: 14px 0;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        background: transparent;
       }
 
       .historyLeft {
@@ -710,6 +730,135 @@
         font-size: 12px;
         color: var(--text-muted);
         white-space: nowrap;
+      }
+
+      /* Map/search lists: same structure as history (no boxes, only lines) */
+      .mapList {
+        display: flex;
+        flex-direction: column;
+        margin-top: var(--space-3);
+        border-top: 1px solid var(--border);
+      }
+
+      .mapItem {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        color: var(--text);
+      }
+
+      .mapItemMain {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .mapItemName {
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mapItemAddr {
+        font-size: 12px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .mapItemHint {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        padding-top: 2px;
+      }
+
+      .mapEmpty {
+        padding: 14px 0;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      /* Cafe pins with logo */
+      .cafePin {
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--text);
+        background: var(--bg);
+        display: grid;
+        place-items: center;
+        position: relative;
+        box-shadow: none;
+        border-radius: 999px;
+      }
+
+      .cafePin::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -10px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
+        border-top: 10px solid var(--text);
+      }
+
+      .cafePin::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -9px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 9px solid var(--bg);
+      }
+
+      .cafePinImg {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+        filter: none;
+        border-radius: 999px;
+      }
+
+      .cafePinLetter {
+        font-weight: 950;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text);
+        user-select: none;
+      }
+
+      /* Customer popup (toast) for incoming stamps/redeems */
+      #customerToast {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: auto;
+        max-width: min(
+          360px,
+          calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px))
+        );
+        text-align: center;
+        background: var(--surface);
+        z-index: 10000;
+        pointer-events: none;
       }
 
       .walletItem {
@@ -786,7 +935,7 @@
         left: 12px;
         right: 12px;
         bottom: calc(12px + var(--safe-bottom, 0px));
-        border-radius: 18px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface);
         box-shadow: none;
@@ -801,7 +950,7 @@
         -webkit-perspective: 1200px;
         perspective-origin: 50% 50%;
         -webkit-perspective-origin: 50% 50%;
-        --wheel-rx: 6deg;
+        --wheel-rx: 0deg;
       }
 
       /* Wallet: black space with a single card in focus.
@@ -979,16 +1128,14 @@
         width: var(--cardW);
         position: relative;
         overflow: visible;
-        box-shadow:
-          0 18px 55px rgba(0, 0, 0, 0.55),
-          0 1px 0 rgba(255, 255, 255, 0.04);
+        box-shadow: var(--shadow-sm);
         --pass-accent: var(--brand);
         --pass-border: rgba(32, 24, 20, 0.14);
         --pass-stamp-ring: rgba(32, 24, 20, 0.18);
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
         transform: translateY(var(--stack-swipe-y, 0px))
-          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 6deg))
+          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 0deg))
           translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
           rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
           scale(var(--wheel-scale, 1));
@@ -999,7 +1146,7 @@
         will-change: transform;
         transform-origin: center center;
         -webkit-transform: translateY(var(--stack-swipe-y, 0px))
-          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 6deg))
+          translateY(var(--stack-y, 0px)) rotateX(var(--wheel-rx, 0deg))
           translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
           rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
           scale(var(--wheel-scale, 1));
@@ -1007,22 +1154,12 @@
 
       /* Physical edge shading (paper feel) */
       .passFlip {
-        border-radius: 12px;
+        border-radius: 0;
         border: 1px solid var(--pass-border, var(--border));
         overflow: hidden;
         isolation: isolate;
         background-color: var(--pass-bg, var(--brand-50));
-        background-image:
-          linear-gradient(
-            180deg,
-            var(--pass-hi, rgba(255, 255, 255, 0.22)) 0%,
-            transparent 46%
-          ),
-          linear-gradient(
-            180deg,
-            transparent 62%,
-            var(--pass-lo, rgba(0, 0, 0, 0.08)) 100%
-          );
+        background-image: none;
         color: var(--pass-ink, var(--brand-700));
         background-clip: padding-box;
       }
@@ -1034,28 +1171,7 @@
 
       /* Physical edge shading (paper feel) */
       .passFlip::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        opacity: 0.22;
-        background-image:
-          linear-gradient(
-            180deg,
-            var(--pass-border, var(--border)) 0%,
-            transparent 18%,
-            transparent 82%,
-            var(--pass-border, var(--border)) 100%
-          ),
-          linear-gradient(
-            90deg,
-            var(--pass-border, var(--border)) 0%,
-            transparent 18%,
-            transparent 82%,
-            var(--pass-border, var(--border)) 100%
-          );
+        content: none;
       }
 
       /* Built-in card templates (selected by cafés) */
@@ -1155,39 +1271,12 @@
         z-index: 0;
         pointer-events: none;
         border-radius: inherit;
-        opacity: 0.14;
-        background-image:
-          radial-gradient(
-            circle at 12% 18%,
-            var(--pass-border, var(--border)) 0.6px,
-            transparent 0.75px
-          ),
-          radial-gradient(
-            circle at 78% 62%,
-            var(--pass-border, var(--border)) 0.55px,
-            transparent 0.7px
-          ),
-          radial-gradient(
-            circle at 40% 88%,
-            var(--pass-border, var(--border)) 0.5px,
-            transparent 0.65px
-          ),
-          radial-gradient(
-            circle at 88% 14%,
-            var(--pass-border, var(--border)) 0.45px,
-            transparent 0.6px
-          );
-        background-size:
-          9px 9px,
-          11px 11px,
-          13px 13px,
-          17px 17px;
-        background-position:
-          0 0,
-          3px 4px,
-          7px 1px,
-          9px 10px;
-        filter: blur(0.15px);
+        opacity: 0.16;
+        background-image: var(--pass-card-bg, none);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        filter: none;
       }
 
       .passCard[data-pass-theme="clean"] .passFlip::after {
@@ -1261,7 +1350,7 @@
       .passLogoWrap {
         width: 30px;
         height: 30px;
-        border-radius: 10px;
+        border-radius: 0;
         border: 1px solid var(--pass-border, var(--border));
         background: var(--pass-badge-bg, var(--surface-muted));
         display: flex;
@@ -1316,7 +1405,7 @@
 
       .passQr {
         border-top: 1px solid var(--pass-border, var(--border));
-        background: var(--pass-bg, var(--brand-50));
+        background: transparent;
         padding: var(--space-4);
         transform: rotateY(180deg) translateZ(1px);
         pointer-events: none;
@@ -1348,6 +1437,25 @@
         visibility: visible;
       }
 
+      /* Fallback for environments where 3D/backface causes invisible faces.
+         When active, we skip the 3D flip and explicitly show the backside. */
+      .passCard.forceBack .passFlip {
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+
+      .passCard.forceBack .passMain {
+        display: none !important;
+      }
+
+      .passCard.forceBack .passQr {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        -webkit-transform: none !important;
+        pointer-events: auto !important;
+      }
+
       .passCard.open .passMain {
         pointer-events: none;
       }
@@ -1361,6 +1469,42 @@
         display: flex;
         flex-direction: column;
         align-items: stretch;
+      }
+
+      .passBackMeta {
+        margin-bottom: var(--space-2);
+        min-width: 0;
+      }
+
+      .passBackTitle {
+        font-size: 13px;
+        font-weight: 950;
+        color: var(--pass-ink, var(--brand-700));
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .passBackAddr {
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.72;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .passBackText {
+        font-size: 12px;
+        font-weight: 750;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.82;
+        margin-bottom: var(--space-3);
+        white-space: pre-wrap;
+        line-height: 1.35;
       }
 
       /* Mobile: reduce card height a bit so it fits below the large top bar */
@@ -1398,7 +1542,7 @@
         }
 
         .passCard .stamp {
-          border-radius: 999px;
+          border-radius: 0;
         }
 
         .passQrBox {
@@ -1472,7 +1616,7 @@
         }
 
         .passCard .stamp {
-          border-radius: 999px;
+          border-radius: 0;
           border-width: 1.5px;
         }
       }
@@ -1500,60 +1644,56 @@
         display: grid;
         place-items: center;
         width: 100%;
-        aspect-ratio: 1 / 1;
-        min-height: 220px;
+        min-height: 180px;
         max-width: 340px;
         margin: 0 auto;
-        border-radius: 14px;
-        border: 1px dashed var(--border);
+        border-radius: 0;
+        border: 1px dashed var(--pass-border, var(--border));
         background: transparent;
         padding: var(--space-4);
         cursor: pointer;
         touch-action: manipulation;
         flex: 0 0 auto;
+        position: relative;
       }
 
-      /* iOS Safari: avoid 3D backface glitches; use simple show/hide */
-      .ios .passFlip,
-      .ios .passCard.open .passFlip {
-        transform: none !important;
-        -webkit-transform: none !important;
-      }
-
-      .ios .passMain,
-      .ios .passQr {
-        transform: none !important;
-        -webkit-transform: none !important;
-      }
-
-      /* iOS: avoid overlapping grid items (can cause content clipping). */
-      .ios .passFlip {
-        display: block;
-      }
-
-      .ios .passMain,
-      .ios .passQr {
-        grid-area: auto;
-        backface-visibility: visible;
-        -webkit-backface-visibility: visible;
-      }
-
-      .ios .passQr {
-        display: none;
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-      }
-
-      .ios .passCard.open .passMain {
-        display: none;
-        opacity: 1;
-        visibility: visible;
+      /* Robust placeholder/error rendering: stays visible even if innerHTML is cleared
+         during SVG/IMG/canvas QR rendering. */
+      .passQrBox[data-qr-msg]::before {
+        content: attr(data-qr-msg);
+        text-align: center;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.2;
+        color: var(--pass-ink, var(--text));
+        opacity: 0.85;
+        padding: 6px 8px;
         pointer-events: none;
       }
 
-      .ios .passCard.open .passQr {
-        display: flex;
+      .passQrBox[data-qr-kind="error"]::before {
+        opacity: 0.95;
+      }
+
+      .passQrBox .qrPlaceholder {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.2;
+        color: var(--pass-ink, var(--text));
+        opacity: 0.85;
+        padding: 6px 8px;
+      }
+
+      .passQrBox .qrPlaceholder.qrError {
+        opacity: 0.95;
+      }
+
+      /* Only force a square QR area when the back is actually shown.
+         Otherwise it would also force the *closed* card to become square
+         because both sides contribute to layout size. */
+      .passCard.open .passQrBox {
+        aspect-ratio: 1 / 1;
       }
 
       .ios .passCard.isSwapping {
@@ -1604,6 +1744,22 @@
         display: block;
       }
 
+      .passQr img {
+        width: min(260px, 100%);
+        height: auto;
+        max-width: 260px;
+        aspect-ratio: 1 / 1;
+        display: block;
+      }
+
+      .passQr svg {
+        width: min(260px, 100%);
+        height: auto;
+        max-width: 260px;
+        aspect-ratio: 1 / 1;
+        display: block;
+      }
+
       /* Café detail modal ("Fenster") */
       .modalBackdrop {
         position: fixed;
@@ -1622,7 +1778,7 @@
 
       .modal {
         width: min(720px, 96vw);
-        border-radius: 22px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface);
         box-shadow: var(--shadow-lg);
@@ -1641,7 +1797,7 @@
 
       .modalHero {
         position: relative;
-        background: linear-gradient(135deg, var(--brand-50), var(--surface));
+        background: var(--surface);
         border-bottom: 1px solid var(--border);
         padding: var(--space-5);
       }
@@ -1673,7 +1829,7 @@
         margin-top: var(--space-4);
         display: grid;
         place-items: center;
-        border-radius: 18px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface);
         overflow: hidden;
@@ -1690,7 +1846,7 @@
       .modalThumb {
         width: 92px;
         height: 64px;
-        border-radius: 12px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface);
         object-fit: cover;
@@ -1719,7 +1875,7 @@
       }
 
       .modalAbout {
-        border-radius: 16px;
+        border-radius: 0;
         border: 1px solid var(--border);
         background: var(--surface-muted);
         padding: 12px 14px;
@@ -1781,6 +1937,9 @@
         <div class="brand">
           <h1>Deine Stempelkarte</h1>
           <div class="badge muted" id="buildBadge">build</div>
+          <div class="badge muted" id="liveBadge" style="display: none">
+            Live
+          </div>
         </div>
         <div class="row">
           <button class="btn secondary" id="sessionBadge" type="button">
@@ -1937,13 +2096,7 @@
                 </div>
               </div>
 
-              <div
-                id="cafeResults"
-                class="stack"
-                style="gap: 8px; margin-top: var(--space-3)"
-              ></div>
-
-              <div id="mapList" class="hint"></div>
+              <div id="cafeResults" class="mapList"></div>
             </div>
 
             <div class="card panel walletDock" id="walletPanel">

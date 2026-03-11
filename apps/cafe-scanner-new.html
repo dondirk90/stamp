@@ -9,19 +9,7 @@
     <title>Café Scanner - Stamp</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
-      /* Match Customer UI: black canvas + subtle translucent surfaces, no shadows */
-      :root {
-        --bg: #000000;
-        --surface: rgba(255, 255, 255, 0.06);
-        --surface-muted: rgba(255, 255, 255, 0.04);
-        --border: rgba(255, 255, 255, 0.12);
-        --text: rgba(255, 255, 255, 0.92);
-        --text-muted: rgba(255, 255, 255, 0.62);
-        --shadow-sm: none;
-        --shadow-md: none;
-        --shadow-lg: none;
-        --focus: rgba(255, 255, 255, 0.1);
-      }
+      /* Inverted cafe theme is provided by `theme.css` via `.theme-invert`. */
 
       * {
         margin: 0;
@@ -42,14 +30,55 @@
       body::before {
         content: none;
       }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-4);
+
+        padding: var(--space-4) 0;
+        border-bottom: none;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.15;
+        font-weight: 950;
+      }
+
+      .brand .avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: var(--brand);
+        display: grid;
+        place-items: center;
+        color: var(--on-brand, #fff);
+        font-weight: 900;
+      }
       .card {
         max-width: 500px;
         margin: var(--space-6) auto;
-        background: var(--surface);
+        background: transparent;
         padding: var(--space-6);
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-md);
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
         position: relative;
         z-index: 1;
       }
@@ -76,12 +105,13 @@
       }
       input {
         width: 100%;
-        padding: 14px 16px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
+        padding: 12px 12px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         font-size: 16px;
-        transition: all 0.3s ease;
-        background: var(--surface);
+        transition: border-color 0.15s ease;
+        background: transparent;
         color: var(--text);
       }
       input:focus {
@@ -104,7 +134,7 @@
         text-transform: none;
         letter-spacing: 0;
         background: var(--brand);
-        color: white;
+        color: var(--on-brand, white);
       }
       button:hover {
         background: var(--brand-700);
@@ -118,73 +148,19 @@
         transform: none !important;
       }
       button.secondary {
-        background: var(--surface-muted);
+        background: transparent;
         color: var(--text);
-        border: 1px solid var(--border);
-      }
-      .user-badge {
-        position: fixed;
-        top: calc(var(--space-5) + var(--safe-top, 0px));
-        right: calc(var(--space-5) + var(--safe-right, 0px));
-        background: var(--surface);
-        padding: 12px 20px;
-        border-radius: 50px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-sm);
-        display: none;
-        align-items: center;
-        gap: 12px;
-        z-index: 1000;
-        backdrop-filter: none;
-      }
-      .user-badge .avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--brand);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-      }
-      .user-badge .info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .user-badge .name {
-        font-weight: 600;
-        color: var(--text);
-        font-size: 14px;
-      }
-      .user-badge .miniBtn {
-        margin-left: 12px;
-        padding: 10px 12px;
-        min-height: 44px;
-        background: var(--surface-muted);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 12px;
-        color: var(--text);
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-      }
-      .user-badge .miniBtn:hover {
-        background: var(--surface);
+        border: none;
+        border-bottom: 1px solid var(--border);
       }
       #videoContainer {
         position: relative;
         width: 100%;
         max-width: 400px;
         margin: 24px auto;
-        border-radius: 16px;
+        border-radius: 0;
         overflow: hidden;
-        box-shadow: var(--shadow-md);
+        box-shadow: none;
       }
       #video {
         width: 100%;
@@ -198,16 +174,17 @@
         width: 200px;
         height: 200px;
         border: 3px solid var(--brand);
-        border-radius: 12px;
+        border-radius: 0;
         pointer-events: none;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
       .customer-info {
-        background: var(--surface-muted);
-        padding: 20px;
-        border-radius: 12px;
+        background: transparent;
+        padding: 20px 0 0;
+        border-radius: 0;
         margin-top: 24px;
-        border: 1px solid var(--border);
+        border: none;
+        border-top: 1px solid var(--border);
       }
       .customer-info .label {
         font-weight: 600;
@@ -219,9 +196,10 @@
         color: var(--text-muted);
         font-size: 14px;
         margin-bottom: 8px;
-        padding: 8px 12px;
-        background: var(--surface);
-        border-radius: 8px;
+        padding: 10px 0;
+        background: transparent;
+        border-radius: 0;
+        border-bottom: 1px solid var(--border);
       }
       .stamp-controls {
         display: flex;
@@ -230,12 +208,15 @@
       }
       .stamp-input {
         flex: 1;
-        padding: 14px 16px;
-        border: 2px solid var(--border);
-        border-radius: 12px;
+        padding: 12px 12px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         font-size: 18px;
         text-align: center;
         font-weight: 600;
+        background: transparent;
+        color: var(--text);
       }
 
       .stamp-range {
@@ -256,45 +237,53 @@
       .toast {
         position: fixed;
         left: 50%;
-        transform: translateX(-50%);
-        bottom: calc(40px + var(--safe-bottom, 0px));
-        background: var(--success);
-        color: #fff;
-        padding: 16px 28px;
-        border-radius: 50px;
-        box-shadow: var(--shadow-lg);
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: auto;
+        max-width: min(
+          360px,
+          calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px))
+        );
+        background: var(--surface);
+        color: var(--text);
+        padding: 12px 14px;
+        border-radius: 0;
+        border: 1px solid var(--border);
+        box-shadow: none;
         display: none;
         font-weight: 600;
+        text-align: center;
         z-index: 1000;
       }
       .error-toast {
-        background: var(--danger);
-        box-shadow: var(--shadow-lg);
+        background: var(--danger-bg);
+        color: var(--danger);
+        border-color: rgba(180, 35, 24, 0.25);
+        box-shadow: none;
       }
 
       .app-shell {
         max-width: 1100px;
-        margin: 88px auto 24px;
+        margin: 0 auto 24px;
         display: none;
-        gap: 16px;
-        align-items: flex-start;
       }
       .sidebar {
         width: 260px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
-        padding: 14px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
       }
       .sidebarHeader {
         display: flex;
         align-items: center;
         gap: 10px;
         padding: 10px;
-        border-radius: var(--radius-sm);
-        background: var(--surface-muted);
-        border: 1px solid var(--border);
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
         margin-bottom: 10px;
       }
       .sidebarHeader .avatar {
@@ -302,7 +291,7 @@
         height: 34px;
         border-radius: 50%;
         background: var(--brand);
-        color: #fff;
+        color: var(--on-brand, #fff);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -319,45 +308,46 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 12px 12px;
+        padding: 14px 0;
         min-height: 44px;
-        margin: 8px 0 0;
-        border-radius: 12px;
+        margin: 0;
+        border-radius: 0;
         background: transparent;
-        border: 1px solid var(--border);
+        border: none;
+        border-bottom: 1px solid var(--border);
         color: var(--text);
-        font-size: 14px;
-        font-weight: 700;
-        text-transform: none;
-        letter-spacing: 0;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
         cursor: pointer;
         text-decoration: none;
         touch-action: manipulation;
       }
       .navItem:hover {
-        background: var(--surface-muted);
+        background: transparent;
         transform: none;
         box-shadow: none;
       }
       .navItem.active {
-        background: var(--brand);
-        border-color: var(--brand);
-        color: #fff;
+        background: transparent;
+        border-bottom: 2px solid var(--brand);
+        color: var(--brand);
       }
       .navItem.danger {
-        border-color: var(--danger);
+        border-bottom: 1px solid rgba(180, 35, 24, 0.35);
         color: var(--danger);
       }
       .navItem.danger:hover {
-        background: var(--danger-bg);
+        background: transparent;
       }
       .mainPanel {
         flex: 1;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
-        padding: 24px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
       }
       .panelTitle {
         font-size: 28px;
@@ -366,10 +356,11 @@
         margin-bottom: 8px;
       }
       .hintBox {
-        background: var(--surface-muted);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 14px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 14px 0 0;
+        border-top: 1px solid var(--border);
         margin-top: 16px;
         font-size: 14px;
         color: var(--text);
@@ -378,8 +369,7 @@
 
       @media (max-width: 900px) {
         .app-shell {
-          margin-top: 84px;
-          flex-direction: column;
+          margin-top: 0;
         }
         .sidebar {
           width: 100%;
@@ -387,186 +377,333 @@
       }
     </style>
   </head>
-  <body>
-    <!-- Café Badge -->
-    <div id="cafeBadge" class="user-badge">
-      <div class="avatar" id="cafeAvatar">☕</div>
-      <div class="info">
-        <div class="name" id="cafeName">Café Name</div>
-      </div>
-      <a class="miniBtn" id="dashboardLink" href="/cafe-dashboard">Dashboard</a>
-      <button class="miniBtn" id="logoutBtn">Abmelden</button>
-    </div>
+  <body class="theme-invert">
+    <div class="shell">
+      <!-- Café Header + Top Menu (customer-style) -->
+      <div id="cafeBadge" class="topbar" style="display: none">
+        <div class="brand">
+          <div class="avatar" id="cafeAvatar">C</div>
+          <div>
+            <h1 id="cafeName">Café</h1>
+          </div>
+        </div>
 
-    <div class="card" id="loginCard">
-      <!-- Login Screen -->
-      <div id="loginScreen">
-        <h2>☕ Café Scanner</h2>
-        <p class="subtitle">Melde dich mit deinem Café-Konto an</p>
-
-        <div
-          style="
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            justify-content: center;
-          "
-        >
+        <div class="row">
           <button
-            id="tabApiKey"
-            class="secondary"
-            style="flex: 1; margin: 0; padding: 12px; font-size: 14px"
+            class="btn secondary"
+            id="logoutBtn"
             type="button"
+            onclick="location.href = '/cafe-logout.html'"
           >
-            ✉️ E-Mail
+            Abmelden
           </button>
         </div>
 
-        <!-- Email Login -->
-        <div id="apiKeyTab">
-          <label>✉️ E-Mail</label>
-          <input id="apiKeyInput" type="email" placeholder="cafe@example.com" />
-          <label style="margin-top: 15px">🔒 Passwort</label>
-          <input
-            id="passwordInput"
-            type="password"
-            placeholder="Dein Passwort"
-          />
-          <button id="loginBtn" style="margin-top: 20px">🚀 Anmelden</button>
-          <div
-            style="
-              margin-top: 15px;
-              padding: 12px;
-              background: var(--surface-muted);
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              font-size: 13px;
-              color: var(--text-muted);
-            "
-          >
-            💡 Noch kein Konto?
-            <a
-              href="/cafe-onboarding"
+        <div class="topMenu" aria-label="Navigation">
+          <button class="topMenuBtn ghost active" id="navHome" type="button">
+            <span class="ico" aria-hidden="true">H</span>
+            <span class="lbl">Willkommen</span>
+          </button>
+          <button class="topMenuBtn ghost" id="navScan" type="button">
+            <span class="ico" aria-hidden="true">S</span>
+            <span class="lbl">Scan</span>
+          </button>
+          <a class="topMenuBtn ghost" href="/cafe-profile">
+            <span class="ico" aria-hidden="true">P</span>
+            <span class="lbl">Profil</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/cafe-dashboard">
+            <span class="ico" aria-hidden="true">D</span>
+            <span class="lbl">Dashboard</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card" id="loginCard">
+        <!-- Login Screen -->
+        <div id="loginScreen">
+          <h2>Café Scanner</h2>
+          <p class="subtitle">Melde dich mit deinem Café-Konto an</p>
+
+          <!-- Email Login -->
+          <div id="apiKeyTab">
+            <label>E-Mail</label>
+            <input
+              id="apiKeyInput"
+              type="email"
+              placeholder="cafe@example.com"
+            />
+            <label style="margin-top: 15px">Passwort</label>
+            <input
+              id="passwordInput"
+              type="password"
+              placeholder="Dein Passwort"
+            />
+            <button id="loginBtn" style="margin-top: 20px">Anmelden</button>
+
+            <div style="margin-top: 12px; text-align: center">
+              <button
+                id="forgotPwBtn"
+                type="button"
+                class="secondary"
+                style="
+                  width: auto;
+                  margin: 0;
+                  padding: 12px 14px;
+                  font-size: 14px;
+                "
+              >
+                Passwort vergessen?
+              </button>
+            </div>
+
+            <div
+              id="forgotPwBox"
               style="
-                color: var(--brand);
-                text-decoration: none;
-                font-weight: 700;
+                display: none;
+                margin-top: 14px;
+                padding: 14px;
+                background: var(--surface-muted);
+                border: 1px solid var(--border);
+                border-radius: 12px;
               "
-              >Jetzt registrieren</a
             >
+              <div style="font-weight: 900; margin-bottom: 10px">
+                Reset-Link anfordern
+              </div>
+              <label style="margin-top: 0">E-Mail</label>
+              <input
+                id="forgotEmail"
+                type="email"
+                placeholder="cafe@example.com"
+              />
+
+              <div id="forgotScopeRow" style="display: none; margin-top: 10px">
+                <label style="margin-top: 0">Konto-Auswahl</label>
+                <div style="display: flex; align-items: flex-start; gap: 10px">
+                  <input
+                    id="forgotScopeThis"
+                    type="checkbox"
+                    checked
+                    style="width: 18px; height: 18px; margin-top: 3px"
+                  />
+                  <div
+                    style="
+                      font-size: 13px;
+                      color: var(--text-muted);
+                      line-height: 1.35;
+                    "
+                  >
+                    Nur dieses Café (aus QR):
+                    <span
+                      id="forgotScopeCafe"
+                      style="color: var(--text); font-weight: 800"
+                    ></span>
+                  </div>
+                </div>
+                <div
+                  style="
+                    margin-top: 6px;
+                    font-size: 12px;
+                    color: var(--text-muted);
+                  "
+                >
+                  Tipp: Deaktiviere das, wenn dieselbe E-Mail mehreren Cafés
+                  zugeordnet ist.
+                </div>
+              </div>
+              <button
+                id="forgotRequestBtn"
+                type="button"
+                style="margin-top: 12px"
+              >
+                Reset-Link anfordern
+              </button>
+              <div
+                id="forgotMsg"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  color: var(--text-muted);
+                  font-size: 13px;
+                "
+              ></div>
+
+              <div
+                id="forgotDevBox"
+                style="
+                  display: none;
+                  margin-top: 12px;
+                  padding: 12px;
+                  background: var(--surface);
+                  border: 1px solid var(--border);
+                  border-radius: 10px;
+                  font-size: 13px;
+                  color: var(--text);
+                "
+              >
+                <div style="font-weight: 900; margin-bottom: 6px">Dev-Link</div>
+                <div
+                  id="forgotDevUrl"
+                  style="
+                    font-family:
+                      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                      &quot;Liberation Mono&quot;, &quot;Courier New&quot;,
+                      monospace;
+                    word-break: break-all;
+                    color: var(--text-muted);
+                    margin-bottom: 8px;
+                  "
+                >
+                  —
+                </div>
+                <div
+                  id="forgotDevMore"
+                  style="display: none; margin-bottom: 8px"
+                ></div>
+                <a
+                  id="forgotDevOpen"
+                  href="#"
+                  style="
+                    display: inline-block;
+                    padding: 10px 12px;
+                    background: var(--brand);
+                    color: var(--on-brand, #fff);
+                    border-radius: 10px;
+                    text-decoration: none;
+                    font-weight: 800;
+                  "
+                  >Öffnen</a
+                >
+              </div>
+
+              <button
+                id="forgotBackBtn"
+                type="button"
+                class="secondary"
+                style="margin-top: 12px"
+              >
+                Zurück zum Login
+              </button>
+            </div>
+
+            <div
+              style="
+                margin-top: 15px;
+                padding: 12px;
+                background: var(--surface-muted);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                font-size: 13px;
+                color: var(--text-muted);
+              "
+            >
+              Noch kein Konto?
+              <a
+                href="/cafe-onboarding"
+                style="
+                  color: var(--brand);
+                  text-decoration: none;
+                  font-weight: 700;
+                "
+                >Jetzt registrieren</a
+              >
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      <!-- Post-login Shell -->
+      <div id="appShell" class="app-shell" style="display: none">
+        <main class="mainPanel">
+          <!-- Welcome / Home -->
+          <div id="homeScreen">
+            <div class="panelTitle">Willkommen</div>
+            <p class="subtitle" style="text-align: left">
+              Hier ist deine Café-Startseite. Scans öffnen automatisch die
+              Stempel- Ansicht.
+            </p>
 
-    <!-- Post-login Shell -->
-    <div id="appShell" class="app-shell">
-      <aside class="sidebar">
-        <div class="sidebarHeader">
-          <div class="avatar" id="sidebarAvatar">☕</div>
-          <div class="title" id="sidebarCafeName">Café</div>
-        </div>
-
-        <button id="navHome" class="navItem active" type="button">
-          🏠 Willkommen
-        </button>
-        <button id="navScan" class="navItem" type="button">
-          📷 Scan / Stempeln
-        </button>
-        <a class="navItem" href="/cafe-profile">🏷️ Café Profil</a>
-        <a class="navItem" href="/cafe-dashboard">📊 Dashboard</a>
-        <button id="navLogout" class="navItem danger" type="button">
-          🚪 Abmelden
-        </button>
-      </aside>
-
-      <main class="mainPanel">
-        <!-- Welcome / Home -->
-        <div id="homeScreen">
-          <div class="panelTitle">Willkommen</div>
-          <p class="subtitle" style="text-align: left">
-            Hier ist deine Café-Startseite. Scans öffnen automatisch die
-            Stempel- Ansicht.
-          </p>
-
-          <div id="homePending" class="hintBox" style="display: none">
-            <div style="font-weight: 800; margin-bottom: 6px">Kunde bereit</div>
-            <div id="homePendingText" style="color: var(--text-muted)"></div>
-            <button id="openScanBtn" type="button" style="margin-top: 12px">
-              Zum Kunden
-            </button>
-          </div>
-
-          <div class="hintBox">
-            <div style="font-weight: 800; margin-bottom: 6px">
-              So nutzt du es
-            </div>
-            <div style="color: var(--text-muted)">
-              1) Kunde zeigt QR-Code auf dem Handy.<br />
-              2) Du scannst mit der Kamera-App.<br />
-              3) Der Link öffnet diese Seite mit Parametern – dann kannst du
-              direkt stempeln.
-            </div>
-          </div>
-        </div>
-
-        <!-- Scan / Stamp -->
-        <div id="scannerScreen" style="display: none">
-          <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
-          <p class="subtitle" id="scanSubtitle" style="text-align: left">
-            Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
-            wurde.
-          </p>
-
-          <div id="scanHint" class="hintBox">
-            Noch kein Kunde geladen. Scanne den Kunden-QR, damit die Daten hier
-            erscheinen.
-          </div>
-
-          <div id="customerInfo" class="customer-info" style="display: none">
-            <div class="label">👤 Kundeninformation</div>
-            <div class="value">
-              <strong>Name:</strong> <span id="customerName">-</span>
-            </div>
-            <div class="value">
-              <strong>Kunden-ID:</strong>
-              <span
-                id="customerAddress"
-                style="font-family: monospace; font-size: 12px"
-                >-</span
-              >
-            </div>
-            <div class="value">
-              <strong>Aktuelle Stempel:</strong>
-              <span id="currentStamps">-</span>
-            </div>
-
-            <div class="stamp-controls">
-              <div style="flex: 1">
-                <input
-                  type="range"
-                  class="stamp-range"
-                  id="stampAmount"
-                  value="1"
-                  min="1"
-                  max="10"
-                  step="1"
-                />
-                <div class="stamp-range-meta">
-                  <span><span id="stampAmountValue">1</span> Stempel</span>
-                  <span>1–10</span>
-                </div>
+            <div id="homePending" class="hintBox" style="display: none">
+              <div style="font-weight: 800; margin-bottom: 6px">
+                Kunde bereit
               </div>
-              <button id="awardBtn" style="margin: 0; flex: 2">
-                ✅ Stempel vergeben
+              <div id="homePendingText" style="color: var(--text-muted)"></div>
+              <button id="openScanBtn" type="button" style="margin-top: 12px">
+                Zum Kunden
               </button>
             </div>
+
+            <div class="hintBox">
+              <div style="font-weight: 800; margin-bottom: 6px">
+                So nutzt du es
+              </div>
+              <div style="color: var(--text-muted)">
+                1) Kunde zeigt QR-Code auf dem Handy.<br />
+                2) Du scannst mit der Kamera-App.<br />
+                3) Der Link öffnet diese Seite mit Parametern – dann kannst du
+                direkt stempeln.
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
+
+          <!-- Scan / Stamp -->
+          <div id="scannerScreen" style="display: none">
+            <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
+            <p class="subtitle" id="scanSubtitle" style="text-align: left">
+              Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
+              wurde.
+            </p>
+
+            <div id="scanHint" class="hintBox">
+              Noch kein Kunde geladen. Scanne den Kunden-QR, damit die Daten
+              hier erscheinen.
+            </div>
+
+            <div id="customerInfo" class="customer-info" style="display: none">
+              <div class="label">Kundeninformation</div>
+              <div class="value">
+                <strong>Name:</strong> <span id="customerName">-</span>
+              </div>
+              <div class="value">
+                <strong>Kunden-ID:</strong>
+                <span
+                  id="customerAddress"
+                  style="font-family: monospace; font-size: 12px"
+                  >-</span
+                >
+              </div>
+              <div class="value">
+                <strong>Aktuelle Stempel:</strong>
+                <span id="currentStamps">-</span>
+              </div>
+
+              <div class="stamp-controls">
+                <div style="flex: 1">
+                  <input
+                    type="range"
+                    class="stamp-range"
+                    id="stampAmount"
+                    value="1"
+                    min="1"
+                    max="10"
+                    step="1"
+                  />
+                  <div class="stamp-range-meta">
+                    <span><span id="stampAmountValue">1</span> Stempel</span>
+                    <span>1–10</span>
+                  </div>
+                </div>
+                <button id="awardBtn" style="margin: 0; flex: 2">
+                  Stempel vergeben
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
 
-    <div id="toast" class="toast">✅ Stempel vergeben!</div>
+    <div id="toast" class="toast">Stempel vergeben</div>
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
@@ -577,6 +714,19 @@
       const logoutBtn = document.getElementById("logoutBtn");
       const loginCard = document.getElementById("loginCard");
       const appShell = document.getElementById("appShell");
+      const forgotPwBtn = document.getElementById("forgotPwBtn");
+      const forgotPwBox = document.getElementById("forgotPwBox");
+      const forgotEmail = document.getElementById("forgotEmail");
+      const forgotRequestBtn = document.getElementById("forgotRequestBtn");
+      const forgotMsg = document.getElementById("forgotMsg");
+      const forgotDevBox = document.getElementById("forgotDevBox");
+      const forgotDevUrl = document.getElementById("forgotDevUrl");
+      const forgotDevOpen = document.getElementById("forgotDevOpen");
+      const forgotDevMore = document.getElementById("forgotDevMore");
+      const forgotBackBtn = document.getElementById("forgotBackBtn");
+      const forgotScopeRow = document.getElementById("forgotScopeRow");
+      const forgotScopeThis = document.getElementById("forgotScopeThis");
+      const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
       const navHome = document.getElementById("navHome");
       const navScan = document.getElementById("navScan");
@@ -605,19 +755,38 @@
 
       // State
       let cafe = null;
-      let apiBase = `${location.origin}/api`;
+      let apiBase =
+        location.protocol === "file:"
+          ? "http://127.0.0.1:3000"
+          : `${location.origin}/api`;
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
 
       // Detect API
       async function detectAPI() {
-        const candidates = [
-          `${location.origin}/api`,
-          `${location.protocol}//${location.hostname}:3000`,
-          "http://127.0.0.1:3000",
-          "http://localhost:3000",
-        ];
+        const candidates = [];
+
+        try {
+          if (
+            location.protocol !== "file:" &&
+            location.origin &&
+            location.origin !== "null"
+          ) {
+            candidates.push(`${location.origin}/api`);
+          }
+        } catch (e0) {}
+
+        try {
+          if (
+            (location.protocol === "http:" || location.protocol === "https:") &&
+            location.hostname
+          ) {
+            candidates.push(`${location.protocol}//${location.hostname}:3000`);
+          }
+        } catch (e1) {}
+
+        candidates.push("http://127.0.0.1:3000", "http://localhost:3000");
         for (const base of candidates) {
           try {
             const controller = new AbortController();
@@ -629,12 +798,15 @@
             if (res.ok) return base;
           } catch (e) {}
         }
-        return `${location.origin}/api`;
+        // Safe fallback (avoids returning "null/api" on file://)
+        return location.protocol === "file:"
+          ? "http://127.0.0.1:3000"
+          : `${location.origin}/api`;
       }
 
       function setActiveNav(view) {
-        navHome.classList.toggle("active", view === "home");
-        navScan.classList.toggle("active", view === "scan");
+        if (navHome) navHome.classList.toggle("active", view === "home");
+        if (navScan) navScan.classList.toggle("active", view === "scan");
       }
 
       function showView(view) {
@@ -657,7 +829,126 @@
 
       function showAppUI() {
         loginCard.style.display = "none";
-        appShell.style.display = "flex";
+        appShell.style.display = "block";
+      }
+
+      function hideForgotNotice() {
+        if (forgotMsg) {
+          forgotMsg.style.display = "none";
+          forgotMsg.textContent = "";
+        }
+      }
+
+      function showForgotNotice(message) {
+        if (!forgotMsg) return;
+        forgotMsg.textContent = message;
+        forgotMsg.style.display = "block";
+      }
+
+      function toggleForgotPassword(show) {
+        hideForgotNotice();
+        if (forgotDevBox) forgotDevBox.style.display = "none";
+        if (forgotPwBox) forgotPwBox.style.display = show ? "block" : "none";
+        if (forgotPwBtn)
+          forgotPwBtn.style.display = show ? "none" : "inline-block";
+
+        if (show) {
+          try {
+            if (forgotEmail && apiKeyInput && apiKeyInput.value) {
+              forgotEmail.value = String(apiKeyInput.value || "");
+            }
+          } catch (e) {}
+
+          try {
+            // If the scanner was opened via QR URL params, we can scope the reset
+            // to that café by default.
+            const cafeAddr =
+              pendingScan && pendingScan.cafe ? String(pendingScan.cafe) : "";
+            if (forgotScopeRow && forgotScopeCafe) {
+              if (cafeAddr) {
+                forgotScopeCafe.textContent = cafeAddr;
+                forgotScopeRow.style.display = "block";
+                if (forgotScopeThis) forgotScopeThis.checked = true;
+              } else {
+                forgotScopeRow.style.display = "none";
+              }
+            }
+          } catch (e2) {}
+        }
+      }
+
+      async function requestScannerPasswordReset() {
+        hideForgotNotice();
+        if (forgotDevBox) forgotDevBox.style.display = "none";
+        const email = String((forgotEmail || {}).value || "").trim();
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showForgotNotice("Bitte eine gültige E-Mail eingeben.");
+          return;
+        }
+        try {
+          if (forgotRequestBtn) {
+            forgotRequestBtn.disabled = true;
+            forgotRequestBtn.textContent = "Wird gesendet...";
+          }
+          apiBase = await detectAPI();
+          const scopeToCafe =
+            !!(forgotScopeRow && forgotScopeRow.style.display !== "none") &&
+            !!(forgotScopeThis && forgotScopeThis.checked);
+          const resp = await fetch(`${apiBase}/cafes/forgot-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              cafeAddress:
+                scopeToCafe && pendingScan && pendingScan.cafe
+                  ? pendingScan.cafe
+                  : null,
+            }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          showForgotNotice(
+            "Wenn die Adresse existiert, wurde ein Reset-Link versendet.",
+          );
+          if (data && data.devResetUrl) {
+            const url = String(data.devResetUrl);
+            if (forgotDevUrl) forgotDevUrl.textContent = url;
+            if (forgotDevOpen) forgotDevOpen.href = url;
+            if (forgotDevBox) forgotDevBox.style.display = "block";
+
+            if (forgotDevMore) {
+              forgotDevMore.style.display = "none";
+              forgotDevMore.innerHTML = "";
+            }
+            if (
+              forgotDevMore &&
+              data &&
+              Array.isArray(data.devResetLinks) &&
+              data.devResetLinks.length > 1
+            ) {
+              const items = data.devResetLinks
+                .map((l) => {
+                  const label =
+                    l && (l.label || l.name)
+                      ? String(l.label || l.name)
+                      : "Café";
+                  const href = l && l.url ? String(l.url) : "#";
+                  return `<div style="margin-top: 8px;"><a href="${href}" style="color: var(--brand); font-weight: 900; text-decoration: none;">${label}</a></div>`;
+                })
+                .join("");
+              forgotDevMore.innerHTML =
+                `<div style="font-weight: 900; margin-bottom: 4px;">Mehrere Konten:</div>` +
+                items;
+              forgotDevMore.style.display = "block";
+            }
+          }
+        } catch (e) {
+          showForgotNotice("Fehler beim Anfordern des Reset-Links.");
+        } finally {
+          if (forgotRequestBtn) {
+            forgotRequestBtn.disabled = false;
+            forgotRequestBtn.textContent = "Reset-Link anfordern";
+          }
+        }
       }
 
       function updateHomeStatus() {
@@ -696,8 +987,11 @@
         cafeName.textContent = cafe.name || "Café";
         cafeAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
 
-        sidebarCafeName.textContent = cafe.name || "Café";
-        sidebarAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
+        if (sidebarCafeName) sidebarCafeName.textContent = cafe.name || "Café";
+        if (sidebarAvatar)
+          sidebarAvatar.textContent = (cafe.name || "C")
+            .charAt(0)
+            .toUpperCase();
       }
 
       // Login
@@ -752,9 +1046,15 @@
         } catch (e) {
           alert("Fehler beim Anmelden: " + e.message);
           loginBtn.disabled = false;
-          loginBtn.textContent = "🚀 Anmelden";
+          loginBtn.textContent = "Anmelden";
         }
       };
+
+      if (forgotPwBtn) forgotPwBtn.onclick = () => toggleForgotPassword(true);
+      if (forgotBackBtn)
+        forgotBackBtn.onclick = () => toggleForgotPassword(false);
+      if (forgotRequestBtn)
+        forgotRequestBtn.onclick = requestScannerPasswordReset;
 
       // Logout
       function doLogout() {
@@ -763,22 +1063,36 @@
         scannedCustomer = null;
         localStorage.removeItem("cafe_session");
         localStorage.removeItem("last_scanned_customer");
-        updateCafeBadge();
-        showLoginUI();
-        customerInfo.style.display = "none";
-        if (scanHint) scanHint.style.display = "block";
-        apiKeyInput.value = "";
+        // Hard redirect to onboarding to allow logging in as a different café
+        // and to avoid any leftover UI/scanner state.
+        try {
+          // Stop camera stream if it is running
+          if (stream && stream.getTracks) {
+            stream.getTracks().forEach((t) => {
+              try {
+                t.stop();
+              } catch (e) {}
+            });
+          }
+        } catch (e) {}
+        try {
+          window.location.replace("/cafe-onboarding");
+        } catch (e2) {
+          window.location.href = "/cafe-onboarding";
+        }
       }
-      logoutBtn.onclick = doLogout;
-      navLogout.onclick = doLogout;
+      if (logoutBtn) logoutBtn.onclick = doLogout;
+      if (navLogout) navLogout.onclick = doLogout;
 
-      navHome.onclick = () => {
-        showView("home");
-        updateHomeStatus();
-      };
-      navScan.onclick = () => {
-        showView("scan");
-      };
+      if (navHome)
+        navHome.onclick = () => {
+          showView("home");
+          updateHomeStatus();
+        };
+      if (navScan)
+        navScan.onclick = () => {
+          showView("scan");
+        };
       openScanBtn.onclick = () => {
         showView("scan");
       };
@@ -835,10 +1149,10 @@
         }
         if (awardBtn) {
           awardBtn.textContent = isRedeem
-            ? "🎁 Einlösen"
+            ? "Einlösen"
             : isReset
-              ? "🆕 Neue Karte"
-              : "✅ Stempel vergeben";
+              ? "Neue Karte"
+              : "Stempel vergeben";
         }
         if (stampAmount) {
           stampAmount.style.display = isRedeem || isReset ? "none" : "block";
@@ -913,7 +1227,9 @@
               console.warn("Cafe name lookup failed", e);
             }
             showToast(
-              `🥸 Falscher Laden! QR gehört zu "${scannedName}" – bitte eigenen Kunden fragen.`,
+              /^0x[0-9a-f]{40}$/i.test(String(scannedName || ""))
+                ? "Falsches Café. Bitte eigenen Kunden fragen."
+                : `Falsches Café. QR gehört zu "${scannedName}". Bitte eigenen Kunden fragen.`,
               true,
             );
             console.warn("QR validation failed:", {
@@ -959,7 +1275,7 @@
           if (scanHint) scanHint.style.display = "none";
           awardBtn.disabled = false;
           applyActionUi();
-          showToast("Kunde geladen ✔️");
+          showToast("Kunde geladen");
           showView("scan");
           updateHomeStatus();
         } catch (e) {
@@ -980,8 +1296,8 @@
         ) {
           showToast(
             isReset
-              ? "❌ Dieser QR ist veraltet. Bitte einen neuen QR öffnen."
-              : "❌ Dieser Einlöse-QR ist veraltet. Bitte einen neuen Einlöse-QR öffnen.",
+              ? "Dieser QR ist veraltet. Bitte einen neuen QR öffnen."
+              : "Dieser Einlöse-QR ist veraltet. Bitte einen neuen Einlöse-QR öffnen.",
             true,
           );
           return;
@@ -1093,17 +1409,15 @@
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;
             currentStamps.textContent = Math.max(0, cur - 10);
-            showToast(
-              "🎉 Belohnung eingelöst!\nEinlöse-QR ist jetzt ungültig.",
-            );
+            showToast("Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
           } else if (isReset) {
             currentStamps.textContent = 0;
-            showToast("🆕 Neue Karte gestartet!\nQR ist jetzt ungültig.");
+            showToast("Neue Karte gestartet. QR ist jetzt ungültig.");
           } else {
             // Update stamps display
             currentStamps.textContent =
               (parseInt(currentStamps.textContent) || 0) + amount;
-            showToast(`✅ ${amount} Stempel vergeben!`);
+            showToast(`${amount} Stempel vergeben`);
           }
 
           // Reset after 2 seconds
@@ -1121,7 +1435,8 @@
             applyActionUi();
           }, 1800);
         } catch (e) {
-          showToast("❌ Fehler: " + e.message, true);
+          // Keep popups non-technical.
+          showToast("Aktion fehlgeschlagen. Bitte erneut versuchen.", true);
           awardBtn.disabled = false;
           applyActionUi();
         }
@@ -1209,9 +1524,15 @@
               }
             }
           }
+
+          // No valid saved session → ensure only login is visible
+          if (!cafe) {
+            showLoginUI();
+          }
         } catch (e) {
           console.warn("Auto-login failed:", e);
           localStorage.removeItem("cafe_session");
+          showLoginUI();
         }
       })();
 

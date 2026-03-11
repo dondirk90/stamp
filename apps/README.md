@@ -23,7 +23,7 @@ Browser-based apps served by the Apps Server (`apps/server.cjs`).
    pnpm run dev
    ```
 
-   Expected: `🚀 API listening on http://127.0.0.1:3000`
+   Expected: `API listening on http://127.0.0.1:3000`
 
 3. **Start the Apps Server (in a second terminal):**
 
@@ -32,18 +32,18 @@ Browser-based apps served by the Apps Server (`apps/server.cjs`).
    node server.cjs
    ```
 
-   Expected: `📱 Apps Server running on http://localhost:8080`
+   Expected: `Apps Server running on http://localhost:8080`
 
 4. **Open the Apps:**
    - **On your Computer (Desktop):**
      - Café Onboarding: `http://localhost:8080/cafe-onboarding`
      - Café Scanner: `http://localhost:8080/cafe-scanner`
      - Customer Register: `http://localhost:8080/customer-register`
-     - Customer QR (modern): `http://localhost:8080/customer-qr`
+   - Customer Wallet: `http://localhost:8080/customer-wallet`
    - **On your Smartphone (same WiFi network):**
      - Café Onboarding: `http://192.168.1.100:8080/cafe-onboarding` (replace `192.168.1.100` with your LAN IP)
      - Café Scanner: `http://192.168.1.100:8080/cafe-scanner`
-     - Customer QR (modern): `http://192.168.1.100:8080/customer-qr`
+   - Customer Wallet: `http://192.168.1.100:8080/customer-wallet`
 
 ### How to Use
 
@@ -55,7 +55,7 @@ Browser-based apps served by the Apps Server (`apps/server.cjs`).
 
 #### Customer
 
-1. Open `http://localhost:8080/customer-qr`.
+1. Open `http://localhost:8080/customer-wallet`.
 2. Register or log in (email + password).
 3. Show the QR code to the café; the café opens the scanned link and can stamp/redeem.
 
@@ -68,7 +68,7 @@ Browser-based apps served by the Apps Server (`apps/server.cjs`).
 1. Start the API server (`pnpm run dev`).
 2. Register a café: `http://localhost:8080/cafe-onboarding`.
 3. Open Café scanner: `http://localhost:8080/cafe-scanner` and log in.
-4. Open customer QR: `http://localhost:8080/customer-qr` and log in.
+4. Open customer wallet: `http://localhost:8080/customer-wallet` and log in.
 5. Show the customer QR to the café and stamp/redeem.
 
 ### Mobile + Desktop Flow (Smartphone Testing)
@@ -79,11 +79,11 @@ Browser-based apps served by the Apps Server (`apps/server.cjs`).
    - Registriere dein Café und logge dich mit **E-Mail + Passwort** ein.
 4. **Computer oder Smartphone:** Öffne den Café Scanner: `http://192.168.1.100:8080/cafe-scanner`.
    - Logge dich mit E-Mail + Passwort ein.
-5. **Smartphone (Customer):** Öffne `http://192.168.1.100:8080/customer-qr`.
+5. **Smartphone (Customer):** Öffne `http://192.168.1.100:8080/customer-wallet`.
    - Registrieren oder einloggen (E-Mail + Passwort) und QR anzeigen.
 6. **Café:** Öffne/scannt den QR-Link und vergibt Stempel.
 
-**💡 Tip:** Use `apps/lan-setup.html` for automatic IP detection and setup guidance.
+Tip: Use `apps/lan-setup.html` for automatic IP detection and setup guidance.
 
 ---
 
@@ -98,7 +98,7 @@ Both apps expect:
 
 ## Recommended Flow for Development
 
-1. Use the browser apps (`/cafe-onboarding`, `/cafe-scanner`, `/customer-qr`).
+1. Use the browser apps (`/cafe-onboarding`, `/cafe-scanner`, `/customer-wallet`).
 2. For mobile testing, use the same URLs via your LAN IP (see `/lan-setup.html`).
 
 ---
@@ -135,4 +135,4 @@ Both apps expect:
 2. **For production iPhone:** Investigate EAS Build or native iOS development (Xcode).
 3. **For team testing:** Deploy web apps to a public URL (Vercel, Netlify, GitHub Pages).
 
-Enjoy! 🚀
+Enjoy!

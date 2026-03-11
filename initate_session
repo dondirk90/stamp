@@ -99,9 +99,9 @@ Dann die ausgegebene `Public (...)` URL am iPhone öffnen (funktioniert auch ohn
 Tipp (Windows): URL schnell im Browser öffnen
 
 ```powershell
-Start-Process "https://<public-tunnel-host>.loca.lt/customer-qr"
+Start-Process "https://<public-tunnel-host>.loca.lt/customer-wallet"
 # oder
-Start-Process "http://<DEINE_LAN_IP>:8080/customer-qr"
+Start-Process "http://<DEINE_LAN_IP>:8080/customer-wallet"
 ```
 
 Nachhaltige Alternative ohne Router-Änderungen:
@@ -128,15 +128,15 @@ Start (Rollen-Auswahl): http://localhost:8080/
 LAN Setup: http://localhost:8080/lan-setup.html
 Café Onboarding (Registrierung/Login): http://localhost:8080/cafe-onboarding
 Café Scanner: http://localhost:8080/cafe-scanner
-Customer App (Wallet/QR): http://localhost:8080/customer-qr
+Customer App (Wallet/QR): http://localhost:8080/customer-wallet
 Customer — Profil / Passwort: http://localhost:8080/customer-profile
 Customer — Cafés finden (Map): öffne Customer App und wähle den Tab „Karte“
 Alternatives Verzeichnis-Index (falls vorhanden): http://localhost:8080/cafe/ oder http://localhost:8080/customer/
 Vom Smartphone im selben Wi‑Fi: ersetze localhost durch deine LAN-IP (z.B. 192.168.1.100):
 
-Beispiel: http://192.168.1.100:8080/customer-qr
+Beispiel: http://192.168.1.100:8080/customer-wallet
 
-Hinweis: Nutze bevorzugt die kanonischen Routen ohne ".html" (z.B. /customer-qr, /cafe-scanner).
+Hinweis: Nutze bevorzugt die kanonischen Routen ohne ".html" (z.B. /customer-wallet, /cafe-scanner).
 
 Wenn es am Smartphone NICHT lädt (häufigster Grund): Windows-Firewall / Netzwerkprofil
 

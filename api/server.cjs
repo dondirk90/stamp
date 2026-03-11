@@ -24,6 +24,7 @@ const util = require("util");
 const https = require("https");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
+const os = require("os");
 
 const { z } = require("zod");
 
@@ -40,6 +41,82 @@ function parseBool(value, defaultValue) {
   if (["1", "true", "yes", "y", "on"].includes(v)) return true;
   if (["0", "false", "no", "n", "off"].includes(v)) return false;
   return defaultValue;
+}
+
+function pickLanIpv4() {
+  try {
+    const nets = os.networkInterfaces();
+    let best = null;
+    let bestScore = -999;
+    for (const name of Object.keys(nets || {})) {
+      for (const net of nets[name] || []) {
+        if (!net || net.family !== "IPv4" || net.internal) continue;
+        const ip = String(net.address || "").trim();
+        if (!ip) continue;
+
+        const is192 = ip.startsWith("192.168.");
+        const is10 = ip.startsWith("10.");
+        const is172 = /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip);
+
+        let score = 0;
+        if (is192) score += 30;
+        else if (is10) score += 20;
+        else if (is172) score += 10;
+
+        const lname = String(name || "").toLowerCase();
+        if (lname.includes("wi-fi") || lname.includes("wifi")) score += 6;
+        if (lname.includes("ethernet")) score += 5;
+        if (lname.includes("vethernet") || lname.includes("hyper-v"))
+          score -= 25;
+        if (lname.includes("wsl")) score -= 25;
+        if (lname.includes("virtual")) score -= 10;
+
+        if (score > bestScore) {
+          bestScore = score;
+          best = ip;
+        }
+      }
+    }
+    return best || null;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeForwardedHost(raw) {
+  if (!raw) return "";
+  // Some proxies send a comma-separated list.
+  const first = String(raw).split(",")[0].trim();
+  // Only allow typical host:port characters to avoid header injection.
+  const cleaned = first.replace(/[^a-zA-Z0-9.:-]/g, "");
+  return cleaned;
+}
+
+function getAppsBaseUrlFromRequest(req) {
+  const envBase = (process.env.APPS_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+
+  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "http")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  const proto = forwardedProto === "https" ? "https" : "http";
+
+  const fwdHost = sanitizeForwardedHost(req?.headers?.["x-forwarded-host"]);
+  if (fwdHost) {
+    return `${proto}://${fwdHost}`.replace(/\/$/, "");
+  }
+
+  const host = sanitizeForwardedHost(req?.headers?.host);
+  if (host) {
+    // If this request hits the API directly (e.g. :3000), point to apps server (:8080)
+    const rewritten = host.replace(/:(3000)\b/, ":8080");
+    return `${proto}://${rewritten}`.replace(/\/$/, "");
+  }
+
+  const lanIp = (process.env.LAN_IP || "").trim() || pickLanIpv4();
+  if (lanIp) return `http://${lanIp}:8080`;
+  return "http://localhost:8080";
 }
 
 const ENV = (() => {
@@ -331,6 +408,63 @@ async function sendCustomerPasswordResetEmail({ email, resetUrl }) {
   return info;
 }
 
+async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
+  const links =
+    Array.isArray(resetLinks) && resetLinks.length
+      ? resetLinks
+      : resetUrl
+        ? [{ label: "Reset-Link", url: String(resetUrl) }]
+        : [];
+
+  const linksHtml = links
+    .map((l) => {
+      const label = l && l.label ? String(l.label) : "Reset-Link";
+      const url = l && l.url ? String(l.url) : "";
+      return `<li style="margin: 8px 0;"><strong>${label}</strong><br/><a href="${url}">${url}</a></li>`;
+    })
+    .join("\n");
+
+  const linksText = links
+    .map((l) => {
+      const label = l && l.label ? String(l.label) : "Reset-Link";
+      const url = l && l.url ? String(l.url) : "";
+      return `${label}: ${url}`;
+    })
+    .join("\n");
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: "Café Passwort zurücksetzen (Stampcard)",
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="margin: 0 0 12px 0;">Passwort zurücksetzen</h2>
+            <p>Du hast einen Reset-Link für dein Café-Konto angefordert.</p>
+            <ul style="padding-left: 18px;">${linksHtml}</ul>
+            <p style="color:#666;font-size:12px;">Wenn du das nicht warst, ignoriere diese E-Mail.</p>
+            <p style="color:#666;font-size:12px;">${linksText.replace(/\n/g, "<br/>")}</p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Café Passwort zurücksetzen\n\n${linksText}\n\nWenn du das nicht warst, ignoriere diese E-Mail.`,
+  };
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️  Email credentials not configured. Email content:");
+    console.log("To:", email);
+    console.log("Subject:", mailOptions.subject);
+    console.log("Text:", mailOptions.text);
+    return;
+  }
+
+  const info = await emailTransporter.sendMail(mailOptions);
+  return info;
+}
+
 // === Database (SQLite for local dev; Postgres in cloud via DATABASE_URL) ===
 const { createDb } = require("./db.cjs");
 let db;
@@ -406,6 +540,9 @@ CREATE TABLE IF NOT EXISTS cafes (
   redeem_message TEXT,
   logo_mime TEXT,
   logo_data TEXT,
+  card_bg_mime TEXT,
+  card_bg_data TEXT,
+  card_back_text TEXT,
   card_theme TEXT DEFAULT 'paper',
   updated_at INTEGER,
   created_at INTEGER
@@ -439,8 +576,21 @@ CREATE TABLE IF NOT EXISTS customer_password_resets (
   used_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS cafe_password_resets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cafe_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_customer_password_resets_hash ON customer_password_resets(token_hash);
 CREATE INDEX IF NOT EXISTS idx_customer_password_resets_customer ON customer_password_resets(customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_cafe_password_resets_hash ON cafe_password_resets(token_hash);
+CREATE INDEX IF NOT EXISTS idx_cafe_password_resets_cafe ON cafe_password_resets(cafe_id);
 
 CREATE TABLE IF NOT EXISTS sync_state (
   key TEXT PRIMARY KEY,
@@ -532,6 +682,18 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_theme TEXT DEFAULT 'paper'",
   "Failed to add cafes.card_theme column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN card_bg_mime TEXT",
+  "Failed to add cafes.card_bg_mime column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN card_bg_data TEXT",
+  "Failed to add cafes.card_bg_data column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN card_back_text TEXT",
+  "Failed to add cafes.card_back_text column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN updated_at INTEGER",
@@ -688,7 +850,11 @@ const getCafeByName = db.prepare(
 );
 
 const getCafeAuthByEmail = db.prepare(
-  "SELECT * FROM cafes WHERE LOWER(email) = LOWER(?) LIMIT 1",
+  "SELECT * FROM cafes WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1",
+);
+
+const listCafeAuthByEmail = db.prepare(
+  "SELECT * FROM cafes WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))",
 );
 
 const insertCafeSession = db.prepare(
@@ -701,8 +867,25 @@ const deleteCafeSessionByHash = db.prepare(
   "DELETE FROM cafe_sessions WHERE token_hash = ?",
 );
 
+const setCafePasswordHashById = db.prepare(
+  "UPDATE cafes SET password_hash = ? WHERE id = ?",
+);
+
+const insertCafePasswordReset = db.prepare(
+  "INSERT INTO cafe_password_resets (cafe_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+);
+const deleteUnusedCafePasswordResetsByCafeId = db.prepare(
+  "DELETE FROM cafe_password_resets WHERE cafe_id = ? AND used_at IS NULL",
+);
+const getCafePasswordResetByHash = db.prepare(
+  "SELECT * FROM cafe_password_resets WHERE token_hash = ? LIMIT 1",
+);
+const markCafePasswordResetUsedById = db.prepare(
+  "UPDATE cafe_password_resets SET used_at = ? WHERE id = ? AND used_at IS NULL",
+);
+
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, location_address = ?, lat = ?, lng = ?, card_theme = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, card_theme = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -844,6 +1027,8 @@ try {
       const p = String(req.path || "");
       if (
         p.startsWith("/cafes/login") ||
+        p.startsWith("/cafes/forgot-password") ||
+        p.startsWith("/cafes/reset-password") ||
         p.startsWith("/customers/login") ||
         p.startsWith("/customers/forgot-password") ||
         p.startsWith("/customers/reset-password")
@@ -1796,9 +1981,14 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         about: cafeRow.about_text || null,
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
+        cardBackText: cafeRow.card_back_text || null,
         logoDataUrl:
           cafeRow.logo_data && cafeRow.logo_mime
             ? `data:${cafeRow.logo_mime};base64,${cafeRow.logo_data}`
+            : null,
+        cardBackgroundDataUrl:
+          cafeRow.card_bg_data && cafeRow.card_bg_mime
+            ? `data:${cafeRow.card_bg_mime};base64,${cafeRow.card_bg_data}`
             : null,
       },
       stats,
@@ -1909,6 +2099,45 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       }
     }
 
+    let cardBgMime = current.card_bg_mime || null;
+    let cardBgData = current.card_bg_data || null;
+    if (Object.prototype.hasOwnProperty.call(body, "cardBgDataUrl")) {
+      const raw = body.cardBgDataUrl;
+      if (!raw) {
+        cardBgMime = null;
+        cardBgData = null;
+      } else {
+        const s = String(raw);
+        const m =
+          /^data:(image\/(png|jpeg|jpg|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+            s,
+          );
+        if (!m) {
+          return res.status(400).json({ error: "invalid_card_bg_format" });
+        }
+        const mime =
+          m[1].toLowerCase() === "image/jpg"
+            ? "image/jpeg"
+            : m[1].toLowerCase();
+        const base64 = String(m[3] || "").replace(/\s+/g, "");
+
+        // Rough size guard: base64 chars ~ 4/3 bytes
+        if (base64.length > 650_000) {
+          return res.status(413).json({ error: "card_bg_too_large" });
+        }
+
+        cardBgMime = mime;
+        cardBgData = base64;
+      }
+    }
+
+    let cardBackText = current.card_back_text || null;
+    if (Object.prototype.hasOwnProperty.call(body, "cardBackText")) {
+      const raw = body.cardBackText == null ? "" : String(body.cardBackText);
+      const trimmed = raw.trim();
+      cardBackText = trimmed ? trimmed.slice(0, 400) : null;
+    }
+
     const allowedCardThemes = new Set([
       "paper",
       "clean",
@@ -1933,6 +2162,9 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       redeemMessage,
       logoMime,
       logoData,
+      cardBgMime,
+      cardBgData,
+      cardBackText,
       locationAddress,
       lat,
       lng,
@@ -1954,9 +2186,14 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         about: updated.about_text || null,
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
+        cardBackText: updated.card_back_text || null,
         logoDataUrl:
           updated.logo_data && updated.logo_mime
             ? `data:${updated.logo_mime};base64,${updated.logo_data}`
+            : null,
+        cardBackgroundDataUrl:
+          updated.card_bg_data && updated.card_bg_mime
+            ? `data:${updated.card_bg_mime};base64,${updated.card_bg_data}`
             : null,
         updatedAt:
           updated.updated_at != null ? Number(updated.updated_at) : null,
@@ -2792,6 +3029,181 @@ app.post("/cafes/logout", requireCafeAuth, async (req, res) => {
   }
 });
 
+app.post("/cafes/forgot-password", async (req, res) => {
+  try {
+    const { email, cafeId, cafeAddress } = req.body || {};
+    const em = email != null ? String(email).trim() : "";
+
+    // Neutral response to avoid email enumeration
+    if (!em || !/^\S+@\S+\.\S+$/.test(em)) {
+      return res.json({ ok: true });
+    }
+
+    let cafes = await listCafeAuthByEmail.all(em);
+
+    // Optional disambiguation when multiple cafés share the same email.
+    // This is useful when the scanner was opened via a QR link that already contains the café address.
+    const wantedId =
+      cafeId != null && String(cafeId).trim() ? String(cafeId).trim() : "";
+    const wantedAddr =
+      cafeAddress != null && String(cafeAddress).trim()
+        ? String(cafeAddress).trim().toLowerCase()
+        : "";
+    if (cafes && cafes.length > 1 && (wantedId || wantedAddr)) {
+      cafes = cafes.filter((c) => {
+        if (!c) return false;
+        if (wantedId && String(c.id) === wantedId) return true;
+        if (wantedAddr) {
+          const addr =
+            c.address != null ? String(c.address).trim().toLowerCase() : "";
+          if (addr && addr === wantedAddr) return true;
+        }
+        return false;
+      });
+    }
+    let devResetLinks = null;
+
+    if (cafes && cafes.length) {
+      const now = Date.now();
+      const expiresAt = now + 60 * 60 * 1000; // 1 hour
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+
+      const resetLinks = [];
+      for (const cafe of cafes) {
+        if (!cafe || !cafe.id) continue;
+        const token = crypto.randomBytes(24).toString("hex");
+        const tokenHash = crypto
+          .createHash("sha256")
+          .update(token)
+          .digest("hex");
+
+        try {
+          await deleteUnusedCafePasswordResetsByCafeId.run(cafe.id);
+        } catch (e) {}
+
+        await insertCafePasswordReset.run(cafe.id, tokenHash, now, expiresAt);
+
+        const resetUrl = `${appsBaseUrl}/cafe-onboarding?resetToken=${encodeURIComponent(
+          token,
+        )}`;
+        const labelParts = [];
+        if (cafe.name) labelParts.push(String(cafe.name));
+        if (cafe.location_address)
+          labelParts.push(String(cafe.location_address));
+        const label = labelParts.length
+          ? labelParts.join(" · ")
+          : `Café #${cafe.id}`;
+        resetLinks.push({
+          cafeId: cafe.id,
+          name: cafe.name || null,
+          locationAddress: cafe.location_address || null,
+          url: resetUrl,
+          label,
+        });
+      }
+
+      try {
+        await sendCafePasswordResetEmail({
+          email: em,
+          resetLinks: resetLinks.map((l) => ({ label: l.label, url: l.url })),
+        });
+      } catch (e) {
+        console.warn(
+          "Failed to send cafe reset email:",
+          e && e.message ? e.message : e,
+        );
+      }
+
+      const revealDev =
+        !process.env.EMAIL_USER ||
+        !process.env.EMAIL_PASS ||
+        String(process.env.NODE_ENV || "").toLowerCase() !== "production";
+      if (revealDev) devResetLinks = resetLinks;
+    }
+
+    if (devResetLinks && devResetLinks.length) {
+      // Backwards compatible: include devResetUrl for old clients
+      const devResetUrl = String(devResetLinks[0].url);
+      return res.json({ ok: true, devResetUrl, devResetLinks });
+    }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.json({ ok: true });
+  }
+});
+
+app.post("/cafes/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    const tok = token != null ? String(token).trim() : "";
+    const pw = newPassword != null ? String(newPassword) : "";
+    if (!tok)
+      return res.status(400).json({ ok: false, error: "invalid_token" });
+    if (!pw || pw.length < 8)
+      return res.status(400).json({ ok: false, error: "weak_password" });
+
+    const tokenHash = crypto.createHash("sha256").update(tok).digest("hex");
+    const resetRow = await getCafePasswordResetByHash.get(tokenHash);
+    const now = Date.now();
+
+    if (!resetRow)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (resetRow.used_at)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (!resetRow.expires_at || now > Number(resetRow.expires_at)) {
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    }
+
+    const newHash = await bcrypt.hash(pw, 10);
+    await setCafePasswordHashById.run(newHash, resetRow.cafe_id);
+    await markCafePasswordResetUsedById.run(now, resetRow.id);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/cafes/reset-password/preview", async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    const tok = token != null ? String(token).trim() : "";
+    if (!tok)
+      return res.status(400).json({ ok: false, error: "invalid_token" });
+
+    const tokenHash = crypto.createHash("sha256").update(tok).digest("hex");
+    const resetRow = await getCafePasswordResetByHash.get(tokenHash);
+    const now = Date.now();
+    if (!resetRow)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (resetRow.used_at)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (!resetRow.expires_at || now > Number(resetRow.expires_at)) {
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    }
+
+    const cafe = await getCafeById.get(resetRow.cafe_id);
+    return res.json({
+      ok: true,
+      cafe: cafe
+        ? {
+            id: cafe.id,
+            name: cafe.name || null,
+            locationAddress: cafe.location_address || null,
+            address: cafe.address || null,
+          }
+        : null,
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/cafes/register-with-email", async (req, res) => {
   try {
     const {
@@ -2985,7 +3397,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, about_text, logo_data, card_theme, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -3000,8 +3412,16 @@ app.get("/cafes/public", async (req, res) => {
           lat: row.lat != null ? Number(row.lat) : null,
           lng: row.lng != null ? Number(row.lng) : null,
           about: row.about_text ? String(row.about_text).slice(0, 280) : null,
-          hasLogo: !!(row.logo_data && String(row.logo_data).length),
+          logoDataUrl:
+            row.logo_data && row.logo_mime
+              ? `data:${row.logo_mime};base64,${row.logo_data}`
+              : null,
           cardTheme: row.card_theme || "paper",
+          cardBackText: row.card_back_text || null,
+          cardBackgroundDataUrl:
+            row.card_bg_data && row.card_bg_mime
+              ? `data:${row.card_bg_mime};base64,${row.card_bg_data}`
+              : null,
           createdAt: row.created_at != null ? Number(row.created_at) : null,
           updatedAt: row.updated_at != null ? Number(row.updated_at) : null,
         };
@@ -3026,7 +3446,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, about_text, redeem_message, logo_mime, logo_data, card_theme, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -3057,9 +3477,14 @@ app.get("/cafes/public/:id", async (req, res) => {
         about: row.about_text ? String(row.about_text).slice(0, 1200) : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
+        cardBackText: row.card_back_text || null,
         logoDataUrl:
           row.logo_data && row.logo_mime
             ? `data:${row.logo_mime};base64,${row.logo_data}`
+            : null,
+        cardBackgroundDataUrl:
+          row.card_bg_data && row.card_bg_mime
+            ? `data:${row.card_bg_mime};base64,${row.card_bg_data}`
             : null,
         images,
         createdAt: row.created_at != null ? Number(row.created_at) : null,
@@ -3383,13 +3808,7 @@ app.post("/customers/forgot-password", async (req, res) => {
       } catch (e) {}
       await insertCustomerPasswordReset.run(row.id, tokenHash, now, expiresAt);
 
-      const appsBaseUrl = (
-        process.env.APPS_BASE_URL ||
-        (process.env.LAN_IP
-          ? `http://${String(process.env.LAN_IP).trim()}:8080`
-          : null) ||
-        "http://localhost:8080"
-      ).replace(/\/$/, "");
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
 
       const resetUrl = `${appsBaseUrl}/customer-profile?resetToken=${encodeURIComponent(
         token,

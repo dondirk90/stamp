@@ -1,11 +1,11 @@
-# 📱 Smartphone Scanning — Quick Checklist
+# Smartphone Scanning — Quick Checklist
 
 ## Was du brauchst
 
-- ✅ API Server läuft (`pnpm run dev` in Terminal 1)
-- ✅ Apps Server läuft (`node server.cjs` in Terminal 2)
-- ✅ Smartphone im **gleichen WLAN** wie dein Computer
-- ✅ Deine Rechner-**LAN-IP** (z.B. `192.168.1.100`)
+- API Server läuft (`pnpm run dev` in Terminal 1)
+- Apps Server läuft (`node server.cjs` in Terminal 2)
+- Smartphone im **gleichen WLAN** wie dein Computer
+- Deine Rechner-**LAN-IP** (z.B. `192.168.1.100`)
 
 ## Schritt-für-Schritt
 
@@ -25,7 +25,7 @@ cd C:\Users\dirkb\Documents\GitHub\stamp
 pnpm run dev
 ```
 
-Erwartet: `🚀 API listening on http://127.0.0.1:3000`
+Erwartet: `API listening on http://127.0.0.1:3000`
 
 ### 2b. Apps Server starten (Terminal 2)
 
@@ -34,7 +34,7 @@ cd C:\Users\dirkb\Documents\GitHub\stamp\apps
 node server.cjs
 ```
 
-Erwartet: `📱 Apps Server running on http://localhost:8080`
+Erwartet: `Apps Server running on http://localhost:8080`
 
 ### 3. Café-App (Computer ODER Smartphone)
 
@@ -45,11 +45,11 @@ Erwartet: `📱 Apps Server running on http://localhost:8080`
 
 ### 4. Customer-App (Smartphone)
 
-- **URL:** `http://192.168.1.100:8080/customer-qr` (deine LAN-IP!)
+- **URL:** `http://192.168.1.100:8080/customer-wallet` (deine LAN-IP!)
 - Registrieren oder einloggen (E-Mail + Passwort).
 - Öffne den QR-Code, damit das Café ihn scannen kann.
 
-### 5. Erfolg ✅
+### 5. Erfolg
 
 - Du siehst Stempel/Belohnungen in der Customer-App, und der Café-Scanner zeigt die aktualisierte Anzahl.
 
@@ -72,4 +72,4 @@ Erwartet: `📱 Apps Server running on http://localhost:8080`
 
 ---
 
-Viel Spaß! 🎉
+Viel Spaß!

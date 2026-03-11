@@ -29,7 +29,12 @@
     resetPwMsg: document.getElementById("resetPwMsg"),
   };
 
-  const apiBase = `${location.origin}/api`;
+  const apiBase =
+    location.protocol === "file:"
+      ? "http://127.0.0.1:3000"
+      : location.port === "3000"
+        ? location.origin
+        : `${location.origin}/api`;
 
   function setBuildBadge() {
     if (!el.buildBadge) return;

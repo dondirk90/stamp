@@ -64,27 +64,27 @@
   </style>
 </head>
 <body>
-  <h1>🚀 Stamp Card — LAN Setup</h1>
+  <h1>Stamp Card — LAN Setup</h1>
 
   <div class="card">
     <h2>Deine Rechner-IP (LAN)</h2>
     <p>Diese IP wird verwendet, um die Apps vom Smartphone aus zu erreichen:</p>
     <input type="text" id="lanIp" readonly style="background:#e8f5e9" />
-    <button onclick="copyToClipboard()">📋 In Zwischenablage kopieren</button>
+    <button onclick="copyToClipboard()">In Zwischenablage kopieren</button>
   </div>
 
   <div class="card">
     <h2>Schritt 1: API starten</h2>
     <p>Auf deinem Computer (PowerShell):</p>
     <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>node api\server.cjs</code>
-    <p>Erwartet: <span class="success">🚀 API listening on http://127.0.0.1:3000</span></p>
+    <p>Erwartet: <span class="success">API listening on http://127.0.0.1:3000</span></p>
   </div>
 
   <div class="card">
     <h2>Schritt 1b: Apps-Server starten</h2>
-    <p>In einem **zweiten** Terminal (PowerShell):</p>
+    <p>In einem <strong>zweiten</strong> Terminal (PowerShell):</p>
     <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>$env:PORT=8080; node apps\server.cjs</code>
-    <p>Erwartet: <span class="success">📱 Apps Server running on http://localhost:8080</span> (wichtig: Port 8080 im LAN erreichbar)</p>
+    <p>Erwartet: <span class="success">Apps Server running on http://localhost:8080</span> (wichtig: Port 8080 im LAN erreichbar)</p>
   </div>
 
   <div class="card">
@@ -92,34 +92,33 @@
     <div class="highlight">
       <strong>Auf deinem Computer (Desktop/Laptop):</strong>
       <ul>
-        <li>Customer QR: <code>http://localhost:8080/customer-qr.html</code></li>
-        <li>Café Scanner: <code>http://localhost:8080/cafe-scanner.html</code></li>
+        <li>Customer Wallet: <code>http://localhost:8080/customer-wallet</code></li>
+        <li>Café Scanner: <code>http://localhost:8080/cafe-scanner</code></li>
         <li>Café Issuer: <code>http://localhost:8080/cafe-issuer-web.html</code></li>
       </ul>
     </div>
     <div class="highlight">
       <strong>Auf deinem Smartphone (im gleichen WLAN):</strong>
       <ul>
-        <li>Customer QR: <code id="customerQrUrl">http://<IP>:8080/customer-qr.html</code></li>
-        <li>Café Scanner: <code id="scannerUrl">http://<IP>:8080/cafe-scanner.html</code></li>
+        <li>Customer Wallet: <code id="customerQrUrl">http://<IP>:8080/customer-wallet</code></li>
+        <li>Café Scanner: <code id="scannerUrl">http://<IP>:8080/cafe-scanner</code></li>
         <li>Café Issuer: <code id="issuerUrl">http://<IP>:8080/cafe-issuer-web.html</code></li>
       </ul>
     </div>
     <p style="font-size:12px;color:#666">Der Apps-Server läuft auf Port 8080. Die API läuft auf Port 3000.</p>
-  </div>
   </div>
 
   <div class="card">
     <h2>Schritt 3: Flow testen</h2>
     <ol>
       <li><strong>Café Onboarding:</strong> Café registrieren oder einloggen</li>
-      <li><strong>Customer QR:</strong> QR anzeigen (Stempel oder Redeem, je nach Stand)</li>
-      <li><strong>Café Scanner:</strong> QR öffnen → Stempeln oder 🎁 Einlösen</li>
+      <li><strong>Customer Wallet:</strong> QR anzeigen (Stempel oder Einlösen, je nach Stand)</li>
+      <li><strong>Café Scanner:</strong> QR öffnen → Stempeln oder Einlösen</li>
     </ol>
   </div>
 
   <div class="card" style="background:#f3f3f3">
-    <h2>💡 Tipps</h2>
+    <h2>Tipps</h2>
     <ul>
       <li><strong>IP ändern:</strong> Stelle sicher, dass dein Smartphone im gleichen WLAN wie dein Computer ist.</li>
       <li><strong>Firewall:</strong> Falls die Verbindung nicht funktioniert, prüfe deine Windows-Firewall (Port 3000 erlauben).</li>
@@ -137,7 +136,7 @@
         const hasCustomer = params.has("customer");
         if (hasRedeem && hasCustomer) {
           const search = window.location.search || "";
-          const target = `/cafe-scanner.html${search}`;
+          const target = `/cafe-scanner${search}`;
           window.location.replace(target);
           return; // stop initializing helper UI
         }
@@ -159,8 +158,8 @@
 
     function updateUrls(ip) {
       if (ip && ip !== 'Bitte manuelle eingeben (siehe unten)') {
-        document.getElementById('customerQrUrl').textContent = `http://${ip}:8080/customer-qr.html`;
-        document.getElementById('scannerUrl').textContent = `http://${ip}:8080/cafe-scanner.html`;
+        document.getElementById('customerQrUrl').textContent = `http://${ip}:8080/customer-wallet`;
+        document.getElementById('scannerUrl').textContent = `http://${ip}:8080/cafe-scanner`;
         document.getElementById('issuerUrl').textContent = `http://${ip}:8080/cafe-issuer-web.html`;
         document.getElementById('apiHealthUrl').textContent = `http://${ip}:3000/health`;
       }
@@ -170,7 +169,7 @@
       const input = document.getElementById('lanIp');
       input.select();
       document.execCommand('copy');
-      alert('IP kopiert! 📋');
+      alert('IP kopiert');
     }
 
     // IP-Feld initialisieren
@@ -188,7 +187,7 @@
     if (initialIp === 'Bitte manuelle eingeben (siehe unten)') {
       document.querySelector('.card').innerHTML += `
         <div style="margin-top:12px;background:#fff3cd;padding:12px;border-radius:4px">
-          <strong>🔍 Wie finde ich meine LAN-IP?</strong>
+          <strong>Wie finde ich meine LAN-IP?</strong>
           <p><strong>Windows:</strong> PowerShell öffnen und eingeben:</p>
           <code style="display:block;padding:8px;background:#f0f0f0;margin:8px 0">ipconfig</code>
           <p>Suche nach "IPv4-Adresse" unter deinem aktiven WLAN-Adapter (z.B. <code>192.168.1.100</code>)</p>

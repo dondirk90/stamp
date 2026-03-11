@@ -17,7 +17,7 @@ async function tryGetLanUrl() {
     return {
       ip,
       port,
-      appUrl: `http://${ip}:${port}/customer-qr`,
+      appUrl: `http://${ip}:${port}/customer-wallet`,
       pingUrl: `http://${ip}:${port}/__ping`,
     };
   } catch {
@@ -99,7 +99,7 @@ async function main() {
         ),
       ),
     ]);
-    const publicUrl = `${tunnel.url}/customer-qr`;
+    const publicUrl = `${tunnel.url}/customer-wallet`;
     console.log(`Public (iPhone überall): ${publicUrl}`);
     await postUrl(publicUrl);
     console.log("Tunnel läuft. Zum Beenden: Strg+C");
@@ -150,7 +150,7 @@ async function main() {
       }
       const m = s.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i);
       if (m && !publicUrl) {
-        publicUrl = `${m[0]}/customer-qr`;
+        publicUrl = `${m[0]}/customer-wallet`;
         console.log(`Public (iPhone überall): ${publicUrl}`);
         await postUrl(publicUrl);
         console.log("Tunnel läuft. Zum Beenden: Strg+C");

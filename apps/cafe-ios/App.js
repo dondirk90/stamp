@@ -10,6 +10,7 @@ import {
 import QRCode from "react-native-qrcode-svg";
 
 export default function App() {
+  const [apiBase, setApiBase] = useState("http://127.0.0.1:3000");
   const [token, setToken] = useState("");
   const [ttl, setTtl] = useState("300");
   const [qrPayload, setQrPayload] = useState(null);
@@ -21,7 +22,16 @@ export default function App() {
         alert("Please paste your session token (Bearer token) first.");
         return;
       }
-      const res = await fetch("http://127.0.0.1:3000/qr/issue", {
+      const base = String(apiBase || "")
+        .trim()
+        .replace(/\/+$/, "");
+      if (!base || !/^https?:\/\//i.test(base)) {
+        alert(
+          "Please enter a valid API base URL, e.g. http://192.168.0.10:3000",
+        );
+        return;
+      }
+      const res = await fetch(`${base}/qr/issue`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -39,6 +49,14 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Cafe QR Issuer</Text>
+      <TextInput
+        style={styles.input}
+        value={apiBase}
+        onChangeText={setApiBase}
+        placeholder="API base (e.g. http://192.168.0.10:3000)"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
       <View style={styles.row}>
         <TextInput
           style={styles.input}

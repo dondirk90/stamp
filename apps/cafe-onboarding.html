@@ -9,6 +9,8 @@
     <title>Café Registrierung - Stampcard</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      /* Inverted cafe theme is provided by `theme.css` via `.theme-invert`. */
+
       * {
         margin: 0;
         padding: 0;
@@ -17,6 +19,7 @@
       body {
         font-family: var(--font-sans);
         background: var(--bg);
+        color: var(--text);
         min-height: 100vh;
         display: flex;
         justify-content: center;
@@ -26,11 +29,15 @@
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
       }
+
+      body::before {
+        content: none;
+      }
       .container {
-        background: var(--surface);
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-md);
+        background: transparent;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
         padding: calc(var(--space-6) + var(--space-2));
         max-width: 600px;
         width: 100%;
@@ -58,11 +65,13 @@
         gap: 10px;
       }
       .step-indicator {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--surface-muted);
-        border: 1px solid var(--border);
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        padding: 6px 10px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -71,15 +80,15 @@
         transition: all 0.3s ease;
       }
       .step-indicator.active {
-        background: var(--brand);
-        color: #fff;
-        transform: scale(1.1);
-        border-color: transparent;
+        background: transparent;
+        color: var(--brand);
+        transform: none;
+        border-bottom: 2px solid var(--brand);
       }
       .step-indicator.completed {
-        background: var(--success);
-        color: #fff;
-        border-color: transparent;
+        background: transparent;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
       }
       .step-line {
         width: 60px;
@@ -128,12 +137,13 @@
       select {
         width: 100%;
         padding: 12px 15px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         font-size: 1rem;
         transition: all 0.3s ease;
         font-family: inherit;
-        background: var(--surface);
+        background: transparent;
         color: var(--text);
         min-height: 44px;
       }
@@ -165,19 +175,20 @@
       .radio-option label {
         display: block;
         padding: 15px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
         margin-bottom: 0;
-        background: var(--surface);
+        background: transparent;
         min-height: 44px;
         touch-action: manipulation;
       }
       .radio-option input[type="radio"]:checked + label {
-        border-color: var(--brand);
-        background: var(--brand-50);
+        border-bottom-color: var(--brand);
+        background: transparent;
         color: var(--brand);
         font-weight: 600;
       }
@@ -238,7 +249,7 @@
         flex: 1;
         padding: 15px;
         border: none;
-        border-radius: 12px;
+        border-radius: 0;
         font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
@@ -248,17 +259,18 @@
       }
       .btn-primary {
         background: var(--brand);
-        color: #fff;
-        box-shadow: var(--shadow-sm);
+        color: var(--on-brand, #fff);
+        box-shadow: none;
       }
       .btn-primary:hover {
-        transform: translateY(-2px);
+        transform: none;
         background: var(--brand-700);
       }
       .btn-secondary {
-        background: var(--surface-muted);
+        background: transparent;
         color: var(--text);
-        border: 1px solid var(--border);
+        border: none;
+        border-bottom: 1px solid var(--border);
       }
       .btn-secondary:hover {
         filter: brightness(0.98);
@@ -278,9 +290,10 @@
         color: #fff;
       }
       .credentials-box {
-        background: var(--surface-muted);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        border-top: 1px solid var(--border);
         padding: 20px;
         margin: 20px 0;
         font-family: var(--font-mono);
@@ -295,17 +308,19 @@
         margin-bottom: 5px;
       }
       .credential-value {
-        background: var(--surface);
-        padding: 10px;
-        border-radius: 5px;
+        background: transparent;
+        padding: 10px 0;
+        border-radius: 0;
         word-break: break-all;
         font-size: 0.9rem;
-        border: 1px solid var(--border);
+        border: none;
+        border-bottom: 1px solid var(--border);
       }
       .warning-box {
-        background: var(--surface-muted);
-        border: 1px solid var(--brand);
-        border-radius: var(--radius-sm);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        border-top: 1px solid var(--border);
         padding: 15px;
         margin: 20px 0;
         color: var(--text);
@@ -320,7 +335,7 @@
         background: var(--danger-bg);
         color: var(--danger);
         padding: 12px;
-        border-radius: 8px;
+        border-radius: 0;
         margin-bottom: 15px;
         display: none;
       }
@@ -368,7 +383,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="theme-invert">
     <div class="container">
       <h1>☕ Café Registrierung</h1>
       <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
@@ -444,6 +459,141 @@
             >
               Anmelden →
             </button>
+          </div>
+
+          <div style="margin-top: 10px">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="toggleCafeForgotPassword(true)"
+              style="width: 100%"
+            >
+              Passwort vergessen?
+            </button>
+          </div>
+
+          <div
+            id="cafeForgotBox"
+            class="warning-box"
+            style="display: none; margin-top: 12px"
+          >
+            <strong>Passwort zurücksetzen</strong>
+            <div style="color: var(--text-muted); font-size: 0.95rem">
+              Gib deine E-Mail ein. Wenn das Konto existiert, senden wir einen
+              Reset-Link.
+            </div>
+
+            <div class="form-group" style="margin-top: 12px">
+              <label for="cafeResetEmail">E-Mail *</label>
+              <input
+                type="email"
+                id="cafeResetEmail"
+                placeholder="cafe@example.com"
+                autocomplete="username"
+              />
+            </div>
+
+            <div class="button-group">
+              <button
+                class="btn btn-primary"
+                type="button"
+                onclick="requestCafePasswordReset()"
+              >
+                Reset-Link anfordern
+              </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                onclick="toggleCafeForgotPassword(false)"
+              >
+                Abbrechen
+              </button>
+            </div>
+
+            <div
+              id="cafeResetMsg"
+              class="warning-box"
+              style="display: none; margin-top: 10px"
+            ></div>
+
+            <div
+              id="cafeDevResetBox"
+              class="credential-box"
+              style="display: none; margin-top: 10px"
+            >
+              <div class="credential-label">Dev Reset-Link</div>
+              <div class="credential-value" id="cafeDevResetUrl">—</div>
+              <div
+                id="cafeDevResetMore"
+                style="display: none; margin-top: 10px"
+              ></div>
+              <div style="margin-top: 10px">
+                <a
+                  class="btn btn-secondary"
+                  id="cafeDevResetOpen"
+                  href="#"
+                  target="_self"
+                  >Reset-Link öffnen</a
+                >
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="cafeResetPanel"
+            class="warning-box"
+            style="display: none; margin-top: 12px"
+          >
+            <strong>Neues Passwort setzen</strong>
+            <div style="color: var(--text-muted); font-size: 0.95rem">
+              Bitte ein neues Passwort setzen (mind. 8 Zeichen).
+            </div>
+
+            <div
+              id="cafeResetPreview"
+              style="
+                display: none;
+                margin-top: 10px;
+                color: var(--text-muted);
+                font-size: 0.95rem;
+              "
+            ></div>
+
+            <div class="form-group" style="margin-top: 12px">
+              <label for="cafeResetNewPw">Neues Passwort *</label>
+              <input
+                type="password"
+                id="cafeResetNewPw"
+                placeholder="Neues Passwort"
+                autocomplete="new-password"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="cafeResetNewPw2">Passwort bestätigen *</label>
+              <input
+                type="password"
+                id="cafeResetNewPw2"
+                placeholder="Passwort wiederholen"
+                autocomplete="new-password"
+              />
+            </div>
+
+            <div class="button-group">
+              <button
+                class="btn btn-primary"
+                type="button"
+                onclick="submitCafeResetPassword()"
+              >
+                Passwort setzen
+              </button>
+            </div>
+
+            <div
+              id="cafeResetPwMsg"
+              class="warning-box"
+              style="display: none; margin-top: 10px"
+            ></div>
           </div>
         </div>
 
@@ -682,7 +832,9 @@
       const apiBase =
         location.protocol === "file:"
           ? "http://127.0.0.1:3000"
-          : `${location.origin}/api`;
+          : location.port === "3000"
+            ? location.origin
+            : `${location.origin}/api`;
       let currentStep = 1;
       let currentMode = "register";
 
@@ -758,6 +910,210 @@
           document.getElementById("step1").style.display = "block";
           showError(e && e.message ? e.message : "Ein Fehler ist aufgetreten");
         }
+      }
+
+      function getCafeResetTokenFromUrl() {
+        try {
+          const u = new URL(location.href);
+          return u.searchParams.get("resetToken") || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function showCafeResetNotice(targetId, message) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.style.display = "block";
+        el.textContent = String(message || "");
+      }
+
+      function hideCafeResetNotice(targetId) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        el.style.display = "none";
+        el.textContent = "";
+      }
+
+      function toggleCafeForgotPassword(show) {
+        const box = document.getElementById("cafeForgotBox");
+        if (box) box.style.display = show ? "block" : "none";
+        hideCafeResetNotice("cafeResetMsg");
+        const devBox = document.getElementById("cafeDevResetBox");
+        if (devBox) devBox.style.display = "none";
+
+        // Prefill email from login form
+        if (show) {
+          try {
+            const loginEmail = document.getElementById("loginEmail");
+            const resetEmail = document.getElementById("cafeResetEmail");
+            if (resetEmail && loginEmail && loginEmail.value) {
+              resetEmail.value = String(loginEmail.value || "");
+            }
+          } catch (e) {}
+        }
+      }
+
+      async function requestCafePasswordReset() {
+        hideCafeResetNotice("cafeResetMsg");
+        const devBox = document.getElementById("cafeDevResetBox");
+        if (devBox) devBox.style.display = "none";
+
+        const email = String(
+          (document.getElementById("cafeResetEmail") || {}).value || "",
+        ).trim();
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showCafeResetNotice(
+            "cafeResetMsg",
+            "Bitte eine gültige E-Mail eingeben.",
+          );
+          return;
+        }
+
+        try {
+          const resp = await fetch(`${apiBase}/cafes/forgot-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await resp.json().catch(() => ({}));
+
+          showCafeResetNotice(
+            "cafeResetMsg",
+            "Wenn die Adresse existiert, wurde ein Reset-Link versendet.",
+          );
+
+          if (data && data.devResetUrl) {
+            const url = String(data.devResetUrl);
+            const devUrl = document.getElementById("cafeDevResetUrl");
+            const devOpen = document.getElementById("cafeDevResetOpen");
+            const more = document.getElementById("cafeDevResetMore");
+            if (devUrl) devUrl.textContent = url;
+            if (devOpen) devOpen.href = url;
+            if (devBox) devBox.style.display = "block";
+
+            if (more) {
+              more.style.display = "none";
+              more.innerHTML = "";
+            }
+
+            if (
+              more &&
+              data &&
+              Array.isArray(data.devResetLinks) &&
+              data.devResetLinks.length > 1
+            ) {
+              const items = data.devResetLinks
+                .map((l) => {
+                  const label =
+                    l && (l.label || l.name)
+                      ? String(l.label || l.name)
+                      : "Café";
+                  const href = l && l.url ? String(l.url) : "#";
+                  return `<div style="margin-top: 8px;"><a href="${href}" target="_self" style="color: var(--brand); font-weight: 900; text-decoration: none;">${label}</a></div>`;
+                })
+                .join("");
+
+              more.innerHTML =
+                `<div style="font-weight: 900; margin-bottom: 4px;">Mehrere Konten gefunden:</div>` +
+                items;
+              more.style.display = "block";
+            }
+          }
+        } catch (e) {
+          showCafeResetNotice(
+            "cafeResetMsg",
+            "Fehler beim Anfordern des Reset-Links.",
+          );
+        }
+      }
+
+      async function submitCafeResetPassword() {
+        hideCafeResetNotice("cafeResetPwMsg");
+
+        const token = getCafeResetTokenFromUrl();
+        if (!token) {
+          showCafeResetNotice("cafeResetPwMsg", "Reset-Token fehlt.");
+          return;
+        }
+
+        const pw1 = String(
+          (document.getElementById("cafeResetNewPw") || {}).value || "",
+        );
+        const pw2 = String(
+          (document.getElementById("cafeResetNewPw2") || {}).value || "",
+        );
+
+        if (!pw1 || pw1.length < 8) {
+          showCafeResetNotice(
+            "cafeResetPwMsg",
+            "Passwort muss mindestens 8 Zeichen haben.",
+          );
+          return;
+        }
+        if (pw1 !== pw2) {
+          showCafeResetNotice(
+            "cafeResetPwMsg",
+            "Passwörter stimmen nicht überein.",
+          );
+          return;
+        }
+
+        try {
+          const resp = await fetch(`${apiBase}/cafes/reset-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, newPassword: pw1 }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.ok) {
+            throw new Error(data.error || "invalid_or_expired");
+          }
+
+          showCafeResetNotice(
+            "cafeResetPwMsg",
+            "Passwort wurde gesetzt. Du kannst dich jetzt einloggen.",
+          );
+
+          try {
+            const u = new URL(location.href);
+            u.searchParams.delete("resetToken");
+            history.replaceState(null, "", u.toString());
+          } catch (e2) {}
+        } catch (e) {
+          showCafeResetNotice(
+            "cafeResetPwMsg",
+            "Reset-Link ist ungültig oder abgelaufen.",
+          );
+        }
+      }
+
+      async function loadCafeResetPreview() {
+        try {
+          const token = getCafeResetTokenFromUrl();
+          const el = document.getElementById("cafeResetPreview");
+          if (!token || !el) return;
+
+          const resp = await fetch(`${apiBase}/cafes/reset-password/preview`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.ok) return;
+
+          const cafe = data.cafe || null;
+          const parts = [];
+          if (cafe && cafe.name) parts.push(String(cafe.name));
+          if (cafe && cafe.locationAddress)
+            parts.push(String(cafe.locationAddress));
+          if (!parts.length && cafe && cafe.address)
+            parts.push(String(cafe.address));
+          if (!parts.length) return;
+
+          el.textContent = "Konto: " + parts.join(" · ");
+          el.style.display = "block";
+        } catch (e) {}
       }
 
       // Toggle product list visibility based on stamp mode
@@ -967,6 +1323,25 @@
       // Default state
       (function initMode() {
         try {
+          const resetToken = getCafeResetTokenFromUrl();
+          if (resetToken) {
+            setMode("login");
+            const rp = document.getElementById("cafeResetPanel");
+            if (rp) rp.style.display = "block";
+            // Prefill email in reset request box for convenience
+            try {
+              toggleCafeForgotPassword(false);
+            } catch (e0) {}
+
+            try {
+              loadCafeResetPreview();
+            } catch (e1) {}
+
+            // Important: do not override reset-mode with default register mode
+            // when there is no saved session.
+            return;
+          }
+
           const saved = localStorage.getItem("cafe_session");
           if (saved) {
             // If already logged in, default to login mode (quick access)
@@ -976,8 +1351,26 @@
               const info = document.createElement("div");
               info.className = "warning-box";
               info.innerHTML =
-                "<strong>Du bist bereits eingeloggt.</strong> Du kannst direkt zum Scanner wechseln.";
+                "<strong>Du bist bereits eingeloggt.</strong> Du kannst direkt zum Scanner wechseln oder dich abmelden, um ein anderes Café anzumelden." +
+                '<div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">' +
+                '<a class="btn btn-primary" href="/cafe-scanner">Zum Scanner</a>' +
+                '<button class="btn btn-secondary" type="button" id="onboardingLogoutBtn">Abmelden</button>' +
+                "</div>";
               loginBox.insertBefore(info, loginBox.firstChild);
+
+              const ob = document.getElementById("onboardingLogoutBtn");
+              if (ob) {
+                ob.addEventListener("click", function () {
+                  if (!confirm("Möchtest du dich wirklich abmelden?")) return;
+                  try {
+                    localStorage.removeItem("cafe_session");
+                    localStorage.removeItem("last_scanned_customer");
+                  } catch (e) {}
+                  try {
+                    window.location.reload();
+                  } catch (e2) {}
+                });
+              }
             }
           } else {
             setMode("register");

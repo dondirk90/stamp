@@ -1,11 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <title>Cafe QR Issuer</title>
     <style>
       body {
-        font-family: system-ui, Segoe UI, Roboto, Arial;
+        font-family:
+          system-ui,
+          Segoe UI,
+          Roboto,
+          Arial;
         margin: 20px;
       }
       label {
@@ -24,7 +28,7 @@
         margin-bottom: 12px;
       "
     >
-      <strong>📱 Smartphone Scanning:</strong>
+      <strong>Smartphone Scanning:</strong>
       <p>
         Ersetze <code>127.0.0.1</code> unten durch deine Rechner-IP (z.B.
         <code>192.168.1.100</code>). Dann öffne diese URL auf deinem Smartphone.
@@ -100,7 +104,7 @@
           const mobileLink = `${apiEl.value
             .replace(/\/$/, "")
             .replace(/:\d+$/, "")}/customer.html (or ${currentUrl} on mobile)`;
-          console.log("📱 Open on smartphone: " + mobileLink);
+          console.log("Open on smartphone: " + mobileLink);
         } catch (e) {
           payloadEl.textContent = "Error: " + e.message;
         }

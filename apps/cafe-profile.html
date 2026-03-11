@@ -17,11 +17,14 @@
 
       .topbar {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-3);
         flex-wrap: wrap;
         margin-bottom: var(--space-4);
+
+        padding: var(--space-4) 0;
+        border-bottom: none;
       }
 
       .brand {
@@ -37,7 +40,7 @@
         background: var(--brand);
         display: grid;
         place-items: center;
-        color: #fff;
+        color: var(--on-brand, #fff);
         font-weight: 900;
       }
 
@@ -52,23 +55,17 @@
       }
 
       .nav {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        flex-wrap: wrap;
-      }
-
-      .nav a {
-        text-decoration: none;
+        display: none;
       }
 
       textarea.profileInput {
         width: 100%;
         min-height: 140px;
         padding: 12px 14px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        background: var(--surface);
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        background: transparent;
         color: var(--text);
         font: inherit;
         resize: vertical;
@@ -89,9 +86,20 @@
         width: 64px;
         height: 64px;
         border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
+        border: none;
+        background: transparent;
         object-fit: contain;
+        object-position: center;
+        display: none;
+      }
+
+      .cardBgPreview {
+        width: 180px;
+        height: 114px;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        object-fit: cover;
         object-position: center;
         display: none;
       }
@@ -113,9 +121,9 @@
       }
 
       .galleryItem {
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        background: var(--surface);
+        border: none;
+        border-radius: 0;
+        background: transparent;
         overflow: hidden;
       }
 
@@ -133,6 +141,7 @@
         justify-content: space-between;
         gap: var(--space-2);
         padding: 10px;
+        border-top: 1px solid var(--border);
       }
 
       .galleryItem .meta {
@@ -145,15 +154,16 @@
 
       .galleryItem button {
         padding: 8px 10px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        border-bottom: 1px solid var(--border);
         cursor: pointer;
         font-weight: 800;
       }
     </style>
   </head>
-  <body>
+  <body class="theme-invert">
     <div class="shell">
       <div class="topbar">
         <div class="brand">
@@ -163,13 +173,30 @@
             <div class="subtitle" id="buildBadge">—</div>
           </div>
         </div>
-        <div class="nav">
-          <a class="btn secondary" href="/cafe-scanner">Scanner</a>
-          <a class="btn secondary" href="/cafe-dashboard">Dashboard</a>
-          <a class="btn" href="/cafe-profile">Profil</a>
-          <button class="btn secondary" type="button" id="logoutBtn">
+        <div class="row">
+          <button
+            class="btn secondary"
+            type="button"
+            id="logoutBtn"
+            onclick="location.href = '/cafe-logout.html'"
+          >
             Abmelden
           </button>
+        </div>
+
+        <div class="topMenu" aria-label="Navigation">
+          <a class="topMenuBtn ghost" href="/cafe-scanner">
+            <span class="ico" aria-hidden="true">S</span>
+            <span class="lbl">Scanner</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/cafe-dashboard">
+            <span class="ico" aria-hidden="true">D</span>
+            <span class="lbl">Dashboard</span>
+          </a>
+          <a class="topMenuBtn ghost active" href="/cafe-profile">
+            <span class="ico" aria-hidden="true">P</span>
+            <span class="lbl">Profil</span>
+          </a>
         </div>
       </div>
 
@@ -317,6 +344,49 @@
 
           <div>
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Karten-Hintergrund (optional)
+            </div>
+            <div class="logoRow" style="align-items: center">
+              <input
+                id="profileCardBg"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              />
+              <img
+                id="profileCardBgPreview"
+                class="cardBgPreview"
+                alt="Hintergrund Vorschau"
+              />
+              <button
+                class="btn secondary"
+                type="button"
+                id="profileCardBgClear"
+              >
+                Entfernen
+              </button>
+            </div>
+            <div class="muted" style="margin-top: 6px">
+              Wird als dezenter Hintergrund auf Vorder- und Rückseite genutzt.
+            </div>
+          </div>
+
+          <div>
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Rückseite (Text)
+            </div>
+            <textarea
+              id="profileCardBackText"
+              class="profileInput small"
+              maxlength="400"
+              placeholder="z.B. Öffnungszeiten, Hinweise oder ein kurzer Gruß"
+            ></textarea>
+            <div class="muted" style="margin-top: 6px">
+              Erscheint auf der Rückseite der Kunden-Karte (bei QR).
+            </div>
+          </div>
+
+          <div>
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Bilder (optional)
             </div>
             <input
@@ -347,12 +417,16 @@
       const DEFAULT_API_BASE =
         location.protocol === "file:"
           ? "http://127.0.0.1:3000"
-          : `${location.origin}/api`;
+          : location.port === "3000"
+            ? location.origin
+            : `${location.origin}/api`;
 
       let apiBase = DEFAULT_API_BASE;
 
       let profileState = {
         logoDataUrl: null,
+        cardBgDataUrl: null,
+        cardBackText: "",
         images: [],
         cardTheme: "paper",
       };
@@ -365,7 +439,10 @@
           });
           if (res.ok) return `${location.origin}/api`;
         } catch (e) {}
-        return location.origin;
+        // If the page is served directly from the API server, use same-origin.
+        if (location.port === "3000") return location.origin;
+        // Otherwise fall back to direct API on :3000 (useful if /api proxy isn't available).
+        return `${location.protocol}//${location.hostname || "127.0.0.1"}:3000`;
       }
 
       async function apiFetch(path, init) {
@@ -438,6 +515,8 @@
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const cardBgPreview = document.getElementById("profileCardBgPreview");
+        const cardBackEl = document.getElementById("profileCardBackText");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -478,6 +557,19 @@
             ? String(cafeInfo.logoDataUrl)
             : null;
 
+        profileState.cardBgDataUrl =
+          cafeInfo && cafeInfo.cardBackgroundDataUrl
+            ? String(cafeInfo.cardBackgroundDataUrl)
+            : null;
+        profileState.cardBackText =
+          cafeInfo && cafeInfo.cardBackText
+            ? String(cafeInfo.cardBackText)
+            : "";
+
+        if (cardBackEl) {
+          cardBackEl.value = profileState.cardBackText || "";
+        }
+
         // Keep the current selection if the API response doesn't include a theme.
         const allowedThemes = new Set([
           "paper",
@@ -515,6 +607,16 @@
         } else {
           logoPreview.removeAttribute("src");
           logoPreview.style.display = "none";
+        }
+
+        if (cardBgPreview) {
+          if (profileState.cardBgDataUrl) {
+            cardBgPreview.src = profileState.cardBgDataUrl;
+            cardBgPreview.style.display = "block";
+          } else {
+            cardBgPreview.removeAttribute("src");
+            cardBgPreview.style.display = "none";
+          }
         }
       }
 
@@ -647,6 +749,8 @@
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const cardBgInput = document.getElementById("profileCardBg");
+        const cardBackEl = document.getElementById("profileCardBackText");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -667,6 +771,24 @@
             }
             logoDataUrl = await readFileAsDataUrl(file);
           }
+
+          let cardBgDataUrl = profileState.cardBgDataUrl;
+          const bgFile =
+            cardBgInput && cardBgInput.files && cardBgInput.files[0]
+              ? cardBgInput.files[0]
+              : null;
+          if (bgFile) {
+            if (bgFile.size > 520 * 1024) {
+              throw new Error(
+                "Hintergrund zu groß (max ~520KB). Bitte kleineres Bild wählen.",
+              );
+            }
+            cardBgDataUrl = await readFileAsDataUrl(bgFile);
+          }
+
+          const cardBackText = cardBackEl
+            ? String(cardBackEl.value || "").trim()
+            : "";
 
           const about = String(aboutEl.value || "").trim();
           const redeemMessage = redeemEl
@@ -692,6 +814,8 @@
               about,
               redeemMessage,
               logoDataUrl: logoDataUrl || null,
+              cardBgDataUrl: cardBgDataUrl || null,
+              cardBackText: cardBackText || null,
               locationAddress: locationAddress || null,
               lat: lat || null,
               lng: lng || null,
@@ -703,6 +827,7 @@
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
+          if (cardBgInput) cardBgInput.value = "";
           setMsg("Gespeichert ✔️");
         } catch (e) {
           console.error("Profile save failed", e);
@@ -718,7 +843,7 @@
           localStorage.removeItem("cafe_session");
           localStorage.removeItem("last_scanned_customer");
         } catch (e) {}
-        window.location.href = "/cafe-scanner";
+        window.location.href = "/cafe-onboarding";
       }
 
       async function init() {
@@ -792,6 +917,47 @@
               } catch (e) {
                 setMsg("Logo konnte nicht geladen werden");
               }
+            });
+          }
+
+          const cardBgInput = document.getElementById("profileCardBg");
+          const cardBgPreview = document.getElementById("profileCardBgPreview");
+          if (cardBgInput && cardBgPreview) {
+            cardBgInput.addEventListener("change", async () => {
+              try {
+                const file =
+                  cardBgInput.files && cardBgInput.files[0]
+                    ? cardBgInput.files[0]
+                    : null;
+                if (!file) return;
+                if (file.size > 520 * 1024) {
+                  setMsg("Hintergrund zu groß (max ~520KB).");
+                  cardBgInput.value = "";
+                  return;
+                }
+                const dataUrl = await readFileAsDataUrl(file);
+                profileState.cardBgDataUrl = dataUrl;
+                cardBgPreview.src = dataUrl;
+                cardBgPreview.style.display = "block";
+                setMsg("Hintergrund ausgewählt (noch nicht gespeichert)");
+              } catch (e) {
+                setMsg("Hintergrund konnte nicht geladen werden");
+              }
+            });
+          }
+
+          const cardBgClear = document.getElementById("profileCardBgClear");
+          if (cardBgClear) {
+            cardBgClear.addEventListener("click", () => {
+              profileState.cardBgDataUrl = null;
+              const prev = document.getElementById("profileCardBgPreview");
+              if (prev) {
+                prev.removeAttribute("src");
+                prev.style.display = "none";
+              }
+              const inp = document.getElementById("profileCardBg");
+              if (inp) inp.value = "";
+              setMsg("Hintergrund entfernt (noch nicht gespeichert)");
             });
           }
 

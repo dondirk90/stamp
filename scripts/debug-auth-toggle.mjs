@@ -1,7 +1,7 @@
 import { chromium, devices } from "playwright";
 
 const base = process.argv[2] || "http://127.0.0.1:8080";
-const url = `${base}/customer-qr`;
+const url = `${base}/customer-wallet`;
 
 async function run(name, contextOptions) {
   const browser = await chromium.launch();
@@ -29,7 +29,7 @@ async function run(name, contextOptions) {
   page.on("response", (res) => {
     try {
       const u = res.url();
-      if (/\/customer-qr\.js(\?|$)/.test(u)) {
+      if (/\/customer-qr-modern\.js(\?|$)/.test(u)) {
         scriptResponses.push({
           url: u,
           status: res.status(),

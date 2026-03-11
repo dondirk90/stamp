@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Logout</title>
+    <meta http-equiv="cache-control" content="no-store" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <style>
+      body {
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        margin: 18px;
+        line-height: 1.4;
+      }
+      .box {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 14px;
+        margin: 12px 0;
+      }
+      .muted {
+        color: #555;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div><strong>Abmelden…</strong></div>
+      <div class="muted">
+        Session wird entfernt und du wirst weitergeleitet.
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        try {
+          localStorage.removeItem("cafe_session");
+          localStorage.removeItem("last_scanned_customer");
+        } catch (e) {}
+
+        try {
+          // Give the browser a tick to persist storage changes.
+          setTimeout(function () {
+            try {
+              window.location.replace("/cafe-onboarding");
+            } catch (e2) {
+              window.location.href = "/cafe-onboarding";
+            }
+          }, 50);
+        } catch (e3) {
+          window.location.href = "/cafe-onboarding";
+        }
+      })();
+    </script>
+  </body>
+</html>

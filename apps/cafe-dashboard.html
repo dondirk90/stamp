@@ -17,11 +17,14 @@
 
       .topbar {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-3);
         flex-wrap: wrap;
         margin-bottom: var(--space-4);
+
+        padding: var(--space-4) 0;
+        border-bottom: none;
       }
 
       .brand {
@@ -37,7 +40,7 @@
         background: var(--brand);
         display: grid;
         place-items: center;
-        color: #fff;
+        color: var(--on-brand, #fff);
         font-weight: 900;
       }
 
@@ -52,10 +55,7 @@
       }
 
       .nav {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        flex-wrap: wrap;
+        display: none;
       }
 
       .sourceRow {
@@ -72,12 +72,8 @@
       }
 
       .badge.warn {
-        background: #fff7ed;
-        color: #9a3412;
-      }
-
-      .nav a {
-        text-decoration: none;
+        background: transparent;
+        color: var(--text-muted);
       }
 
       .stats-grid {
@@ -141,17 +137,20 @@
       .badge {
         display: inline-block;
         padding: 4px 12px;
-        border-radius: 12px;
+        border-radius: 0;
+        border: 1px solid var(--border);
         font-size: 12px;
         font-weight: 600;
+        background: transparent;
+        color: var(--text);
       }
       .badge-success {
-        background: var(--success-bg);
-        color: var(--success);
+        background: transparent;
+        color: var(--text);
       }
       .badge-redemption {
-        background: #fff7ed;
-        color: #9a3412;
+        background: transparent;
+        color: var(--text);
       }
 
       .muted {
@@ -175,7 +174,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="theme-invert">
     <div class="shell">
       <div class="topbar">
         <div class="brand">
@@ -189,13 +188,29 @@
             </div>
           </div>
         </div>
-        <div class="nav">
-          <a class="btn secondary" href="/cafe-scanner">Scanner</a>
-          <a class="btn secondary" href="/cafe-profile">Profil</a>
-          <a class="btn" href="/cafe-dashboard">Dashboard</a>
-          <button class="btn secondary" type="button" onclick="logout()">
+        <div class="row">
+          <button
+            class="btn secondary"
+            type="button"
+            onclick="location.href = '/cafe-logout.html'"
+          >
             Abmelden
           </button>
+        </div>
+
+        <div class="topMenu" aria-label="Navigation">
+          <a class="topMenuBtn ghost" href="/cafe-scanner">
+            <span class="ico" aria-hidden="true">S</span>
+            <span class="lbl">Scanner</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/cafe-profile">
+            <span class="ico" aria-hidden="true">P</span>
+            <span class="lbl">Profil</span>
+          </a>
+          <a class="topMenuBtn ghost active" href="/cafe-dashboard">
+            <span class="ico" aria-hidden="true">D</span>
+            <span class="lbl">Dashboard</span>
+          </a>
         </div>
       </div>
 
@@ -279,7 +294,9 @@
       const DEFAULT_API_BASE =
         location.protocol === "file:"
           ? "http://127.0.0.1:3000"
-          : `${location.origin}/api`;
+          : location.port === "3000"
+            ? location.origin
+            : `${location.origin}/api`;
 
       let apiBase = DEFAULT_API_BASE;
 
@@ -291,7 +308,8 @@
           });
           if (res.ok) return `${location.origin}/api`;
         } catch (e) {}
-        return location.origin;
+        if (location.port === "3000") return location.origin;
+        return `${location.protocol}//${location.hostname || "127.0.0.1"}:3000`;
       }
 
       async function apiFetch(path, init) {
@@ -471,8 +489,8 @@
             ).toLowerCase();
             const isRedeem = typ === "redeem" || delta < 0;
             const badge = isRedeem
-              ? '<span class="badge badge-redemption">🎁 Redeem</span>'
-              : '<span class="badge badge-success">☕ Stamp</span>';
+              ? '<span class="badge badge-redemption">Einlösen</span>'
+              : '<span class="badge badge-success">Stempel</span>';
 
             const tx = (e && (e.txhash || e.txHash || e.tx_id || e.tx)) || "";
             const txCell = tx
@@ -497,7 +515,7 @@
       function logout() {
         if (confirm("Möchtest du dich wirklich abmelden?")) {
           localStorage.removeItem("cafe_session");
-          window.location.href = "/cafe-scanner";
+          window.location.href = "/cafe-onboarding";
         }
       }
 
