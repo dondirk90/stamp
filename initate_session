@@ -36,6 +36,10 @@ Starte den Apps-Server (statische Browser-Apps)
 
 node apps/server.cjs
 
+Hinweis (für später): Staging/Production Deploy (Single VPS, Docker Compose + GitHub Actions) ist vorbereitet unter:
+
+- `infra/docker/DEPLOY.md`
+
 Dieser startet einen kleinen Static-Server auf Port 8080 und zeigt beim Start direkt die wichtigsten URLs in der Console.
 
 UI / Design automatisch prüfen (Screenshots + harte Checks)
