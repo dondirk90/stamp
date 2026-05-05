@@ -385,7 +385,7 @@
   </head>
   <body class="theme-invert">
     <div class="container">
-      <h1>☕ Café Registrierung</h1>
+      <h1>Café Registrierung</h1>
       <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
 
       <div class="button-group" style="margin-top: 0; margin-bottom: 20px">
@@ -706,7 +706,6 @@
                 checked
               />
               <label for="modeGeneral">
-                <div style="font-size: 1.3rem; margin-bottom: 5px">📋</div>
                 Allgemein<br />
                 <small style="color: var(--text-muted)">Für alle Käufe</small>
               </label>
@@ -719,7 +718,6 @@
                 value="specific"
               />
               <label for="modeSpecific">
-                <div style="font-size: 1.3rem; margin-bottom: 5px">☕</div>
                 Spezifisch<br />
                 <small style="color: var(--text-muted)"
                   >Für bestimmte Produkte</small
@@ -828,6 +826,7 @@
       </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       const apiBase =
         location.protocol === "file:"
@@ -892,7 +891,18 @@
 
           const data = await loginRes.json().catch(() => ({}));
           if (!loginRes.ok || !data.ok) {
-            throw new Error(data.error || "Login fehlgeschlagen");
+            const err = new Error("api_error");
+            err.status = loginRes.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
           }
 
           const cafeSession = {
@@ -908,7 +918,9 @@
         } catch (e) {
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step1").style.display = "block";
-          showError(e && e.message ? e.message : "Ein Fehler ist aufgetreten");
+          showError(
+            stampUI.userSafeErrorMessage(e, "Anmelden fehlgeschlagen."),
+          );
         }
       }
 
@@ -1286,7 +1298,18 @@
           const data = await response.json();
 
           if (!response.ok || !data.ok) {
-            throw new Error(data.error || "Registrierung fehlgeschlagen");
+            const err = new Error("api_error");
+            err.status = response.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
           }
 
           // Store session (bearer token)
@@ -1316,7 +1339,12 @@
         } catch (error) {
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step2").style.display = "block";
-          showError(error.message || "Ein Fehler ist aufgetreten");
+          showError(
+            stampUI.userSafeErrorMessage(
+              error,
+              "Registrierung fehlgeschlagen. Bitte erneut versuchen.",
+            ),
+          );
         }
       }
 

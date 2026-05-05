@@ -207,7 +207,8 @@ button.secondary,
 button.ghost {
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--border);
+  border: none;
+  border-bottom: 1px solid var(--border);
 }
 
 /* Modern utility + layout helpers */

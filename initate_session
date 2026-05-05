@@ -36,6 +36,60 @@ Starte den Apps-Server (statische Browser-Apps)
 
 node apps/server.cjs
 
+Mobile (Expo Go) + Server (alles in einem)
+
+Startet in der richtigen Reihenfolge: API → Apps → Expo(Customer) → Expo(Café)
+und setzt automatisch die wichtigen Env Vars (WebBaseUrl + Packager Hostname):
+
+```powershell
+cd D:\stamp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-mobile-dev.ps1
+```
+
+Falls die IP falsch erkannt wird, gib sie explizit an:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-mobile-dev.ps1 -LanIp 192.168.0.176
+```
+
+Hinweis (iPhone Personal Hotspot):
+
+- Wenn der PC mit dem iPhone-Hotspot verbunden ist, hat der PC oft eine IP wie `172.20.10.12`.
+- Das ist die IP, die Expo Go und die WebView Base URL verwenden müssen.
+- Nicht verwechseln mit WSL/vEthernet IPs (z.B. `172.29.x.x`) – die sind am iPhone nicht erreichbar.
+
+Beispiel Hotspot-Start:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-mobile-dev.ps1 -LanIp 172.20.10.12
+```
+
+Dann in Expo Go öffnen (manuell, falls QR zickt):
+
+- Customer: `exp://172.20.10.12:19000`
+- Café: `exp://172.20.10.12:19001`
+
+Web (für schnellen Reachability-Test):
+
+- `http://172.20.10.12:8080/__diag`
+
+Wenn `expo start` mit `TypeError: fetch failed` abbricht:
+
+- Das kommt meist von Expo CLI Dependency-Validation (Remote-Versionen werden abgefragt).
+- Fix: Dependency-Validation deaktivieren:
+
+```powershell
+$env:EXPO_NO_DEPENDENCY_VALIDATION='1'
+```
+
+`start-mobile-dev.ps1` setzt das bereits automatisch.
+
+Stop (killt auch Expo-Ports 19000–19002):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-all.ps1
+```
+
 Hinweis (für später): Staging/Production Deploy (Single VPS, Docker Compose + GitHub Actions) ist vorbereitet unter:
 
 - `infra/docker/DEPLOY.md`
@@ -67,7 +121,7 @@ pnpm run share:ios -- --no-tunnel
 
 Schnelltest (entscheidet sofort ob LAN grundsätzlich geht):
 
-- Öffne am iPhone zuerst: `http://<DEINE_LAN_IP>:8080/__ping`
+- Öffne am iPhone zuerst: `http://<DEINE_LAN_IP>:8080/__diag` (oder `.../__ping`)
   - Wenn das NICHT lädt → das ist kein App-Problem, sondern Netzwerk/Firewall/Router (Client/AP-Isolation, Guest-WLAN, VLAN).
   - Dann ist der Tunnel die nachhaltige Lösung.
 
@@ -116,11 +170,18 @@ Nachhaltige Alternative ohne Router-Änderungen:
 
 Saubere LAN-Lösung (einmalig, als Admin)
 
-Wenn du Admin bist, richte die Firewall-Regeln einmal sauber ein (Ports 8080 + 3000, Profil Private):
+Wenn du Admin bist, richte die Firewall-Regeln einmal sauber ein (Ports 8080 + 3000 + Expo 19000–19002, Profil Private):
 
 ```powershell
 cd D:\stamp
 pnpm run firewall:setup
+```
+
+Wenn dein Windows-Netzwerk manchmal auf "Öffentlich" steht, nimm temporär "Any":
+
+```powershell
+cd D:\stamp
+pnpm run firewall:setup -- -Profile Any
 ```
 
 Danach ist der Zugriff im selben WLAN stabil über die LAN-URL aus `pnpm run share:ios -- --no-tunnel`.

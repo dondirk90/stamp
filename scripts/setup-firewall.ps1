@@ -1,6 +1,7 @@
 param(
   [int]$AppsPort = 8080,
   [int]$ApiPort = 3000,
+  [int[]]$ExpoPorts = @(19000,19001,19002),
   [ValidateSet('Private','Domain','Public','Any')][string]$Profile = 'Private'
 )
 
@@ -55,9 +56,17 @@ Write-Host 'Setting up Windows Firewall rules (inbound) ...'
 Ensure-Rule -Name "Stamp Apps ($AppsPort)" -Port $AppsPort -Profile $Profile
 Ensure-Rule -Name "Stamp API ($ApiPort)" -Port $ApiPort -Profile $Profile
 
+if ($ExpoPorts -and $ExpoPorts.Count -gt 0) {
+  foreach ($p in $ExpoPorts) {
+    if ($p -gt 0) {
+      Ensure-Rule -Name "Stamp Expo ($p)" -Port $p -Profile $Profile
+    }
+  }
+}
+
 Write-Host ''
 Write-Host 'Rules created/updated:'
-Get-NetFirewallRule -DisplayName "Stamp Apps ($AppsPort)","Stamp API ($ApiPort)" |
+Get-NetFirewallRule -DisplayName "Stamp Apps ($AppsPort)","Stamp API ($ApiPort)","Stamp Expo*" |
   Get-NetFirewallPortFilter |
   Select-Object Name,Protocol,LocalPort |
   Format-Table -AutoSize
@@ -66,6 +75,14 @@ Write-Host ''
 Write-Host 'Listening state (for sanity):'
 Write-Host (Show-Listening -Port $AppsPort)
 Write-Host (Show-Listening -Port $ApiPort)
+
+if ($ExpoPorts -and $ExpoPorts.Count -gt 0) {
+  foreach ($p in $ExpoPorts) {
+    if ($p -gt 0) {
+      Write-Host (Show-Listening -Port $p)
+    }
+  }
+}
 
 Write-Host ''
 Write-Host 'Done. If a phone still cannot reach the PC:'

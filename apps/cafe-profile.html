@@ -7,7 +7,10 @@
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
       }
 
       .shell {
@@ -411,6 +414,7 @@
       </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       let cafe = null;
 
@@ -452,7 +456,10 @@
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+          const err = new Error("api_error");
+          err.status = res.status;
+          err.responseText = text || "";
+          throw err;
         }
         return res.json();
       }
@@ -662,9 +669,14 @@
                 },
               );
               await refreshGallery();
-              setMsg("Bild entfernt ✔️");
+              setMsg("Bild entfernt");
             } catch (e) {
-              setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+              setMsg(
+                stampUI.userSafeErrorMessage(
+                  e,
+                  "Bild konnte nicht entfernt werden.",
+                ),
+              );
             }
           });
 
@@ -734,10 +746,15 @@
           });
 
           await refreshGallery();
-          setMsg("Bild aktualisiert ✔️");
+          setMsg("Bild aktualisiert");
         } catch (e) {
           console.error("Cover upload failed", e);
-          setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+          setMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Bild konnte nicht hochgeladen werden.",
+            ),
+          );
         }
       }
 
@@ -828,10 +845,15 @@
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
           if (cardBgInput) cardBgInput.value = "";
-          setMsg("Gespeichert ✔️");
+          setMsg("Gespeichert");
         } catch (e) {
           console.error("Profile save failed", e);
-          setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+          setMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+            ),
+          );
         } finally {
           btn.disabled = false;
         }
@@ -976,9 +998,11 @@
           document.getElementById("profileCard").style.display = "block";
         } catch (e) {
           console.error(e);
-          document.getElementById("loading").textContent = `Fehler: ${
-            e && e.message ? e.message : e
-          }`;
+          document.getElementById("loading").textContent =
+            stampUI.userSafeErrorMessage(
+              e,
+              "Profil konnte nicht geladen werden.",
+            );
         }
       }
 

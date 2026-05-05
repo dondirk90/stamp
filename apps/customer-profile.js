@@ -77,9 +77,21 @@
     const res = await fetch(`${apiBase}${path}`, init);
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(text || `HTTP ${res.status}`);
+      const err = new Error("api_error");
+      err.status = res.status;
+      err.responseText = text || "";
+      throw err;
     }
     return res.json();
+  }
+
+  function safeUiErrorMessage(err, fallback) {
+    try {
+      if (window.stampUI && stampUI.userSafeErrorMessage) {
+        return stampUI.userSafeErrorMessage(err, fallback);
+      }
+    } catch (e) {}
+    return String(fallback || "Ein Fehler ist aufgetreten.");
   }
 
   function getResetTokenFromUrl() {
@@ -162,15 +174,24 @@
       return;
     }
 
-    await apiFetch("/customers/change-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: session.email,
-        currentPassword,
-        newPassword,
-      }),
-    });
+    try {
+      await apiFetch("/customers/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          currentPassword,
+          newPassword,
+        }),
+      });
+    } catch (e) {
+      showNotice(
+        el.changePwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Passwort konnte nicht geändert werden."),
+      );
+      return;
+    }
 
     if (el.currentPassword) el.currentPassword.value = "";
     if (el.newPassword) el.newPassword.value = "";
@@ -193,11 +214,21 @@
       return;
     }
 
-    const resp = await apiFetch("/customers/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    let resp = null;
+    try {
+      resp = await apiFetch("/customers/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    } catch (e) {
+      showNotice(
+        el.forgotPwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Reset-Link konnte nicht gesendet werden."),
+      );
+      return;
+    }
 
     showNotice(
       el.forgotPwMsg,
@@ -231,11 +262,20 @@
       return;
     }
 
-    await apiFetch("/customers/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword: pw1 }),
-    });
+    try {
+      await apiFetch("/customers/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword: pw1 }),
+      });
+    } catch (e) {
+      showNotice(
+        el.resetPwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Passwort konnte nicht gesetzt werden."),
+      );
+      return;
+    }
 
     if (el.resetNewPw) el.resetNewPw.value = "";
     if (el.resetNewPw2) el.resetNewPw2.value = "";
@@ -254,6 +294,38 @@
     } catch {}
   }
 
+  async function previewResetToken(token) {
+    if (!token) return;
+    hideNotice(el.resetPwMsg);
+    try {
+      const resp = await apiFetch("/customers/reset-password/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      const who =
+        (resp && (resp.username || resp.email)
+          ? String(resp.username || resp.email)
+          : "dieses Konto");
+      showNotice(
+        el.resetPwMsg,
+        "info",
+        `Reset-Link gueltig fuer ${who}. Du kannst jetzt ein neues Passwort setzen.`,
+      );
+    } catch (e) {
+      showNotice(
+        el.resetPwMsg,
+        "danger",
+        safeUiErrorMessage(
+          e,
+          "Reset-Link konnte nicht geprueft werden. Bitte neuen Link anfordern.",
+        ),
+      );
+      if (el.resetPwBtn) el.resetPwBtn.disabled = true;
+    }
+  }
+
   function boot() {
     setBuildBadge();
 
@@ -263,6 +335,7 @@
     const resetToken = getResetTokenFromUrl();
     if (resetToken && el.resetPanel) {
       el.resetPanel.style.display = "block";
+      void previewResetToken(resetToken);
     }
 
     if (el.logoutBtn) {

@@ -44,7 +44,7 @@
         width: 44px;
         height: 44px;
         border-radius: 999px;
-        border: 1px solid var(--border);
+        border: none;
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -109,7 +109,7 @@
         width: 110px;
         height: 76px;
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         background: var(--surface);
         object-fit: cover;
         flex: 0 0 auto;
@@ -190,6 +190,7 @@
       </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       const FAVORITES_KEY = "customer_favorites_v1";
 
@@ -270,11 +271,11 @@
           data = text;
         }
         if (!res.ok) {
-          const msg =
-            data && typeof data === "object"
-              ? data.error || data.message
-              : String(data || "HTTP " + res.status);
-          throw new Error(msg);
+          const err = new Error("api_error");
+          err.status = res.status;
+          err.responseText =
+            typeof text === "string" ? text : String(text || "");
+          throw err;
         }
         return data;
       }
@@ -422,7 +423,12 @@
             });
           }
         } catch (e) {
-          setError(`Fehler: ${e && e.message ? e.message : e}`);
+          setError(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Café-Seite konnte nicht geladen werden.",
+            ),
+          );
         }
       })();
     </script>

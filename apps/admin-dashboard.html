@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>☕ Café Übersicht (Admin)</title>
+    <title>Café Übersicht (Admin)</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       :root {
@@ -257,7 +257,7 @@
     <div class="container">
       <div class="header">
         <div>
-          <h1>☕ Café Übersicht</h1>
+          <h1>Café Übersicht</h1>
           <p>Administrative Sicht auf Stempel- und Einlöseaktivitäten</p>
         </div>
         <div class="action-buttons">
@@ -341,6 +341,7 @@
       </section>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       const STORAGE_KEY = "stamp_admin_dashboard_v1";
       const DEFAULT_API_BASE = (() => {
@@ -477,7 +478,10 @@
 
           if (!res.ok) {
             const body = await res.text();
-            throw new Error(`API-Fehler (${res.status}): ${body}`);
+            const err = new Error("api_error");
+            err.status = res.status;
+            err.responseText = body || "";
+            throw err;
           }
 
           const data = await res.json();
@@ -489,7 +493,12 @@
           renderDashboard();
           refs.dashboard.classList.remove("hidden");
         } catch (err) {
-          showError(err.message || String(err));
+          showError(
+            stampUI.userSafeErrorMessage(
+              err,
+              "Daten konnten nicht geladen werden.",
+            ),
+          );
           refs.dashboard.classList.add("hidden");
         } finally {
           refs.loading.classList.add("hidden");

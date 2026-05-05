@@ -203,8 +203,20 @@
       }
       .stamp-controls {
         display: flex;
+        flex-direction: column;
+        align-items: stretch;
         gap: 12px;
         margin-top: 20px;
+      }
+
+      .stamp-controls > * {
+        width: 100%;
+        flex: none;
+      }
+
+      #awardBtn {
+        width: 100%;
+        margin: 0;
       }
       .stamp-input {
         flex: 1;
@@ -219,20 +231,40 @@
         color: var(--text);
       }
 
-      .stamp-range {
+      .stamp-presets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+        gap: 8px;
         width: 100%;
-        margin: 0;
-        accent-color: var(--brand);
       }
 
-      .stamp-range-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 6px;
+      .stamp-presets button {
+        width: 100%;
+        margin-top: 0;
+        padding: 10px 12px;
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .stamp-presets button:hover {
+        background: var(--surface-muted);
+      }
+
+      .stamp-presets button.active {
+        background: var(--brand);
+        color: var(--on-brand, white);
+        border-color: transparent;
+      }
+
+      .stamp-selected {
+        margin-top: 10px;
         font-size: 13px;
         color: var(--text-muted);
-        font-weight: 700;
+        font-weight: 800;
       }
       .toast {
         position: fixed;
@@ -244,11 +276,11 @@
           360px,
           calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px))
         );
-        background: var(--surface);
+        background: var(--surface-muted);
         color: var(--text);
         padding: 12px 14px;
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         box-shadow: none;
         display: none;
         font-weight: 600;
@@ -462,10 +494,11 @@
               style="
                 display: none;
                 margin-top: 14px;
-                padding: 14px;
-                background: var(--surface-muted);
-                border: 1px solid var(--border);
-                border-radius: 12px;
+                padding: 14px 0 0;
+                background: transparent;
+                border: none;
+                border-top: 1px solid var(--border);
+                border-radius: 0;
               "
             >
               <div style="font-weight: 900; margin-bottom: 10px">
@@ -534,10 +567,11 @@
                 style="
                   display: none;
                   margin-top: 12px;
-                  padding: 12px;
-                  background: var(--surface);
-                  border: 1px solid var(--border);
-                  border-radius: 10px;
+                  padding: 12px 0 0;
+                  background: transparent;
+                  border: none;
+                  border-top: 1px solid var(--border);
+                  border-radius: 0;
                   font-size: 13px;
                   color: var(--text);
                 "
@@ -569,7 +603,7 @@
                     padding: 10px 12px;
                     background: var(--brand);
                     color: var(--on-brand, #fff);
-                    border-radius: 10px;
+                    border-radius: var(--radius-sm);
                     text-decoration: none;
                     font-weight: 800;
                   "
@@ -590,10 +624,11 @@
             <div
               style="
                 margin-top: 15px;
-                padding: 12px;
-                background: var(--surface-muted);
-                border: 1px solid var(--border);
-                border-radius: 8px;
+                padding: 12px 0 0;
+                background: transparent;
+                border: none;
+                border-top: 1px solid var(--border);
+                border-radius: 0;
                 font-size: 13px;
                 color: var(--text-muted);
               "
@@ -678,19 +713,20 @@
               </div>
 
               <div class="stamp-controls">
-                <div style="flex: 1">
-                  <input
-                    type="range"
-                    class="stamp-range"
-                    id="stampAmount"
-                    value="1"
-                    min="1"
-                    max="10"
-                    step="1"
-                  />
-                  <div class="stamp-range-meta">
-                    <span><span id="stampAmountValue">1</span> Stempel</span>
-                    <span>1–10</span>
+                <div id="stampAmountUi" style="flex: 1">
+                  <div class="stamp-presets" id="stampPresets">
+                    <button type="button" data-amount="1" class="active">
+                      1
+                    </button>
+                    <button type="button" data-amount="2">2</button>
+                    <button type="button" data-amount="3">3</button>
+                    <button type="button" data-amount="4">4</button>
+                    <button type="button" data-amount="5">5</button>
+                  </div>
+
+                  <input type="hidden" id="stampAmount" value="1" />
+                  <div class="stamp-selected">
+                    <span id="stampAmountValue">1</span> Stempel
                   </div>
                 </div>
                 <button id="awardBtn" style="margin: 0; flex: 2">
@@ -743,6 +779,8 @@
       const customerName = document.getElementById("customerName");
       const customerAddress = document.getElementById("customerAddress");
       const currentStamps = document.getElementById("currentStamps");
+      const stampAmountUi = document.getElementById("stampAmountUi");
+      const stampPresets = document.getElementById("stampPresets");
       const stampAmount = document.getElementById("stampAmount");
       const stampAmountValue = document.getElementById("stampAmountValue");
       const awardBtn = document.getElementById("awardBtn");
@@ -762,6 +800,91 @@
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
+
+      const DEBUG = (function () {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          if (sp.get("debug") === "1") return true;
+          return localStorage.getItem("stamp_debug") === "1";
+        } catch (e) {
+          return false;
+        }
+      })();
+
+      function dlog() {
+        if (!DEBUG) return;
+        try {
+          console.log.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function dwarn() {
+        if (!DEBUG) return;
+        try {
+          console.warn.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function derror() {
+        if (!DEBUG) return;
+        try {
+          console.error.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function looksTechnicalMessage(msg) {
+        const s = String(msg || "");
+        if (!s) return false;
+        if (/\bStatus\s*\d+\b/i.test(s)) return true;
+        if (/\bHTTP\s*\d+\b/i.test(s)) return true;
+        if (/\b(TypeError|SyntaxError|ReferenceError)\b/i.test(s)) return true;
+        if (/(ECONN|ETIMEDOUT|ENOTFOUND|fetch failed)/i.test(s)) return true;
+        if (/\b0x[0-9a-f]{12,}\b/i.test(s)) return true;
+        return false;
+      }
+
+      function userSafeErrorMessage(err, fallback) {
+        const fb = fallback || "Aktion fehlgeschlagen. Bitte erneut versuchen.";
+        try {
+          if (!err) return fb;
+          const raw =
+            typeof err === "string"
+              ? err
+              : err && err.message
+                ? String(err.message)
+                : "";
+          const msg = String(raw || "").trim();
+          if (!msg) return fb;
+          if (looksTechnicalMessage(msg)) return fb;
+          return msg;
+        } catch (e) {
+          return fb;
+        }
+      }
+
+      function mapApiError(detail, status) {
+        try {
+          const st = Number(status);
+          if (st === 401 || st === 403) {
+            return "Session abgelaufen. Bitte erneut anmelden.";
+          }
+
+          if (detail && typeof detail === "object") {
+            const code = String(detail.error || detail.code || "");
+            if (
+              code === "unauthorized" ||
+              code === "invalid_token" ||
+              code === "token_invalid"
+            ) {
+              return "Session abgelaufen. Bitte erneut anmelden.";
+            }
+
+            const msg = detail.message ? String(detail.message).trim() : "";
+            if (msg && !looksTechnicalMessage(msg)) return msg;
+          }
+        } catch (e) {}
+        return null;
+      }
 
       // Detect API
       async function detectAPI() {
@@ -1000,7 +1123,7 @@
         const password = document.getElementById("passwordInput").value;
 
         if (!email || !email.includes("@") || !password) {
-          alert("Bitte gib E-Mail und Passwort ein");
+          showToast("Bitte E-Mail und Passwort eingeben", true);
           return;
         }
 
@@ -1024,7 +1147,7 @@
 
           const loginData = await loginRes.json();
 
-          console.log("Login erfolgreich:", loginData);
+          dlog("Login erfolgreich");
 
           // Store session
           cafe = {
@@ -1044,7 +1167,13 @@
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
           loadPendingScan();
         } catch (e) {
-          alert("Fehler beim Anmelden: " + e.message);
+          showToast(
+            userSafeErrorMessage(
+              e,
+              "Anmelden fehlgeschlagen. Bitte prüfen und erneut versuchen.",
+            ),
+            true,
+          );
           loginBtn.disabled = false;
           loginBtn.textContent = "Anmelden";
         }
@@ -1125,7 +1254,7 @@
               a === "redeem" ? "redeem" : a === "reset" ? "reset" : "stamp";
           }
         } catch (e) {
-          console.warn("Keine URL-Scan-Parameter", e);
+          dwarn("Keine URL-Scan-Parameter", e);
         }
       }
       capturePendingFromURL();
@@ -1133,6 +1262,50 @@
       function applyActionUi() {
         const isRedeem = pendingAction === "redeem";
         const isReset = pendingAction === "reset";
+
+        function getClampedStampAmount() {
+          try {
+            const raw = stampAmount ? parseInt(stampAmount.value) : 1;
+            return Math.max(1, Math.min(5, raw || 1));
+          } catch (e) {
+            return 1;
+          }
+        }
+
+        function setActivePreset(amount) {
+          try {
+            if (!stampPresets) return;
+            const btns = stampPresets.querySelectorAll("button[data-amount]");
+            btns.forEach((b) => {
+              const a = parseInt(b.getAttribute("data-amount")) || 0;
+              b.classList.toggle("active", a === amount);
+            });
+          } catch (e) {}
+        }
+
+        function updateStampUiFromValue() {
+          if (!stampAmount) return;
+          const v = getClampedStampAmount();
+          stampAmount.value = String(v);
+          if (stampAmountValue) stampAmountValue.textContent = String(v);
+          setActivePreset(v);
+          return v;
+        }
+
+        function updateAwardButtonLabel() {
+          if (!awardBtn) return;
+          if (isRedeem) {
+            awardBtn.textContent = "Einlösen";
+            return;
+          }
+          if (isReset) {
+            awardBtn.textContent = "Neue Karte";
+            return;
+          }
+          const v = updateStampUiFromValue() || 1;
+          awardBtn.textContent = `Freigeben (${v})`;
+        }
+
         if (scanTitle) {
           scanTitle.textContent = isRedeem
             ? "Belohnung einlösen"
@@ -1147,47 +1320,45 @@
               ? "Diese Ansicht erscheint automatisch, wenn ein QR für eine neue Karte geöffnet wurde."
               : "Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet wurde.";
         }
-        if (awardBtn) {
-          awardBtn.textContent = isRedeem
-            ? "Einlösen"
-            : isReset
-              ? "Neue Karte"
-              : "Stempel vergeben";
+
+        if (stampAmountUi) {
+          stampAmountUi.style.display = isRedeem || isReset ? "none" : "block";
         }
-        if (stampAmount) {
-          stampAmount.style.display = isRedeem || isReset ? "none" : "block";
-          if (!isRedeem && !isReset) {
-            try {
-              const v = Math.max(
-                1,
-                Math.min(10, parseInt(stampAmount.value) || 1),
-              );
-              stampAmount.value = String(v);
-              if (stampAmountValue) stampAmountValue.textContent = String(v);
-            } catch (e) {}
-          }
-        }
+
+        updateAwardButtonLabel();
       }
 
-      if (stampAmount) {
-        stampAmount.addEventListener("input", () => {
+      if (stampPresets) {
+        stampPresets.addEventListener("click", (ev) => {
           try {
-            const v = Math.max(
-              1,
-              Math.min(10, parseInt(stampAmount.value) || 1),
-            );
-            if (stampAmountValue) stampAmountValue.textContent = String(v);
+            const t = ev.target;
+            if (!(t && t.tagName === "BUTTON")) return;
+            const amt = parseInt(t.getAttribute("data-amount")) || 0;
+            if (!amt) return;
+            if (stampAmount) stampAmount.value = String(amt);
+            if (stampAmountValue) stampAmountValue.textContent = String(amt);
+            try {
+              const btns = stampPresets.querySelectorAll("button[data-amount]");
+              btns.forEach((b) => {
+                const a = parseInt(b.getAttribute("data-amount")) || 0;
+                b.classList.toggle("active", a === amt);
+              });
+            } catch (e) {}
+            try {
+              if (awardBtn && pendingAction === "stamp") {
+                awardBtn.textContent = `Freigeben (${amt})`;
+              }
+            } catch (e) {}
           } catch (e) {}
         });
       }
 
       async function loadPendingScan() {
-        console.log(
-          "loadPendingScan called, pendingScan:",
-          pendingScan,
-          "cafe:",
-          cafe,
-        );
+        dlog("loadPendingScan", {
+          hasPending: !!pendingScan,
+          action: pendingScan ? pendingScan.action : null,
+          hasCafe: !!cafe,
+        });
         if (!pendingScan) return;
         if (
           scannedCustomer &&
@@ -1224,7 +1395,7 @@
               );
               if (match && match.name) scannedName = match.name;
             } catch (e) {
-              console.warn("Cafe name lookup failed", e);
+              dwarn("Cafe name lookup failed", e);
             }
             showToast(
               /^0x[0-9a-f]{40}$/i.test(String(scannedName || ""))
@@ -1232,10 +1403,7 @@
                 : `Falsches Café. QR gehört zu "${scannedName}". Bitte eigenen Kunden fragen.`,
               true,
             );
-            console.warn("QR validation failed:", {
-              qrCafe: pendingScan.cafe,
-              loggedInCafe: loggedInCafeAddr,
-            });
+            dwarn("QR validation failed");
             return;
           }
         }
@@ -1279,7 +1447,7 @@
           showView("scan");
           updateHomeStatus();
         } catch (e) {
-          console.warn("Stempel laden fehlgeschlagen", e);
+          dwarn("Stempel laden fehlgeschlagen", e);
           showToast("Fehler beim Laden der Stempel", true);
         }
       }
@@ -1303,11 +1471,13 @@
           return;
         }
         const amount =
-          !isRedeem && !isReset ? parseInt(stampAmount.value) || 1 : 0;
-        console.log(isRedeem ? "Redeem attempt:" : "Award attempt:", {
-          cafe,
+          !isRedeem && !isReset
+            ? Math.max(1, Math.min(5, parseInt(stampAmount.value) || 1))
+            : 0;
+        dlog(isRedeem ? "Redeem attempt" : "Award attempt", {
           customer: scannedCustomer.address,
           action: pendingAction,
+          amount,
         });
         awardBtn.disabled = true;
         awardBtn.textContent = isRedeem
@@ -1357,13 +1527,20 @@
 
           if (!res.ok) {
             const text = await res.text();
-            console.error("Stamp award failure", res.status, text);
+            derror(
+              "Stamp award failure",
+              res.status,
+              String(text || "").slice(0, 260),
+            );
             let detail;
             try {
               detail = JSON.parse(text);
             } catch {
               detail = text;
             }
+
+            const mapped = mapApiError(detail, res.status);
+            if (mapped) throw new Error(mapped);
 
             if (
               detail &&
@@ -1397,11 +1574,7 @@
                 detail.required != null ? Number(detail.required) : 10;
               throw new Error(`Zu wenige Stempel: ${cur}/${reqd}.`);
             }
-            const errMsg =
-              detail && typeof detail === "object"
-                ? detail.message || detail.error || JSON.stringify(detail)
-                : detail;
-            throw new Error(`Status ${res.status}: ${errMsg}`);
+            throw new Error("Aktion fehlgeschlagen. Bitte erneut versuchen.");
           }
 
           const data = await res.json();
@@ -1435,8 +1608,7 @@
             applyActionUi();
           }, 1800);
         } catch (e) {
-          // Keep popups non-technical.
-          showToast("Aktion fehlgeschlagen. Bitte erneut versuchen.", true);
+          showToast(userSafeErrorMessage(e), true);
           awardBtn.disabled = false;
           applyActionUi();
         }
@@ -1476,10 +1648,10 @@
               cafe.cafeAddress = ovData.cafe?.address || cafe.cafeAddress;
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
             } catch (err) {
-              console.error("Session validation failed:", err);
+              dwarn("Session validation failed", err);
             }
 
-            console.log("Auto-Login für Café:", cafe);
+            dlog("Auto-Login für Café");
             updateCafeBadge();
             showAppUI();
             showView(pendingScan ? "scan" : "home");
@@ -1510,7 +1682,7 @@
                 const stampsData = await stampsRes.json();
                 const stamps = stampsData.stamps ?? stampsData.count ?? 0;
                 currentStamps.textContent = stamps;
-                console.log("Restored customer stamps:", stamps);
+                dlog("Restored customer stamps", stamps);
 
                 awardBtn.disabled = false;
                 pendingAction = "stamp";
@@ -1519,7 +1691,7 @@
                 // Keep welcome as default unless a QR link is active
                 updateHomeStatus();
               } catch (e) {
-                console.error("Restore last scanned failed", e);
+                dwarn("Restore last scanned failed", e);
                 localStorage.removeItem("last_scanned_customer");
               }
             }
@@ -1530,7 +1702,7 @@
             showLoginUI();
           }
         } catch (e) {
-          console.warn("Auto-login failed:", e);
+          dwarn("Auto-login failed", e);
           localStorage.removeItem("cafe_session");
           showLoginUI();
         }
@@ -1541,7 +1713,7 @@
       window.addEventListener("load", () => {
         setTimeout(() => {
           if (pendingScan && !scannedCustomer && cafe) {
-            console.log("Loading pending scan after page load...");
+            dlog("Loading pending scan after page load");
             loadPendingScan();
           }
         }, 500);

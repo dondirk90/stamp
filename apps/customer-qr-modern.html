@@ -266,21 +266,47 @@
 
       .seg button {
         border-radius: 0;
-        padding: 10px 14px;
-        min-height: 44px;
+        padding: 8px 0;
+        min-height: auto;
         font-weight: 800;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
-        border-bottom: 1px solid transparent;
+        border-bottom: none;
         cursor: pointer;
         pointer-events: auto;
         touch-action: manipulation;
       }
 
-      .seg button.active {
+      /* theme.css forces most <button> backgrounds to --brand (black) via a high-specificity
+         selector. Make sure the auth-mode switch stays frameless + transparent. */
+      #authPanel .seg button {
         background: transparent !important;
-        border-bottom-color: var(--brand);
+        color: var(--text) !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      #authPanel .seg button:hover {
+        background: transparent !important;
+      }
+
+      /* Only show the switch action (inactive tab):
+         - in Login mode: show “Neu”
+         - in Register mode: show “Login” */
+      .seg button.active {
+        display: none;
+      }
+
+      .seg button:hover {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .seg button:focus-visible {
+        outline: none;
+        text-decoration: underline;
+        text-underline-offset: 4px;
       }
 
       .actions {
@@ -1779,7 +1805,7 @@
       .modal {
         width: min(720px, 96vw);
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         background: var(--surface);
         box-shadow: var(--shadow-lg);
         overflow: hidden;
@@ -1798,7 +1824,7 @@
       .modalHero {
         position: relative;
         background: var(--surface);
-        border-bottom: 1px solid var(--border);
+        border-bottom: none;
         padding: var(--space-5);
       }
 
@@ -1830,8 +1856,8 @@
         display: grid;
         place-items: center;
         border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border: none;
+        background: transparent;
         overflow: hidden;
       }
 
@@ -1847,8 +1873,8 @@
         width: 92px;
         height: 64px;
         border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border: none;
+        background: transparent;
         object-fit: cover;
         flex: 0 0 auto;
         cursor: pointer;
@@ -1876,12 +1902,13 @@
 
       .modalAbout {
         border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        padding: 12px 14px;
+        border: none;
+        background: transparent;
+        padding: 0;
         font-size: 13px;
         line-height: 1.45;
         color: var(--text);
+        white-space: pre-line;
       }
 
       .rt-h1 {
@@ -1912,6 +1939,28 @@
 
       .modalActions button {
         flex: 1;
+      }
+
+      /* Cafe modal: no framed secondary buttons */
+      #cafeModal .btn.secondary {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      #cafeModal .btn.secondary:hover {
+        background: transparent;
+      }
+
+      #cafeModal .btn.secondary:focus-visible {
+        outline: none;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      #cafeModalClose {
+        padding: 8px 0;
+        min-height: auto;
       }
     </style>
   </head>
@@ -1980,10 +2029,8 @@
           <div class="panelHeader">
             <h2>Account</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
-              <button id="modeRegister" class="active" type="button">
-                Neu
-              </button>
-              <button id="modeLogin" type="button">Login</button>
+              <button id="modeRegister" type="button">Neu</button>
+              <button id="modeLogin" class="active" type="button">Login</button>
             </div>
           </div>
 
@@ -2050,7 +2097,7 @@
                 <div class="stack tight">
                   <div class="badge" id="welcomeBadge">Willkommen</div>
                   <div class="hint" id="mapHint">
-                    Tippe auf einen Marker und hole dir die Stempelkarte.
+                    Tippe auf einen Marker und lies kurz rein.
                   </div>
                   <div
                     class="stack"
@@ -2190,9 +2237,6 @@
           </div>
 
           <div class="modalActions">
-            <a class="btn secondary" id="cafeModalProfileLink" href="#">
-              Profil öffnen
-            </a>
             <button class="btn primary" id="cafeModalAddBtn" type="button">
               Stempelkarte holen
             </button>
@@ -2202,6 +2246,7 @@
     </div>
 
     <script src="/vendor/qrcode.min.js"></script>
+    <script src="/ui.js"></script>
     <script src="/customer-qr-modern.js"></script>
 
     <script>
@@ -2210,6 +2255,42 @@
         var sub = document.getElementById("bootSub");
         var diag = document.getElementById("bootDiag");
         if (!overlay) return;
+
+        // Capture runtime errors early (helps when the main JS crashes before sending boot-ok)
+        try {
+          window.addEventListener(
+            "error",
+            function (ev) {
+              try {
+                var msg = ev && ev.message ? String(ev.message) : "error";
+                var src = ev && ev.filename ? String(ev.filename) : "";
+                var ln = ev && ev.lineno ? String(ev.lineno) : "";
+                var col = ev && ev.colno ? String(ev.colno) : "";
+                window.__STAMP_BOOT_ERR =
+                  msg +
+                  (src
+                    ? " (" +
+                      src +
+                      (ln ? ":" + ln : "") +
+                      (col ? ":" + col : "") +
+                      ")"
+                    : "");
+              } catch (e) {}
+            },
+            true,
+          );
+        } catch (e) {}
+
+        try {
+          window.addEventListener("unhandledrejection", function (ev) {
+            try {
+              var r = ev && ev.reason ? ev.reason : null;
+              var msg =
+                r && r.message ? String(r.message) : String(r || "rejection");
+              window.__STAMP_BOOT_REJ = msg;
+            } catch (e) {}
+          });
+        } catch (e) {}
 
         function hideOverlay() {
           try {
@@ -2313,6 +2394,24 @@
               } else {
                 lines.push("/api/health: ok");
               }
+
+              try {
+                if (window.__STAMP_BOOT_ERR)
+                  lines.push("JS-Fehler: " + String(window.__STAMP_BOOT_ERR));
+              } catch (e) {}
+              try {
+                if (window.__STAMP_BOOT_REJ)
+                  lines.push(
+                    "JS-Rejection: " + String(window.__STAMP_BOOT_REJ),
+                  );
+              } catch (e2) {}
+              try {
+                if (window.__STAMP_BOOT_CRASH)
+                  lines.push(
+                    "Boot-Crash: " + String(window.__STAMP_BOOT_CRASH),
+                  );
+              } catch (e3) {}
+
               lines.push("Tipp: Teste direkt /__diag.");
               setDiag(lines);
             });

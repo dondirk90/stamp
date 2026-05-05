@@ -3652,12 +3652,14 @@ app.post("/customers/register", async (req, res) => {
       return res.status(400).json({ error: "invalid_password" });
     }
 
-    // If email already exists: treat as login (requires password)
+    // If email already exists, surface that clearly in register mode.
     const existing = await getCustomerAuthByEmail.get(em);
     if (existing && existing.address) {
       if (existing.password_hash) {
         const okPw = await bcrypt.compare(pw, existing.password_hash);
-        if (!okPw) return res.status(401).json({ error: "wrong_password" });
+        if (!okPw) {
+          return res.status(409).json({ error: "email_already_registered" });
+        }
       } else {
         // Legacy account: allow first-time password set
         const newHash = await bcrypt.hash(pw, 10);
@@ -3871,6 +3873,43 @@ app.post("/customers/reset-password", async (req, res) => {
     return res
       .status(500)
       .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/reset-password/preview", async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    const tok = token != null ? String(token).trim() : "";
+    if (!tok) return res.status(400).json({ ok: false, error: "invalid_token" });
+
+    const tokenHash = crypto.createHash("sha256").update(tok).digest("hex");
+    const resetRow = await getCustomerPasswordResetByHash.get(tokenHash);
+    const now = Date.now();
+
+    if (!resetRow)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (resetRow.used_at)
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    if (!resetRow.expires_at || now > Number(resetRow.expires_at)) {
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    }
+
+    const row = await db
+      .prepare(
+        "SELECT email, username FROM customers WHERE id = ? LIMIT 1",
+      )
+      .get(resetRow.customer_id);
+
+    return res.json({
+      ok: true,
+      email: row && row.email ? row.email : null,
+      username: row && row.username ? row.username : null,
+      expiresAt: Number(resetRow.expires_at) || null,
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 

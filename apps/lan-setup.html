@@ -1,201 +1,296 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stamp — LAN Setup</title>
-  <style>
-    body {
-      font-family: system-ui, Segoe UI, Roboto, Arial;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-      background: #f9f9f9;
-    }
-    .highlight {
-      background: #fff3cd;
-      padding: 12px;
-      border-radius: 6px;
-      margin: 12px 0;
-    }
-    code {
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: monospace;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 4px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .success {
-      color: #28a745;
-      font-weight: bold;
-    }
-    .error {
-      color: #dc3545;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 16px;
-      margin: 8px 0;
-      font-family: monospace;
-    }
-  </style>
-</head>
-<body>
-  <h1>Stamp Card — LAN Setup</h1>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stamp — LAN Setup</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      .container {
+        max-width: 720px;
+      }
 
-  <div class="card">
-    <h2>Deine Rechner-IP (LAN)</h2>
-    <p>Diese IP wird verwendet, um die Apps vom Smartphone aus zu erreichen:</p>
-    <input type="text" id="lanIp" readonly style="background:#e8f5e9" />
-    <button onclick="copyToClipboard()">In Zwischenablage kopieren</button>
-  </div>
+      .card {
+        padding: var(--space-4) 0;
+        margin: 0;
+        border-bottom: 1px solid var(--border);
+      }
 
-  <div class="card">
-    <h2>Schritt 1: API starten</h2>
-    <p>Auf deinem Computer (PowerShell):</p>
-    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>node api\server.cjs</code>
-    <p>Erwartet: <span class="success">API listening on http://127.0.0.1:3000</span></p>
-  </div>
+      .card:last-of-type {
+        border-bottom: none;
+      }
 
-  <div class="card">
-    <h2>Schritt 1b: Apps-Server starten</h2>
-    <p>In einem <strong>zweiten</strong> Terminal (PowerShell):</p>
-    <code style="display:block;padding:12px;background:#f0f0f0;border-radius:4px;overflow-x:auto">cd D:\stamp<br/>$env:PORT=8080; node apps\server.cjs</code>
-    <p>Erwartet: <span class="success">Apps Server running on http://localhost:8080</span> (wichtig: Port 8080 im LAN erreichbar)</p>
-  </div>
+      .highlight,
+      .note {
+        background: var(--surface-muted);
+        padding: var(--space-3);
+        margin: var(--space-3) 0;
+        border: 1px solid var(--border);
+      }
 
-  <div class="card">
-    <h2>Schritt 2: Apps öffnen</h2>
-    <div class="highlight">
-      <strong>Auf deinem Computer (Desktop/Laptop):</strong>
-      <ul>
-        <li>Customer Wallet: <code>http://localhost:8080/customer-wallet</code></li>
-        <li>Café Scanner: <code>http://localhost:8080/cafe-scanner</code></li>
-        <li>Café Issuer: <code>http://localhost:8080/cafe-issuer-web.html</code></li>
-      </ul>
+      code {
+        font-family: var(--font-mono);
+        background: var(--surface-muted);
+        padding: 2px 6px;
+      }
+
+      .success {
+        color: var(--success);
+        font-weight: 700;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .codeBlock {
+        display: block;
+        padding: 12px;
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+        overflow-x: auto;
+        font-family: var(--font-mono);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(var(--space-5) + var(--safe-bottom));
+        transform: translateX(-50%);
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        max-width: min(520px, calc(100vw - 40px));
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Stamp Card — LAN Setup</h1>
+
+      <div class="card" id="ipCard">
+        <h2>Deine Rechner-IP (LAN)</h2>
+        <p>
+          Diese IP wird verwendet, um die Apps vom Smartphone aus zu erreichen:
+        </p>
+        <input type="text" id="lanIp" readonly />
+        <button type="button" onclick="copyToClipboard()">
+          In Zwischenablage kopieren
+        </button>
+      </div>
+
+      <div class="card">
+        <h2>Schritt 1: API starten</h2>
+        <p>Auf deinem Computer (PowerShell):</p>
+        <code class="codeBlock">cd D:\stamp<br />node api\server.cjs</code>
+        <p>
+          Erwartet:
+          <span class="success">API listening on http://127.0.0.1:3000</span>
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Schritt 1b: Apps-Server starten</h2>
+        <p>In einem <strong>zweiten</strong> Terminal (PowerShell):</p>
+        <code class="codeBlock"
+          >cd D:\stamp<br />$env:PORT=8080; node apps\server.cjs</code
+        >
+        <p>
+          Erwartet:
+          <span class="success"
+            >Apps Server running on http://localhost:8080</span
+          >
+          (wichtig: Port 8080 im LAN erreichbar)
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Schritt 2: Apps öffnen</h2>
+        <div class="highlight">
+          <strong>Auf deinem Computer (Desktop/Laptop):</strong>
+          <ul>
+            <li>
+              Customer Wallet:
+              <code>http://localhost:8080/customer-wallet</code>
+            </li>
+            <li>
+              Café Scanner: <code>http://localhost:8080/cafe-scanner</code>
+            </li>
+            <li>
+              Café Issuer:
+              <code>http://localhost:8080/cafe-issuer-web.html</code>
+            </li>
+          </ul>
+        </div>
+        <div class="highlight">
+          <strong>Auf deinem Smartphone (im gleichen WLAN):</strong>
+          <ul>
+            <li>
+              Customer Wallet:
+              <code id="customerQrUrl"
+                >http://&lt;IP&gt;:8080/customer-wallet</code
+              >
+            </li>
+            <li>
+              Café Scanner:
+              <code id="scannerUrl">http://&lt;IP&gt;:8080/cafe-scanner</code>
+            </li>
+            <li>
+              Café Issuer:
+              <code id="issuerUrl"
+                >http://&lt;IP&gt;:8080/cafe-issuer-web.html</code
+              >
+            </li>
+          </ul>
+        </div>
+        <p class="small">
+          Der Apps-Server läuft auf Port 8080. Die API läuft auf Port 3000.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Schritt 3: Flow testen</h2>
+        <ol>
+          <li>
+            <strong>Café Onboarding:</strong> Café registrieren oder einloggen
+          </li>
+          <li>
+            <strong>Customer Wallet:</strong> QR anzeigen (Stempel oder
+            Einlösen, je nach Stand)
+          </li>
+          <li>
+            <strong>Café Scanner:</strong> QR öffnen → Stempeln oder Einlösen
+          </li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>Tipps</h2>
+        <ul>
+          <li>
+            <strong>IP ändern:</strong> Stelle sicher, dass dein Smartphone im
+            gleichen WLAN wie dein Computer ist.
+          </li>
+          <li>
+            <strong>Firewall:</strong> Falls die Verbindung nicht funktioniert,
+            prüfe deine Windows-Firewall (Port 3000 erlauben).
+          </li>
+          <li>
+            <strong>Zugang:</strong> Verwende E-Mail + Passwort (aus dem
+            Café-Onboarding).
+          </li>
+          <li>
+            <strong>API verfügbar?</strong> Öffne
+            <code id="apiHealthUrl">http://&lt;IP&gt;:3000/health</code> im
+            Browser — sollte <code>{"ok":true}</code> zurückgeben.
+          </li>
+        </ul>
+      </div>
     </div>
-    <div class="highlight">
-      <strong>Auf deinem Smartphone (im gleichen WLAN):</strong>
-      <ul>
-        <li>Customer Wallet: <code id="customerQrUrl">http://<IP>:8080/customer-wallet</code></li>
-        <li>Café Scanner: <code id="scannerUrl">http://<IP>:8080/cafe-scanner</code></li>
-        <li>Café Issuer: <code id="issuerUrl">http://<IP>:8080/cafe-issuer-web.html</code></li>
-      </ul>
-    </div>
-    <p style="font-size:12px;color:#666">Der Apps-Server läuft auf Port 8080. Die API läuft auf Port 3000.</p>
-  </div>
 
-  <div class="card">
-    <h2>Schritt 3: Flow testen</h2>
-    <ol>
-      <li><strong>Café Onboarding:</strong> Café registrieren oder einloggen</li>
-      <li><strong>Customer Wallet:</strong> QR anzeigen (Stempel oder Einlösen, je nach Stand)</li>
-      <li><strong>Café Scanner:</strong> QR öffnen → Stempeln oder Einlösen</li>
-    </ol>
-  </div>
+    <script>
+      // Auto-forward to scanner when redeem parameters are present
+      (function () {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const hasRedeem = params.get("redeem") === "true";
+          const hasCustomer = params.has("customer");
+          if (hasRedeem && hasCustomer) {
+            const search = window.location.search || "";
+            const target = `/cafe-scanner${search}`;
+            window.location.replace(target);
+            return; // stop initializing helper UI
+          }
+        } catch (_) {}
+      })();
 
-  <div class="card" style="background:#f3f3f3">
-    <h2>Tipps</h2>
-    <ul>
-      <li><strong>IP ändern:</strong> Stelle sicher, dass dein Smartphone im gleichen WLAN wie dein Computer ist.</li>
-      <li><strong>Firewall:</strong> Falls die Verbindung nicht funktioniert, prüfe deine Windows-Firewall (Port 3000 erlauben).</li>
-      <li><strong>Zugang:</strong> Verwende E-Mail + Passwort (aus dem Café-Onboarding).</li>
-      <li><strong>API verfügbar?</strong> Öffne <code id="apiHealthUrl">http://<IP>:3000/health</code> im Browser — sollte <code>{"ok":true}</code> zurückgeben.</li>
-    </ul>
-  </div>
-
-  <script>
-    // Auto-forward to scanner when redeem parameters are present
-    (function () {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const hasRedeem = params.get("redeem") === "true";
-        const hasCustomer = params.has("customer");
-        if (hasRedeem && hasCustomer) {
-          const search = window.location.search || "";
-          const target = `/cafe-scanner${search}`;
-          window.location.replace(target);
-          return; // stop initializing helper UI
+      function getLocalIP() {
+        // Versuche, die LAN-IP zu ermitteln (funktioniert teilweise im Browser)
+        // Fallback: zeige Anleitung zur manuellen Eingabe
+        const hostname = window.location.hostname;
+        if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+          return hostname;
         }
-      } catch (_) {}
-    })();
 
-    function getLocalIP() {
-      // Versuche, die LAN-IP zu ermitteln (funktioniert teilweise im Browser)
-      // Fallback: zeige Anleitung zur manuellen Eingabe
-      const hostname = window.location.hostname;
-      if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        return hostname;
+        // Fallback: Benutzer muss manuell eingeben
+        const stored = localStorage.getItem("lanIp");
+        return stored || "Bitte manuell eingeben (siehe unten)";
       }
 
-      // Fallback: Benutzer muss manuell eingeben
-      const stored = localStorage.getItem('lanIp');
-      return stored || 'Bitte manuelle eingeben (siehe unten)';
-    }
-
-    function updateUrls(ip) {
-      if (ip && ip !== 'Bitte manuelle eingeben (siehe unten)') {
-        document.getElementById('customerQrUrl').textContent = `http://${ip}:8080/customer-wallet`;
-        document.getElementById('scannerUrl').textContent = `http://${ip}:8080/cafe-scanner`;
-        document.getElementById('issuerUrl').textContent = `http://${ip}:8080/cafe-issuer-web.html`;
-        document.getElementById('apiHealthUrl').textContent = `http://${ip}:3000/health`;
+      function updateUrls(ip) {
+        if (ip && ip !== "Bitte manuelle eingeben (siehe unten)") {
+          document.getElementById("customerQrUrl").textContent =
+            `http://${ip}:8080/customer-wallet`;
+          document.getElementById("scannerUrl").textContent =
+            `http://${ip}:8080/cafe-scanner`;
+          document.getElementById("issuerUrl").textContent =
+            `http://${ip}:8080/cafe-issuer-web.html`;
+          document.getElementById("apiHealthUrl").textContent =
+            `http://${ip}:3000/health`;
+        }
       }
-    }
 
-    function copyToClipboard() {
-      const input = document.getElementById('lanIp');
-      input.select();
-      document.execCommand('copy');
-      alert('IP kopiert');
-    }
+      function showToast(message) {
+        try {
+          const toast = document.createElement("div");
+          toast.className = "toast";
+          toast.setAttribute("role", "status");
+          toast.textContent = message;
+          document.body.appendChild(toast);
+          window.setTimeout(() => toast.remove(), 1600);
+        } catch (_) {
+          // best-effort only
+        }
+      }
 
-    // IP-Feld initialisieren
-    const lanIpField = document.getElementById('lanIp');
-    lanIpField.addEventListener('change', () => {
-      localStorage.setItem('lanIp', lanIpField.value);
-      updateUrls(lanIpField.value);
-    });
+      async function copyToClipboard() {
+        const input = document.getElementById("lanIp");
+        const text = input && input.value ? String(input.value) : "";
 
-    const initialIp = getLocalIP();
-    lanIpField.value = initialIp;
-    updateUrls(initialIp);
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            input.focus();
+            input.select();
+            document.execCommand("copy");
+          }
+          showToast("IP kopiert");
+        } catch (_) {
+          showToast("Kopieren nicht möglich");
+        }
+      }
 
-    // Hilfe-Text
-    if (initialIp === 'Bitte manuelle eingeben (siehe unten)') {
-      document.querySelector('.card').innerHTML += `
-        <div style="margin-top:12px;background:#fff3cd;padding:12px;border-radius:4px">
+      // IP-Feld initialisieren
+      const lanIpField = document.getElementById("lanIp");
+      lanIpField.addEventListener("change", () => {
+        localStorage.setItem("lanIp", lanIpField.value);
+        updateUrls(lanIpField.value);
+      });
+
+      const initialIp = getLocalIP();
+      lanIpField.value = initialIp;
+      updateUrls(initialIp);
+
+      // Hilfe-Text
+      if (initialIp === "Bitte manuell eingeben (siehe unten)") {
+        const ipCard = document.getElementById("ipCard");
+        if (ipCard) {
+          const note = document.createElement("div");
+          note.className = "note";
+          note.innerHTML = `
           <strong>Wie finde ich meine LAN-IP?</strong>
           <p><strong>Windows:</strong> PowerShell öffnen und eingeben:</p>
-          <code style="display:block;padding:8px;background:#f0f0f0;margin:8px 0">ipconfig</code>
+          <code class="codeBlock">ipconfig</code>
           <p>Suche nach "IPv4-Adresse" unter deinem aktiven WLAN-Adapter (z.B. <code>192.168.1.100</code>)</p>
           <p><strong>Mac/Linux:</strong></p>
-          <code style="display:block;padding:8px;background:#f0f0f0;margin:8px 0">ifconfig | grep inet</code>
-        </div>
-      `;
-    }
-  </script>
-</body>
+          <code class="codeBlock">ifconfig | grep inet</code>
+        `;
+          ipCard.appendChild(note);
+        }
+      }
+    </script>
+  </body>
 </html>

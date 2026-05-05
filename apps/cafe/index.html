@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Cafe QR Issuer</title>
+    <script src="/ui.js"></script>
     <style>
       body {
         font-family:
@@ -106,7 +107,12 @@
             .replace(/:\d+$/, "")}/customer.html (or ${currentUrl} on mobile)`;
           console.log("Open on smartphone: " + mobileLink);
         } catch (e) {
-          payloadEl.textContent = "Error: " + e.message;
+          payloadEl.textContent = window.stampUI
+            ? stampUI.userSafeErrorMessage(
+                e,
+                "QR konnte nicht erstellt werden.",
+              )
+            : "QR konnte nicht erstellt werden.";
         }
       };
     </script>

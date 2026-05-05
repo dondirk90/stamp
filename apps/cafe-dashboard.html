@@ -7,7 +7,10 @@
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
       }
 
       .shell {
@@ -136,13 +139,13 @@
       }
       .badge {
         display: inline-block;
-        padding: 4px 12px;
+        padding: 0;
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         font-size: 12px;
         font-weight: 600;
         background: transparent;
-        color: var(--text);
+        color: var(--text-muted);
       }
       .badge-success {
         background: transparent;
@@ -288,6 +291,7 @@
       </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       let cafe = null;
 
@@ -319,7 +323,10 @@
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+          const err = new Error("api_error");
+          err.status = res.status;
+          err.responseText = text || "";
+          throw err;
         }
         return res.json();
       }
@@ -381,13 +388,30 @@
           document.getElementById("dashboard").style.display = "block";
 
           // Refresh every 30 seconds
-          setInterval(async () => {
-            await refreshAll();
+          setInterval(() => {
+            refreshAll().catch((e) => {
+              try {
+                setBadge("sourceBadge", "Quelle: offline", "warn");
+              } catch (e0) {}
+              try {
+                setBadge(
+                  "refreshBadge",
+                  stampUI.userSafeErrorMessage(
+                    e,
+                    "Aktualisierung fehlgeschlagen",
+                  ),
+                  "",
+                );
+              } catch (e1) {}
+            });
           }, 30000);
         } catch (err) {
           console.error("Init error:", err);
           document.getElementById("loading").textContent =
-            `Fehler: ${err.message}`;
+            stampUI.userSafeErrorMessage(
+              err,
+              "Dashboard konnte nicht geladen werden.",
+            );
         }
       }
 

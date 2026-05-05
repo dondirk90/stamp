@@ -29,6 +29,15 @@ async function main() {
   const wantTunnel = !process.argv.includes("--no-tunnel");
   const wantOpen = process.argv.includes("--open");
   const wantCopy = process.argv.includes("--copy") || wantOpen;
+  const requestedSubdomain = (() => {
+    const idx = process.argv.indexOf("--subdomain");
+    if (idx !== -1) return String(process.argv[idx + 1] || "").trim();
+    const arg = process.argv.find((x) =>
+      String(x || "").startsWith("--subdomain="),
+    );
+    if (arg) return String(arg).split("=")[1] || "";
+    return String(process.env.STAMP_TUNNEL_SUBDOMAIN || "").trim();
+  })();
   const tunnelMode = (() => {
     const idx = process.argv.indexOf("--tunnel");
     if (idx !== -1) return String(process.argv[idx + 1] || "").trim();
@@ -89,9 +98,16 @@ async function main() {
     console.log(
       "\nStarte Tunnel via localtunnel (funktioniert ohne Admin, braucht Internet)…",
     );
+    if (requestedSubdomain) {
+      console.log(`Versuche feste Subdomain: ${requestedSubdomain}`);
+    }
     const timeoutMs = 15_000;
     const tunnel = await Promise.race([
-      localtunnel({ port: 8080, local_host: "127.0.0.1" }),
+      localtunnel({
+        port: 8080,
+        local_host: "127.0.0.1",
+        ...(requestedSubdomain ? { subdomain: requestedSubdomain } : {}),
+      }),
       new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error(`localtunnel timeout after ${timeoutMs}ms`)),
@@ -132,6 +148,11 @@ async function main() {
     console.log(
       "\nStarte Tunnel via Cloudflare Quick Tunnel (sehr zuverlässig, braucht Internet)…",
     );
+    if (requestedSubdomain) {
+      console.log(
+        "Hinweis: Cloudflare Quick Tunnel ignoriert --subdomain; der Hostname bleibt dort nicht stabil.",
+      );
+    }
     const exe = await ensureCloudflaredExe();
     const child = spawn(
       exe,
