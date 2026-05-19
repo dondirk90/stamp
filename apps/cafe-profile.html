@@ -237,6 +237,58 @@
             </div>
           </div>
 
+          <div class="card" style="padding: var(--space-4); margin-top: 8px">
+            <h3 style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
+              Popup-Kampagnen
+            </h3>
+            <div class="muted" style="margin-bottom: var(--space-3)">
+              Diese Hinweise erscheinen in der Kunden-Wallet, wenn ein Besuch lange her ist oder nur noch wenige Stempel bis zur Belohnung fehlen.
+            </div>
+
+            <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Stempel f?r Belohnung
+                </div>
+                <input id="profileRewardThreshold" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
+              </div>
+              <div style="flex: 2">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Belohnungs-Beschreibung
+                </div>
+                <input id="profileRewardDescription" class="input" type="text" maxlength="240" placeholder="z.B. 1 Freigetr?nk oder 1 Cookie aufs Haus" style="width: 100%" />
+              </div>
+            </div>
+
+            <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+              <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                <input id="profilePopupInactiveEnabled" type="checkbox" checked />
+                <span>Reaktivierungs-Popup aktiv</span>
+              </label>
+              <div style="width: 180px">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Tage seit letztem Besuch
+                </div>
+                <input id="profilePopupInactiveDays" class="input" type="number" min="7" max="365" step="1" style="width: 100%" />
+              </div>
+            </div>
+            <textarea id="profilePopupInactiveMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text f?r Kunden, die l?nger nicht da waren. Leer = Standardtext."></textarea>
+
+            <div class="logoRow" style="align-items: flex-end; margin: 16px 0 14px">
+              <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                <input id="profilePopupAlmostRewardEnabled" type="checkbox" checked />
+                <span>"Fast geschafft"-Popup aktiv</span>
+              </label>
+              <div style="width: 180px">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Reststempel f?r Hinweis
+                </div>
+                <input id="profilePopupAlmostRewardRemaining" class="input" type="number" min="1" max="10" step="1" style="width: 100%" />
+              </div>
+            </div>
+            <textarea id="profilePopupAlmostRewardMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text f?r Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+          </div>
+
           <div class="logoRow" style="align-items: flex-end">
             <div style="flex: 1">
               <div class="muted" style="margin-bottom: 6px; font-weight: 700">
@@ -524,6 +576,14 @@
         const themeEl = document.getElementById("profileCardTheme");
         const cardBgPreview = document.getElementById("profileCardBgPreview");
         const cardBackEl = document.getElementById("profileCardBackText");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+        const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+        const popupInactiveEnabledEl = document.getElementById("profilePopupInactiveEnabled");
+        const popupInactiveDaysEl = document.getElementById("profilePopupInactiveDays");
+        const popupInactiveMessageEl = document.getElementById("profilePopupInactiveMessage");
+        const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
+        const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
+        const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -559,6 +619,16 @@
               ? String(cafeInfo.redeemMessage)
               : "";
         }
+
+        const program = cafeInfo && cafeInfo.program ? cafeInfo.program : {};
+        if (rewardThresholdEl) rewardThresholdEl.value = String(program.stampsForReward != null ? program.stampsForReward : 10);
+        if (rewardDescriptionEl) rewardDescriptionEl.value = program.rewardDescription ? String(program.rewardDescription) : "1 Freigetr?nk";
+        if (popupInactiveEnabledEl) popupInactiveEnabledEl.checked = Number(program.popupInactiveEnabled != null ? program.popupInactiveEnabled : 1) !== 0;
+        if (popupInactiveDaysEl) popupInactiveDaysEl.value = String(program.popupInactiveDays != null ? program.popupInactiveDays : 21);
+        if (popupInactiveMessageEl) popupInactiveMessageEl.value = program.popupInactiveMessage ? String(program.popupInactiveMessage) : "";
+        if (popupAlmostRewardEnabledEl) popupAlmostRewardEnabledEl.checked = Number(program.popupAlmostRewardEnabled != null ? program.popupAlmostRewardEnabled : 1) !== 0;
+        if (popupAlmostRewardRemainingEl) popupAlmostRewardRemainingEl.value = String(program.popupAlmostRewardRemaining != null ? program.popupAlmostRewardRemaining : 2);
+        if (popupAlmostRewardMessageEl) popupAlmostRewardMessageEl.value = program.popupAlmostRewardMessage ? String(program.popupAlmostRewardMessage) : "";
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -768,6 +838,14 @@
         const themeEl = document.getElementById("profileCardTheme");
         const cardBgInput = document.getElementById("profileCardBg");
         const cardBackEl = document.getElementById("profileCardBackText");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+        const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+        const popupInactiveEnabledEl = document.getElementById("profilePopupInactiveEnabled");
+        const popupInactiveDaysEl = document.getElementById("profilePopupInactiveDays");
+        const popupInactiveMessageEl = document.getElementById("profilePopupInactiveMessage");
+        const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
+        const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
+        const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -815,6 +893,14 @@
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
           const lng = lngEl ? String(lngEl.value || "").trim() : "";
+          const stampsForReward = rewardThresholdEl ? String(rewardThresholdEl.value || "").trim() : "10";
+          const rewardDescription = rewardDescriptionEl ? String(rewardDescriptionEl.value || "").trim() : "";
+          const popupInactiveEnabled = popupInactiveEnabledEl ? !!popupInactiveEnabledEl.checked : true;
+          const popupInactiveDays = popupInactiveDaysEl ? String(popupInactiveDaysEl.value || "").trim() : "21";
+          const popupInactiveMessage = popupInactiveMessageEl ? String(popupInactiveMessageEl.value || "").trim() : "";
+          const popupAlmostRewardEnabled = popupAlmostRewardEnabledEl ? !!popupAlmostRewardEnabledEl.checked : true;
+          const popupAlmostRewardRemaining = popupAlmostRewardRemainingEl ? String(popupAlmostRewardRemainingEl.value || "").trim() : "2";
+          const popupAlmostRewardMessage = popupAlmostRewardMessageEl ? String(popupAlmostRewardMessageEl.value || "").trim() : "";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
                 .trim()
@@ -837,6 +923,14 @@
               lat: lat || null,
               lng: lng || null,
               cardTheme: cardTheme || null,
+              stampsForReward: stampsForReward || null,
+              rewardDescription: rewardDescription || null,
+              popupInactiveEnabled,
+              popupInactiveDays: popupInactiveDays || null,
+              popupInactiveMessage: popupInactiveMessage || null,
+              popupAlmostRewardEnabled,
+              popupAlmostRewardRemaining: popupAlmostRewardRemaining || null,
+              popupAlmostRewardMessage: popupAlmostRewardMessage || null,
             }),
           });
 

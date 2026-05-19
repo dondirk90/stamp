@@ -544,6 +544,14 @@ CREATE TABLE IF NOT EXISTS cafes (
   card_bg_data TEXT,
   card_back_text TEXT,
   card_theme TEXT DEFAULT 'paper',
+  stamps_for_reward INTEGER DEFAULT 10,
+  reward_description TEXT,
+  popup_inactive_enabled INTEGER DEFAULT 1,
+  popup_inactive_days INTEGER DEFAULT 21,
+  popup_inactive_message TEXT,
+  popup_almost_reward_enabled INTEGER DEFAULT 1,
+  popup_almost_reward_remaining INTEGER DEFAULT 2,
+  popup_almost_reward_message TEXT,
   updated_at INTEGER,
   created_at INTEGER
 );
@@ -682,6 +690,38 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_theme TEXT DEFAULT 'paper'",
   "Failed to add cafes.card_theme column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stamps_for_reward INTEGER DEFAULT 10",
+  "Failed to add cafes.stamps_for_reward column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reward_description TEXT",
+  "Failed to add cafes.reward_description column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_inactive_enabled INTEGER DEFAULT 1",
+  "Failed to add cafes.popup_inactive_enabled column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_inactive_days INTEGER DEFAULT 21",
+  "Failed to add cafes.popup_inactive_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_inactive_message TEXT",
+  "Failed to add cafes.popup_inactive_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_almost_reward_enabled INTEGER DEFAULT 1",
+  "Failed to add cafes.popup_almost_reward_enabled column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_almost_reward_remaining INTEGER DEFAULT 2",
+  "Failed to add cafes.popup_almost_reward_remaining column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN popup_almost_reward_message TEXT",
+  "Failed to add cafes.popup_almost_reward_message column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_bg_mime TEXT",
@@ -839,8 +879,8 @@ const markRedeemTokenUsed = db.prepare(
 // Cafes prepared statements
 const insertCafe = db.prepare(
   db.client === "postgres"
-    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @updated_at, @created_at) RETURNING id"
-    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @updated_at, @created_at)",
+    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at) RETURNING id"
+    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at)",
 );
 const getCafeById = db.prepare("SELECT * FROM cafes WHERE id = ?");
 const getCafeByName = db.prepare(
@@ -885,7 +925,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, card_theme = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, card_theme = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -1180,6 +1220,53 @@ function buildLocationAddress({
   if (cityLine) parts.push(cityLine);
   if (countryLine) parts.push(countryLine);
   return parts.join(", ") || null;
+}
+
+function toBoundInt(value, fallback, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function toBoundBoolInt(value, fallback) {
+  if (value === true || value === 1 || value === "1") return 1;
+  if (value === false || value === 0 || value === "0") return 0;
+  return fallback ? 1 : 0;
+}
+
+function toOptionalTrimmedText(value, maxLen) {
+  const raw = value == null ? "" : String(value);
+  const trimmed = raw.trim();
+  return trimmed ? trimmed.slice(0, maxLen) : null;
+}
+
+function getCafeProgramSettings(row) {
+  const src = row || {};
+  return {
+    stampsForReward: toBoundInt(src.stamps_for_reward, 10, 1, 50),
+    rewardDescription:
+      toOptionalTrimmedText(src.reward_description, 240) || "1 Freigetr?nk",
+    popupInactiveEnabled: toBoundBoolInt(src.popup_inactive_enabled, 1),
+    popupInactiveDays: toBoundInt(src.popup_inactive_days, 21, 7, 365),
+    popupInactiveMessage: toOptionalTrimmedText(
+      src.popup_inactive_message,
+      280,
+    ),
+    popupAlmostRewardEnabled: toBoundBoolInt(
+      src.popup_almost_reward_enabled,
+      1,
+    ),
+    popupAlmostRewardRemaining: toBoundInt(
+      src.popup_almost_reward_remaining,
+      2,
+      1,
+      10,
+    ),
+    popupAlmostRewardMessage: toOptionalTrimmedText(
+      src.popup_almost_reward_message,
+      280,
+    ),
+  };
 }
 
 function sha256Hex(value) {
@@ -1570,8 +1657,10 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
       customer,
       normalizedCardId,
     );
+    const cafeProgram = getCafeProgramSettings(req.cafe || null);
+    const rewardThreshold = toBoundInt(cafeProgram.stampsForReward, 10, 1, 50);
 
-    if (currentStamps < 10) {
+    if (currentStamps < rewardThreshold) {
       // Don't consume the token on failure.
       try {
         await deleteRedeemTokenIfUnused.run(rt);
@@ -1579,8 +1668,8 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
       return res.status(400).json({
         error: "insufficient_stamps",
         current: Number(currentStamps || 0),
-        required: 10,
-        message: "Customer needs at least 10 stamps to redeem reward",
+        required: rewardThreshold,
+        message: `Customer needs at least ${rewardThreshold} stamps to redeem reward`,
       });
     }
 
@@ -1982,6 +2071,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
         cardBackText: cafeRow.card_back_text || null,
+        program: getCafeProgramSettings(cafeRow),
         logoDataUrl:
           cafeRow.logo_data && cafeRow.logo_mime
             ? `data:${cafeRow.logo_mime};base64,${cafeRow.logo_data}`
@@ -2156,6 +2246,67 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       cardTheme = trimmed || "paper";
     }
 
+    const currentProgram = getCafeProgramSettings(current);
+    let stampsForReward = currentProgram.stampsForReward;
+    if (Object.prototype.hasOwnProperty.call(body, "stampsForReward")) {
+      stampsForReward = toBoundInt(body.stampsForReward, stampsForReward, 1, 50);
+    }
+
+    let rewardDescription = currentProgram.rewardDescription;
+    if (Object.prototype.hasOwnProperty.call(body, "rewardDescription")) {
+      rewardDescription =
+        toOptionalTrimmedText(body.rewardDescription, 240) || rewardDescription;
+    }
+
+    let popupInactiveEnabled = currentProgram.popupInactiveEnabled;
+    if (Object.prototype.hasOwnProperty.call(body, "popupInactiveEnabled")) {
+      popupInactiveEnabled = toBoundBoolInt(
+        body.popupInactiveEnabled,
+        popupInactiveEnabled,
+      );
+    }
+
+    let popupInactiveDays = currentProgram.popupInactiveDays;
+    if (Object.prototype.hasOwnProperty.call(body, "popupInactiveDays")) {
+      popupInactiveDays = toBoundInt(
+        body.popupInactiveDays,
+        popupInactiveDays,
+        7,
+        365,
+      );
+    }
+
+    let popupInactiveMessage = currentProgram.popupInactiveMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "popupInactiveMessage")) {
+      popupInactiveMessage = toOptionalTrimmedText(body.popupInactiveMessage, 280);
+    }
+
+    let popupAlmostRewardEnabled = currentProgram.popupAlmostRewardEnabled;
+    if (Object.prototype.hasOwnProperty.call(body, "popupAlmostRewardEnabled")) {
+      popupAlmostRewardEnabled = toBoundBoolInt(
+        body.popupAlmostRewardEnabled,
+        popupAlmostRewardEnabled,
+      );
+    }
+
+    let popupAlmostRewardRemaining = currentProgram.popupAlmostRewardRemaining;
+    if (Object.prototype.hasOwnProperty.call(body, "popupAlmostRewardRemaining")) {
+      popupAlmostRewardRemaining = toBoundInt(
+        body.popupAlmostRewardRemaining,
+        popupAlmostRewardRemaining,
+        1,
+        10,
+      );
+    }
+
+    let popupAlmostRewardMessage = currentProgram.popupAlmostRewardMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "popupAlmostRewardMessage")) {
+      popupAlmostRewardMessage = toOptionalTrimmedText(
+        body.popupAlmostRewardMessage,
+        280,
+      );
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -2169,11 +2320,20 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       lat,
       lng,
       cardTheme,
+      stampsForReward,
+      rewardDescription,
+      popupInactiveEnabled,
+      popupInactiveDays,
+      popupInactiveMessage,
+      popupAlmostRewardEnabled,
+      popupAlmostRewardRemaining,
+      popupAlmostRewardMessage,
       now,
       cafeRow.id,
     );
 
     const updated = await getCafeById.get(cafeRow.id);
+    const updatedProgram = getCafeProgramSettings(updated);
     res.json({
       ok: true,
       cafe: {
@@ -2187,6 +2347,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
         cardBackText: updated.card_back_text || null,
+        program: updatedProgram,
         logoDataUrl:
           updated.logo_data && updated.logo_mime
             ? `data:${updated.logo_mime};base64,${updated.logo_data}`
@@ -3307,6 +3468,14 @@ app.post("/cafes/register-with-email", async (req, res) => {
       redeem_message: null,
       logo_mime: null,
       logo_data: null,
+      stamps_for_reward: config.stampsForReward,
+      reward_description: config.rewardDescription,
+      popup_inactive_enabled: config.popupInactiveEnabled,
+      popup_inactive_days: config.popupInactiveDays,
+      popup_inactive_message: config.popupInactiveMessage,
+      popup_almost_reward_enabled: config.popupAlmostRewardEnabled,
+      popup_almost_reward_remaining: config.popupAlmostRewardRemaining,
+      popup_almost_reward_message: config.popupAlmostRewardMessage,
       updated_at: Date.now(),
       created_at: Date.now(),
     };
@@ -3547,7 +3716,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
     try {
       const cafeRows = await db
         .prepare(
-          "SELECT id, name, address FROM cafes WHERE address IS NOT NULL",
+          "SELECT id, name, address, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message FROM cafes WHERE address IS NOT NULL",
         )
         .all();
       for (const cafe of cafeRows) {
@@ -3574,6 +3743,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         cafeAddress: agg.cafe || null,
         cafeName: cafeInfo?.name || null,
         cafeId: cafeInfo?.id || null,
+        program: getCafeProgramSettings(cafeInfo),
         stats: {
           stampsAwarded: Number(agg.stamps_awarded || 0),
           stampsRedeemed: Number(agg.stamps_redeemed || 0),

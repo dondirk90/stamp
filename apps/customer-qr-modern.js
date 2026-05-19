@@ -8,6 +8,7 @@
 
   var REWARD_THRESHOLD = 10;
   var WALLET_MODE = "stack"; // parity across desktop/iOS/Android
+  var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
   // while the customer holds it up to be scanned.
@@ -104,6 +105,8 @@
   var cafesVersion = 0;
 
   var cafes = [];
+  var walletServerCardsByCafe = {};
+  var walletServerCardsDigest = "";
 
   var leafletMap = null;
   var leafletMarkers = [];
@@ -129,6 +132,7 @@
     lastCardCount: 0,
     lastCafesVersion: 0,
     lastStampIconOk: false,
+    lastServerCardsDigest: "",
 
     // Stamp refresh throttling
     stampsRefreshTimer: 0,
@@ -781,6 +785,265 @@
     return true;
   }
 
+  function mergeFavorites(addrs) {
+    var src = Array.isArray(addrs) ? addrs : [];
+    var cur = getFavorites();
+    var changed = false;
+
+    for (var i = 0; i < src.length; i++) {
+      var a = normalizeAddr(src[i]);
+      if (!a) continue;
+
+      var exists = false;
+      for (var j = 0; j < cur.length; j++) {
+        if (normalizeAddr(cur[j]) === a) {
+          exists = true;
+          break;
+        }
+      }
+
+      if (!exists) {
+        cur.push(a);
+        changed = true;
+      }
+    }
+
+    if (changed) setFavorites(cur);
+    return changed;
+  }
+
+  function getServerCard(cafeAddress) {
+    var addr = normalizeAddr(cafeAddress || "");
+    if (!addr) return null;
+    try {
+      return walletServerCardsByCafe && walletServerCardsByCafe[addr]
+        ? walletServerCardsByCafe[addr]
+        : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getCardProgram(card) {
+    return card && card.program ? card.program : {};
+  }
+
+  function getCardRewardThreshold(card) {
+    var program = getCardProgram(card);
+    return clamp(
+      Number(program && program.stampsForReward) || REWARD_THRESHOLD,
+      1,
+      50,
+    );
+  }
+
+  function getPassRewardThreshold(passEl) {
+    if (!passEl) return REWARD_THRESHOLD;
+    try {
+      var raw = Number(passEl.getAttribute("data-reward-threshold") || "");
+      if (Number.isFinite(raw) && raw > 0) {
+        return clamp(raw, 1, 50);
+      }
+    } catch (e0) {}
+    try {
+      return getCardRewardThreshold(
+        getServerCard(passEl.getAttribute("data-cafe") || ""),
+      );
+    } catch (e1) {
+      return REWARD_THRESHOLD;
+    }
+  }
+
+  function getCampaignSeenMap() {
+    try {
+      var raw = localStorage.getItem(CAMPAIGN_SEEN_KEY);
+      var data = raw ? JSON.parse(raw) : {};
+      return data && typeof data === "object" ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setCampaignSeenMap(map) {
+    try {
+      localStorage.setItem(CAMPAIGN_SEEN_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function markCampaignSeen(key) {
+    if (!key) return;
+    var map = getCampaignSeenMap();
+    map[String(key)] = nowMs();
+    setCampaignSeenMap(map);
+  }
+
+  function wasCampaignSeenRecently(key, ttlMs) {
+    if (!key) return false;
+    var ttl = Math.max(60 * 1000, Number(ttlMs) || 0);
+    var seen = getCampaignSeenMap();
+    var ts = Number(seen[String(key)] || 0);
+    return !!(ts && nowMs() - ts < ttl);
+  }
+
+  function formatCampaignText(template, vars, fallback) {
+    var text = String(template || "").trim() || String(fallback || "").trim();
+    var data = vars || {};
+    return text.replace(/\{(\w+)\}/g, function (_, key) {
+      var value = data[key];
+      return value == null ? "" : String(value);
+    });
+  }
+
+  function buildServerCardsDigest(cards) {
+    var src = Array.isArray(cards) ? cards : [];
+    var parts = [];
+    for (var i = 0; i < src.length; i++) {
+      var card = src[i] || {};
+      var stats = card.stats || {};
+      var program = getCardProgram(card);
+      parts.push(
+        [
+          normalizeAddr(card.cafeAddress || ""),
+          Number(stats.netStamps || card.netStamps || 0) || 0,
+          Number(stats.lastActivityTs || 0) || 0,
+          Number(program.stampsForReward || REWARD_THRESHOLD) || REWARD_THRESHOLD,
+          Number(program.popupInactiveEnabled || 0) || 0,
+          Number(program.popupInactiveDays || 0) || 0,
+          Number(program.popupAlmostRewardEnabled || 0) || 0,
+          Number(program.popupAlmostRewardRemaining || 0) || 0,
+        ].join(":"),
+      );
+    }
+    parts.sort();
+    return parts.join("|");
+  }
+
+  function evaluateCardCampaigns(cards) {
+    if (!session || !session.address) return;
+    var src = Array.isArray(cards) ? cards : [];
+    for (var i = 0; i < src.length; i++) {
+      var card = src[i] || {};
+      var stats = card.stats || {};
+      var program = getCardProgram(card);
+      var cafeAddress = normalizeAddr(card.cafeAddress || "");
+      if (!cafeAddress) continue;
+
+      var cafeLabel =
+        String(card.name || card.cafeName || "").trim() ||
+        String(card.address || "").trim() ||
+        "deinem Cafe";
+      var rewardGoal = getCardRewardThreshold(card);
+      var netStamps = Math.max(
+        0,
+        Number(stats.netStamps || card.netStamps || 0) || 0,
+      );
+      var remaining = Math.max(0, rewardGoal - netStamps);
+      var lastActivityTs = Number(stats.lastActivityTs || 0) || 0;
+
+      if (
+        Number(program.popupAlmostRewardEnabled || 0) &&
+        remaining > 0 &&
+        remaining <= clamp(Number(program.popupAlmostRewardRemaining) || 2, 1, 10)
+      ) {
+        var almostKey = [
+          normalizeAddr(session.address),
+          cafeAddress,
+          "almost_reward",
+          netStamps,
+          rewardGoal,
+        ].join("|");
+        if (!wasCampaignSeenRecently(almostKey, 24 * 60 * 60 * 1000)) {
+          showToast(
+            formatCampaignText(
+              program.popupAlmostRewardMessage,
+              {
+                cafe: cafeLabel,
+                remaining: remaining,
+                stamps: netStamps,
+                goal: rewardGoal,
+                reward: program.rewardDescription || "deine Belohnung",
+              },
+              "Nur noch {remaining} Stempel bis zur Belohnung bei {cafe}.",
+            ),
+            null,
+          );
+          markCampaignSeen(almostKey);
+          return;
+        }
+      }
+
+      if (
+        Number(program.popupInactiveEnabled || 0) &&
+        lastActivityTs > 0 &&
+        netStamps > 0
+      ) {
+        var inactiveDays = clamp(Number(program.popupInactiveDays) || 21, 7, 365);
+        var silentMs = inactiveDays * 24 * 60 * 60 * 1000;
+        var ageMs = nowMs() - lastActivityTs;
+        if (ageMs >= silentMs) {
+          var ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+          var inactiveBucket = Math.floor(ageDays / inactiveDays);
+          var inactiveKey = [
+            normalizeAddr(session.address),
+            cafeAddress,
+            "inactive",
+            inactiveBucket,
+            lastActivityTs,
+          ].join("|");
+          if (!wasCampaignSeenRecently(inactiveKey, 24 * 60 * 60 * 1000)) {
+            showToast(
+              formatCampaignText(
+                program.popupInactiveMessage,
+                {
+                  cafe: cafeLabel,
+                  days: ageDays,
+                  remaining: remaining,
+                  goal: rewardGoal,
+                  reward: program.rewardDescription || "deine Belohnung",
+                },
+                "Schon {days} Tage kein Besuch bei {cafe}. Deine Karte wartet noch auf dich.",
+              ),
+              null,
+            );
+            markCampaignSeen(inactiveKey);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  function syncFavoritesFromServerCards() {
+    if (!session || !session.address) {
+      return Promise.resolve(false);
+    }
+
+    return apiFetch(
+      "/customers/" + encodeURIComponent(session.address) + "/cards",
+    )
+      .then(function (data) {
+        var cards = data && Array.isArray(data.cards) ? data.cards : [];
+        var nextMap = {};
+        var addrs = [];
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i] || {};
+          var addr = normalizeAddr(card.cafeAddress);
+          if (!addr) continue;
+          addrs.push(addr);
+          nextMap[addr] = card;
+        }
+        walletServerCardsByCafe = nextMap;
+        var nextDigest = buildServerCardsDigest(cards);
+        var digestChanged = nextDigest !== walletServerCardsDigest;
+        walletServerCardsDigest = nextDigest;
+        evaluateCardCampaigns(cards);
+        return mergeFavorites(addrs) || digestChanged;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function hideDiscoverPick() {
     pickedCafe = null;
     if (!el.discoverPick) return;
@@ -1115,6 +1378,13 @@
   }
 
   function renderStampGrid(container, count) {
+    var threshold = REWARD_THRESHOLD;
+    try {
+      var pass = null;
+      if (container && container.closest)
+        pass = container.closest(".passCard, .face");
+      threshold = getPassRewardThreshold(pass);
+    } catch (eThreshold0) {}
     function hash32(str) {
       var s = String(str || "");
       var h = 2166136261;
@@ -1160,18 +1430,18 @@
       }
     }
 
-    var n = clamp(Number(count || 0) || 0, 0, REWARD_THRESHOLD);
+    var n = clamp(Number(count || 0) || 0, 0, threshold);
     var prev = null;
     if (arguments.length >= 3) {
       try {
-        prev = clamp(Number(arguments[2] || 0) || 0, 0, REWARD_THRESHOLD);
+        prev = clamp(Number(arguments[2] || 0) || 0, 0, threshold);
       } catch (ePrev0) {
         prev = null;
       }
     }
     var seedKey = getStampSeedKey();
     container.innerHTML = "";
-    for (var i = 0; i < REWARD_THRESHOLD; i++) {
+    for (var i = 0; i < threshold; i++) {
       var cell = document.createElement("div");
       var filled = i < n;
       var isNew = prev != null && filled && i >= prev;
@@ -1498,7 +1768,7 @@
               setPassCardStamps(passEl, s);
             } catch (e1) {}
 
-            var full2 = s >= REWARD_THRESHOLD;
+            var full2 = s >= getPassRewardThreshold(passEl);
             var link2 = full2
               ? buildRedeemLink(cafeAddress)
               : buildCafeLink(cafeAddress);
@@ -1526,7 +1796,7 @@
         return;
       }
 
-      var full = Number(stamps || 0) >= REWARD_THRESHOLD;
+      var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
       var link = full
         ? buildRedeemLink(cafeAddress)
         : buildCafeLink(cafeAddress);
@@ -1604,13 +1874,15 @@
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
     if (theme === "ink") theme = "clean";
-    var isFull = stampCount >= REWARD_THRESHOLD;
-    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
+    var rewardThreshold = getCardRewardThreshold(card);
+    var isFull = stampCount >= rewardThreshold;
+    var extra = Math.max(0, stampCount - rewardThreshold);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
     passCard.setAttribute("data-pass-theme", theme);
+    passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
 
     if (card && card.cardBackgroundDataUrl) {
       try {
@@ -1648,9 +1920,9 @@
     var sub = document.createElement("div");
     sub.className = "passSub";
     sub.textContent =
-      clamp(stampCount, 0, REWARD_THRESHOLD) +
+      clamp(stampCount, 0, rewardThreshold) +
       " / " +
-      REWARD_THRESHOLD +
+      rewardThreshold +
       " Stempel" +
       (extra > 0 ? " (+" + extra + " extra)" : "");
 
@@ -1666,7 +1938,7 @@
       ? extra > 0
         ? "Voll +" + extra
         : "Voll"
-      : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
+      : clamp(stampCount, 0, rewardThreshold) + "/" + rewardThreshold;
 
     right.appendChild(badge);
 
@@ -2138,7 +2410,8 @@
         existingCards.length === walletState.lastCardCount &&
         existingCards.length === favNorm.length &&
         walletState.lastCafesVersion === cafesVersion &&
-        walletState.lastStampIconOk === !!stampIconState.ok
+        walletState.lastStampIconOk === !!stampIconState.ok &&
+        walletState.lastServerCardsDigest === walletServerCardsDigest
       ) {
         setWalletEmptyVisible(false);
         if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
@@ -2163,13 +2436,23 @@
     for (var j = 0; j < favNorm.length; j++) {
       var addr = favNorm[j];
       var cafe = cafesByCafeAddress[addr] || null;
+      var serverCard = getServerCard(addr);
+      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
       frag.appendChild(
         buildPassCard({
           cafeAddress: addr,
-          name: cafe && cafe.name ? cafe.name : addr.slice(0, 10) + "…",
-          address: cafe && cafe.address ? cafe.address : "",
-          about: cafe && cafe.about ? cafe.about : "",
-          netStamps: 0,
+          name:
+            (serverCard && serverCard.name) ||
+            (cafe && cafe.name) ||
+            addr.slice(0, 10) + "...",
+          address:
+            (serverCard && serverCard.address) ||
+            (cafe && cafe.address) ||
+            "",
+          about: (cafe && cafe.about) || "",
+          netStamps:
+            Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0,
+          program: serverCard && serverCard.program ? serverCard.program : null,
           cardTheme:
             cafe && cafe.cardTheme && String(cafe.cardTheme) === "ink"
               ? "clean"
@@ -2189,6 +2472,7 @@
     walletState.lastCardCount = favNorm.length;
     walletState.lastCafesVersion = cafesVersion;
     walletState.lastStampIconOk = !!stampIconState.ok;
+    walletState.lastServerCardsDigest = walletServerCardsDigest;
 
     if (WALLET_MODE === "stack") {
       enableWalletStackMode(el.walletList);
@@ -2251,6 +2535,7 @@
         walletState.lastCardCount = 0;
         walletState.lastCafesVersion = 0;
         walletState.lastStampIconOk = false;
+        walletState.lastServerCardsDigest = "";
       } catch (e0) {}
       try {
         if (walletState.stampsRefreshTimer)
@@ -2258,6 +2543,8 @@
       } catch (e1) {}
       walletState.stampsRefreshTimer = 0;
       walletState.stampsInFlight = {};
+      walletServerCardsByCafe = {};
+      walletServerCardsDigest = "";
 
       setAuthedUI();
       navSetActive("home");
@@ -2281,6 +2568,11 @@
       try {
         if (session && session.address) {
           connectEventsStream();
+          syncFavoritesFromServerCards()
+            .then(function (changed) {
+              if (changed) refreshWallet();
+            })
+            .catch(function () {});
           scheduleWalletStampsRefresh(120);
           try {
             if (el.historyPanel && el.historyPanel.style.display !== "none") {
@@ -2391,6 +2683,7 @@
   function setPassCardStamps(passCardEl, stamps) {
     if (!passCardEl) return;
     var stampCount = clamp(Number(stamps || 0) || 0, 0, 999);
+    var rewardThreshold = getPassRewardThreshold(passCardEl);
 
     var prevCount = null;
     try {
@@ -2404,8 +2697,8 @@
       passCardEl.setAttribute("data-stamps", String(stampCount));
     } catch (e0) {}
 
-    var isFull = stampCount >= REWARD_THRESHOLD;
-    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
+    var isFull = stampCount >= rewardThreshold;
+    var extra = Math.max(0, stampCount - rewardThreshold);
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
       hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
@@ -2464,9 +2757,9 @@
     var sub = passCardEl.querySelector(".passSub");
     if (sub) {
       sub.textContent =
-        clamp(stampCount, 0, REWARD_THRESHOLD) +
+        clamp(stampCount, 0, rewardThreshold) +
         " / " +
-        REWARD_THRESHOLD +
+        rewardThreshold +
         " Stempel" +
         (extra > 0 ? " (+" + extra + " extra)" : "");
     }
@@ -2477,7 +2770,7 @@
         ? extra > 0
           ? "Voll +" + extra
           : "Voll"
-        : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
+        : clamp(stampCount, 0, rewardThreshold) + "/" + rewardThreshold;
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -2636,6 +2929,13 @@
             }
           }
 
+          try {
+            syncFavoritesFromServerCards()
+              .then(function (changed) {
+                if (changed) refreshWallet();
+              })
+              .catch(function () {});
+          } catch (eSync) {}
           try {
             scheduleWalletStampsRefresh(120);
           } catch (eW) {}
@@ -2867,6 +3167,13 @@
   function bootAuthed() {
     refreshWallet();
     connectEventsStream();
+    syncFavoritesFromServerCards()
+      .then(function (changed) {
+        if (changed) refreshWallet();
+      })
+      .catch(function () {
+        // non-fatal
+      });
     apiFetch("/cafes/public")
       .then(function (data) {
         var list = Array.isArray(data)
@@ -2893,6 +3200,11 @@
         // non-fatal
       })
       .then(function () {
+        try {
+          syncFavoritesFromServerCards().then(function (changed) {
+            if (changed) refreshWallet();
+          });
+        } catch (eSync) {}
         // Avoid Promise.prototype.finally for older Safari/WebView builds.
         refreshWallet();
         try {

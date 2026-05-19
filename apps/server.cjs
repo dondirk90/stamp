@@ -394,6 +394,8 @@ const server = http.createServer((req, res) => {
     else if (ext === ".js")
       contentType = "application/javascript; charset=utf-8";
     else if (ext === ".json") contentType = "application/json; charset=utf-8";
+    else if (ext === ".webmanifest")
+      contentType = "application/manifest+json; charset=utf-8";
     else if (ext === ".css") contentType = "text/css; charset=utf-8";
     else if (ext === ".png") contentType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
