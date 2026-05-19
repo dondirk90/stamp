@@ -49,19 +49,18 @@
       }
 
       .shell {
-        max-width: 1100px;
+        max-width: 1120px;
         margin: 0 auto;
       }
 
       .topbar {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
         gap: var(--space-3);
         flex-wrap: wrap;
-        margin-bottom: var(--space-4);
-
-        padding: var(--space-4) 0;
+        margin-bottom: clamp(18px, 3vw, 30px);
+        padding: 0 0 var(--space-4);
         border-bottom: none;
       }
 
@@ -69,6 +68,7 @@
         display: flex;
         align-items: center;
         gap: var(--space-3);
+        min-width: 0;
       }
 
       .brand h1 {
@@ -88,16 +88,36 @@
         color: var(--on-brand, #fff);
         font-weight: 900;
       }
+
+      .topbarActions {
+        margin-left: auto;
+      }
+
       .card {
-        max-width: 500px;
-        margin: var(--space-6) auto;
-        background: transparent;
-        padding: var(--space-6);
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
+        width: min(560px, 100%);
+        margin: clamp(28px, 5vw, 54px) auto;
+        background: color-mix(in srgb, var(--surface) 94%, white 6%);
+        padding: clamp(24px, 4vw, 40px);
+        border-radius: calc(var(--radius) + 8px);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        box-shadow: 0 20px 60px rgba(58, 36, 24, 0.08);
         position: relative;
         z-index: 1;
+      }
+      .introBadge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 12%, white 88%);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 auto 18px;
       }
       h2 {
         text-align: center;
@@ -110,7 +130,78 @@
         text-align: center;
         color: var(--text-muted);
         font-size: 15px;
-        margin-bottom: 32px;
+        margin-bottom: 28px;
+      }
+      .featureGrid,
+      .homeGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0 0 22px;
+      }
+      .featureCard,
+      .homeCard {
+        padding: 16px;
+        border-radius: var(--radius);
+        background: var(--surface-muted);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+      }
+      .featureCard strong,
+      .homeCard strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text);
+        font-size: 14px;
+      }
+      .featureCard span,
+      .homeCard span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .softSection {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .softSectionTitle {
+        font-size: 14px;
+        font-weight: 900;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .softSectionText {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .linkRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .ghostLink {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .ghostLink:hover {
+        background: var(--surface-muted);
+      }
+      #loginScreen > .featureGrid + h2,
+      #loginScreen > .featureGrid + h2 + p.subtitle {
+        display: none;
       }
       label {
         display: block;
@@ -196,12 +287,11 @@
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
       .customer-info {
-        background: transparent;
-        padding: 20px 0 0;
-        border-radius: 0;
+        background: var(--surface-muted);
+        padding: 20px;
+        border-radius: var(--radius);
         margin-top: 24px;
-        border: none;
-        border-top: 1px solid var(--border);
+        border: 1px solid color-mix(in srgb, var(--border) 90%, white 10%);
       }
       .customer-info .label {
         font-weight: 600;
@@ -219,10 +309,10 @@
         border-bottom: 1px solid var(--border);
       }
       .stamp-controls {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
+        align-items: end;
+        gap: 14px;
         margin-top: 20px;
       }
 
@@ -250,7 +340,7 @@
 
       .stamp-presets {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 8px;
         width: 100%;
       }
@@ -282,6 +372,7 @@
         font-size: 13px;
         color: var(--text-muted);
         font-weight: 800;
+        text-align: center;
       }
       .toast {
         position: fixed;
@@ -312,8 +403,8 @@
       }
 
       .app-shell {
-        max-width: 1100px;
-        margin: 0 auto 24px;
+        width: min(760px, 100%);
+        margin: 0 auto 28px;
         display: none;
       }
       .sidebar {
@@ -391,29 +482,89 @@
         background: transparent;
       }
       .mainPanel {
-        flex: 1;
+        width: 100%;
         background: transparent;
         border: none;
         border-radius: 0;
         box-shadow: none;
         padding: 0;
       }
+      #homeScreen,
+      #scannerScreen {
+        width: 100%;
+        margin: 0 auto;
+        padding: clamp(24px, 4vw, 38px);
+        background: color-mix(in srgb, var(--surface) 95%, white 5%);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        border-radius: calc(var(--radius) + 8px);
+        box-shadow: 0 20px 60px rgba(58, 36, 24, 0.08);
+      }
       .panelTitle {
-        font-size: 28px;
-        font-weight: 800;
+        font-size: clamp(26px, 4vw, 34px);
+        font-weight: 900;
         color: var(--brand);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
       }
       .hintBox {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 14px 0 0;
-        border-top: 1px solid var(--border);
-        margin-top: 16px;
+        background: var(--surface-muted);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        border-radius: var(--radius);
+        padding: 18px;
+        margin-top: 18px;
         font-size: 14px;
         color: var(--text);
         line-height: 1.4;
+      }
+      .miniSteps {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .miniStep {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+      .miniStepNum {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .miniStepText {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .menuInfo {
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface) 94%, white 6%);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+      }
+      .menuInfo strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      .menuInfo span {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      #homeScreen > .homeGrid + p.subtitle {
+        display: none;
+      }
+      #homeScreen .hintBox:last-of-type > div[style*="color: var(--text-muted)"] {
+        display: none;
       }
 
       @media (max-width: 900px) {
@@ -422,6 +573,58 @@
         }
         .sidebar {
           width: 100%;
+        }
+        .stamp-controls {
+          grid-template-columns: 1fr;
+        }
+        .featureGrid,
+        .homeGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: calc(var(--space-4) + var(--safe-top, 0px))
+            calc(var(--space-3) + var(--safe-right, 0px))
+            calc(var(--space-4) + var(--safe-bottom, 0px))
+            calc(var(--space-3) + var(--safe-left, 0px));
+        }
+
+        .topbar {
+          align-items: flex-start;
+        }
+
+        .topbarActions {
+          margin-left: 0;
+        }
+
+        .card,
+        #homeScreen,
+        #scannerScreen {
+          border-radius: calc(var(--radius) + 4px);
+          padding: 22px;
+          box-shadow: 0 14px 34px rgba(58, 36, 24, 0.08);
+        }
+
+        .panelTitle,
+        .subtitle {
+          text-align: left;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .topMenu {
+          gap: 14px;
+          justify-content: flex-start;
+        }
+
+        .stamp-presets {
+          grid-template-columns: repeat(5, minmax(44px, 1fr));
+        }
+
+        #awardBtn {
+          min-height: 52px;
         }
       }
     </style>
@@ -437,7 +640,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row topbarActions">
           <button
             class="btn secondary"
             id="logoutBtn"
@@ -451,19 +654,19 @@
         <div class="topMenu" aria-label="Navigation">
           <button class="topMenuBtn ghost active" id="navHome" type="button">
             <span class="ico" aria-hidden="true">H</span>
-            <span class="lbl">Willkommen</span>
+            <span class="lbl">Start</span>
           </button>
           <button class="topMenuBtn ghost" id="navScan" type="button">
             <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scan</span>
+            <span class="lbl">Kunde</span>
           </button>
           <a class="topMenuBtn ghost" href="/cafe-profile">
             <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
+            <span class="lbl">Setup</span>
           </a>
           <a class="topMenuBtn ghost" href="/cafe-dashboard">
             <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
+            <span class="lbl">Uebersicht</span>
           </a>
         </div>
       </div>
@@ -471,6 +674,28 @@
       <div class="card" id="loginCard">
         <!-- Login Screen -->
         <div id="loginScreen">
+          <div class="introBadge">Fuer den Tresen gemacht</div>
+          <h2>Willkommen im Cafe Scanner</h2>
+          <p class="subtitle">
+            Melde dich kurz an und vergib Stempel direkt am Tresen. Rewards,
+            Kampagnen und Programmdetails richtest du spaeter in Ruhe im Menue
+            ein.
+          </p>
+
+          <div class="featureGrid" aria-label="Leistungsumfang">
+            <div class="featureCard">
+              <strong>Schnell stempeln</strong>
+              <span>Kunden aufrufen, Stempel vergeben und Rewards direkt im laufenden Betrieb bearbeiten.</span>
+            </div>
+            <div class="featureCard">
+              <strong>Freundlich fuer dein Team</strong>
+              <span>Eine ruhige Oberflaeche fuer Bar, Theke und Service ohne unnoetigen Setup-Druck beim Einstieg.</span>
+            </div>
+            <div class="featureCard">
+              <strong>Mehr als nur eine Karte</strong>
+              <span>Stamp unterstuetzt Kundenbindung, Rueckkehr-Anreize und ein sauberes Erlebnis fuer Stammgaeste.</span>
+            </div>
+          </div>
           <h2>Café Scanner</h2>
           <p class="subtitle">Melde dich mit deinem Café-Konto an</p>
 
@@ -489,6 +714,18 @@
               placeholder="Dein Passwort"
             />
             <button id="loginBtn" style="margin-top: 20px">Anmelden</button>
+
+            <div class="softSection">
+              <div class="softSectionTitle">
+                Was du nach dem Login sofort tun kannst
+              </div>
+              <div class="softSectionText">
+                Kunden empfangen, Stempel vergeben, Rewards einloesen und den
+                Tagesbetrieb am Tresen begleiten. Die Stempelanlage selbst ist
+                bewusst nicht Teil dieses Einstiegs und bleibt eine spaetere
+                Option unter Setup und Uebersicht.
+              </div>
+            </div>
 
             <div style="margin-top: 12px; text-align: center">
               <button
@@ -520,6 +757,17 @@
             >
               <div style="font-weight: 900; margin-bottom: 10px">
                 Reset-Link anfordern
+              </div>
+              <div
+                style="
+                  margin-bottom: 12px;
+                  font-size: 13px;
+                  color: var(--text-muted);
+                  line-height: 1.45;
+                "
+              >
+                Wenn du dein Passwort gerade nicht zur Hand hast, schicken wir
+                dir einen sicheren Link fuer den Wiedereinstieg.
               </div>
               <label style="margin-top: 0">E-Mail</label>
               <input
@@ -650,16 +898,21 @@
                 color: var(--text-muted);
               "
             >
-              Noch kein Konto?
-              <a
-                href="/cafe-onboarding"
-                style="
-                  color: var(--brand);
-                  text-decoration: none;
-                  font-weight: 700;
-                "
-                >Jetzt registrieren</a
-              >
+              <div class="softSectionTitle" style="margin-bottom: 6px">
+                Noch kein Konto?
+              </div>
+              <div class="softSectionText">
+                Registriere dein Cafe in wenigen Schritten. Auch dort fuehren
+                wir dich zuerst durch den Grundaufbau, statt dich sofort mit
+                Stempelkarten und Programmdetails zu ueberladen.
+              </div>
+              <div class="linkRow">
+                <a
+                  href="/cafe-onboarding"
+                  class="ghostLink"
+                  >Cafe registrieren</a
+                >
+              </div>
             </div>
           </div>
         </div>
@@ -669,7 +922,27 @@
         <main class="mainPanel">
           <!-- Welcome / Home -->
           <div id="homeScreen">
-            <div class="panelTitle">Willkommen</div>
+            <div class="panelTitle">Dein Tresen-Start</div>
+            <p class="subtitle" style="text-align: left">
+              Hier landet dein Team nach dem Login. Kunden-Links oeffnen
+              automatisch die passende Stempelansicht, waehrend Einrichtung und
+              Programmsteuerung bewusst im Hintergrund bleiben.
+            </p>
+
+            <div class="homeGrid">
+              <div class="homeCard">
+                <strong>Heute am wichtigsten</strong>
+                <span>QR oeffnen, Kunde sehen, Stempel oder Reward direkt bestaetigen. Alles ist auf Schnelligkeit am Tresen optimiert.</span>
+              </div>
+              <div class="homeCard">
+                <strong>Setup spaeter im Menue</strong>
+                <span>Stempelkarten, Rewards, Kampagnen und Programmdetails pflegst du spaeter unter Setup und Uebersicht.</span>
+              </div>
+              <div class="homeCard">
+                <strong>Was Stamp liefern soll</strong>
+                <span>Weniger Reibung fuer das Team, klarere Reward-Logik und eine staerkere Kundenbindung ohne App-Chaos.</span>
+              </div>
+            </div>
             <p class="subtitle" style="text-align: left">
               Hier ist deine Café-Startseite. Scans öffnen automatisch die
               Stempel- Ansicht.
@@ -687,7 +960,30 @@
 
             <div class="hintBox">
               <div style="font-weight: 800; margin-bottom: 6px">
-                So nutzt du es
+                So laeuft ein Scan in der Praxis
+              </div>
+              <div class="miniSteps">
+                <div class="miniStep">
+                  <div class="miniStepNum">1</div>
+                  <div class="miniStepText">
+                    Kunde zeigt den Wallet-QR oder oeffnet den persoenlichen
+                    Link.
+                  </div>
+                </div>
+                <div class="miniStep">
+                  <div class="miniStepNum">2</div>
+                  <div class="miniStepText">
+                    Der Scanner oeffnet automatisch die passende Kundenansicht
+                    und zeigt den aktuellen Stand.
+                  </div>
+                </div>
+                <div class="miniStep">
+                  <div class="miniStepNum">3</div>
+                  <div class="miniStepText">
+                    Du vergibst Stempel oder loest Rewards ein, ohne erst durch
+                    Setup-Seiten springen zu muessen.
+                  </div>
+                </div>
               </div>
               <div style="color: var(--text-muted)">
                 1) Kunde zeigt QR-Code auf dem Handy.<br />
@@ -695,6 +991,16 @@
                 3) Der Link öffnet diese Seite mit Parametern – dann kannst du
                 direkt stempeln.
               </div>
+            </div>
+
+            <div class="menuInfo">
+              <strong>Wo du spaeter was findest</strong>
+              <span>
+                Unter <b>Setup</b> pflegst du Programmdetails und Profil. Unter
+                <b>Uebersicht</b> findest du weitere Verwaltungs- und
+                Organisationsfunktionen. Der Startbildschirm bleibt bewusst nur
+                fuer den Tagesbetrieb da.
+              </span>
             </div>
           </div>
 
@@ -707,8 +1013,9 @@
             </p>
 
             <div id="scanHint" class="hintBox">
-              Noch kein Kunde geladen. Scanne den Kunden-QR, damit die Daten
-              hier erscheinen.
+              Noch kein Kunde geladen. Sobald ein QR-Link geoeffnet oder ein
+              Kunde ueber den Wallet-Flow kommt, erscheint die passende Ansicht
+              automatisch hier.
             </div>
 
             <div id="customerInfo" class="customer-info" style="display: none">

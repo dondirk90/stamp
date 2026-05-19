@@ -1,8 +1,8 @@
-name: Deploy (staging)
+name: Deploy Staging
 
 on:
   push:
-    branches: [main]
+    branches: [test]
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +14,32 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ secrets.STAMP_SSH_HOST != '' && secrets.STAMP_SSH_USER != '' && secrets.STAMP_SSH_KEY != '' }}
     steps:
-      - name: Deploy via SSH
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create deployment archive
+        run: |
+          tar \
+            --exclude-vcs \
+            --exclude='.github' \
+            --exclude='stamp-cafe-os' \
+            --exclude='stamp-coffee-guide' \
+            --exclude='node_modules' \
+            --exclude='api/.api.*.log' \
+            --exclude='apps/.apps-server.*.log' \
+            -czf stamp-staging.tgz .
+
+      - name: Upload archive to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAMP_SSH_HOST }}
+          username: ${{ secrets.STAMP_SSH_USER }}
+          key: ${{ secrets.STAMP_SSH_KEY }}
+          port: ${{ secrets.STAMP_SSH_PORT || '22' }}
+          source: "stamp-staging.tgz"
+          target: "/tmp"
+
+      - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.STAMP_SSH_HOST }}
@@ -25,20 +50,21 @@ jobs:
             set -euo pipefail
 
             APP_DIR="/opt/stamp"
-            if [ ! -d "$APP_DIR/.git" ]; then
-              sudo mkdir -p "$APP_DIR"
-              sudo chown -R "$USER":"$USER" "$APP_DIR"
-              git clone https://github.com/${{ github.repository }}.git "$APP_DIR"
-            fi
+            ARCHIVE="/tmp/stamp-staging.tgz"
 
-            cd "$APP_DIR"
-            git fetch --all --prune
-            git checkout main
-            git reset --hard origin/main
+            mkdir -p "$APP_DIR"
+            find "$APP_DIR" -mindepth 1 -maxdepth 1 \
+              ! -name '.env.staging' \
+              ! -name '.env.prod' \
+              -exec rm -rf {} +
 
-            cat > .env.staging << 'EOF'
+            tar -xzf "$ARCHIVE" -C "$APP_DIR"
+            rm -f "$ARCHIVE"
+
+            cat > "$APP_DIR/.env.staging" << 'EOF'
             STAGING_APPS_PORT=${{ secrets.STAGING_APPS_PORT || '8081' }}
-            STAGING_APPS_BASE_URL=${{ secrets.STAGING_APPS_BASE_URL || 'http://localhost:8081' }}
+            STAGING_APPS_BASE_URL=${{ secrets.STAGING_APPS_BASE_URL }}
+            STAGING_DOMAIN=${{ secrets.STAGING_DOMAIN }}
             EMAIL_HOST=${{ secrets.EMAIL_HOST }}
             EMAIL_PORT=${{ secrets.EMAIL_PORT }}
             EMAIL_SECURE=${{ secrets.EMAIL_SECURE }}
@@ -46,6 +72,7 @@ jobs:
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
             EOF
 
+            cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
 
-            echo "Staging deployed. Apps: http://<server-ip>:${{ secrets.STAGING_APPS_PORT || '8081' }}"
+            echo "Staging deployed to https://${{ secrets.STAGING_DOMAIN }}"
