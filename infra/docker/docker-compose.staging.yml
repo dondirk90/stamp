@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     depends_on:
       - apps
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN}
     ports:
       - "80:80"
       - "443:443"
