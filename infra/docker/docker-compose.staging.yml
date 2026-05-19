@@ -1,6 +1,19 @@
 version: "3.9"
 
 services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - apps
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile.staging:/etc/caddy/Caddyfile:ro
+      - staging_caddy_data:/data
+      - staging_caddy_config:/config
+
   api:
     build:
       context: ../../api
@@ -35,3 +48,5 @@ services:
 
 volumes:
   staging_data:
+  staging_caddy_data:
+  staging_caddy_config:
