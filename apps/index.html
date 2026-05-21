@@ -3,46 +3,329 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Stamp — Start</title>
+    <title>Stamp - Digitale Stempelkarte fuer Cafes</title>
+    <meta
+      name="description"
+      content="Stamp verbindet digitale Stempelkarten fuer Gaeste mit einem einfachen Scanner- und Treue-Setup fuer Cafes."
+    />
     <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+      }
+
+      .welcomeShell {
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 28px;
+        align-items: start;
+        margin-bottom: var(--space-6);
+      }
+
+      .heroPanel,
+      .infoPanel,
+      .audiencePanel {
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface) 96%, var(--brand-50) 4%);
+        padding: 26px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 12px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+
+      .heroTitle {
+        margin: 0 0 14px;
+        font-size: clamp(34px, 6vw, 60px);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+      }
+
+      .heroLead {
+        margin: 0 0 18px;
+        font-size: 18px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        max-width: 58ch;
+      }
+
+      .ctaRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 22px 0 18px;
+      }
+
+      .heroList {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .heroItem {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .heroIndex {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .heroItemText {
+        color: var(--text-muted);
+        line-height: 1.45;
+        font-size: 14px;
+      }
+
+      .panelTitle {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+
+      .panelText {
+        margin: 0 0 14px;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
+      .benefitGrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: var(--space-6);
+      }
+
+      .audienceGrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: var(--space-6);
+      }
+
+      .audiencePanel h3,
+      .infoPanel h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      .audienceList,
+      .infoList {
+        display: grid;
+        gap: 10px;
+        margin: 14px 0 0;
+      }
+
+      .audienceList div,
+      .infoList div {
+        color: var(--text-muted);
+        line-height: 1.45;
+        font-size: 14px;
+      }
+
+      .audienceList strong,
+      .infoList strong {
+        color: var(--text);
+      }
+
+      .appGrid.cols2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .appPanel {
+        border: 1px solid var(--border);
+        background: transparent;
+        padding: 24px;
+      }
+
+      .appPanel h2 {
+        margin: 0 0 8px;
+      }
+
+      .appPanel .subtitle {
+        line-height: 1.55;
+      }
+
+      .appCtas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .quickHint {
+        margin-top: var(--space-5);
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .benefitGrid,
+        .audienceGrid,
+        .appGrid.cols2 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="container">
-      <div class="appTop">
-        <div>
-          <h1 style="margin: 0">Stamp</h1>
-          <div class="subtitle">Customer Wallet · Café Tools</div>
-        </div>
-        <a class="btn secondary" href="/lan-setup.html">LAN Setup</a>
+    <div class="welcomeShell">
+      <div class="hero">
+        <section class="heroPanel">
+          <div class="eyebrow">Digitale Stempelkarten fuer Cafes</div>
+          <h1 class="heroTitle">Treueprogramm, Wallet und Scanner in einer ruhigen App.</h1>
+          <p class="heroLead">
+            Stamp macht aus der klassischen Papier-Stempelkarte ein digitales
+            Erlebnis: Gaeste sammeln ihre Besuche im Handy, Cafes vergeben
+            Stempel am Tresen in Sekunden und beide Seiten behalten den Ueberblick.
+          </p>
+
+          <div class="ctaRow">
+            <a class="btn primary" href="/customer-wallet">Als Gast starten</a>
+            <a class="btn secondary" href="/cafe-onboarding">Als Cafe einrichten</a>
+            <a class="btn secondary" href="/cafe-scanner">Scanner oeffnen</a>
+          </div>
+
+          <div class="heroList">
+            <div class="heroItem">
+              <div class="heroIndex">1</div>
+              <div class="heroItemText">
+                Gaeste sehen ihre Karten, Stempel und Belohnungen sofort in einer mobilen Wallet.
+              </div>
+            </div>
+            <div class="heroItem">
+              <div class="heroIndex">2</div>
+              <div class="heroItemText">
+                Cafes behalten ein klares, schnelles Tresen-Tool statt eines ueberladenen Backoffice.
+              </div>
+            </div>
+            <div class="heroItem">
+              <div class="heroIndex">3</div>
+              <div class="heroItemText">
+                Rueckkehr-Anreize, Rewards und Kampagnen bleiben spaeter erweiterbar, ohne den Einstieg zu verkomplizieren.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="infoPanel">
+          <h2 class="panelTitle">Worum es hier geht</h2>
+          <p class="panelText">
+            Diese Seite ist die gemeinsame Startflaeche fuer die zwei Hauptrollen
+            in Stamp: Gast und Cafe.
+          </p>
+          <div class="infoList">
+            <div><strong>Gast:</strong> Lieblingscafes speichern, Stempel verfolgen, QR zeigen, Belohnung einloesen.</div>
+            <div><strong>Cafe:</strong> Stempelkarte anlegen, Reward definieren, Scanner fuer das Team nutzen.</div>
+            <div><strong>Gemeinsamer Vorteil:</strong> weniger Reibung, weniger Papierchaos und ein klareres Treueerlebnis.</div>
+          </div>
+        </aside>
       </div>
 
-      <div class="appGrid cols2" style="margin-top: var(--space-5)">
+      <section class="audienceGrid">
+        <article class="audiencePanel">
+          <h3>Vorteile fuer Kundinnen und Kunden</h3>
+          <div class="audienceList">
+            <div><strong>Alles im Handy:</strong> Keine verlorenen Karten, keine unleserlichen Stempel.</div>
+            <div><strong>Sofort sichtbar:</strong> Wie viele Besuche fehlen noch bis zur Belohnung?</div>
+            <div><strong>Schneller Zugriff:</strong> QR aufrufen, zeigen, fertig.</div>
+            <div><strong>Mehr Bindung:</strong> Lieblingscafes bleiben praesent und motivieren zur Rueckkehr.</div>
+          </div>
+        </article>
+
+        <article class="audiencePanel">
+          <h3>Vorteile fuer Cafes</h3>
+          <div class="audienceList">
+            <div><strong>Einfach am Tresen:</strong> Team muss nicht lange suchen oder komplexe Systeme lernen.</div>
+            <div><strong>Klares Reward-Modell:</strong> Stempelziel und Belohnung lassen sich verstaendlich definieren.</div>
+            <div><strong>Professioneller Eindruck:</strong> Die Kundenkarte wirkt digital, gepflegt und modern.</div>
+            <div><strong>Mehr Wiederkehr:</strong> Treueprogramme helfen, Stammgaeste aktiv zu halten.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="benefitGrid">
+        <article class="infoPanel">
+          <h3>Als Gast</h3>
+          <p class="panelText">
+            Die Wallet ist fuer Menschen gedacht, die ihr Lieblingscafe regelmaessig
+            besuchen und ihre Karte lieber digital als in der Hosentasche tragen.
+          </p>
+          <div class="appCtas">
+            <a class="btn primary" href="/customer-wallet">Wallet oeffnen</a>
+            <a class="btn secondary" href="/customer-profile">Profil</a>
+          </div>
+        </article>
+
+        <article class="infoPanel">
+          <h3>Als Cafe</h3>
+          <p class="panelText">
+            Das Cafe-Setup fuehrt dich zuerst zur Stempelkarte und laesst
+            fortgeschrittene Themen wie Kampagnen oder Zusatzverwaltung bewusst spaeter folgen.
+          </p>
+          <div class="appCtas">
+            <a class="btn primary" href="/cafe-onboarding">Cafe einrichten</a>
+            <a class="btn secondary" href="/cafe-profile">Stempelkarte gestalten</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="appGrid cols2">
         <div class="card appPanel">
-          <h2>Customer App</h2>
-          <div class="subtitle" style="margin-top: 6px">
-            Stempelkarten speichern, flippen und QR zeigen · Cafés entdecken
+          <h2>Customer Wallet</h2>
+          <div class="subtitle">
+            Digitale Stempelkarten, QR, Rewards und mobile Kartenansicht fuer
+            echte Wiederkehr statt Papierchaos.
           </div>
           <div class="appCtas">
-            <a class="btn primary" href="/customer-wallet">Öffnen</a>
+            <a class="btn primary" href="/customer-wallet">Oeffnen</a>
             <a class="btn secondary" href="/customer-profile">Profil</a>
           </div>
         </div>
 
         <div class="card appPanel">
-          <h2>Café Tools</h2>
-          <div class="subtitle" style="margin-top: 6px">
-            Login/Onboarding · Scanner zum Stempeln & Einlösen
+          <h2>Cafe Tools</h2>
+          <div class="subtitle">
+            Onboarding, Stempelkarte, Scanner und spaetere Verwaltung fuer das
+            Team im Cafe.
           </div>
           <div class="appCtas">
             <a class="btn primary" href="/cafe-onboarding">Onboarding</a>
             <a class="btn secondary" href="/cafe-scanner">Scanner</a>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div style="margin-top: var(--space-5)" class="notice info">
-        Tipp: Für Mobile/LAN nutze immer die Links über diesen Server (Port
-        8080), damit API Calls über <span class="mono">/api</span> laufen.
+      <div class="notice info quickHint">
+        Tipp: Fuer Mobile und LAN immer die Links ueber diesen Server nutzen,
+        damit API-Calls sauber ueber <span class="mono">/api</span> laufen.
       </div>
     </div>
   </body>
