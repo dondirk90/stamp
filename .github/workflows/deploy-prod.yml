@@ -13,12 +13,31 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ secrets.STAMP_SSH_HOST != '' && secrets.STAMP_SSH_USER != '' && secrets.STAMP_SSH_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate required secrets
+        env:
+          STAMP_SSH_HOST: ${{ secrets.STAMP_SSH_HOST }}
+          STAMP_SSH_USER: ${{ secrets.STAMP_SSH_USER }}
+          STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
+          PROD_APPS_BASE_URL: ${{ secrets.PROD_APPS_BASE_URL }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$STAMP_SSH_HOST"
+          test -n "$STAMP_SSH_USER"
+          test -n "$STAMP_SSH_KEY"
+          test -n "$PROD_APPS_BASE_URL"
+          test -n "$POSTGRES_USER"
+          test -n "$POSTGRES_PASSWORD"
+          test -n "$POSTGRES_DB"
+          test -n "$DATABASE_URL"
 
       - name: Create deployment archive
         run: |

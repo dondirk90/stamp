@@ -12,10 +12,23 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ secrets.STAMP_SSH_HOST != '' && secrets.STAMP_SSH_USER != '' && secrets.STAMP_SSH_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          STAMP_SSH_HOST: ${{ secrets.STAMP_SSH_HOST }}
+          STAMP_SSH_USER: ${{ secrets.STAMP_SSH_USER }}
+          STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
+          STAGING_APPS_BASE_URL: ${{ secrets.STAGING_APPS_BASE_URL }}
+          STAGING_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+        run: |
+          test -n "$STAMP_SSH_HOST"
+          test -n "$STAMP_SSH_USER"
+          test -n "$STAMP_SSH_KEY"
+          test -n "$STAGING_APPS_BASE_URL"
+          test -n "$STAGING_DOMAIN"
 
       - name: Create deployment archive
         run: |
