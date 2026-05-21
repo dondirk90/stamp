@@ -35,6 +35,7 @@ jobs:
 
       - name: Create deployment archive
         run: |
+          mkdir -p /tmp/stamp-deploy
           tar \
             --exclude-vcs \
             --exclude='.github' \
@@ -43,7 +44,7 @@ jobs:
             --exclude='node_modules' \
             --exclude='api/.api.*.log' \
             --exclude='apps/.apps-server.*.log' \
-            -czf stamp-staging.tgz .
+            -czf /tmp/stamp-deploy/stamp-staging.tgz .
 
       - name: Upload archive to server
         uses: appleboy/scp-action@v0.1.7
@@ -52,7 +53,7 @@ jobs:
           username: ${{ secrets.STAMP_SSH_USER }}
           key: ${{ secrets.STAMP_SSH_KEY }}
           port: ${{ secrets.STAMP_SSH_PORT || '22' }}
-          source: "stamp-staging.tgz"
+          source: "/tmp/stamp-deploy/stamp-staging.tgz"
           target: "/tmp"
 
       - name: Deploy on server
