@@ -2103,6 +2103,45 @@
     } catch (e) {}
   }
 
+  function updateWalletStackFollowers(scroller, dx, dy) {
+    if (!scroller) return;
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      var second = cards && cards[1] ? cards[1] : null;
+      var third = cards && cards[2] ? cards[2] : null;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      var progress = Math.min(1, dist / 120);
+      var swayX = clamp(dx * 0.08, -10, 10);
+      var liftY2 = 8 - progress * 5;
+      var liftY3 = 14 - progress * 4;
+
+      if (second) {
+        second.style.setProperty("--wheel-tx", swayX.toFixed(2) + "px");
+        second.style.setProperty("--stack-y", liftY2.toFixed(2) + "px");
+        second.style.setProperty(
+          "--wheel-scale",
+          String((0.99 + progress * 0.008).toFixed(3)),
+        );
+        second.style.setProperty(
+          "--wheel-opacity",
+          String((0.35 + progress * 0.08).toFixed(3)),
+        );
+      }
+      if (third) {
+        third.style.setProperty("--wheel-tx", (swayX * 0.45).toFixed(2) + "px");
+        third.style.setProperty("--stack-y", liftY3.toFixed(2) + "px");
+        third.style.setProperty(
+          "--wheel-scale",
+          String((0.98 + progress * 0.006).toFixed(3)),
+        );
+        third.style.setProperty(
+          "--wheel-opacity",
+          String((0.2 + progress * 0.05).toFixed(3)),
+        );
+      }
+    } catch (e) {}
+  }
+
   function sendTopCardToBack(scroller, opts) {
     if (!scroller) return;
     var cardEl = scroller.querySelector(".passCard");
@@ -2343,6 +2382,11 @@
             "--wheel-opacity",
             String(walletState.dragOpCur.toFixed(3)),
           );
+          updateWalletStackFollowers(
+            scroller,
+            walletState.dragTxCur,
+            walletState.dragTyCur,
+          );
         } catch (e) {}
 
         if (walletState.stackDrag) {
@@ -2399,6 +2443,7 @@
         card.style.transition =
           "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease";
       } catch (e1) {}
+      updateWalletStackFollowers(scroller, 0, 0);
       card.style.setProperty("--wheel-tx", "0px");
       card.style.setProperty("--stack-swipe-y", "0px");
       card.style.setProperty("--wheel-rz", "0deg");
