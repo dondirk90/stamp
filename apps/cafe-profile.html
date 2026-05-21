@@ -57,8 +57,69 @@
         color: var(--text-muted);
       }
 
+      .pageIntro {
+        margin: 0 0 var(--space-4);
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
       .nav {
         display: none;
+      }
+
+      .viewSection[hidden] {
+        display: none !important;
+      }
+
+      #setupHero + h2,
+      #setupHero + h2 + .muted {
+        display: none;
+      }
+
+      .cardSection[hidden] {
+        display: none !important;
+      }
+
+      .advancedOnly[hidden] {
+        display: none !important;
+      }
+
+      .heroCard {
+        padding: var(--space-4);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface-muted);
+      }
+
+      .heroCard h3 {
+        margin: 0 0 10px;
+        color: var(--brand);
+        font-size: 18px;
+      }
+
+      .heroCard p {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
+      .helperNote {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .helperNote a {
+        color: var(--brand);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .subSectionTitle {
+        margin: 0 0 8px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 900;
       }
 
       textarea.profileInput {
@@ -192,13 +253,17 @@
             <span class="ico" aria-hidden="true">S</span>
             <span class="lbl">Scanner</span>
           </a>
+          <a class="topMenuBtn ghost active" id="navCardSetup" href="/cafe-profile">
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Stempelkarte</span>
+          </a>
+          <a class="topMenuBtn ghost" id="navAdvanced" href="/cafe-profile?view=advanced">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verwaltung</span>
+          </a>
           <a class="topMenuBtn ghost" href="/cafe-dashboard">
             <span class="ico" aria-hidden="true">D</span>
             <span class="lbl">Dashboard</span>
-          </a>
-          <a class="topMenuBtn ghost active" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
           </a>
         </div>
       </div>
@@ -212,6 +277,25 @@
         class="card"
         style="padding: var(--space-5); display: none"
       >
+        <div id="setupHero">
+          <h2 id="profileTitle" style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
+            Stempelkarte
+          </h2>
+          <div class="pageIntro" id="profileIntro">
+            Richte zuerst nur die Kundenkarte und die Belohnung ein. Alles
+            Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt
+            unter <strong>Verwaltung</strong>.
+          </div>
+          <div class="heroCard">
+            <h3>Ein guter Aufbau in 3 Schritten</h3>
+            <p>
+              1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
+              ist. 2. Gestalte die Karte so, dass sie in der Wallet klar und
+              hochwertig wirkt. 3. Pflege spaeter in der Verwaltung Kampagnen,
+              Standort und Zusatzinhalte.
+            </p>
+          </div>
+        </div>
         <h2 style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
           Café Profil
         </h2>
@@ -220,7 +304,7 @@
         </div>
 
         <div class="stack" style="gap: 12px">
-          <div>
+          <div id="sectionLocation" class="viewSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Standort (für Kunden-Karte)
             </div>
@@ -237,15 +321,16 @@
             </div>
           </div>
 
-          <div class="card" style="padding: var(--space-4); margin-top: 8px">
-            <h3 style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
-              Popup-Kampagnen
+          <div id="sectionProgramCampaigns" class="card" style="padding: var(--space-4); margin-top: 8px">
+            <h3 id="programSectionTitle" style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
+              Stempelprogramm
             </h3>
-            <div class="muted" style="margin-bottom: var(--space-3)">
-              Diese Hinweise erscheinen in der Kunden-Wallet, wenn ein Besuch lange her ist oder nur noch wenige Stempel bis zur Belohnung fehlen.
+            <div class="muted" id="programSectionIntro" style="margin-bottom: var(--space-3)">
+              Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist
+              und wie diese auf der Kundenkarte benannt wird.
             </div>
 
-            <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+            <div id="sectionRewardCore" class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
               <div style="flex: 1">
                 <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                   Stempel f?r Belohnung
@@ -260,7 +345,15 @@
               </div>
             </div>
 
-            <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+            <div id="programAdvancedIntro" class="advancedOnly">
+              <div class="muted" style="margin: 4px 0 14px">
+                Diese Hinweise erscheinen in der Kunden-Wallet, wenn ein Besuch
+                lange her ist oder nur noch wenige Stempel bis zur Belohnung
+                fehlen.
+              </div>
+            </div>
+
+            <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
               <label class="row" style="gap: 8px; flex: 1; align-items: center">
                 <input id="profilePopupInactiveEnabled" type="checkbox" checked />
                 <span>Reaktivierungs-Popup aktiv</span>
@@ -272,9 +365,9 @@
                 <input id="profilePopupInactiveDays" class="input" type="number" min="7" max="365" step="1" style="width: 100%" />
               </div>
             </div>
-            <textarea id="profilePopupInactiveMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text f?r Kunden, die l?nger nicht da waren. Leer = Standardtext."></textarea>
+            <textarea id="profilePopupInactiveMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text f?r Kunden, die l?nger nicht da waren. Leer = Standardtext."></textarea>
 
-            <div class="logoRow" style="align-items: flex-end; margin: 16px 0 14px">
+            <div class="logoRow advancedOnly" style="align-items: flex-end; margin: 16px 0 14px">
               <label class="row" style="gap: 8px; flex: 1; align-items: center">
                 <input id="profilePopupAlmostRewardEnabled" type="checkbox" checked />
                 <span>"Fast geschafft"-Popup aktiv</span>
@@ -286,10 +379,10 @@
                 <input id="profilePopupAlmostRewardRemaining" class="input" type="number" min="1" max="10" step="1" style="width: 100%" />
               </div>
             </div>
-            <textarea id="profilePopupAlmostRewardMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text f?r Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+            <textarea id="profilePopupAlmostRewardMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text f?r Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
           </div>
 
-          <div class="logoRow" style="align-items: flex-end">
+          <div id="sectionLatLng" class="logoRow viewSection" style="align-items: flex-end">
             <div style="flex: 1">
               <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                 Latitude (optional)
@@ -318,7 +411,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionAbout" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Über das Café
             </div>
@@ -347,7 +440,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionRedeem" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Einlöse-Text (wenn Karte voll ist)
             </div>
@@ -363,7 +456,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionLogo" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Logo
             </div>
@@ -380,7 +473,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardTheme" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Kartendesign
             </div>
@@ -397,7 +490,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardBackground" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Karten-Hintergrund (optional)
             </div>
@@ -425,7 +518,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardBackText" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Rückseite (Text)
             </div>
@@ -440,7 +533,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionGallery" class="viewSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Bilder (optional)
             </div>
@@ -458,9 +551,13 @@
 
           <div class="logoRow" style="justify-content: space-between">
             <button class="btn" id="profileSaveBtn" type="button">
-              Speichern
+              Änderungen speichern
             </button>
             <div class="msg" id="profileMsg"></div>
+          </div>
+          <div class="helperNote" id="switchHint">
+            Standort, Popup-Kampagnen und Bilder findest du gesammelt unter
+            <a href="/cafe-profile?view=advanced">Verwaltung</a>.
           </div>
         </div>
       </div>
@@ -486,6 +583,74 @@
         images: [],
         cardTheme: "paper",
       };
+
+      function getProfileViewMode() {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          return sp.get("view") === "advanced" ? "advanced" : "card";
+        } catch (e) {
+          return "card";
+        }
+      }
+
+      function applyProfileViewMode(mode) {
+        const isAdvanced = mode === "advanced";
+        const titleEl = document.getElementById("profileTitle");
+        const introEl = document.getElementById("profileIntro");
+        const heroEl = document.getElementById("setupHero");
+        const switchHintEl = document.getElementById("switchHint");
+        const navCardSetup = document.getElementById("navCardSetup");
+        const navAdvanced = document.getElementById("navAdvanced");
+        const saveBtn = document.getElementById("profileSaveBtn");
+        const programSectionTitle = document.getElementById("programSectionTitle");
+        const programSectionIntro = document.getElementById("programSectionIntro");
+        const cardSections = document.querySelectorAll(".cardSection");
+        const advancedSections = document.querySelectorAll(".viewSection");
+        const advancedOnlySections = document.querySelectorAll(".advancedOnly");
+
+        if (titleEl) {
+          titleEl.textContent = isAdvanced ? "Verwaltung" : "Stempelkarte";
+        }
+        if (introEl) {
+          introEl.innerHTML = isAdvanced
+            ? "Hier liegen die erweiterten Einstellungen wie Standort, Popup-Kampagnen und Bilder. Die eigentliche Kundenkarte bleibt bewusst in einem eigenen, ruhigeren Setup."
+            : "Richte zuerst nur die Kundenkarte und die Belohnung ein. Alles Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt unter <strong>Verwaltung</strong>.";
+        }
+        if (heroEl) heroEl.hidden = isAdvanced;
+        if (switchHintEl) switchHintEl.hidden = isAdvanced;
+        if (saveBtn) {
+          saveBtn.textContent = isAdvanced
+            ? "Verwaltung speichern"
+            : "Stempelkarte speichern";
+        }
+        if (programSectionTitle) {
+          programSectionTitle.textContent = isAdvanced
+            ? "Stempelprogramm und Kampagnen"
+            : "Stempelprogramm";
+        }
+        if (programSectionIntro) {
+          programSectionIntro.textContent = isAdvanced
+            ? "Hier pflegst du die Grundlogik der Karte und optional die Wallet-Hinweise fuer Rueckkehr und Fast-geschafft-Momente."
+            : "Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist und wie diese auf der Kundenkarte benannt wird.";
+        }
+        if (navCardSetup) {
+          navCardSetup.classList.toggle("active", !isAdvanced);
+          navCardSetup.classList.toggle("ghost", isAdvanced);
+        }
+        if (navAdvanced) {
+          navAdvanced.classList.toggle("active", isAdvanced);
+          navAdvanced.classList.toggle("ghost", !isAdvanced);
+        }
+        cardSections.forEach((el) => {
+          el.hidden = isAdvanced;
+        });
+        advancedSections.forEach((el) => {
+          el.hidden = !isAdvanced;
+        });
+        advancedOnlySections.forEach((el) => {
+          el.hidden = !isAdvanced;
+        });
+      }
 
       async function resolveApiBase() {
         if (location.protocol === "file:") return DEFAULT_API_BASE;
@@ -980,6 +1145,7 @@
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
           document.getElementById("buildBadge").textContent = `API: ${apiBase}`;
+          applyProfileViewMode(getProfileViewMode());
 
           document
             .getElementById("logoutBtn")
