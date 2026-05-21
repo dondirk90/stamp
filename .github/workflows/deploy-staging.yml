@@ -68,7 +68,9 @@ jobs:
             set -euo pipefail
 
             APP_DIR="/opt/stamp"
-            ARCHIVE="/tmp/stamp-staging.tgz"
+            ARCHIVE="$(find /tmp -type f -name 'stamp-staging.tgz' | head -n 1)"
+
+            test -n "$ARCHIVE"
 
             mkdir -p "$APP_DIR"
             find "$APP_DIR" -mindepth 1 -maxdepth 1 \
