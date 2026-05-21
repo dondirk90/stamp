@@ -2083,6 +2083,7 @@
       node.style.setProperty("--wheel-tx", "0px");
       node.style.setProperty("--stack-swipe-y", "0px");
       node.style.setProperty("--wheel-rz", "0deg");
+      node.style.transition = "";
       node.style.setProperty("--wheel-opacity", String(op));
       node.style.setProperty("--wheel-scale", String(sc));
       node.style.setProperty("--stack-y", String(sy) + "px");
@@ -2129,6 +2130,7 @@
         // Always reset to the front when it goes to the back.
         closePass(cardEl);
         cardEl.classList.remove("isSwapping");
+        cardEl.style.transition = "";
         cardEl.style.setProperty("--wheel-tx", "0px");
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
@@ -2166,6 +2168,7 @@
       try {
         closePass(cardEl);
         cardEl.classList.remove("isSwapping");
+        cardEl.style.transition = "";
         cardEl.style.setProperty("--wheel-tx", "0px");
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
@@ -2219,10 +2222,16 @@
         startY: ev.clientY,
         lastX: ev.clientX,
         lastY: ev.clientY,
+        lastMoveAt: nowMs(),
+        vx: 0,
+        vy: 0,
         moved: false,
         activeEl: top,
         captured: false,
       };
+      try {
+        top.style.transition = "none";
+      } catch (e2) {}
     }
 
     function onPointerMove(ev) {
@@ -2230,8 +2239,17 @@
       if (!d || d.id !== ev.pointerId) return;
       var dx = ev.clientX - d.startX;
       var dy = ev.clientY - d.startY;
+      var ddx = ev.clientX - d.lastX;
+      var ddy = ev.clientY - d.lastY;
+      var tNow = nowMs();
+      var dt = Math.max(1, tNow - (d.lastMoveAt || tNow));
+      var instVx = ddx / dt;
+      var instVy = ddy / dt;
+      d.vx = d.vx * 0.72 + instVx * 0.28;
+      d.vy = d.vy * 0.72 + instVy * 0.28;
       d.lastX = ev.clientX;
       d.lastY = ev.clientY;
+      d.lastMoveAt = tNow;
 
       if (!d.moved) {
         if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
@@ -2256,8 +2274,10 @@
       var op = 1 - Math.min(0.68, dist / 520);
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(165, Math.max(95, w * 0.32));
-      if (dist >= trigger) {
+      var trigger = Math.min(150, Math.max(84, w * 0.28));
+      var speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+      var isFlick = speed > 0.55 && dist > 26;
+      if (dist >= trigger || isFlick) {
         // Trigger immediately once it's far enough away.
         walletState.ignoreClickUntil = nowMs() + 340;
         walletState.stackDrag = null;
@@ -2274,9 +2294,10 @@
 
         var dir =
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
+        var momentum = Math.min(1.45, 1 + speed * 0.5);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.25,
-          ty: ty * 1.15,
+          tx: tx * 1.1 * momentum,
+          ty: ty * 1.06 * momentum,
           dir: dir,
         });
         return;
@@ -2298,13 +2319,13 @@
 
           // Smooth interpolation (reduces jitter on mobile).
           walletState.dragTxCur +=
-            (walletState.dragTx - walletState.dragTxCur) * 0.35;
+            (walletState.dragTx - walletState.dragTxCur) * 0.5;
           walletState.dragTyCur +=
-            (walletState.dragTy - walletState.dragTyCur) * 0.35;
+            (walletState.dragTy - walletState.dragTyCur) * 0.5;
           walletState.dragRzCur +=
-            (walletState.dragRz - walletState.dragRzCur) * 0.35;
+            (walletState.dragRz - walletState.dragRzCur) * 0.46;
           walletState.dragOpCur +=
-            (walletState.dragOp - walletState.dragOpCur) * 0.45;
+            (walletState.dragOp - walletState.dragOpCur) * 0.52;
 
           card2.style.setProperty(
             "--wheel-tx",
@@ -2360,22 +2381,29 @@
       var tx = clamp(dx, -260, 260);
       var ty = clamp(dy, -220, 220);
       var dist = Math.sqrt(tx * tx + ty * ty);
-      if (moved && dist > threshold) {
+      var releaseSpeed = Math.sqrt((d.vx || 0) * (d.vx || 0) + (d.vy || 0) * (d.vy || 0));
+      if (moved && (dist > threshold || (releaseSpeed > 0.55 && dist > 22))) {
         walletState.ignoreClickUntil = nowMs() + 340;
         var dir =
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
+        var releaseMomentum = Math.min(1.5, 1 + releaseSpeed * 0.55);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.25,
-          ty: ty * 1.15,
+          tx: tx * 1.12 * releaseMomentum,
+          ty: ty * 1.08 * releaseMomentum,
           dir: dir,
         });
         return;
       }
 
+      try {
+        card.style.transition =
+          "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease";
+      } catch (e1) {}
       card.style.setProperty("--wheel-tx", "0px");
       card.style.setProperty("--stack-swipe-y", "0px");
       card.style.setProperty("--wheel-rz", "0deg");
       card.style.setProperty("--wheel-opacity", "1");
+      card.style.setProperty("--wheel-scale", "1");
       if (moved) walletState.ignoreClickUntil = nowMs() + 180;
     }
 
