@@ -34,6 +34,9 @@
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(205, 166, 125, 0.22), rgba(205, 166, 125, 0) 34%),
+          linear-gradient(180deg, #fbf6f0 0%, #f4ede6 28%, #efe6dd 100%) !important;
       }
 
       /* Boot fallback: visible only when JS boot takes too long. */
@@ -105,6 +108,19 @@
       .shell {
         max-width: 980px;
         margin: 0 auto;
+        position: relative;
+      }
+
+      .shell::before {
+        content: "";
+        position: fixed;
+        inset: auto -12vw -10vh auto;
+        width: min(44vw, 360px);
+        height: min(44vw, 360px);
+        background:
+          radial-gradient(circle, rgba(107, 69, 44, 0.1), rgba(107, 69, 44, 0) 72%);
+        pointer-events: none;
+        z-index: 0;
       }
 
       .topbar {
@@ -115,11 +131,16 @@
         margin-bottom: var(--space-4);
         flex-wrap: wrap;
 
-        padding: var(--space-4) 0;
-        border-radius: 0;
-        border: none;
-        border-bottom: none;
-        background: var(--bg);
+        padding: 18px 20px;
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.72);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.68) inset;
+        position: relative;
+        z-index: 1;
       }
 
       /* Clean top menu (Holm-like) */
@@ -131,7 +152,7 @@
         gap: 26px;
         margin-top: var(--space-3);
         padding-top: var(--space-3);
-        border-top: none;
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
       .topMenuBtn {
@@ -143,12 +164,13 @@
         padding: 8px 0;
         cursor: pointer;
         touch-action: manipulation;
-        color: var(--text) !important;
+        color: #3b2a1f !important;
         font-size: 12px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.16em;
         box-shadow: none !important;
+        opacity: 0.76;
       }
 
       /* Global theme styles `button.ghost` with a border; ensure top menu is borderless. */
@@ -187,11 +209,12 @@
       }
 
       .topMenuBtn.active {
-        border-bottom: 2px solid var(--text);
+        border-bottom: 2px solid #6b452c;
+        opacity: 1;
       }
 
       .topMenuBtn.active .lbl {
-        color: var(--text);
+        color: #241710;
       }
 
       .brand {
@@ -202,13 +225,17 @@
 
       .brand h1 {
         margin: 0;
-        font-size: 18px;
-        line-height: 1.15;
+        font-size: 24px;
+        line-height: 1.02;
         font-weight: 950;
+        letter-spacing: -0.04em;
       }
 
       .brand .subtitle {
-        font-size: 12px;
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.72);
+        max-width: 36ch;
+        line-height: 1.45;
       }
 
       #buildBadge {
@@ -216,6 +243,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        background: rgba(255, 255, 255, 0.68);
+        border-color: rgba(17, 17, 17, 0.08);
       }
 
       .grid {
@@ -1007,6 +1036,21 @@
         box-shadow: none;
         backdrop-filter: none;
         overflow: visible;
+        position: relative;
+      }
+
+      #walletPanel.walletDock::before {
+        content: "";
+        position: absolute;
+        inset: 88px 4% auto;
+        height: 280px;
+        border-radius: 38px;
+        background:
+          radial-gradient(circle at top, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0) 58%),
+          linear-gradient(180deg, rgba(94, 60, 38, 0.18), rgba(94, 60, 38, 0) 72%);
+        filter: blur(18px);
+        pointer-events: none;
+        opacity: 0.9;
       }
 
       #walletPanel.walletDock h3 {
@@ -1069,7 +1113,7 @@
       }
 
       .walletCarousel {
-        --cardW: min(360px, 84vw, 62svh);
+        --cardW: min(376px, 86vw, 62svh);
         display: flex;
         flex-direction: row;
         gap: 0;
@@ -1116,14 +1160,14 @@
 
       /* iOS Wallet-like stack: only the top card is visible; swipe switches cards */
       .walletCarousel.isStack {
-        --cardW: min(420px, calc(100% - 2px), 62svh);
+        --cardW: min(430px, calc(100% - 4px), 62svh);
         display: grid;
         grid-template-columns: 1fr;
         gap: 0;
         overflow-x: hidden;
         overflow-y: visible;
         scroll-snap-type: none;
-        padding: 18px 0 10px;
+        padding: 24px 0 18px;
         justify-items: center;
         /* iOS deck: JS handles free-direction swipe-to-cycle. */
         touch-action: none;
@@ -1171,7 +1215,9 @@
         width: var(--cardW);
         position: relative;
         overflow: visible;
-        box-shadow: var(--shadow-sm);
+        box-shadow:
+          0 18px 34px rgba(59, 38, 23, 0.16),
+          0 6px 12px rgba(59, 38, 23, 0.08);
         --pass-accent: var(--brand);
         --pass-border: rgba(32, 24, 20, 0.14);
         --pass-stamp-ring: rgba(32, 24, 20, 0.18);
@@ -1184,8 +1230,9 @@
           scale(var(--wheel-scale, 1));
         opacity: var(--wheel-opacity, 1);
         transition:
-          transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-          opacity 240ms ease;
+          transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 240ms ease,
+          filter 240ms ease;
         will-change: transform;
         transform-origin: center center;
         -webkit-transform: translateY(var(--stack-swipe-y, 0px))
@@ -1197,12 +1244,13 @@
 
       /* Physical edge shading (paper feel) */
       .passFlip {
-        border-radius: 0;
+        border-radius: 28px;
         border: 1px solid var(--pass-border, var(--border));
         overflow: hidden;
         isolation: isolate;
         background-color: var(--pass-bg, var(--brand-50));
-        background-image: none;
+        background-image:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 40%);
         color: var(--pass-ink, var(--brand-700));
         background-clip: padding-box;
       }
@@ -1214,7 +1262,14 @@
 
       /* Physical edge shading (paper feel) */
       .passFlip::before {
-        content: none;
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(130deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 38%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0) 32%);
+        z-index: 0;
+        pointer-events: none;
       }
 
       /* Built-in card templates (selected by cafés) */
@@ -1242,13 +1297,13 @@
         /* Fully opaque + readable on the black app background */
         --pass-bg: #ffffff;
         --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.14);
+        --pass-border: rgba(32, 24, 20, 0.12);
         --pass-stamp-ring: rgba(32, 24, 20, 0.16);
         --stamp-seam: var(--surface);
-        --pass-badge-bg: var(--brand-50);
+        --pass-badge-bg: rgba(107, 69, 44, 0.08);
         --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.18);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-hi: rgba(255, 255, 255, 0.34);
+        --pass-lo: rgba(0, 0, 0, 0.04);
       }
 
       .passCard[data-pass-theme="ink"] {
@@ -1277,15 +1332,15 @@
       }
 
       .passCard[data-pass-theme="latte"] {
-        --pass-bg: var(--brand-50);
+        --pass-bg: #f7efe6;
         --pass-ink: var(--brand-700);
         --pass-border: rgba(32, 24, 20, 0.18);
         --pass-stamp-ring: rgba(32, 24, 20, 0.16);
         --stamp-seam: var(--surface);
-        --pass-badge-bg: rgba(255, 255, 255, 0.65);
+        --pass-badge-bg: rgba(255, 252, 248, 0.72);
         --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.28);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-hi: rgba(255, 255, 255, 0.32);
+        --pass-lo: rgba(0, 0, 0, 0.05);
       }
 
       .passCard[data-pass-theme="mono"] {
@@ -1304,6 +1359,11 @@
         border-color: var(--pass-border, var(--border));
         background: var(--pass-badge-bg, var(--surface-muted));
         color: var(--pass-badge-ink, var(--text));
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
       }
 
       /* Paper/ink texture (iOS friendly; uses theme variables only) */
@@ -1319,7 +1379,7 @@
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        filter: none;
+        filter: saturate(1.02) contrast(1.01);
       }
 
       .passCard[data-pass-theme="clean"] .passFlip::after {
@@ -1367,7 +1427,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: var(--space-4);
+        padding: 22px 22px 20px;
         min-height: 44px;
         cursor: pointer;
         touch-action: pan-x;
@@ -1391,9 +1451,9 @@
       }
 
       .passLogoWrap {
-        width: 30px;
-        height: 30px;
-        border-radius: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         border: 1px solid var(--pass-border, var(--border));
         background: var(--pass-badge-bg, var(--surface-muted));
         display: flex;
@@ -1415,10 +1475,10 @@
 
       .passTitle {
         margin: 0;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: 950;
         color: var(--pass-ink, var(--brand-700));
-        line-height: 1.15;
+        line-height: 1.05;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1426,11 +1486,13 @@
       }
 
       .passSub {
-        margin-top: 6px;
+        margin-top: 7px;
         font-size: 12px;
         font-weight: 700;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.78;
+        opacity: 0.68;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1438,18 +1500,18 @@
       }
 
       .passHint {
-        margin-top: 8px;
+        margin-top: 12px;
         font-size: 12px;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.72;
-        font-weight: 750;
-        letter-spacing: 0.02em;
+        font-weight: 780;
+        letter-spacing: 0.03em;
       }
 
       .passQr {
         border-top: 1px solid var(--pass-border, var(--border));
         background: transparent;
-        padding: var(--space-4);
+        padding: 22px;
         transform: rotateY(180deg) translateZ(1px);
         pointer-events: none;
         touch-action: pan-x;
@@ -1567,11 +1629,11 @@
 
         .passMain,
         .passQr {
-          padding: var(--space-3);
+          padding: 18px;
         }
 
         .passTitle {
-          font-size: 15px;
+          font-size: 18px;
         }
 
         .passHint {
@@ -1585,7 +1647,7 @@
         }
 
         .passCard .stamp {
-          border-radius: 0;
+          border-radius: 999px;
         }
 
         .passQrBox {
@@ -1636,11 +1698,11 @@
 
         .passMain,
         .passQr {
-          padding: var(--space-2);
+          padding: 16px;
         }
 
         .passTitle {
-          font-size: 14px;
+          font-size: 17px;
         }
 
         .passSub {
@@ -1659,7 +1721,7 @@
         }
 
         .passCard .stamp {
-          border-radius: 0;
+          border-radius: 999px;
           border-width: 1.5px;
         }
       }
@@ -2002,6 +2064,9 @@
       <div class="topbar">
         <div class="brand">
           <h1>Deine Stempelkarte</h1>
+          <div class="subtitle">
+            Sammle deine Lieblingscafes an einem Ort und zeig am Tresen nur noch deinen QR.
+          </div>
           <div class="badge muted" id="buildBadge">build</div>
           <div class="badge muted" id="liveBadge" style="display: none">
             Live

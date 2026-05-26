@@ -2076,13 +2076,17 @@
       // Keep the deck hinted visually (2 cards behind).
       // Keep background cards below 0.5 opacity so strict UI checks
       // still treat the stack as showing a single visible card.
-      var op = i === 0 ? 1 : i === 1 ? 0.35 : 0.2;
-      var sc = i === 0 ? 1 : i === 1 ? 0.99 : 0.98;
-      var sy = i === 0 ? 0 : i === 1 ? 8 : 14;
+      var op = i === 0 ? 1 : i === 1 ? 0.56 : 0.32;
+      var sc = i === 0 ? 1 : i === 1 ? 0.978 : 0.952;
+      var sy = i === 0 ? 0 : i === 1 ? 14 : 28;
+      var tz = i === 0 ? 0 : i === 1 ? -8 : -16;
+      var ry = i === 0 ? 0 : i === 1 ? -2.4 : -4.2;
 
       node.style.setProperty("--wheel-tx", "0px");
       node.style.setProperty("--stack-swipe-y", "0px");
       node.style.setProperty("--wheel-rz", "0deg");
+      node.style.setProperty("--wheel-ry", String(ry) + "deg");
+      node.style.setProperty("--wheel-tz", String(tz) + "px");
       node.style.transition = "";
       node.style.setProperty("--wheel-opacity", String(op));
       node.style.setProperty("--wheel-scale", String(sc));
@@ -2112,31 +2116,45 @@
       var dist = Math.sqrt(dx * dx + dy * dy);
       var progress = Math.min(1, dist / 120);
       var swayX = clamp(dx * 0.08, -10, 10);
-      var liftY2 = 8 - progress * 5;
-      var liftY3 = 14 - progress * 4;
+      var tilt = clamp(dx * 0.04, -4.5, 4.5);
+      var liftY2 = 14 - progress * 8;
+      var liftY3 = 28 - progress * 10;
 
       if (second) {
         second.style.setProperty("--wheel-tx", swayX.toFixed(2) + "px");
         second.style.setProperty("--stack-y", liftY2.toFixed(2) + "px");
+        second.style.setProperty("--wheel-ry", tilt.toFixed(2) + "deg");
+        second.style.setProperty(
+          "--wheel-tz",
+          String((-8 + progress * 6).toFixed(2)) + "px",
+        );
         second.style.setProperty(
           "--wheel-scale",
-          String((0.99 + progress * 0.008).toFixed(3)),
+          String((0.978 + progress * 0.018).toFixed(3)),
         );
         second.style.setProperty(
           "--wheel-opacity",
-          String((0.35 + progress * 0.08).toFixed(3)),
+          String((0.56 + progress * 0.12).toFixed(3)),
         );
       }
       if (third) {
         third.style.setProperty("--wheel-tx", (swayX * 0.45).toFixed(2) + "px");
         third.style.setProperty("--stack-y", liftY3.toFixed(2) + "px");
         third.style.setProperty(
+          "--wheel-ry",
+          (tilt * 0.72).toFixed(2) + "deg",
+        );
+        third.style.setProperty(
+          "--wheel-tz",
+          String((-16 + progress * 8).toFixed(2)) + "px",
+        );
+        third.style.setProperty(
           "--wheel-scale",
-          String((0.98 + progress * 0.006).toFixed(3)),
+          String((0.952 + progress * 0.016).toFixed(3)),
         );
         third.style.setProperty(
           "--wheel-opacity",
-          String((0.2 + progress * 0.05).toFixed(3)),
+          String((0.32 + progress * 0.08).toFixed(3)),
         );
       }
     } catch (e) {}
@@ -3292,6 +3310,17 @@
         document.documentElement.classList.add("ios");
       } catch (e) {}
     }
+
+    try {
+      if (el.walletSubtitle) {
+        el.walletSubtitle.textContent =
+          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR am Tresen zeigen willst.";
+      }
+      if (el.mainModeMap) {
+        var lbl = el.mainModeMap.querySelector(".lbl");
+        if (lbl) lbl.textContent = "Entdecken";
+      }
+    } catch (eText) {}
 
     setBuildBadge();
     // Try to load an exact stamp image; if present, re-render the wallet so
