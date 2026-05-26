@@ -723,7 +723,9 @@
         overflow: hidden;
         -webkit-clip-path: none;
         clip-path: none;
-        box-shadow: none;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.36) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.03) inset;
       }
 
       .passCard .stamp::before,
@@ -1313,12 +1315,13 @@
           translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
           rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
           scale(var(--wheel-scale, 1));
+        filter: saturate(var(--wheel-sat, 1)) brightness(var(--wheel-bright, 1));
       }
 
       /* Physical edge shading (paper feel) */
       .passFlip {
-        border-radius: 28px;
-        border: 1px solid var(--pass-border, var(--border));
+        border-radius: 30px;
+        border: 1px solid color-mix(in srgb, var(--pass-border, var(--border)) 82%, rgba(255, 255, 255, 0.36) 18%);
         overflow: hidden;
         isolation: isolate;
         background-color: var(--pass-bg, var(--brand-50));
@@ -1326,6 +1329,9 @@
           linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 40%);
         color: var(--pass-ink, var(--brand-700));
         background-clip: padding-box;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.4) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.05) inset;
       }
 
       .passFlip > * {

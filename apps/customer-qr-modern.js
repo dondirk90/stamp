@@ -2168,15 +2168,38 @@
     var tx = opts && isFinite(opts.tx) ? Number(opts.tx) : 0;
     var ty = opts && isFinite(opts.ty) ? Number(opts.ty) : 0;
     var dir = opts && opts.dir ? opts.dir : tx >= 0 ? 1 : -1;
+    var speed = opts && isFinite(opts.speed) ? Number(opts.speed) : 0.7;
+    var duration = Math.round(clamp(260 + speed * 120, 260, 380));
 
     cardEl.classList.add("isSwapping");
 
-    // Push it a bit further in the swipe direction, fade it out, then reorder.
-    cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
-    cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
-    cardEl.style.setProperty("--wheel-rz", String(dir * 4.8) + "deg");
-    cardEl.style.setProperty("--wheel-opacity", "0");
-    cardEl.style.setProperty("--wheel-scale", "0.965");
+    try {
+      cardEl.style.transition =
+        "transform " +
+        duration +
+        "ms cubic-bezier(0.19, 1, 0.22, 1), opacity " +
+        Math.max(220, duration - 40) +
+        "ms ease, filter " +
+        Math.max(220, duration - 30) +
+        "ms ease";
+    } catch (ePrep) {}
+
+    window.requestAnimationFrame(function () {
+      // Push it a bit further in the swipe direction, fade it out, then reorder.
+      cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
+      cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
+      cardEl.style.setProperty("--wheel-rz", String(dir * 5.4) + "deg");
+      cardEl.style.setProperty("--wheel-ry", String(dir * 4.6) + "deg");
+      cardEl.style.setProperty(
+        "--wheel-tz",
+        String(clamp(18 + Math.abs(tx) * 0.08, 18, 44)) + "px",
+      );
+      cardEl.style.setProperty("--wheel-opacity", "0");
+      cardEl.style.setProperty("--wheel-scale", "0.972");
+      cardEl.style.setProperty("--wheel-sat", "1.04");
+      cardEl.style.setProperty("--wheel-bright", "1.02");
+      updateWalletStackFollowers(scroller, tx * 0.9, ty * 0.7);
+    });
 
     window.setTimeout(function () {
       try {
@@ -2192,14 +2215,18 @@
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
         cardEl.style.setProperty("--wheel-rz", "0deg");
+        cardEl.style.setProperty("--wheel-ry", "0deg");
+        cardEl.style.setProperty("--wheel-tz", "0px");
         cardEl.style.setProperty("--wheel-scale", "1");
+        cardEl.style.setProperty("--wheel-sat", "1");
+        cardEl.style.setProperty("--wheel-bright", "1");
         cardEl.style.setProperty("--stack-y", "0px");
       } catch (e2) {}
 
       // And ensure the newly revealed card is also on the front.
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
-    }, 170);
+    }, duration);
   }
 
   function cycleTopToBottom(scroller, direction) {
@@ -2210,12 +2237,23 @@
     var dir = direction || 1;
 
     // Animate into the back of the deck (so the user sees it going to the end).
-    cardEl.style.setProperty("--wheel-tx", String(dir * 28) + "px");
-    cardEl.style.setProperty("--stack-swipe-y", "0px");
-    cardEl.style.setProperty("--wheel-rz", String(dir * 3.2) + "deg");
-    cardEl.style.setProperty("--wheel-opacity", "0.55");
-    cardEl.style.setProperty("--wheel-scale", "0.97");
-    cardEl.style.setProperty("--stack-y", "18px");
+    try {
+      cardEl.style.transition =
+        "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease, filter 240ms ease";
+    } catch (ePrep) {}
+    window.requestAnimationFrame(function () {
+      cardEl.style.setProperty("--wheel-tx", String(dir * 34) + "px");
+      cardEl.style.setProperty("--stack-swipe-y", "0px");
+      cardEl.style.setProperty("--wheel-rz", String(dir * 3.8) + "deg");
+      cardEl.style.setProperty("--wheel-ry", String(dir * 3.2) + "deg");
+      cardEl.style.setProperty("--wheel-tz", "16px");
+      cardEl.style.setProperty("--wheel-opacity", "0.55");
+      cardEl.style.setProperty("--wheel-scale", "0.974");
+      cardEl.style.setProperty("--wheel-sat", "1.03");
+      cardEl.style.setProperty("--wheel-bright", "1.01");
+      cardEl.style.setProperty("--stack-y", "18px");
+      updateWalletStackFollowers(scroller, dir * 28, 0);
+    });
 
     window.setTimeout(function () {
       try {
@@ -2230,13 +2268,17 @@
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
         cardEl.style.setProperty("--wheel-rz", "0deg");
+        cardEl.style.setProperty("--wheel-ry", "0deg");
+        cardEl.style.setProperty("--wheel-tz", "0px");
         cardEl.style.setProperty("--wheel-scale", "1");
+        cardEl.style.setProperty("--wheel-sat", "1");
+        cardEl.style.setProperty("--wheel-bright", "1");
         cardEl.style.setProperty("--stack-y", "0px");
       } catch (e2) {}
 
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
-    }, 220);
+    }, 280);
   }
 
   function enableWalletStackMode(scroller) {
@@ -2362,6 +2404,7 @@
           tx: tx * 1.1 * momentum,
           ty: ty * 1.06 * momentum,
           dir: dir,
+          speed: speed,
         });
         return;
       }
@@ -2465,20 +2508,25 @@
           tx: tx * 1.12 * releaseMomentum,
           ty: ty * 1.08 * releaseMomentum,
           dir: dir,
+          speed: releaseSpeed,
         });
         return;
       }
 
       try {
         card.style.transition =
-          "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease";
+          "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease, filter 220ms ease";
       } catch (e1) {}
       updateWalletStackFollowers(scroller, 0, 0);
       card.style.setProperty("--wheel-tx", "0px");
       card.style.setProperty("--stack-swipe-y", "0px");
       card.style.setProperty("--wheel-rz", "0deg");
+      card.style.setProperty("--wheel-ry", "0deg");
+      card.style.setProperty("--wheel-tz", "0px");
       card.style.setProperty("--wheel-opacity", "1");
       card.style.setProperty("--wheel-scale", "1");
+      card.style.setProperty("--wheel-sat", "1");
+      card.style.setProperty("--wheel-bright", "1");
       if (moved) walletState.ignoreClickUntil = nowMs() + 180;
     }
 
