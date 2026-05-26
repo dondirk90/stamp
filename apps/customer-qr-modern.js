@@ -2282,6 +2282,8 @@
         lastMoveAt: nowMs(),
         vx: 0,
         vy: 0,
+        ax: 0,
+        ay: 0,
         moved: false,
         activeEl: top,
         captured: false,
@@ -2302,14 +2304,16 @@
       var dt = Math.max(1, tNow - (d.lastMoveAt || tNow));
       var instVx = ddx / dt;
       var instVy = ddy / dt;
-      d.vx = d.vx * 0.72 + instVx * 0.28;
-      d.vy = d.vy * 0.72 + instVy * 0.28;
+      d.vx = d.vx * 0.58 + instVx * 0.42;
+      d.vy = d.vy * 0.58 + instVy * 0.42;
+      d.ax = d.ax * 0.7 + (instVx - d.vx) * 0.3;
+      d.ay = d.ay * 0.7 + (instVy - d.vy) * 0.3;
       d.lastX = ev.clientX;
       d.lastY = ev.clientY;
       d.lastMoveAt = tNow;
 
       if (!d.moved) {
-        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
         d.moved = true;
         scroller.classList.add("isDragging");
 
@@ -2329,11 +2333,13 @@
       var dist = Math.sqrt(tx * tx + ty * ty);
       var rz = clamp(tx / 18, -10, 10);
       var op = 1 - Math.min(0.68, dist / 520);
+      var lift = clamp(Math.abs(tx) * 0.015 + Math.abs(d.vx || 0) * 7, 0, 10);
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(150, Math.max(84, w * 0.28));
+      var trigger = Math.min(136, Math.max(76, w * 0.235));
       var speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
-      var isFlick = speed > 0.55 && dist > 26;
+      var flickBias = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
+      var isFlick = (speed > 0.42 || flickBias > 0.24) && dist > 20;
       if (dist >= trigger || isFlick) {
         // Trigger immediately once it's far enough away.
         walletState.ignoreClickUntil = nowMs() + 340;
@@ -2362,9 +2368,10 @@
 
       // Throttle style updates to rAF for smoother motion.
       walletState.dragTx = tx;
-      walletState.dragTy = ty;
-      walletState.dragRz = rz;
-      walletState.dragOp = op;
+        walletState.dragTy = ty;
+        walletState.dragRz = rz;
+        walletState.dragOp = op;
+        walletState.dragLift = lift;
       if (walletState.dragRaf) return;
 
       var step = function () {
@@ -2376,13 +2383,13 @@
 
           // Smooth interpolation (reduces jitter on mobile).
           walletState.dragTxCur +=
-            (walletState.dragTx - walletState.dragTxCur) * 0.5;
+            (walletState.dragTx - walletState.dragTxCur) * 0.68;
           walletState.dragTyCur +=
-            (walletState.dragTy - walletState.dragTyCur) * 0.5;
+            (walletState.dragTy - walletState.dragTyCur) * 0.64;
           walletState.dragRzCur +=
-            (walletState.dragRz - walletState.dragRzCur) * 0.46;
+            (walletState.dragRz - walletState.dragRzCur) * 0.58;
           walletState.dragOpCur +=
-            (walletState.dragOp - walletState.dragOpCur) * 0.52;
+            (walletState.dragOp - walletState.dragOpCur) * 0.58;
 
           card2.style.setProperty(
             "--wheel-tx",
@@ -2399,6 +2406,10 @@
           card2.style.setProperty(
             "--wheel-opacity",
             String(walletState.dragOpCur.toFixed(3)),
+          );
+          card2.style.setProperty(
+            "--wheel-tz",
+            String((walletState.dragLift || 0).toFixed(2)) + "px",
           );
           updateWalletStackFollowers(
             scroller,
@@ -2438,13 +2449,14 @@
       if (!card) return;
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var threshold = Math.min(110, Math.max(70, w * 0.22));
+      var threshold = Math.min(102, Math.max(64, w * 0.2));
 
       var tx = clamp(dx, -260, 260);
       var ty = clamp(dy, -220, 220);
       var dist = Math.sqrt(tx * tx + ty * ty);
       var releaseSpeed = Math.sqrt((d.vx || 0) * (d.vx || 0) + (d.vy || 0) * (d.vy || 0));
-      if (moved && (dist > threshold || (releaseSpeed > 0.55 && dist > 22))) {
+      var releaseAccel = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
+      if (moved && (dist > threshold || ((releaseSpeed > 0.42 || releaseAccel > 0.24) && dist > 18))) {
         walletState.ignoreClickUntil = nowMs() + 340;
         var dir =
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
@@ -3319,6 +3331,13 @@
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
         if (lbl) lbl.textContent = "Entdecken";
+      }
+      if (el.authPanel) {
+        var authHint = el.authPanel.querySelector(".hint:last-of-type");
+        if (authHint) {
+          authHint.textContent =
+            "Keine Wallet-Adresse und kein Schluessel noetig. Stamp legt die technische Kunden-Adresse automatisch fuer dich an.";
+        }
       }
     } catch (eText) {}
 

@@ -365,6 +365,79 @@
         flex: 1;
       }
 
+      .authIntro {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 18px;
+        padding: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 243, 237, 0.92));
+      }
+
+      .authEyebrow {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .authTitle {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.02;
+        letter-spacing: -0.04em;
+      }
+
+      .authLead {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .authPerks {
+        display: grid;
+        gap: 10px;
+      }
+
+      .authPerk {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .authPerkNo {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #6b452c;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .authPerkText {
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-muted);
+      }
+
+      .authPerkText strong {
+        color: var(--text);
+      }
+
+      .fieldHint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
       .navRow {
         display: flex;
         align-items: center;
@@ -2109,7 +2182,7 @@
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2>Account</h2>
+            <h2>Willkommen</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
               <button id="modeRegister" type="button">Neu</button>
               <button id="modeLogin" class="active" type="button">Login</button>
@@ -2117,10 +2190,41 @@
           </div>
 
           <div class="stack panelBody">
+            <div class="authIntro">
+              <div class="authEyebrow">Customer Wallet</div>
+              <h3 class="authTitle">Deine Lieblingscafes in einer ruhigen Wallet.</h3>
+              <p class="authLead">
+                Melde dich an und behalte Stempel, Rewards und deine naechsten
+                Belohnungen an einem Ort. Kein Papier, kein Suchen, kein Erklaeren am Tresen.
+              </p>
+              <div class="authPerks">
+                <div class="authPerk">
+                  <div class="authPerkNo">1</div>
+                  <div class="authPerkText">
+                    <strong>Alles an einem Ort:</strong> mehrere Cafes, mehrere Karten,
+                    aber nur ein ruhiger Einstieg.
+                  </div>
+                </div>
+                <div class="authPerk">
+                  <div class="authPerkNo">2</div>
+                  <div class="authPerkText">
+                    <strong>Reward im Blick:</strong> du siehst sofort, wie nah
+                    du an deiner naechsten Belohnung bist.
+                  </div>
+                </div>
+                <div class="authPerk">
+                  <div class="authPerkNo">3</div>
+                  <div class="authPerkText">
+                    <strong>Schnell am Tresen:</strong> Karte oeffnen, QR zeigen, weiter Kaffee geniessen.
+                  </div>
+                </div>
+              </div>
+            </div>
             <div id="registerFields" class="stack">
               <div class="stack" style="gap: 6px">
                 <label for="username">Username</label>
                 <input id="username" type="text" autocomplete="nickname" />
+                <div class="fieldHint">Nur fuer deinen Account, nicht als oeffentlicher Name gedacht.</div>
               </div>
             </div>
             <div class="stack" style="gap: 6px">
@@ -2131,6 +2235,7 @@
                 inputmode="email"
                 autocomplete="email"
               />
+              <div class="fieldHint">Darueber loggst du dich spaeter wieder ein.</div>
             </div>
 
             <div class="stack" style="gap: 6px">
@@ -2140,6 +2245,7 @@
                 type="password"
                 autocomplete="current-password"
               />
+              <div class="fieldHint">Stamp erzeugt die technische Wallet im Hintergrund automatisch fuer dich.</div>
             </div>
 
             <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
