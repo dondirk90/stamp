@@ -712,9 +712,11 @@
            ensure a stable square box so 999px radius renders as a circle. */
         aspect-ratio: auto;
         grid-template: 1fr / 1fr;
-        border-radius: 0;
-        background: transparent;
-        border: 1px solid
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 42%),
+          linear-gradient(180deg, rgba(99, 70, 47, 0.02), rgba(99, 70, 47, 0.04));
+        border: 1.6px dashed
           var(--pass-stamp-ring, var(--pass-border, var(--border)));
         color: var(--pass-ink, var(--brand-700));
         --stamp-seam: var(--pass-bg, var(--surface));
@@ -724,8 +726,8 @@
         -webkit-clip-path: none;
         clip-path: none;
         box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.36) inset,
-          0 -1px 0 rgba(0, 0, 0, 0.03) inset;
+          0 1px 0 rgba(255, 255, 255, 0.2) inset,
+          0 -1px 0 rgba(61, 40, 24, 0.05) inset;
       }
 
       .passCard .stamp::before,
@@ -743,14 +745,22 @@
 
       .passCard .stamp.empty,
       .face .stamp.empty {
-        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.14));
-        background: transparent;
+        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.2));
+        background:
+          radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 42%),
+          linear-gradient(180deg, rgba(99, 70, 47, 0.015), rgba(99, 70, 47, 0.03));
       }
 
       .passCard .stamp.filled,
       .face .stamp.filled {
-        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.24));
-        background: transparent;
+        border-color: color-mix(
+          in srgb,
+          var(--pass-stamp-ring, rgba(32, 24, 20, 0.24)) 78%,
+          rgba(76, 24, 16, 0.28) 22%
+        );
+        background:
+          radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 42%),
+          linear-gradient(180deg, rgba(99, 70, 47, 0.02), rgba(99, 70, 47, 0.04));
       }
 
       @keyframes inkStampIn {
@@ -1291,11 +1301,12 @@
         position: relative;
         overflow: visible;
         box-shadow:
-          0 18px 34px rgba(59, 38, 23, 0.16),
-          0 6px 12px rgba(59, 38, 23, 0.08);
+          0 20px 34px rgba(86, 57, 35, 0.12),
+          0 7px 14px rgba(86, 57, 35, 0.08);
         --pass-accent: var(--brand);
         --pass-border: rgba(32, 24, 20, 0.14);
         --pass-stamp-ring: rgba(32, 24, 20, 0.18);
+        --pass-rule: rgba(79, 51, 33, 0.14);
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
         transform: translateY(var(--stack-swipe-y, 0px))
@@ -1305,9 +1316,9 @@
           scale(var(--wheel-scale, 1));
         opacity: var(--wheel-opacity, 1);
         transition:
-          transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
-          opacity 240ms ease,
-          filter 240ms ease;
+          transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1),
+          opacity 320ms ease,
+          filter 360ms ease;
         will-change: transform;
         transform-origin: center center;
         -webkit-transform: translateY(var(--stack-swipe-y, 0px))
@@ -1318,20 +1329,53 @@
         filter: saturate(var(--wheel-sat, 1)) brightness(var(--wheel-bright, 1));
       }
 
+      .passCard::before {
+        content: "";
+        position: absolute;
+        inset: 10px 14px auto auto;
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(118, 66, 42, 0.12);
+        transform: rotate(-11deg);
+        opacity: 0.5;
+        pointer-events: none;
+        mix-blend-mode: multiply;
+      }
+
+      .passCard::after {
+        content: "";
+        position: absolute;
+        inset: auto auto 18px 16px;
+        width: 54px;
+        height: 18px;
+        border-bottom: 2px dotted rgba(118, 66, 42, 0.18);
+        transform: rotate(-3deg);
+        opacity: 0.42;
+        pointer-events: none;
+      }
+
       /* Physical edge shading (paper feel) */
       .passFlip {
-        border-radius: 30px;
-        border: 1px solid color-mix(in srgb, var(--pass-border, var(--border)) 82%, rgba(255, 255, 255, 0.36) 18%);
+        border-radius: 18px;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--pass-border, var(--border)) 88%,
+            rgba(255, 255, 255, 0.18) 12%
+          );
         overflow: hidden;
         isolation: isolate;
         background-color: var(--pass-bg, var(--brand-50));
         background-image:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 40%);
+          linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 36%),
+          linear-gradient(0deg, rgba(112, 84, 61, 0.03), rgba(112, 84, 61, 0.03));
         color: var(--pass-ink, var(--brand-700));
         background-clip: padding-box;
         box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.4) inset,
-          0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+          0 1px 0 rgba(255, 255, 255, 0.34) inset,
+          0 -1px 0 rgba(54, 36, 22, 0.06) inset,
+          0 0 0 1px rgba(255, 248, 239, 0.32) inset;
       }
 
       .passFlip > * {
@@ -1345,23 +1389,29 @@
         position: absolute;
         inset: 0;
         background:
-          linear-gradient(130deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 38%),
-          linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0) 32%);
+          radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 18%),
+          linear-gradient(180deg, rgba(68, 46, 28, 0.045), rgba(68, 46, 28, 0) 32%),
+          repeating-linear-gradient(
+            -18deg,
+            rgba(112, 84, 61, 0.028) 0 2px,
+            rgba(255, 255, 255, 0) 2px 9px
+          );
         z-index: 0;
         pointer-events: none;
       }
 
       /* Built-in card templates (selected by cafés) */
       .passCard[data-pass-theme="paper"] {
-        --pass-bg: var(--brand-50);
-        --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.14);
-        --pass-stamp-ring: rgba(32, 24, 20, 0.18);
-        --stamp-seam: var(--surface);
-        --pass-badge-bg: rgba(255, 255, 255, 0.55);
-        --pass-badge-ink: var(--brand-700);
+        --pass-bg: #f3e5d2;
+        --pass-ink: #5c3420;
+        --pass-border: rgba(79, 51, 33, 0.24);
+        --pass-stamp-ring: rgba(92, 52, 32, 0.32);
+        --stamp-seam: #f3e5d2;
+        --pass-badge-bg: rgba(255, 250, 244, 0.42);
+        --pass-badge-ink: #5c3420;
         --pass-hi: rgba(255, 255, 255, 0.26);
         --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-rule: rgba(79, 51, 33, 0.16);
       }
 
       .passCard[data-pass-theme="paper"] .passFlip::before {
@@ -1373,16 +1423,16 @@
       }
 
       .passCard[data-pass-theme="clean"] {
-        /* Fully opaque + readable on the black app background */
-        --pass-bg: #ffffff;
-        --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.12);
-        --pass-stamp-ring: rgba(32, 24, 20, 0.16);
-        --stamp-seam: var(--surface);
-        --pass-badge-bg: rgba(107, 69, 44, 0.08);
-        --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.34);
-        --pass-lo: rgba(0, 0, 0, 0.04);
+        --pass-bg: #f8ecd9;
+        --pass-ink: #6a3624;
+        --pass-border: rgba(106, 54, 36, 0.22);
+        --pass-stamp-ring: rgba(106, 54, 36, 0.3);
+        --stamp-seam: #f8ecd9;
+        --pass-badge-bg: rgba(255, 250, 244, 0.38);
+        --pass-badge-ink: #6a3624;
+        --pass-hi: rgba(255, 255, 255, 0.24);
+        --pass-lo: rgba(0, 0, 0, 0.05);
+        --pass-rule: rgba(106, 54, 36, 0.14);
       }
 
       .passCard[data-pass-theme="ink"] {
@@ -1436,13 +1486,15 @@
 
       .passCard .badge {
         border-color: var(--pass-border, var(--border));
-        background: var(--pass-badge-bg, var(--surface-muted));
+        background: transparent;
         color: var(--pass-badge-ink, var(--text));
-        border-radius: 999px;
-        padding: 7px 12px;
-        font-size: 11px;
-        letter-spacing: 0.05em;
+        border-radius: 4px;
+        border-style: dashed;
+        padding: 6px 10px 5px;
+        font-size: 10px;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
+        box-shadow: none;
       }
 
       /* Paper/ink texture (iOS friendly; uses theme variables only) */
@@ -1453,12 +1505,21 @@
         z-index: 0;
         pointer-events: none;
         border-radius: inherit;
-        opacity: 0.16;
-        background-image: var(--pass-card-bg, none);
-        background-size: cover;
-        background-position: center;
+        opacity: 0.2;
+        background-image:
+          var(--pass-card-bg, none),
+          radial-gradient(circle at 18% 82%, rgba(120, 86, 58, 0.06), rgba(120, 86, 58, 0) 22%),
+          radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 20%),
+          repeating-linear-gradient(
+            90deg,
+            rgba(102, 72, 48, 0.02) 0 1px,
+            rgba(255, 255, 255, 0) 1px 5px
+          );
+        background-size: cover, auto, auto, auto;
+        background-position: center, center, center, center;
         background-repeat: no-repeat;
-        filter: saturate(1.02) contrast(1.01);
+        filter: saturate(0.96) contrast(1.01);
+        mix-blend-mode: multiply;
       }
 
       .passCard[data-pass-theme="clean"] .passFlip::after {
@@ -1479,7 +1540,7 @@
         -webkit-transform-style: preserve-3d;
         transform: rotateY(0deg);
         -webkit-transform: rotateY(0deg);
-        transition: transform 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 620ms cubic-bezier(0.2, 0.9, 0.2, 1);
         will-change: transform;
       }
 
@@ -1513,6 +1574,23 @@
         transform: rotateY(0deg) translateZ(1px);
         position: relative;
         z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .passMain::before {
+        content: "Cafe Stamp";
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(105, 58, 35, 0.16);
+        transform: rotate(-9deg);
+        pointer-events: none;
       }
 
       .passHead {
@@ -1532,14 +1610,15 @@
       .passLogoWrap {
         width: 40px;
         height: 40px;
-        border-radius: 12px;
+        border-radius: 4px;
         border: 1px solid var(--pass-border, var(--border));
-        background: var(--pass-badge-bg, var(--surface-muted));
+        background: rgba(255, 248, 240, 0.36);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 3px;
         flex: 0 0 auto;
+        transform: rotate(-2.5deg);
       }
 
       .passLogo {
@@ -1557,6 +1636,8 @@
         font-size: 20px;
         font-weight: 950;
         color: var(--pass-ink, var(--brand-700));
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
         line-height: 1.05;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1565,34 +1646,94 @@
       }
 
       .passSub {
-        margin-top: 7px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.68;
-        letter-spacing: 0.03em;
+        opacity: 0.72;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 100%;
+        font-family: var(--font-mono);
+      }
+
+      .passEyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.56;
+        font-family: var(--font-mono);
+      }
+
+      .passEyebrow::before {
+        content: "";
+        width: 18px;
+        height: 1px;
+        background: currentColor;
+        opacity: 0.65;
       }
 
       .passHint {
-        margin-top: 12px;
         font-size: 12px;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.72;
-        font-weight: 780;
-        letter-spacing: 0.03em;
+        opacity: 0.62;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-family: var(--font-mono);
+      }
+
+      .passStampField {
+        position: relative;
+        margin-top: 2px;
+        padding: 14px 0 12px;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.06),
+            rgba(255, 255, 255, 0) 18%,
+            rgba(72, 47, 30, 0.018) 100%
+          );
+      }
+
+      .passStampField::before,
+      .passStampField::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          color-mix(in srgb, var(--pass-rule, var(--pass-border, var(--border))) 92%, rgba(255, 255, 255, 0.08) 8%),
+          transparent
+        );
+      }
+
+      .passStampField::before {
+        top: 0;
+      }
+
+      .passStampField::after {
+        bottom: 0;
       }
 
       .passMetaRow {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: 12px;
-        margin: 14px 0 10px;
+        padding-top: 2px;
       }
 
       .passProgressText {
@@ -1600,6 +1741,8 @@
         line-height: 1.45;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.78;
+        flex: 1 1 170px;
+        font-family: var(--font-mono);
       }
 
       .passProgressText strong {
@@ -1608,22 +1751,26 @@
         font-weight: 900;
         color: var(--pass-ink, var(--brand-700));
         opacity: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
       .passRewardChip {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid var(--pass-border, var(--border));
-        background: rgba(255, 255, 255, 0.3);
-        font-size: 11px;
+        padding: 7px 10px 6px;
+        border-radius: 4px;
+        border: 1px dashed var(--pass-border, var(--border));
+        background: rgba(255, 250, 244, 0.16);
+        font-size: 10px;
         font-weight: 900;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--pass-ink, var(--brand-700));
         white-space: nowrap;
+        font-family: var(--font-mono);
+        transform: rotate(-1.5deg);
       }
 
       .passRewardChip::before {
@@ -1633,6 +1780,44 @@
         border-radius: 999px;
         background: currentColor;
         opacity: 0.7;
+      }
+
+      .passFooter {
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 2px dotted
+          color-mix(in srgb, var(--pass-rule, var(--pass-border, var(--border))) 90%, rgba(255, 255, 255, 0.1) 10%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.6;
+        font-family: var(--font-mono);
+      }
+
+      .passFooterMeta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .passFooterMeta span {
+        white-space: nowrap;
+      }
+
+      .passSerial {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .passFooterVisit {
+        text-align: right;
       }
 
       .passQr {
@@ -1651,7 +1836,7 @@
       /* Prevent iOS/Safari backface bleed-through: only show QR on the backside */
       .passMain,
       .passQr {
-        transition: opacity 120ms ease;
+        transition: opacity 180ms ease;
       }
 
       .passQr {
@@ -1870,6 +2055,12 @@
           border-radius: 999px;
           border-width: 1.5px;
         }
+
+        .passFooter {
+          gap: 8px;
+          font-size: 9px;
+          letter-spacing: 0.12em;
+        }
       }
 
       /* Very short viewports: tighten one more notch (browser chrome visible). */
@@ -1948,7 +2139,7 @@
       }
 
       .ios .passCard.isSwapping {
-        animation: iosPassSwap 320ms ease-in-out;
+        animation: iosPassSwap 460ms cubic-bezier(0.18, 0.88, 0.22, 1);
       }
 
       @keyframes iosPassSwap {
@@ -1962,10 +2153,10 @@
             rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
         }
         45% {
-          opacity: 0.72;
-          filter: blur(0.6px);
+          opacity: 0.82;
+          filter: blur(0.35px);
           transform: translateY(var(--stack-swipe-y, 0px))
-            translateY(var(--stack-y, 0px)) translateX(-10px)
+            translateY(var(--stack-y, 0px)) translateX(-6px)
             rotateX(var(--wheel-rx, 6deg)) translateX(var(--wheel-tx, 0px))
             translateZ(var(--wheel-tz, 0px)) rotateZ(var(--wheel-rz, 0deg))
             rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));

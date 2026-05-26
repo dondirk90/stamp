@@ -1875,8 +1875,25 @@
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
     if (theme === "ink") theme = "clean";
     var rewardThreshold = getCardRewardThreshold(card);
+    var rewardLabel = "";
+    try {
+      rewardLabel = String(
+        (card && (card.rewardDescription || card.reward)) || "",
+      ).trim();
+    } catch (eReward0) {
+      rewardLabel = "";
+    }
     var isFull = stampCount >= rewardThreshold;
     var extra = Math.max(0, stampCount - rewardThreshold);
+    var remaining = Math.max(
+      0,
+      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+    );
+    var serialTail = cafeAddress
+      ? cafeAddress.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6)
+      : "";
+    if (!serialTail) serialTail = "STAMP";
+    var serialLabel = "Card " + serialTail;
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
@@ -1913,6 +1930,10 @@
     left.className = "stack";
     left.style.minWidth = "0";
 
+    var eyebrow = document.createElement("div");
+    eyebrow.className = "passEyebrow";
+    eyebrow.textContent = "Stempelkarte";
+
     var h = document.createElement("div");
     h.className = "passTitle";
     h.textContent = title;
@@ -1926,6 +1947,7 @@
       " Stempel" +
       (extra > 0 ? " (+" + extra + " extra)" : "");
 
+    left.appendChild(eyebrow);
     left.appendChild(h);
     left.appendChild(sub);
 
@@ -1958,26 +1980,28 @@
     head.appendChild(left);
     head.appendChild(right);
 
+    var stampField = document.createElement("div");
+    stampField.className = "passStampField";
+
     var grid = document.createElement("div");
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
+    stampField.appendChild(grid);
 
     var metaRow = document.createElement("div");
     metaRow.className = "passMetaRow";
 
     var progressText = document.createElement("div");
     progressText.className = "passProgressText";
-    var remaining = Math.max(
-      0,
-      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
-    );
     var progressHeadline = document.createElement("strong");
+    progressHeadline.className = "passProgressHeadline";
     progressHeadline.textContent = isFull
       ? "Belohnung bereit"
       : remaining === 1
         ? "Nur noch 1 Besuch"
         : "Nur noch " + remaining + " Besuche";
     var progressSub = document.createElement("span");
+    progressSub.className = "passProgressSub";
     progressSub.textContent = isFull
       ? "Diese Karte ist bereit zum Einloesen."
       : "Dann erreichst du deine naechste Belohnung.";
@@ -1986,7 +2010,7 @@
 
     var rewardChip = document.createElement("div");
     rewardChip.className = "passRewardChip";
-    rewardChip.textContent = rewardLabel || "Reward";
+    rewardChip.textContent = rewardLabel || "Belohnung";
 
     metaRow.appendChild(progressText);
     metaRow.appendChild(rewardChip);
@@ -1995,10 +2019,38 @@
     hint.className = "passHint";
     hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
 
+    var footer = document.createElement("div");
+    footer.className = "passFooter";
+
+    var footerMeta = document.createElement("div");
+    footerMeta.className = "passFooterMeta";
+
+    var serial = document.createElement("span");
+    serial.className = "passSerial";
+    serial.textContent = serialLabel;
+
+    var footerType = document.createElement("span");
+    footerType.textContent = "10 Felder";
+
+    footerMeta.appendChild(serial);
+    footerMeta.appendChild(footerType);
+
+    var footerVisit = document.createElement("div");
+    footerVisit.className = "passFooterVisit";
+    footerVisit.textContent = isFull
+      ? "Vollstaendig"
+      : remaining === 1
+        ? "1 Besuch offen"
+        : remaining + " Besuche offen";
+
+    footer.appendChild(footerMeta);
+    footer.appendChild(footerVisit);
+
     mainBtn.appendChild(head);
-    mainBtn.appendChild(grid);
+    mainBtn.appendChild(stampField);
     mainBtn.appendChild(metaRow);
     mainBtn.appendChild(hint);
+    mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
     qr.className = "passQr";
@@ -2119,11 +2171,11 @@
       // Keep the deck hinted visually (2 cards behind).
       // Keep background cards below 0.5 opacity so strict UI checks
       // still treat the stack as showing a single visible card.
-      var op = i === 0 ? 1 : i === 1 ? 0.56 : 0.32;
-      var sc = i === 0 ? 1 : i === 1 ? 0.978 : 0.952;
-      var sy = i === 0 ? 0 : i === 1 ? 14 : 28;
-      var tz = i === 0 ? 0 : i === 1 ? -8 : -16;
-      var ry = i === 0 ? 0 : i === 1 ? -2.4 : -4.2;
+      var op = i === 0 ? 1 : i === 1 ? 0.62 : 0.4;
+      var sc = i === 0 ? 1 : i === 1 ? 0.984 : 0.965;
+      var sy = i === 0 ? 0 : i === 1 ? 12 : 24;
+      var tz = i === 0 ? 0 : i === 1 ? -6 : -12;
+      var ry = i === 0 ? 0 : i === 1 ? -1.4 : -2.8;
 
       node.style.setProperty("--wheel-tx", "0px");
       node.style.setProperty("--stack-swipe-y", "0px");
@@ -2157,11 +2209,11 @@
       var second = cards && cards[1] ? cards[1] : null;
       var third = cards && cards[2] ? cards[2] : null;
       var dist = Math.sqrt(dx * dx + dy * dy);
-      var progress = Math.min(1, dist / 120);
-      var swayX = clamp(dx * 0.08, -10, 10);
-      var tilt = clamp(dx * 0.04, -4.5, 4.5);
-      var liftY2 = 14 - progress * 8;
-      var liftY3 = 28 - progress * 10;
+      var progress = Math.min(1, dist / 150);
+      var swayX = clamp(dx * 0.055, -8, 8);
+      var tilt = clamp(dx * 0.026, -3.2, 3.2);
+      var liftY2 = 12 - progress * 5;
+      var liftY3 = 24 - progress * 7;
 
       if (second) {
         second.style.setProperty("--wheel-tx", swayX.toFixed(2) + "px");
@@ -2169,15 +2221,15 @@
         second.style.setProperty("--wheel-ry", tilt.toFixed(2) + "deg");
         second.style.setProperty(
           "--wheel-tz",
-          String((-8 + progress * 6).toFixed(2)) + "px",
+          String((-6 + progress * 4).toFixed(2)) + "px",
         );
         second.style.setProperty(
           "--wheel-scale",
-          String((0.978 + progress * 0.018).toFixed(3)),
+          String((0.984 + progress * 0.012).toFixed(3)),
         );
         second.style.setProperty(
           "--wheel-opacity",
-          String((0.56 + progress * 0.12).toFixed(3)),
+          String((0.62 + progress * 0.08).toFixed(3)),
         );
       }
       if (third) {
@@ -2189,15 +2241,15 @@
         );
         third.style.setProperty(
           "--wheel-tz",
-          String((-16 + progress * 8).toFixed(2)) + "px",
+          String((-12 + progress * 5).toFixed(2)) + "px",
         );
         third.style.setProperty(
           "--wheel-scale",
-          String((0.952 + progress * 0.016).toFixed(3)),
+          String((0.965 + progress * 0.011).toFixed(3)),
         );
         third.style.setProperty(
           "--wheel-opacity",
-          String((0.32 + progress * 0.08).toFixed(3)),
+          String((0.4 + progress * 0.06).toFixed(3)),
         );
       }
     } catch (e) {}
@@ -2212,7 +2264,7 @@
     var ty = opts && isFinite(opts.ty) ? Number(opts.ty) : 0;
     var dir = opts && opts.dir ? opts.dir : tx >= 0 ? 1 : -1;
     var speed = opts && isFinite(opts.speed) ? Number(opts.speed) : 0.7;
-    var duration = Math.round(clamp(260 + speed * 120, 260, 380));
+    var duration = Math.round(clamp(340 + speed * 110, 340, 460));
 
     cardEl.classList.add("isSwapping");
 
@@ -2220,10 +2272,10 @@
       cardEl.style.transition =
         "transform " +
         duration +
-        "ms cubic-bezier(0.19, 1, 0.22, 1), opacity " +
-        Math.max(220, duration - 40) +
+        "ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity " +
+        Math.max(280, duration - 36) +
         "ms ease, filter " +
-        Math.max(220, duration - 30) +
+        Math.max(300, duration - 10) +
         "ms ease";
     } catch (ePrep) {}
 
@@ -2231,16 +2283,16 @@
       // Push it a bit further in the swipe direction, fade it out, then reorder.
       cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
       cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
-      cardEl.style.setProperty("--wheel-rz", String(dir * 5.4) + "deg");
-      cardEl.style.setProperty("--wheel-ry", String(dir * 4.6) + "deg");
+      cardEl.style.setProperty("--wheel-rz", String(dir * 3.6) + "deg");
+      cardEl.style.setProperty("--wheel-ry", String(dir * 3.2) + "deg");
       cardEl.style.setProperty(
         "--wheel-tz",
-        String(clamp(18 + Math.abs(tx) * 0.08, 18, 44)) + "px",
+        String(clamp(14 + Math.abs(tx) * 0.06, 14, 34)) + "px",
       );
-      cardEl.style.setProperty("--wheel-opacity", "0");
-      cardEl.style.setProperty("--wheel-scale", "0.972");
-      cardEl.style.setProperty("--wheel-sat", "1.04");
-      cardEl.style.setProperty("--wheel-bright", "1.02");
+      cardEl.style.setProperty("--wheel-opacity", "0.18");
+      cardEl.style.setProperty("--wheel-scale", "0.984");
+      cardEl.style.setProperty("--wheel-sat", "1.02");
+      cardEl.style.setProperty("--wheel-bright", "1.01");
       updateWalletStackFollowers(scroller, tx * 0.9, ty * 0.7);
     });
 
@@ -2282,20 +2334,20 @@
     // Animate into the back of the deck (so the user sees it going to the end).
     try {
       cardEl.style.transition =
-        "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease, filter 240ms ease";
+        "transform 360ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity 300ms ease, filter 320ms ease";
     } catch (ePrep) {}
     window.requestAnimationFrame(function () {
-      cardEl.style.setProperty("--wheel-tx", String(dir * 34) + "px");
+      cardEl.style.setProperty("--wheel-tx", String(dir * 24) + "px");
       cardEl.style.setProperty("--stack-swipe-y", "0px");
-      cardEl.style.setProperty("--wheel-rz", String(dir * 3.8) + "deg");
-      cardEl.style.setProperty("--wheel-ry", String(dir * 3.2) + "deg");
-      cardEl.style.setProperty("--wheel-tz", "16px");
-      cardEl.style.setProperty("--wheel-opacity", "0.55");
-      cardEl.style.setProperty("--wheel-scale", "0.974");
-      cardEl.style.setProperty("--wheel-sat", "1.03");
+      cardEl.style.setProperty("--wheel-rz", String(dir * 2.4) + "deg");
+      cardEl.style.setProperty("--wheel-ry", String(dir * 2.2) + "deg");
+      cardEl.style.setProperty("--wheel-tz", "12px");
+      cardEl.style.setProperty("--wheel-opacity", "0.68");
+      cardEl.style.setProperty("--wheel-scale", "0.982");
+      cardEl.style.setProperty("--wheel-sat", "1.02");
       cardEl.style.setProperty("--wheel-bright", "1.01");
-      cardEl.style.setProperty("--stack-y", "18px");
-      updateWalletStackFollowers(scroller, dir * 28, 0);
+      cardEl.style.setProperty("--stack-y", "14px");
+      updateWalletStackFollowers(scroller, dir * 20, 0);
     });
 
     window.setTimeout(function () {
@@ -2321,7 +2373,7 @@
 
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
-    }, 280);
+    }, 360);
   }
 
   function enableWalletStackMode(scroller) {
@@ -2416,15 +2468,15 @@
       var tx = clamp(dx, -260, 260);
       var ty = clamp(dy, -220, 220);
       var dist = Math.sqrt(tx * tx + ty * ty);
-      var rz = clamp(tx / 18, -10, 10);
-      var op = 1 - Math.min(0.68, dist / 520);
-      var lift = clamp(Math.abs(tx) * 0.015 + Math.abs(d.vx || 0) * 7, 0, 10);
+      var rz = clamp(tx / 26, -6.5, 6.5);
+      var op = 1 - Math.min(0.38, dist / 760);
+      var lift = clamp(Math.abs(tx) * 0.01 + Math.abs(d.vx || 0) * 4.6, 0, 7);
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(136, Math.max(76, w * 0.235));
+      var trigger = Math.min(142, Math.max(82, w * 0.245));
       var speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
       var flickBias = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
-      var isFlick = (speed > 0.42 || flickBias > 0.24) && dist > 20;
+      var isFlick = (speed > 0.48 || flickBias > 0.28) && dist > 26;
       if (dist >= trigger || isFlick) {
         // Trigger immediately once it's far enough away.
         walletState.ignoreClickUntil = nowMs() + 340;
@@ -2444,8 +2496,8 @@
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
         var momentum = Math.min(1.45, 1 + speed * 0.5);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.1 * momentum,
-          ty: ty * 1.06 * momentum,
+          tx: tx * 1.04 * momentum,
+          ty: ty * 1.02 * momentum,
           dir: dir,
           speed: speed,
         });
@@ -2469,13 +2521,13 @@
 
           // Smooth interpolation (reduces jitter on mobile).
           walletState.dragTxCur +=
-            (walletState.dragTx - walletState.dragTxCur) * 0.68;
+            (walletState.dragTx - walletState.dragTxCur) * 0.42;
           walletState.dragTyCur +=
-            (walletState.dragTy - walletState.dragTyCur) * 0.64;
+            (walletState.dragTy - walletState.dragTyCur) * 0.4;
           walletState.dragRzCur +=
-            (walletState.dragRz - walletState.dragRzCur) * 0.58;
+            (walletState.dragRz - walletState.dragRzCur) * 0.34;
           walletState.dragOpCur +=
-            (walletState.dragOp - walletState.dragOpCur) * 0.58;
+            (walletState.dragOp - walletState.dragOpCur) * 0.3;
 
           card2.style.setProperty(
             "--wheel-tx",
@@ -2542,14 +2594,14 @@
       var dist = Math.sqrt(tx * tx + ty * ty);
       var releaseSpeed = Math.sqrt((d.vx || 0) * (d.vx || 0) + (d.vy || 0) * (d.vy || 0));
       var releaseAccel = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
-      if (moved && (dist > threshold || ((releaseSpeed > 0.42 || releaseAccel > 0.24) && dist > 18))) {
+      if (moved && (dist > threshold || ((releaseSpeed > 0.48 || releaseAccel > 0.28) && dist > 24))) {
         walletState.ignoreClickUntil = nowMs() + 340;
         var dir =
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
         var releaseMomentum = Math.min(1.5, 1 + releaseSpeed * 0.55);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.12 * releaseMomentum,
-          ty: ty * 1.08 * releaseMomentum,
+          tx: tx * 1.04 * releaseMomentum,
+          ty: ty * 1.02 * releaseMomentum,
           dir: dir,
           speed: releaseSpeed,
         });
@@ -2558,7 +2610,7 @@
 
       try {
         card.style.transition =
-          "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease, filter 220ms ease";
+          "transform 420ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity 300ms ease, filter 320ms ease";
       } catch (e1) {}
       updateWalletStackFollowers(scroller, 0, 0);
       card.style.setProperty("--wheel-tx", "0px");
@@ -2893,6 +2945,10 @@
 
     var isFull = stampCount >= rewardThreshold;
     var extra = Math.max(0, stampCount - rewardThreshold);
+    var remaining = Math.max(
+      0,
+      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+    );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
       hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
@@ -2965,6 +3021,31 @@
           ? "Voll +" + extra
           : "Voll"
         : clamp(stampCount, 0, rewardThreshold) + "/" + rewardThreshold;
+    }
+
+    var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
+    if (progressHeadline) {
+      progressHeadline.textContent = isFull
+        ? "Belohnung bereit"
+        : remaining === 1
+          ? "Nur noch 1 Besuch"
+          : "Nur noch " + remaining + " Besuche";
+    }
+
+    var progressSub = passCardEl.querySelector(".passProgressSub");
+    if (progressSub) {
+      progressSub.textContent = isFull
+        ? "Diese Karte ist bereit zum Einloesen."
+        : "Dann erreichst du deine naechste Belohnung.";
+    }
+
+    var footerVisit = passCardEl.querySelector(".passFooterVisit");
+    if (footerVisit) {
+      footerVisit.textContent = isFull
+        ? "Vollstaendig"
+        : remaining === 1
+          ? "1 Besuch offen"
+          : remaining + " Besuche offen";
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
