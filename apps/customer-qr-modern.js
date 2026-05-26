@@ -1962,12 +1962,42 @@
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
 
+    var metaRow = document.createElement("div");
+    metaRow.className = "passMetaRow";
+
+    var progressText = document.createElement("div");
+    progressText.className = "passProgressText";
+    var remaining = Math.max(
+      0,
+      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+    );
+    var progressHeadline = document.createElement("strong");
+    progressHeadline.textContent = isFull
+      ? "Belohnung bereit"
+      : remaining === 1
+        ? "Nur noch 1 Besuch"
+        : "Nur noch " + remaining + " Besuche";
+    var progressSub = document.createElement("span");
+    progressSub.textContent = isFull
+      ? "Diese Karte ist bereit zum Einloesen."
+      : "Dann erreichst du deine naechste Belohnung.";
+    progressText.appendChild(progressHeadline);
+    progressText.appendChild(progressSub);
+
+    var rewardChip = document.createElement("div");
+    rewardChip.className = "passRewardChip";
+    rewardChip.textContent = rewardLabel || "Reward";
+
+    metaRow.appendChild(progressText);
+    metaRow.appendChild(rewardChip);
+
     var hint = document.createElement("div");
     hint.className = "passHint";
     hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(grid);
+    mainBtn.appendChild(metaRow);
     mainBtn.appendChild(hint);
 
     var qr = document.createElement("div");
@@ -2010,6 +2040,19 @@
     qrBox.setAttribute("role", "button");
     qrBox.setAttribute("aria-label", "QR anzeigen / schließen");
     qr.appendChild(qrBox);
+
+    var qrCaption = document.createElement("div");
+    qrCaption.className = "passQrCaption";
+    qrCaption.textContent = isFull
+      ? "Am Tresen scannen lassen, um die Belohnung einzuloesen."
+      : "Am Tresen scannen lassen, damit dein naechster Stempel dazukommt.";
+    qr.appendChild(qrCaption);
+
+    var backNote = document.createElement("div");
+    backNote.className = "passBackNote";
+    backNote.textContent =
+      "Tippe irgendwo auf die Rueckseite, um wieder zur Karte zu wechseln.";
+    qr.appendChild(backNote);
 
     flip.appendChild(mainBtn);
     flip.appendChild(qr);
