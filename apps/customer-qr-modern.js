@@ -121,10 +121,12 @@
     dragTx: 0,
     dragTy: 0,
     dragRz: 0,
+    dragRy: 0,
     dragOp: 1,
     dragTxCur: 0,
     dragTyCur: 0,
     dragRzCur: 0,
+    dragRyCur: 0,
     dragOpCur: 1,
 
     // Wallet render cache (avoid rebuilding DOM on every tab switch)
@@ -2465,51 +2467,25 @@
 
       var card = d.activeEl;
       if (!card) return;
-      var tx = clamp(dx, -260, 260);
-      var ty = clamp(dy, -220, 220);
+      var tx = clamp(dx * 1.02, -280, 280);
+      var ty = clamp(dy * 0.94, -240, 240);
       var dist = Math.sqrt(tx * tx + ty * ty);
-      var rz = clamp(tx / 26, -6.5, 6.5);
-      var op = 1 - Math.min(0.38, dist / 760);
-      var lift = clamp(Math.abs(tx) * 0.01 + Math.abs(d.vx || 0) * 4.6, 0, 7);
+      var rz = clamp(tx / 18 + ty / 64, -9.5, 9.5);
+      var ry = clamp(tx / 15, -10.5, 10.5);
+      var op = 1 - Math.min(0.26, dist / 980);
+      var lift = clamp(Math.abs(tx) * 0.012 + Math.abs(d.vx || 0) * 3.8, 0, 9);
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(142, Math.max(82, w * 0.245));
-      var speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
-      var flickBias = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
-      var isFlick = (speed > 0.48 || flickBias > 0.28) && dist > 26;
-      if (dist >= trigger || isFlick) {
-        // Trigger immediately once it's far enough away.
-        walletState.ignoreClickUntil = nowMs() + 340;
-        walletState.stackDrag = null;
-        scroller.classList.remove("isDragging");
-        try {
-          if (walletState.dragRaf)
-            window.cancelAnimationFrame(walletState.dragRaf);
-        } catch (e0) {}
-        walletState.dragRaf = 0;
-        walletState.dragTxCur = 0;
-        walletState.dragTyCur = 0;
-        walletState.dragRzCur = 0;
-        walletState.dragOpCur = 1;
-
-        var dir =
-          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
-        var momentum = Math.min(1.45, 1 + speed * 0.5);
-        sendTopCardToBack(scroller, {
-          tx: tx * 1.04 * momentum,
-          ty: ty * 1.02 * momentum,
-          dir: dir,
-          speed: speed,
-        });
-        return;
-      }
+      var trigger = Math.min(146, Math.max(86, w * 0.255));
 
       // Throttle style updates to rAF for smoother motion.
       walletState.dragTx = tx;
-        walletState.dragTy = ty;
-        walletState.dragRz = rz;
-        walletState.dragOp = op;
-        walletState.dragLift = lift;
+      walletState.dragTy = ty;
+      walletState.dragRz = rz;
+      walletState.dragRy = ry;
+      walletState.dragOp = op;
+      walletState.dragLift = lift;
+      walletState.dragTrigger = trigger;
       if (walletState.dragRaf) return;
 
       var step = function () {
@@ -2521,13 +2497,15 @@
 
           // Smooth interpolation (reduces jitter on mobile).
           walletState.dragTxCur +=
-            (walletState.dragTx - walletState.dragTxCur) * 0.42;
+            (walletState.dragTx - walletState.dragTxCur) * 0.78;
           walletState.dragTyCur +=
-            (walletState.dragTy - walletState.dragTyCur) * 0.4;
+            (walletState.dragTy - walletState.dragTyCur) * 0.72;
           walletState.dragRzCur +=
-            (walletState.dragRz - walletState.dragRzCur) * 0.34;
+            (walletState.dragRz - walletState.dragRzCur) * 0.52;
+          walletState.dragRyCur +=
+            (walletState.dragRy - walletState.dragRyCur) * 0.56;
           walletState.dragOpCur +=
-            (walletState.dragOp - walletState.dragOpCur) * 0.3;
+            (walletState.dragOp - walletState.dragOpCur) * 0.38;
 
           card2.style.setProperty(
             "--wheel-tx",
@@ -2542,8 +2520,20 @@
             walletState.dragRzCur.toFixed(2) + "deg",
           );
           card2.style.setProperty(
+            "--wheel-ry",
+            walletState.dragRyCur.toFixed(2) + "deg",
+          );
+          card2.style.setProperty(
             "--wheel-opacity",
             String(walletState.dragOpCur.toFixed(3)),
+          );
+          card2.style.setProperty(
+            "--wheel-sat",
+            String((1 + Math.min(0.03, Math.abs(walletState.dragTxCur) / 1800)).toFixed(3)),
+          );
+          card2.style.setProperty(
+            "--wheel-bright",
+            String((1 + Math.min(0.02, Math.abs(walletState.dragTyCur) / 2200)).toFixed(3)),
           );
           card2.style.setProperty(
             "--wheel-tz",
@@ -2578,6 +2568,7 @@
       walletState.dragTxCur = 0;
       walletState.dragTyCur = 0;
       walletState.dragRzCur = 0;
+      walletState.dragRyCur = 0;
       walletState.dragOpCur = 1;
 
       var dx = ev.clientX - d.startX;
@@ -2587,21 +2578,21 @@
       if (!card) return;
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var threshold = Math.min(102, Math.max(64, w * 0.2));
+      var threshold = Math.min(110, Math.max(70, w * 0.22));
 
-      var tx = clamp(dx, -260, 260);
-      var ty = clamp(dy, -220, 220);
+      var tx = clamp(dx * 1.02, -280, 280);
+      var ty = clamp(dy * 0.94, -240, 240);
       var dist = Math.sqrt(tx * tx + ty * ty);
       var releaseSpeed = Math.sqrt((d.vx || 0) * (d.vx || 0) + (d.vy || 0) * (d.vy || 0));
       var releaseAccel = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
-      if (moved && (dist > threshold || ((releaseSpeed > 0.48 || releaseAccel > 0.28) && dist > 24))) {
+      if (moved && (dist > threshold || ((releaseSpeed > 0.54 || releaseAccel > 0.34) && dist > 34))) {
         walletState.ignoreClickUntil = nowMs() + 340;
         var dir =
           Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
         var releaseMomentum = Math.min(1.5, 1 + releaseSpeed * 0.55);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.04 * releaseMomentum,
-          ty: ty * 1.02 * releaseMomentum,
+          tx: tx * 1.06 * releaseMomentum,
+          ty: ty * 1.04 * releaseMomentum,
           dir: dir,
           speed: releaseSpeed,
         });
