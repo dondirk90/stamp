@@ -1313,79 +1313,198 @@
     return stampIconState.promise;
   }
 
-  function buildStampSvg(filled) {
-    // Coffee bean stamp (oval + curved seam) similar to the provided reference.
-    // Uses only existing theme tokens: currentColor + --pass-bg/--surface.
-    // Unique filter ids are required because multiple SVGs exist in the DOM.
-    // If an exact image is available, use it for pixel-identical rendering.
-    if (stampIconState.ok && stampIconState.url) {
+  function buildStampSvg(filled, style) {
+    stampSvgSeq = (stampSvgSeq + 1) % 1000000;
+    var uid = String(stampSvgSeq);
+    var kind = String(style || "cup").trim().toLowerCase();
+
+    if (kind === "bean") {
+      var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
+      var beanPath =
+        "M14 50 C14 28 30 12 50 12 C70 12 86 28 86 50 C86 72 70 88 50 88 C30 88 14 72 14 50 Z";
+      var seamPath = "M28 18 C52 30 54 52 60 62 C66 72 70 78 74 82";
+      if (filled) {
+        return (
+          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+          '<path d="' +
+          beanPath +
+          '" fill="currentColor" opacity="0.96"></path>' +
+          '<path d="' +
+          seamPath +
+          '" fill="none" stroke="' +
+          seam +
+          '" stroke-width="14" stroke-linecap="round" opacity="0.95"></path>' +
+          "</svg>"
+        );
+      }
       return (
-        '<img class="stampIcon stampIconImg" alt="" aria-hidden="true" draggable="false" src="' +
-        String(stampIconState.url).replace(/"/g, "&quot;") +
-        '">'
+        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+        '<path d="' +
+        beanPath +
+        '" fill="none" stroke="currentColor" stroke-width="6" opacity="0.34" stroke-linejoin="round"></path>' +
+        '<path d="' +
+        seamPath +
+        '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" opacity="0.14"></path>' +
+        "</svg>"
       );
     }
 
-    stampSvgSeq = (stampSvgSeq + 1) % 1000000;
-    var uid = String(stampSvgSeq);
-    var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
-    var beanPath =
-      "M14 50 C14 28 30 12 50 12 C70 12 86 28 86 50 C86 72 70 88 50 88 C30 88 14 72 14 50 Z";
-    // Diagonal, slightly wavy seam like the provided stamp reference.
-    var seamPath = "M28 18 C52 30 54 52 60 62 C66 72 70 78 74 82";
+    if (kind === "star") {
+      if (filled) {
+        return (
+          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+          '<path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="currentColor" opacity="0.92"></path>' +
+          "</svg>"
+        );
+      }
+      return (
+        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+        '<path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="none" stroke="currentColor" stroke-width="4.8" opacity="0.4" stroke-linejoin="round"></path>' +
+        "</svg>"
+      );
+    }
+
+    if (kind === "circle") {
+      if (filled) {
+        return (
+          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+          '<circle cx="50" cy="50" r="26" fill="currentColor" opacity="0.92"></circle>' +
+          "</svg>"
+        );
+      }
+      return (
+        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+        '<circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle>' +
+        "</svg>"
+      );
+    }
 
     if (filled) {
       return (
         '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
         "<defs>" +
-        '<filter id="stampGrain-' +
+        '<filter id="stampPrint-' +
         uid +
-        '" x="-20%" y="-20%" width="140%" height="140%">' +
-        '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="2" result="noise"></feTurbulence>' +
+        '" x="-24%" y="-24%" width="148%" height="148%">' +
+        '<feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="1" seed="4" result="noise"></feTurbulence>' +
         '<feColorMatrix in="noise" type="saturate" values="0" result="mono"></feColorMatrix>' +
         '<feComponentTransfer in="mono" result="grain">' +
-        '<feFuncR type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncR>' +
-        '<feFuncG type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncG>' +
-        '<feFuncB type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncB>' +
-        '<feFuncA type="table" tableValues="0 0.05 0.08 0.1 0.12 0.14"></feFuncA>' +
+        '<feFuncA type="table" tableValues="0 0.03 0.07 0.11 0.16 0.2"></feFuncA>' +
         "</feComponentTransfer>" +
         '<feComposite in="grain" in2="SourceAlpha" operator="in" result="grainIn"></feComposite>' +
         '<feBlend in="SourceGraphic" in2="grainIn" mode="multiply"></feBlend>' +
         "</filter>" +
         "</defs>" +
-        '<path d="' +
-        beanPath +
-        '" fill="currentColor" opacity="0.96" filter="url(#stampGrain-' +
+        '<path d="M24 48h42c8 0 15 6 15 15v1H33c-8 0-14-6-14-14v-2c0-7 5-12 12-12h19c10 0 15 6 15 13 0 7-5 12-13 12H24" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#stampPrint-' +
         uid +
-        ')"></path>' +
-        '<path d="' +
-        seamPath +
-        '" fill="none" stroke="' +
-        seam +
-        '" stroke-width="14" stroke-linecap="round" opacity="0.95"></path>' +
+        ')" opacity="0.96"></path>' +
+        '<path d="M66 39h8c6 0 12 5 12 12 0 7-6 12-12 12h-7" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.96"></path>' +
+        '<path d="M24 68c6 7 18 11 31 11 18 0 30-5 37-11" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" opacity="0.9"></path>' +
+        '<path d="M41 31c3-8 10-12 20-12" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" opacity="0.34"></path>' +
         "</svg>"
       );
     }
 
     return (
       '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-      '<path d="' +
-      beanPath +
-      '" fill="none" stroke="currentColor" stroke-width="6" opacity="0.34" stroke-linejoin="round"></path>' +
-      '<path d="' +
-      seamPath +
-      '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" opacity="0.14"></path>' +
+      '<circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle>' +
       "</svg>"
     );
   }
 
+  function getOrdinalLabel(n) {
+    var num = Math.max(1, Number(n || 0) || 1);
+    var mod10 = num % 10;
+    var mod100 = num % 100;
+    if (mod10 === 1 && mod100 !== 11) return String(num) + "st";
+    if (mod10 === 2 && mod100 !== 12) return String(num) + "nd";
+    if (mod10 === 3 && mod100 !== 13) return String(num) + "rd";
+    return String(num) + "th";
+  }
+
+  function stripCardMarkup(raw) {
+    return String(raw || "")
+      .replace(/[*_`>#-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getCardPrintSubtitle(card) {
+    var about = stripCardMarkup(card && card.about ? card.about : "");
+    if (about) {
+      var line = about.split(/[.!?\n]/)[0] || "";
+      line = String(line).trim();
+      if (line && line.length <= 34) return line.toUpperCase();
+    }
+    return "KAFFEESPEZIALITAETEN";
+  }
+
+  function getCardFrontKicker(threshold) {
+    return "JEDER " + String(threshold) + ". KAFFEE GRATIS";
+  }
+
+  function getCardStampStyle(card) {
+    try {
+      var program = getCardProgram(card);
+      var raw =
+        program && program.stampStyle != null
+          ? String(program.stampStyle)
+          : card && card.stampStyle != null
+            ? String(card.stampStyle)
+            : "";
+      var style = raw.trim().toLowerCase();
+      if (
+        style === "cup" ||
+        style === "bean" ||
+        style === "star" ||
+        style === "circle"
+      ) {
+        return style;
+      }
+    } catch (e) {}
+    return "cup";
+  }
+
+  function getRewardSideNote(label, isFull) {
+    if (isFull) return "PRAEMIE BEREIT";
+    var src = String(label || "").trim();
+    if (!src) return "GRATIS";
+    var normalized = src
+      .replace(/^1\s+/i, "")
+      .replace(/freigetr[a\u00e4]nk/i, "gratis")
+      .replace(/free cup/i, "gratis")
+      .replace(/free/i, "gratis")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+    if (!normalized) return "GRATIS";
+    return normalized.length > 18 ? "GRATIS" : normalized;
+  }
+
+  function getCardFooterLabel(card) {
+    var address = stripCardMarkup(card && card.address ? card.address : "");
+    if (address) {
+      var shortAddress = address.split(",")[0] || address;
+      shortAddress = String(shortAddress).trim();
+      if (shortAddress && shortAddress.length <= 24)
+        return shortAddress.toUpperCase();
+    }
+    return "KAFFEEKARTE";
+  }
+
   function renderStampGrid(container, count) {
     var threshold = REWARD_THRESHOLD;
+    var stampStyle = "cup";
     try {
       var pass = null;
       if (container && container.closest)
         pass = container.closest(".passCard, .face");
       threshold = getPassRewardThreshold(pass);
+      stampStyle = pass
+        ? String(pass.getAttribute("data-stamp-style") || "cup")
+            .trim()
+            .toLowerCase()
+        : "cup";
     } catch (eThreshold0) {}
     function hash32(str) {
       var s = String(str || "");
@@ -1468,7 +1587,7 @@
         } catch (eJ) {}
       }
 
-      cell.innerHTML = buildStampSvg(filled);
+      cell.innerHTML = buildStampSvg(filled, stampStyle);
       container.appendChild(cell);
     }
   }
@@ -1627,6 +1746,21 @@
     return box;
   }
 
+  function syncPassFaceHeight(passEl) {
+    if (!passEl) return;
+    try {
+      var flip = passEl.querySelector(".passFlip");
+      var front = passEl.querySelector(".passMain");
+      var back = passEl.querySelector(".passQr");
+      if (!flip || !front || !back) return;
+      var h = Math.max(
+        Number(front.offsetHeight || 0) || 0,
+        Number(back.offsetHeight || 0) || 0,
+      );
+      if (h > 0) flip.style.minHeight = String(Math.ceil(h)) + "px";
+    } catch (e) {}
+  }
+
   function setQrSvg(passEl, svgText) {
     var box = passEl ? passEl.querySelector(".passQrBox") : null;
     if (!box) return false;
@@ -1634,6 +1768,7 @@
     try {
       box.innerHTML = String(svgText);
       clearQrHint(passEl);
+      syncPassFaceHeight(passEl);
       return true;
     } catch (e0) {
       return false;
@@ -1653,6 +1788,7 @@
         function (err2) {
           if (!err2) {
             clearQrHint(passEl);
+            syncPassFaceHeight(passEl);
             return;
           }
           try {
@@ -1702,6 +1838,7 @@
             try {
               img.onload = function () {
                 clearQrHint(passEl);
+                syncPassFaceHeight(passEl);
               };
             } catch (eOnLoad) {}
             img.src = String(url);
@@ -1736,11 +1873,15 @@
 
   function openPass(passEl) {
     if (!passEl) return;
-    passEl.classList.add("open");
     try {
-      // Use the stable 2D backside mode (prevents invisible backfaces on some browsers/WebViews).
+      if (passEl.__forceBackTimer) {
+        window.clearTimeout(passEl.__forceBackTimer);
+        passEl.__forceBackTimer = 0;
+      }
       if (passEl.classList) passEl.classList.add("forceBack");
-    } catch (eFb0) {}
+    } catch (ePrepOpen) {}
+    passEl.classList.add("open");
+    syncPassFaceHeight(passEl);
     try {
       var cafeAddress = passEl.getAttribute("data-cafe") || "";
       var stamps = getPassStampCount(passEl);
@@ -1786,6 +1927,7 @@
             window.requestAnimationFrame(function () {
               window.requestAnimationFrame(function () {
                 renderQrSvg(passEl, link2, box);
+                syncPassFaceHeight(passEl);
               });
             });
           })
@@ -1847,14 +1989,12 @@
         } catch (eW) {}
       }, 1500);
 
-      // Note: we intentionally keep the 2D mode even if 3D would work,
-      // because the user reported the backside rendering as fully blank.
-
       // Delay rendering until after the "open" class applied and layout settled.
       // This avoids rare cases where the canvas ends up 0-sized / not painted.
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () {
           renderQrSvg(passEl, link, box);
+          syncPassFaceHeight(passEl);
         });
       });
     } catch (e) {}
@@ -1862,10 +2002,14 @@
 
   function closePass(passEl) {
     if (!passEl) return;
-    passEl.classList.remove("open");
     try {
+      if (passEl.__forceBackTimer) {
+        window.clearTimeout(passEl.__forceBackTimer);
+        passEl.__forceBackTimer = 0;
+      }
       if (passEl.classList) passEl.classList.remove("forceBack");
-    } catch (eFb2) {}
+    } catch (ePrepClose) {}
+    passEl.classList.remove("open");
   }
 
   function buildPassCard(card) {
@@ -1895,13 +2039,23 @@
       ? cafeAddress.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6)
       : "";
     if (!serialTail) serialTail = "STAMP";
-    var serialLabel = "Card " + serialTail;
+    var kickerText = getCardFrontKicker(rewardThreshold);
+    var subtitle = getCardPrintSubtitle(card);
+    var rewardSideNote = getRewardSideNote(rewardLabel, isFull);
+    var footerLabel = getCardFooterLabel(card);
+    var countLine = isFull
+      ? extra > 0
+        ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
+        : rewardThreshold + "/" + rewardThreshold + " VOLL"
+      : clamp(stampCount, 0, rewardThreshold) + " / " + rewardThreshold + " STEMPEL";
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
     passCard.setAttribute("data-pass-theme", theme);
     passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
+    passCard.setAttribute("data-reward-label", rewardLabel || "");
+    passCard.setAttribute("data-stamp-style", getCardStampStyle(card));
 
     if (card && card.cardBackgroundDataUrl) {
       try {
@@ -1934,41 +2088,14 @@
 
     var eyebrow = document.createElement("div");
     eyebrow.className = "passEyebrow";
-    eyebrow.textContent = "Stempelkarte";
+    eyebrow.textContent = kickerText;
 
-    var h = document.createElement("div");
-    h.className = "passTitle";
-    h.textContent = title;
+    var brandLockup = document.createElement("div");
+    brandLockup.className = "passBrandLockup";
 
-    var sub = document.createElement("div");
-    sub.className = "passSub";
-    sub.textContent =
-      clamp(stampCount, 0, rewardThreshold) +
-      " / " +
-      rewardThreshold +
-      " Stempel" +
-      (extra > 0 ? " (+" + extra + " extra)" : "");
-
-    left.appendChild(eyebrow);
-    left.appendChild(h);
-    left.appendChild(sub);
-
-    var right = document.createElement("div");
-    right.className = "passRight";
-
-    var badge = document.createElement("div");
-    badge.className = "badge";
-    badge.textContent = isFull
-      ? extra > 0
-        ? "Voll +" + extra
-        : "Voll"
-      : clamp(stampCount, 0, rewardThreshold) + "/" + rewardThreshold;
-
-    right.appendChild(badge);
-
-    var logoWrap = document.createElement("div");
-    logoWrap.className = "passLogoWrap";
     if (card.logoDataUrl) {
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "passLogoWrap";
       var img = document.createElement("img");
       img.className = "passLogo";
       img.alt = "Logo";
@@ -1976,11 +2103,28 @@
       img.loading = "lazy";
       img.src = String(card.logoDataUrl);
       logoWrap.appendChild(img);
+      brandLockup.appendChild(logoWrap);
     }
-    right.appendChild(logoWrap);
+
+    var titleBlock = document.createElement("div");
+    titleBlock.className = "passTitleBlock";
+
+    var h = document.createElement("div");
+    h.className = "passTitle";
+    h.textContent = title;
+
+    var sub = document.createElement("div");
+    sub.className = "passSub";
+    sub.textContent = subtitle;
+
+    titleBlock.appendChild(h);
+    titleBlock.appendChild(sub);
+    brandLockup.appendChild(titleBlock);
+
+    left.appendChild(eyebrow);
+    left.appendChild(brandLockup);
 
     head.appendChild(left);
-    head.appendChild(right);
 
     var stampField = document.createElement("div");
     stampField.className = "passStampField";
@@ -1989,6 +2133,10 @@
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
     stampField.appendChild(grid);
+    var rewardNote = document.createElement("div");
+    rewardNote.className = "passRewardNote";
+    rewardNote.textContent = rewardSideNote;
+    stampField.appendChild(rewardNote);
 
     var metaRow = document.createElement("div");
     metaRow.className = "passMetaRow";
@@ -2029,10 +2177,11 @@
 
     var serial = document.createElement("span");
     serial.className = "passSerial";
-    serial.textContent = serialLabel;
+    serial.textContent = footerLabel;
 
     var footerType = document.createElement("span");
-    footerType.textContent = "10 Felder";
+    footerType.className = "passCountLine";
+    footerType.textContent = countLine;
 
     footerMeta.appendChild(serial);
     footerMeta.appendChild(footerType);
@@ -2040,18 +2189,16 @@
     var footerVisit = document.createElement("div");
     footerVisit.className = "passFooterVisit";
     footerVisit.textContent = isFull
-      ? "Vollstaendig"
+      ? "ZUM EINLOESEN ZEIGEN"
       : remaining === 1
-        ? "1 Besuch offen"
-        : remaining + " Besuche offen";
+        ? "1 STEMPEL FEHLT"
+        : remaining + " STEMPEL FEHLEN";
 
     footer.appendChild(footerMeta);
     footer.appendChild(footerVisit);
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
-    mainBtn.appendChild(metaRow);
-    mainBtn.appendChild(hint);
     mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
@@ -2111,6 +2258,11 @@
     flip.appendChild(mainBtn);
     flip.appendChild(qr);
     passCard.appendChild(flip);
+    try {
+      window.requestAnimationFrame(function () {
+        syncPassFaceHeight(passCard);
+      });
+    } catch (eSync0) {}
 
     mainBtn.addEventListener("click", function () {
       if (nowMs() < walletState.ignoreClickUntil) return;
@@ -2996,47 +3148,35 @@
     }
 
     var sub = passCardEl.querySelector(".passSub");
-    if (sub) {
-      sub.textContent =
-        clamp(stampCount, 0, rewardThreshold) +
-        " / " +
-        rewardThreshold +
-        " Stempel" +
-        (extra > 0 ? " (+" + extra + " extra)" : "");
-    }
+    if (sub) sub.setAttribute("data-card-static", "1");
 
-    var badge = passCardEl.querySelector(".badge");
-    if (badge) {
-      badge.textContent = isFull
+    var countLine = passCardEl.querySelector(".passCountLine");
+    if (countLine) {
+      countLine.textContent = isFull
         ? extra > 0
-          ? "Voll +" + extra
-          : "Voll"
-        : clamp(stampCount, 0, rewardThreshold) + "/" + rewardThreshold;
+          ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
+          : rewardThreshold + "/" + rewardThreshold + " VOLL"
+        : clamp(stampCount, 0, rewardThreshold) +
+          " / " +
+          rewardThreshold +
+          " STEMPEL";
     }
 
-    var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
-    if (progressHeadline) {
-      progressHeadline.textContent = isFull
-        ? "Belohnung bereit"
-        : remaining === 1
-          ? "Nur noch 1 Besuch"
-          : "Nur noch " + remaining + " Besuche";
-    }
-
-    var progressSub = passCardEl.querySelector(".passProgressSub");
-    if (progressSub) {
-      progressSub.textContent = isFull
-        ? "Diese Karte ist bereit zum Einloesen."
-        : "Dann erreichst du deine naechste Belohnung.";
+    var rewardNote = passCardEl.querySelector(".passRewardNote");
+    if (rewardNote) {
+      rewardNote.textContent = getRewardSideNote(
+        passCardEl.getAttribute("data-reward-label") || "",
+        isFull,
+      );
     }
 
     var footerVisit = passCardEl.querySelector(".passFooterVisit");
     if (footerVisit) {
       footerVisit.textContent = isFull
-        ? "Vollstaendig"
+        ? "ZUM EINLOESEN ZEIGEN"
         : remaining === 1
-          ? "1 Besuch offen"
-          : remaining + " Besuche offen";
+          ? "1 STEMPEL FEHLT"
+          : remaining + " STEMPEL FEHLEN";
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
