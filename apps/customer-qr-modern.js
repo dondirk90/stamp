@@ -1753,7 +1753,15 @@
       if (!flip) return;
       var w = Number(passEl.clientWidth || flip.clientWidth || 0) || 0;
       if (w <= 0) return;
-      var h = w / 1.58;
+      var ratio = 1.58;
+      try {
+        var ratioRaw = window.getComputedStyle(passEl).getPropertyValue(
+          "--pass-card-ratio",
+        );
+        var ratioNum = Number(String(ratioRaw || "").trim());
+        if (Number.isFinite(ratioNum) && ratioNum > 0) ratio = ratioNum;
+      } catch (eRatio) {}
+      var h = w / ratio;
       flip.style.minHeight = "0px";
       flip.style.height = String(Math.ceil(h)) + "px";
     } catch (e) {}

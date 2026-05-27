@@ -1285,8 +1285,9 @@
         scroll-snap-align: center;
         scroll-snap-stop: always;
         flex: 0 0 auto;
+        --pass-card-ratio: 1.58;
         width: var(--cardW);
-        aspect-ratio: 1.58 / 1;
+        aspect-ratio: var(--pass-card-ratio);
         position: relative;
         overflow: visible;
         perspective: 1600px;
@@ -1939,6 +1940,10 @@
           --cardW: min(360px, calc(100% - 18px));
         }
 
+        .passCard {
+          --pass-card-ratio: 1.34;
+        }
+
         .passMain,
         .passQr {
           padding: 18px;
@@ -1964,7 +1969,7 @@
 
         .passQrBox {
           min-height: 0;
-          max-width: 208px;
+          max-width: 196px;
           padding: var(--space-3);
         }
       }
@@ -1991,22 +1996,25 @@
         }
 
         .walletCarousel {
-          /* Tie card width to viewport height as well (Safari URL bar steals vertical space). */
-          --cardW: min(300px, 82vw, 38svh);
+          --cardW: min(324px, 88vw);
           padding: 10px 0;
         }
 
         .walletCarousel.isStack {
-          --cardW: min(320px, calc(100% - 26px), 38svh);
+          --cardW: min(338px, calc(100% - 18px));
         }
 
         /* iOS: size by available width so the card feels like Wallet */
         .ios .walletCarousel {
-          --cardW: min(calc(100% - 18px), 94vw);
+          --cardW: min(calc(100% - 14px), 96vw);
         }
 
         .ios .walletCarousel.isStack {
-          --cardW: min(calc(100% - 14px), 96vw);
+          --cardW: min(calc(100% - 10px), 98vw);
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.3;
         }
 
         .passMain,
@@ -2048,19 +2056,23 @@
       /* Very short viewports: tighten one more notch (browser chrome visible). */
       @media (max-width: 520px) and (max-height: 760px) {
         .walletCarousel {
-          --cardW: min(285px, 78vw, 36svh);
+          --cardW: min(306px, 84vw);
         }
 
         .walletCarousel.isStack {
-          --cardW: min(305px, calc(100% - 28px), 36svh);
+          --cardW: min(320px, calc(100% - 22px));
         }
 
         .ios .walletCarousel {
-          --cardW: min(calc(100% - 26px), 92vw);
+          --cardW: min(calc(100% - 18px), 94vw);
         }
 
         .ios .walletCarousel.isStack {
-          --cardW: min(calc(100% - 22px), 94vw);
+          --cardW: min(calc(100% - 14px), 96vw);
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.26;
         }
       }
 
@@ -2165,27 +2177,27 @@
       }
 
       .passQr canvas {
-        width: min(148px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 148px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
         margin: auto;
       }
 
       .passQr img {
-        width: min(148px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 148px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
         margin: auto;
       }
 
       .passQr svg {
-        width: min(148px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 148px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
         margin: auto;
