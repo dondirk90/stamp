@@ -408,6 +408,69 @@ async function sendCustomerPasswordResetEmail({ email, resetUrl }) {
   return info;
 }
 
+async function sendCustomerWelcomeEmail({ email, username, appsBaseUrl }) {
+  const baseUrl = String(
+    appsBaseUrl || process.env.APPS_BASE_URL || "http://localhost:8080",
+  ).replace(/\/$/, "");
+  const walletUrl = `${baseUrl}/customer-register`;
+  const profileUrl = `${baseUrl}/customer-profile`;
+  const displayName = String(username || "").trim() || "Kaffeekarte Gast";
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Willkommen bei Kaffeekarte, ${displayName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Willkommen, ${displayName}.</h1>
+              <p style="margin: 0; color: #5f544a;">Dein Konto ist bereit. Ab jetzt kannst du digitale Stempelkarten sammeln und deine Lieblingscafés schneller wiederfinden.</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              <div style="padding: 16px 18px; border: 1px dashed rgba(34, 24, 18, 0.18); border-radius: 12px; background: rgba(255,255,255,0.72);">
+                <div style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b625a; font-weight: 700; margin-bottom: 8px;">Dein Login</div>
+                <div style="font-size: 15px; color: #181311; word-break: break-word;">${email}</div>
+              </div>
+              <p style="margin: 20px 0 0; color: #4d443c;">Du kannst dich jederzeit mit deiner E-Mail-Adresse und deinem Passwort anmelden.</p>
+              <div style="margin-top: 24px;">
+                <a href="${walletUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">Zur Wallet</a>
+              </div>
+              <p style="margin: 18px 0 0; color: #6b625a; font-size: 13px;">Profil und Passwort-Reset findest du hier: <a href="${profileUrl}" style="color: #1c1917;">${profileUrl}</a></p>
+              <p style="margin: 24px 0 0; color: #8a7d70; font-size: 12px;">Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Willkommen bei Kaffeekarte, ${displayName}.
+
+Dein Konto ist bereit.
+
+Login: ${email}
+Wallet: ${walletUrl}
+Profil / Passwort-Reset: ${profileUrl}
+
+Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.
+    `.trim(),
+  };
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️  Email credentials not configured. Email content:");
+    console.log("To:", email);
+    console.log("Subject:", mailOptions.subject);
+    console.log("Text:", mailOptions.text);
+    return;
+  }
+
+  const info = await emailTransporter.sendMail(mailOptions);
+  return info;
+}
+
 async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
   const links =
     Array.isArray(resetLinks) && resetLinks.length
@@ -3863,6 +3926,20 @@ app.post("/customers/register", async (req, res) => {
       created_at: Date.now(),
     };
     await insertCustomer.run(info);
+
+    try {
+      await sendCustomerWelcomeEmail({
+        email: em,
+        username: uname,
+        appsBaseUrl: getAppsBaseUrlFromRequest(req),
+      });
+      console.log(`✅ Customer welcome email sent to: ${em}`);
+    } catch (emailErr) {
+      console.warn(
+        "Failed to send customer welcome email:",
+        emailErr && emailErr.message ? emailErr.message : emailErr,
+      );
+    }
 
     res.json({
       ok: true,
