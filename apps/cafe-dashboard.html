@@ -26,7 +26,13 @@
         flex-wrap: wrap;
         margin-bottom: var(--space-4);
 
-        padding: var(--space-4) 0;
+        padding: 18px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        box-shadow:
+          0 16px 34px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
         border-bottom: none;
       }
 
@@ -49,7 +55,9 @@
 
       .brand h1 {
         margin: 0;
-        font-size: 18px;
+        font-size: 20px;
+        font-family: var(--font-display);
+        letter-spacing: -0.03em;
       }
 
       .subtitle {
@@ -88,6 +96,9 @@
 
       .stat-card {
         padding: var(--space-5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--surface) 92%, white 8%);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
       }
       .stat-label {
         font-size: 14px;
@@ -181,9 +192,19 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
+          <a class="kk-brand" href="/">
+            <span class="kk-brandMark" aria-hidden="true">
+              <img src="/assets/kaffekarte-mark.svg" alt="" />
+            </span>
+            <span class="kk-brandText">
+              <span class="kk-brandKicker">Coffee Loyalty</span>
+              <span class="kk-brandWord">Kaffekarte</span>
+            </span>
+          </a>
           <div class="avatar" id="cafeAvatar">C</div>
           <div>
             <h1 id="cafeName">Café Dashboard</h1>
+            <div class="subtitle">Umsatznahe Treue-Momente im Blick</div>
             <div class="subtitle" id="buildBadge">—</div>
             <div class="sourceRow">
               <span class="badge" id="sourceBadge">Quelle: —</span>

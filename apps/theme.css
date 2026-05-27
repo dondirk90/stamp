@@ -47,6 +47,8 @@
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
+  --font-display:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
@@ -56,6 +58,11 @@
   --shadow-lg: none;
 
   --focus: rgba(17, 17, 17, 0.14);
+  --coffee-ink: #6b452c;
+  --coffee-ink-soft: #8a6145;
+  --coffee-paper: #f2e6d7;
+  --coffee-paper-deep: #e9d8c3;
+  --coffee-line: rgba(107, 69, 44, 0.16);
 }
 
 /* Inverted (café) theme: same layout tokens, swapped canvas/ink */
@@ -93,6 +100,131 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.kk-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.kk-brand:hover {
+  color: inherit;
+}
+
+.kk-brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--coffee-line) 72%, transparent);
+  border-radius: 18px;
+}
+
+.kk-brandMark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, var(--coffee-paper), var(--coffee-paper-deep));
+  border: 1px solid var(--coffee-line);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.66) inset,
+    0 -1px 0 rgba(72, 46, 30, 0.05) inset;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.kk-brandMark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0) 26%),
+    repeating-linear-gradient(
+      -18deg,
+      rgba(107, 69, 44, 0.028) 0 1px,
+      rgba(255, 255, 255, 0) 1px 7px
+    );
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.kk-brandMark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kk-brandText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kk-brandKicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.kk-brandWord {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.kk-brandSub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.kk-brand.is-hero .kk-brandMark {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+}
+
+.kk-brand.is-hero .kk-brandWord {
+  font-size: clamp(30px, 4vw, 38px);
+}
+
+.kk-brand.is-hero .kk-brandKicker {
+  font-size: 11px;
+}
+
+.theme-invert .kk-brandWord,
+.theme-invert .kk-brandKicker,
+.theme-invert .kk-brandSub {
+  color: var(--text);
+}
+
+.theme-invert .kk-brandMark {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.22) inset;
+}
+
+.theme-invert .kk-brandMark::after {
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 26%),
+    repeating-linear-gradient(
+      -18deg,
+      rgba(255, 255, 255, 0.04) 0 1px,
+      rgba(255, 255, 255, 0) 1px 7px
+    );
 }
 
 /* Many legacy pages set a purple gradient on body. Force the theme background. */

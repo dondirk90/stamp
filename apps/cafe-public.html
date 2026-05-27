@@ -18,13 +18,18 @@
       }
       .topbar {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-3);
         flex-wrap: wrap;
         margin-bottom: var(--space-4);
 
-        padding: var(--space-4) 0;
+        padding: 18px 20px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: linear-gradient(180deg, rgba(255, 252, 248, 0.88), rgba(246, 238, 229, 0.82));
+        box-shadow:
+          0 16px 40px rgba(68, 41, 22, 0.06),
+          0 1px 0 rgba(255, 255, 255, 0.74) inset;
       }
       .brand {
         display: flex;
@@ -69,7 +74,9 @@
       }
       .brand h1 {
         margin: 0;
-        font-size: 18px;
+        font-size: 20px;
+        font-family: var(--font-display);
+        letter-spacing: -0.03em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -144,6 +151,15 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
+          <a class="kk-brand" href="/">
+            <span class="kk-brandMark" aria-hidden="true">
+              <img src="/assets/kaffekarte-mark.svg" alt="" />
+            </span>
+            <span class="kk-brandText">
+              <span class="kk-brandKicker">Coffee Loyalty</span>
+              <span class="kk-brandWord">Kaffekarte</span>
+            </span>
+          </a>
           <div class="logo" id="logoWrap" style="display: none">
             <img id="logoImg" alt="" />
             <div class="fallback" id="logoFallback" style="display: none">

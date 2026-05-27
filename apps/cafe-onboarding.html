@@ -42,6 +42,9 @@
         max-width: 600px;
         width: 100%;
         position: relative;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+          rgba(255, 255, 255, 0.01);
       }
       h1 {
         color: var(--brand);
@@ -54,6 +57,24 @@
         color: var(--text-muted);
         margin-bottom: 30px;
         font-size: 0.95rem;
+      }
+
+      .brandIntro {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 22px;
+      }
+
+      .brandIntro .kk-brand {
+        justify-content: center;
+      }
+
+      .brandIntro .kk-brandText {
+        align-items: flex-start;
+      }
+
+      .brandIntro .kk-brandWord {
+        font-size: clamp(34px, 5vw, 42px);
       }
 
       /* Step Indicators */
@@ -385,6 +406,18 @@
   </head>
   <body class="theme-invert">
     <div class="container">
+      <div class="brandIntro">
+        <a class="kk-brand" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/kaffekarte-mark.svg" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Coffee Loyalty</span>
+            <span class="kk-brandWord">Kaffekarte</span>
+            <span class="kk-brandSub">Cafés, Stempel und Reward-Momente</span>
+          </span>
+        </a>
+      </div>
       <h1>Café Registrierung</h1>
       <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
 

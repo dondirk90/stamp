@@ -41,13 +41,12 @@
         text-transform: uppercase;
       }
 
-      .brandDot {
-        width: 12px;
-        height: 12px;
-        border-radius: 999px;
-        background:
-          radial-gradient(circle at 30% 30%, #fff6ec 0, #f3c797 28%, #6b452c 100%);
-        box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.08);
+      .brandMark .kk-brandWord {
+        font-size: 34px;
+      }
+
+      .brandMark .kk-brandKicker {
+        color: var(--coffee-ink-soft);
       }
 
       .audienceSwitch {
@@ -491,10 +490,15 @@
   <body>
     <div class="welcomeShell">
       <div class="pageIntro">
-        <div class="brandMark">
-          <span class="brandDot" aria-hidden="true"></span>
-          <span>Stamp</span>
-        </div>
+        <a class="kk-brand brandMark is-hero" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/kaffekarte-mark.svg" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Coffee Loyalty</span>
+            <span class="kk-brandWord">Kaffekarte</span>
+          </span>
+        </a>
         <div class="audienceSwitch" aria-label="Perspektive">
           <button id="viewCustomerBtn" class="active" type="button">Fuer Gaeste</button>
           <button id="viewCafeBtn" type="button">Fuer Cafes</button>
