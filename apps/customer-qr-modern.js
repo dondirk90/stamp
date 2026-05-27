@@ -1750,14 +1750,12 @@
     if (!passEl) return;
     try {
       var flip = passEl.querySelector(".passFlip");
-      var front = passEl.querySelector(".passMain");
-      var back = passEl.querySelector(".passQr");
-      if (!flip || !front || !back) return;
-      var h = Math.max(
-        Number(front.offsetHeight || 0) || 0,
-        Number(back.offsetHeight || 0) || 0,
-      );
-      if (h > 0) flip.style.minHeight = String(Math.ceil(h)) + "px";
+      if (!flip) return;
+      var w = Number(passEl.clientWidth || flip.clientWidth || 0) || 0;
+      if (w <= 0) return;
+      var h = w / 1.58;
+      flip.style.minHeight = "0px";
+      flip.style.height = String(Math.ceil(h)) + "px";
     } catch (e) {}
   }
 
@@ -2356,18 +2354,18 @@
     } catch (e) {}
   }
 
-  function updateWalletStackFollowers(scroller, dx, dy) {
+  function updateWalletStackFollowers(scroller, dy) {
     if (!scroller) return;
     try {
       var cards = scroller.querySelectorAll(".passCard");
       var second = cards && cards[1] ? cards[1] : null;
       var third = cards && cards[2] ? cards[2] : null;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var progress = Math.min(1, dist / 150);
-      var swayX = clamp(dx * 0.055, -8, 8);
-      var tilt = clamp(dx * 0.026, -3.2, 3.2);
-      var liftY2 = 12 - progress * 5;
-      var liftY3 = 24 - progress * 7;
+      var dist = Math.abs(dy);
+      var progress = Math.min(1, dist / 140);
+      var swayX = 0;
+      var tilt = 0;
+      var liftY2 = 12 - progress * 6;
+      var liftY3 = 24 - progress * 9;
 
       if (second) {
         second.style.setProperty("--wheel-tx", swayX.toFixed(2) + "px");
@@ -2426,28 +2424,26 @@
       cardEl.style.transition =
         "transform " +
         duration +
-        "ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity " +
-        Math.max(280, duration - 36) +
-        "ms ease, filter " +
+        "ms cubic-bezier(0.18, 0.9, 0.22, 1), filter " +
         Math.max(300, duration - 10) +
         "ms ease";
     } catch (ePrep) {}
 
     window.requestAnimationFrame(function () {
-      // Push it a bit further in the swipe direction, fade it out, then reorder.
+      // Slide the top card deeper into the stack without fading it away.
       cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
       cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
-      cardEl.style.setProperty("--wheel-rz", String(dir * 3.6) + "deg");
-      cardEl.style.setProperty("--wheel-ry", String(dir * 3.2) + "deg");
+      cardEl.style.setProperty("--wheel-rz", String(clamp(tx / 28, -2.2, 2.2)) + "deg");
+      cardEl.style.setProperty("--wheel-ry", "0deg");
       cardEl.style.setProperty(
         "--wheel-tz",
-        String(clamp(14 + Math.abs(tx) * 0.06, 14, 34)) + "px",
+        String(clamp(10 + Math.abs(ty) * 0.04, 10, 24)) + "px",
       );
-      cardEl.style.setProperty("--wheel-opacity", "0.18");
-      cardEl.style.setProperty("--wheel-scale", "0.984");
-      cardEl.style.setProperty("--wheel-sat", "1.02");
-      cardEl.style.setProperty("--wheel-bright", "1.01");
-      updateWalletStackFollowers(scroller, tx * 0.9, ty * 0.7);
+      cardEl.style.setProperty("--wheel-opacity", "1");
+      cardEl.style.setProperty("--wheel-scale", "0.992");
+      cardEl.style.setProperty("--wheel-sat", "1");
+      cardEl.style.setProperty("--wheel-bright", "1");
+      updateWalletStackFollowers(scroller, ty * 0.9);
     });
 
     window.setTimeout(function () {
@@ -2491,17 +2487,17 @@
         "transform 360ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity 300ms ease, filter 320ms ease";
     } catch (ePrep) {}
     window.requestAnimationFrame(function () {
-      cardEl.style.setProperty("--wheel-tx", String(dir * 24) + "px");
-      cardEl.style.setProperty("--stack-swipe-y", "0px");
-      cardEl.style.setProperty("--wheel-rz", String(dir * 2.4) + "deg");
-      cardEl.style.setProperty("--wheel-ry", String(dir * 2.2) + "deg");
-      cardEl.style.setProperty("--wheel-tz", "12px");
-      cardEl.style.setProperty("--wheel-opacity", "0.68");
-      cardEl.style.setProperty("--wheel-scale", "0.982");
-      cardEl.style.setProperty("--wheel-sat", "1.02");
-      cardEl.style.setProperty("--wheel-bright", "1.01");
+      cardEl.style.setProperty("--wheel-tx", "0px");
+      cardEl.style.setProperty("--stack-swipe-y", String(dir * 28) + "px");
+      cardEl.style.setProperty("--wheel-rz", "0deg");
+      cardEl.style.setProperty("--wheel-ry", "0deg");
+      cardEl.style.setProperty("--wheel-tz", "10px");
+      cardEl.style.setProperty("--wheel-opacity", "1");
+      cardEl.style.setProperty("--wheel-scale", "0.99");
+      cardEl.style.setProperty("--wheel-sat", "1");
+      cardEl.style.setProperty("--wheel-bright", "1");
       cardEl.style.setProperty("--stack-y", "14px");
-      updateWalletStackFollowers(scroller, dir * 20, 0);
+      updateWalletStackFollowers(scroller, dir * 20);
     });
 
     window.setTimeout(function () {
@@ -2604,7 +2600,8 @@
       d.lastMoveAt = tNow;
 
       if (!d.moved) {
-        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dy) < Math.abs(dx) * 1.15) return;
         d.moved = true;
         scroller.classList.add("isDragging");
 
@@ -2619,16 +2616,16 @@
 
       var card = d.activeEl;
       if (!card) return;
-      var tx = clamp(dx * 1.02, -280, 280);
-      var ty = clamp(dy * 0.94, -240, 240);
-      var dist = Math.sqrt(tx * tx + ty * ty);
-      var rz = clamp(tx / 18 + ty / 64, -9.5, 9.5);
-      var ry = clamp(tx / 15, -10.5, 10.5);
-      var op = 1 - Math.min(0.26, dist / 980);
-      var lift = clamp(Math.abs(tx) * 0.012 + Math.abs(d.vx || 0) * 3.8, 0, 9);
+      var tx = clamp(dx * 0.08, -10, 10);
+      var ty = clamp(dy * 1.02, -240, 240);
+      var dist = Math.abs(ty);
+      var rz = clamp(dx / 40, -2.2, 2.2);
+      var ry = 0;
+      var op = 1;
+      var lift = clamp(Math.abs(ty) * 0.008 + Math.abs(d.vy || 0) * 2.4, 0, 6);
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(146, Math.max(86, w * 0.255));
+      var trigger = Math.min(124, Math.max(68, w * 0.16));
 
       // Throttle style updates to rAF for smoother motion.
       walletState.dragTx = tx;
@@ -2685,7 +2682,7 @@
           );
           card2.style.setProperty(
             "--wheel-bright",
-            String((1 + Math.min(0.02, Math.abs(walletState.dragTyCur) / 2200)).toFixed(3)),
+            "1",
           );
           card2.style.setProperty(
             "--wheel-tz",
@@ -2693,7 +2690,6 @@
           );
           updateWalletStackFollowers(
             scroller,
-            walletState.dragTxCur,
             walletState.dragTyCur,
           );
         } catch (e) {}
@@ -2730,21 +2726,20 @@
       if (!card) return;
 
       var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var threshold = Math.min(110, Math.max(70, w * 0.22));
+      var threshold = Math.min(112, Math.max(72, w * 0.18));
 
-      var tx = clamp(dx * 1.02, -280, 280);
-      var ty = clamp(dy * 0.94, -240, 240);
-      var dist = Math.sqrt(tx * tx + ty * ty);
-      var releaseSpeed = Math.sqrt((d.vx || 0) * (d.vx || 0) + (d.vy || 0) * (d.vy || 0));
-      var releaseAccel = Math.sqrt((d.ax || 0) * (d.ax || 0) + (d.ay || 0) * (d.ay || 0));
-      if (moved && (dist > threshold || ((releaseSpeed > 0.54 || releaseAccel > 0.34) && dist > 34))) {
+      var tx = clamp(dx * 0.08, -10, 10);
+      var ty = clamp(dy * 1.02, -240, 240);
+      var dist = Math.abs(ty);
+      var releaseSpeed = Math.abs(d.vy || 0);
+      var releaseAccel = Math.abs(d.ay || 0);
+      if (moved && (dist > threshold || ((releaseSpeed > 0.5 || releaseAccel > 0.28) && dist > 28))) {
         walletState.ignoreClickUntil = nowMs() + 340;
-        var dir =
-          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
-        var releaseMomentum = Math.min(1.5, 1 + releaseSpeed * 0.55);
+        var dir = ty >= 0 ? 1 : -1;
+        var releaseMomentum = Math.min(1.42, 1 + releaseSpeed * 0.52);
         sendTopCardToBack(scroller, {
-          tx: tx * 1.06 * releaseMomentum,
-          ty: ty * 1.04 * releaseMomentum,
+          tx: 0,
+          ty: ty * 1.06 * releaseMomentum,
           dir: dir,
           speed: releaseSpeed,
         });
@@ -2755,7 +2750,7 @@
         card.style.transition =
           "transform 420ms cubic-bezier(0.18, 0.9, 0.22, 1), opacity 300ms ease, filter 320ms ease";
       } catch (e1) {}
-      updateWalletStackFollowers(scroller, 0, 0);
+      updateWalletStackFollowers(scroller, 0);
       card.style.setProperty("--wheel-tx", "0px");
       card.style.setProperty("--stack-swipe-y", "0px");
       card.style.setProperty("--wheel-rz", "0deg");
