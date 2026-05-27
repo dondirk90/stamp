@@ -2135,6 +2135,21 @@
     var stampField = document.createElement("div");
     stampField.className = "passStampField";
 
+    var stampGuide = document.createElement("div");
+    stampGuide.className = "passStampGuide";
+
+    var stampLead = document.createElement("div");
+    stampLead.className = "passStampLead";
+    stampLead.textContent = "Hier stempeln";
+
+    var stampNeed = document.createElement("div");
+    stampNeed.className = "passStampNeed";
+    stampNeed.textContent = countLine;
+
+    stampGuide.appendChild(stampLead);
+    stampGuide.appendChild(stampNeed);
+    stampField.appendChild(stampGuide);
+
     var grid = document.createElement("div");
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
@@ -3156,6 +3171,18 @@
     var countLine = passCardEl.querySelector(".passCountLine");
     if (countLine) {
       countLine.textContent = isFull
+        ? extra > 0
+          ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
+          : rewardThreshold + "/" + rewardThreshold + " VOLL"
+        : clamp(stampCount, 0, rewardThreshold) +
+          " / " +
+          rewardThreshold +
+          " STEMPEL";
+    }
+
+    var stampNeed = passCardEl.querySelector(".passStampNeed");
+    if (stampNeed) {
+      stampNeed.textContent = isFull
         ? extra > 0
           ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
           : rewardThreshold + "/" + rewardThreshold + " VOLL"

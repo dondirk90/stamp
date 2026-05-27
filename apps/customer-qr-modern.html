@@ -1687,6 +1687,33 @@
         background: transparent;
       }
 
+      .passStampGuide {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+      }
+
+      .passStampLead {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        opacity: 0.7;
+        white-space: nowrap;
+      }
+
+      .passStampNeed {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-align: right;
+        opacity: 0.86;
+      }
+
       .passStampField::before,
       .passStampField::after {
         content: none;
@@ -1941,16 +1968,48 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.34;
+          --pass-card-ratio: 1.18;
         }
 
         .passMain,
         .passQr {
-          padding: 18px;
+          padding: 16px 16px 14px;
         }
 
         .passTitle {
-          font-size: 18px;
+          font-size: 17px;
+        }
+
+        .passEyebrow {
+          margin-bottom: 10px;
+          font-size: 10px;
+        }
+
+        .passSub {
+          margin-top: 4px;
+          font-size: 10px;
+          letter-spacing: 0.18em;
+        }
+
+        .passStampField {
+          padding: 8px 42px 2px 0;
+        }
+
+        .passStampGuide {
+          margin-bottom: 6px;
+          gap: 8px;
+        }
+
+        .passStampLead,
+        .passStampNeed {
+          font-size: 9px;
+          letter-spacing: 0.1em;
+        }
+
+        .passRewardNote {
+          width: 38px;
+          font-size: 9px;
+          line-height: 1.05;
         }
 
         .passHint {
@@ -1958,13 +2017,23 @@
         }
 
         .passCard .stampGrid {
-          gap: 8px;
+          gap: 6px 8px;
           padding: 0;
           border-radius: 0;
         }
 
         .passCard .stamp {
           border-radius: 999px;
+        }
+
+        .passFooter {
+          padding-top: 8px;
+          font-size: 8px;
+          letter-spacing: 0.1em;
+        }
+
+        .passCountLine {
+          font-size: 8px;
         }
 
         .passQrBox {
@@ -2014,20 +2083,48 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.3;
+          --pass-card-ratio: 1.16;
         }
 
         .passMain,
         .passQr {
-          padding: 16px;
+          padding: 14px 14px 12px;
         }
 
         .passTitle {
-          font-size: 17px;
+          font-size: 16px;
+        }
+
+        .passEyebrow {
+          margin-bottom: 8px;
+          font-size: 10px;
         }
 
         .passSub {
-          margin-top: 4px;
+          margin-top: 3px;
+          font-size: 10px;
+          letter-spacing: 0.16em;
+        }
+
+        .passStampField {
+          padding: 8px 38px 2px 0;
+        }
+
+        .passStampGuide {
+          margin-bottom: 5px;
+          gap: 6px;
+        }
+
+        .passStampLead,
+        .passStampNeed {
+          font-size: 8px;
+          letter-spacing: 0.09em;
+        }
+
+        .passRewardNote {
+          width: 34px;
+          font-size: 8px;
+          line-height: 1.05;
         }
 
         .passHint {
@@ -2036,7 +2133,7 @@
         }
 
         .passCard .stampGrid {
-          gap: 6px;
+          gap: 5px 7px;
           padding: 0;
           border-radius: 0;
         }
@@ -2047,9 +2144,20 @@
         }
 
         .passFooter {
-          gap: 8px;
-          font-size: 9px;
-          letter-spacing: 0.12em;
+          gap: 6px;
+          padding-top: 7px;
+          font-size: 8px;
+          letter-spacing: 0.09em;
+        }
+
+        .passCountLine {
+          font-size: 8px;
+        }
+
+        .passBackText,
+        .passQrCaption {
+          font-size: 10px;
+          line-height: 1.25;
         }
       }
 
@@ -2072,7 +2180,7 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.26;
+          --pass-card-ratio: 1.12;
         }
       }
 
