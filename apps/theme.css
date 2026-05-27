@@ -67,20 +67,20 @@
 
 /* Inverted (café) theme: same layout tokens, swapped canvas/ink */
 .theme-invert {
-  --bg: #111111;
-  --surface: #111111;
-  --surface-muted: rgba(255, 255, 255, 0.04);
+  --bg: #211712;
+  --surface: #2a1d18;
+  --surface-muted: rgba(255, 248, 241, 0.05);
 
-  --text: rgba(255, 255, 255, 0.92);
-  --text-muted: rgba(255, 255, 255, 0.62);
+  --text: rgba(255, 247, 239, 0.94);
+  --text-muted: rgba(242, 228, 216, 0.68);
 
-  --border: rgba(255, 255, 255, 0.18);
-  --focus: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 241, 233, 0.14);
+  --focus: rgba(255, 244, 236, 0.14);
 
-  --brand: #ffffff;
-  --brand-700: #ffffff;
-  --brand-50: rgba(255, 255, 255, 0.08);
-  --on-brand: #111111;
+  --brand: #f5ecdf;
+  --brand-700: #fff8f0;
+  --brand-50: rgba(255, 248, 241, 0.08);
+  --on-brand: #241812;
 }
 
 * {

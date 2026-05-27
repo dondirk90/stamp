@@ -6,16 +6,16 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Café Scanner - Stamp</title>
+    <title>Barista App - Suelzer Kaffekarte</title>
     <meta
       name="description"
-      content="Scanner fuer Cafes zum schnellen Stempeln und Einloesen von Rewards direkt am Tresen."
+      content="Barista App der Suelzer Kaffekarte zum ruhigen Stempeln und Einloesen direkt am Tresen."
     />
     <meta name="theme-color" content="#6b452c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Stamp Scanner" />
+    <meta name="apple-mobile-web-app-title" content="Kaffekarte Barista" />
     <link rel="manifest" href="/pwa/manifest.webmanifest" />
     <link
       rel="icon"
@@ -35,7 +35,9 @@
       }
       body {
         font-family: var(--font-sans);
-        background: var(--bg);
+        background:
+          radial-gradient(circle at top, rgba(210, 159, 110, 0.18), rgba(210, 159, 110, 0) 34%),
+          linear-gradient(180deg, #241813 0%, #2b1d18 30%, #1f1511 100%);
         min-height: 100vh;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
@@ -61,13 +63,16 @@
         flex-wrap: wrap;
         margin-bottom: clamp(18px, 3vw, 30px);
         padding: 18px 20px;
+        border-radius: 28px;
         background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-        border: 1px solid rgba(255, 255, 255, 0.08);
+          linear-gradient(180deg, rgba(255, 249, 243, 0.08), rgba(255, 249, 243, 0.03));
+        border: 1px solid rgba(255, 241, 233, 0.1);
         box-shadow:
-          0 16px 34px rgba(0, 0, 0, 0.18),
-          0 1px 0 rgba(255, 255, 255, 0.06) inset;
-        border-bottom: none;
+          0 24px 54px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 250, 244, 0.08) inset;
+        backdrop-filter: blur(18px);
+        position: relative;
+        z-index: 1;
       }
 
       .brand {
@@ -104,11 +109,14 @@
       .card {
         width: min(560px, 100%);
         margin: clamp(28px, 5vw, 54px) auto;
-        background: color-mix(in srgb, var(--surface) 94%, white 6%);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(246, 236, 227, 0.96));
         padding: clamp(24px, 4vw, 40px);
-        border-radius: calc(var(--radius) + 8px);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
-        box-shadow: 0 20px 60px rgba(58, 36, 24, 0.08);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 244, 236, 0.38);
+        box-shadow:
+          0 28px 70px rgba(19, 11, 8, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.7) inset;
         position: relative;
         z-index: 1;
       }
@@ -150,9 +158,9 @@
       .featureCard,
       .homeCard {
         padding: 16px;
-        border-radius: var(--radius);
-        background: var(--surface-muted);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.52);
+        border: 1px solid rgba(53, 34, 22, 0.08);
       }
       .featureCard strong,
       .homeCard strong {
@@ -502,10 +510,13 @@
         width: 100%;
         margin: 0 auto;
         padding: clamp(24px, 4vw, 38px);
-        background: color-mix(in srgb, var(--surface) 95%, white 5%);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
-        border-radius: calc(var(--radius) + 8px);
-        box-shadow: 0 20px 60px rgba(58, 36, 24, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(246, 237, 228, 0.96));
+        border: 1px solid rgba(53, 34, 22, 0.08);
+        border-radius: 30px;
+        box-shadow:
+          0 24px 60px rgba(19, 11, 8, 0.2),
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
       }
       .panelTitle {
         font-size: clamp(26px, 4vw, 34px);
@@ -647,14 +658,14 @@
               <img src="/assets/kaffekarte-mark.svg" alt="" />
             </span>
             <span class="kk-brandText">
-              <span class="kk-brandKicker">Coffee Loyalty</span>
-              <span class="kk-brandWord">Kaffekarte</span>
+              <span class="kk-brandKicker">Kaffee im Veedel</span>
+              <span class="kk-brandWord">Suelzer Kaffekarte</span>
             </span>
           </a>
           <div class="avatar" id="cafeAvatar">C</div>
           <div>
             <h1 id="cafeName">Café</h1>
-            <div class="subtitle">Scanner fuer ruhige Tresen-Momente</div>
+            <div class="subtitle">Barista App fuer ruhige Tresen-Momente</div>
           </div>
         </div>
 
@@ -692,12 +703,12 @@
       <div class="card" id="loginCard">
         <!-- Login Screen -->
         <div id="loginScreen">
-          <div class="introBadge">Fuer den Tresen gemacht</div>
-          <h2>Willkommen im Cafe Scanner</h2>
+          <div class="introBadge">Suelzer Kaffekarte fuer den Tresen</div>
+          <h2>Willkommen in der Barista App</h2>
           <p class="subtitle">
-            Melde dich kurz an und vergib Stempel direkt am Tresen. Rewards,
-            Kampagnen und Programmdetails richtest du spaeter in Ruhe im Menue
-            ein.
+            Melde dich kurz an und arbeite in derselben ruhigen Produktwelt wie
+            deine Kunden. Stempel, Rewards und Tagesbetrieb bleiben schnell und
+            klar am Tresen.
           </p>
 
           <div class="featureGrid" aria-label="Leistungsumfang">
@@ -711,7 +722,7 @@
             </div>
             <div class="featureCard">
               <strong>Mehr als nur eine Karte</strong>
-              <span>Stamp unterstuetzt Kundenbindung, Rueckkehr-Anreize und ein sauberes Erlebnis fuer Stammgaeste.</span>
+              <span>Die Suelzer Kaffekarte unterstuetzt Kundenbindung, Rueckkehr-Anreize und ein sauberes Erlebnis fuer Stammgaeste.</span>
             </div>
           </div>
           <h2>Café Scanner</h2>
@@ -957,7 +968,7 @@
                 <span>Stempelkarten, Rewards, Kampagnen und Programmdetails pflegst du spaeter unter Setup und Uebersicht.</span>
               </div>
               <div class="homeCard">
-                <strong>Was Stamp liefern soll</strong>
+                <strong>Was die Suelzer Kaffekarte liefern soll</strong>
                 <span>Weniger Reibung fuer das Team, klarere Reward-Logik und eine staerkere Kundenbindung ohne App-Chaos.</span>
               </div>
             </div>
