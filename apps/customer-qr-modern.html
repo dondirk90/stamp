@@ -711,14 +711,16 @@
       .face .stamp {
         aspect-ratio: auto;
         grid-template: 1fr / 1fr;
+        display: grid;
+        place-items: center;
         border-radius: 999px;
         background: transparent;
-        border: none;
+        border: 1.5px solid currentColor;
         color: var(--pass-ink, var(--brand-700));
         --stamp-seam: var(--pass-bg, var(--surface));
         --stamp-icon-size: 88%;
         position: relative;
-        overflow: visible;
+        overflow: hidden;
         -webkit-clip-path: none;
         clip-path: none;
         box-shadow: none;
@@ -748,6 +750,11 @@
 
       .passCard .stamp.filled,
       .face .stamp.filled {
+        background: color-mix(
+          in srgb,
+          var(--pass-ink, var(--brand-700)) 8%,
+          transparent 92%
+        );
         color: var(--pass-ink, var(--brand-700));
       }
 
