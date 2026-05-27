@@ -345,7 +345,8 @@
             </h3>
             <div class="muted" id="programSectionIntro" style="margin-bottom: var(--space-3)">
               Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist
-              und wie diese auf der Kundenkarte benannt wird.
+              und wie diese auf der Kundenkarte als gedruckter Reward-Hinweis
+              erscheint.
             </div>
 
             <div id="sectionRewardCore" class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
@@ -360,6 +361,26 @@
                   Belohnungs-Beschreibung
                 </div>
                 <input id="profileRewardDescription" class="input" type="text" maxlength="240" placeholder="z.B. 1 Freigetr?nk oder 1 Cookie aufs Haus" style="width: 100%" />
+              </div>
+            </div>
+            <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
+              Kurz halten lohnt sich: Dieser Text sitzt auf der Karte neben dem
+              letzten Stempelfeld, eher wie ein kleiner Druckhinweis als wie
+              langer Flie?text.
+            </div>
+            <div class="cardSection" style="padding: 0; margin-bottom: 14px">
+              <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                Stempelstil
+              </div>
+              <select id="profileStampStyle" class="input" style="width: 100%">
+                <option value="cup">Tasse</option>
+                <option value="bean">Kaffeebohne</option>
+                <option value="star">Stern</option>
+                <option value="circle">Kreis</option>
+              </select>
+              <div class="muted" style="margin-top: 6px">
+                Damit legst du fest, welches Zeichen die gestempelten Felder auf
+                der Kundenkarte fuellt.
               </div>
             </div>
 
@@ -443,6 +464,10 @@
               Formatierung: <strong>**fett**</strong>, Überschrift:
               <strong># Groß</strong> oder <strong>## Mittel</strong>.
             </div>
+            <div class="muted" style="margin-top: 6px">
+              Die erste kurze Zeile kann auf der Karte als kleine Unterzeile
+              unter eurem Namen erscheinen.
+            </div>
             <div
               class="card"
               style="
@@ -496,15 +521,16 @@
               Kartendesign
             </div>
             <select id="profileCardTheme" class="input" style="width: 100%">
-              <option value="paper">Paper (Standard)</option>
-              <option value="clean">Clean (Weiß)</option>
-              <option value="ink">Ink (Dunkel)</option>
-              <option value="brand">Brand (Akzent)</option>
-              <option value="latte">Latte (Warm)</option>
-              <option value="mono">Mono (Neutral)</option>
+              <option value="paper">Printed (Warm White)</option>
+              <option value="clean">Printed (Bright White)</option>
+              <option value="ink">Printed (Dark)</option>
+              <option value="brand">Printed (Espresso Accent)</option>
+              <option value="latte">Printed (Soft Cream)</option>
+              <option value="mono">Printed (Mono)</option>
             </select>
             <div class="muted" style="margin-top: 6px">
-              Das Design wird in der Kunden-Wallet automatisch verwendet.
+              Das Design wird in der Kunden-Wallet automatisch verwendet und
+              orientiert sich an einer echten gedruckten Treuekarte.
             </div>
           </div>
 
@@ -600,6 +626,7 @@
         cardBackText: "",
         images: [],
         cardTheme: "paper",
+        stampStyle: "cup",
       };
 
       function getProfileViewMode() {
@@ -757,6 +784,7 @@
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
         const cardBgPreview = document.getElementById("profileCardBgPreview");
         const cardBackEl = document.getElementById("profileCardBackText");
         const rewardThresholdEl = document.getElementById("profileRewardThreshold");
@@ -804,6 +832,10 @@
         }
 
         const program = cafeInfo && cafeInfo.program ? cafeInfo.program : {};
+        if (stampStyleEl)
+          stampStyleEl.value = program.stampStyle
+            ? String(program.stampStyle).toLowerCase()
+            : "cup";
         if (rewardThresholdEl) rewardThresholdEl.value = String(program.stampsForReward != null ? program.stampsForReward : 10);
         if (rewardDescriptionEl) rewardDescriptionEl.value = program.rewardDescription ? String(program.rewardDescription) : "1 Freigetr?nk";
         if (popupInactiveEnabledEl) popupInactiveEnabledEl.checked = Number(program.popupInactiveEnabled != null ? program.popupInactiveEnabled : 1) !== 0;
@@ -859,6 +891,8 @@
               : "paper";
 
         profileState.cardTheme = nextTheme;
+        profileState.stampStyle =
+          program && program.stampStyle ? String(program.stampStyle).toLowerCase() : "cup";
         if (themeEl) themeEl.value = nextTheme;
 
         if (profileState.logoDataUrl) {
@@ -1019,6 +1053,7 @@
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
         const cardBgInput = document.getElementById("profileCardBg");
         const cardBackEl = document.getElementById("profileCardBackText");
         const rewardThresholdEl = document.getElementById("profileRewardThreshold");
@@ -1089,6 +1124,11 @@
                 .trim()
                 .toLowerCase()
             : "";
+          const stampStyle = stampStyleEl
+            ? String(stampStyleEl.value || "")
+                .trim()
+                .toLowerCase()
+            : "cup";
 
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
@@ -1106,6 +1146,7 @@
               lat: lat || null,
               lng: lng || null,
               cardTheme: cardTheme || null,
+              stampStyle: stampStyle || "cup",
               stampsForReward: stampsForReward || null,
               rewardDescription: rewardDescription || null,
               popupInactiveEnabled,
@@ -1118,6 +1159,7 @@
           });
 
           if (cardTheme) profileState.cardTheme = cardTheme;
+          if (stampStyle) profileState.stampStyle = stampStyle;
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
