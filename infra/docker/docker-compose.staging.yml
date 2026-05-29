@@ -31,6 +31,7 @@ services:
       EMAIL_SECURE: ${EMAIL_SECURE:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
     volumes:
       - staging_data:/data
 
