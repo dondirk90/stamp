@@ -741,20 +741,20 @@
 
         <div class="topMenu" aria-label="Navigation">
           <button class="topMenuBtn ghost active" id="navHome" type="button">
-            <span class="ico" aria-hidden="true">H</span>
-            <span class="lbl">Start</span>
-          </button>
-          <button class="topMenuBtn ghost" id="navScan" type="button">
             <span class="ico" aria-hidden="true">S</span>
             <span class="lbl">Scanner</span>
           </button>
           <a class="topMenuBtn ghost" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Setup</span>
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Stempelkarte</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verwaltung</span>
           </a>
           <a class="topMenuBtn ghost" href="/cafe-dashboard">
             <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Uebersicht</span>
+            <span class="lbl">Dashboard</span>
           </a>
         </div>
       </div>
@@ -777,7 +777,7 @@
             </div>
             <div class="featureCard">
               <strong>Freundlich fuer dein Team</strong>
-              <span>Eine ruhige Oberflaeche fuer Bar, Theke und Service ohne unnoetigen Setup-Druck beim Einstieg.</span>
+              <span>Eine ruhige Oberflaeche fuer Bar, Theke und Service ohne unnoetigen Pflege-Druck beim Einstieg.</span>
             </div>
             <div class="featureCard">
               <strong>Mehr als nur eine Karte</strong>
@@ -811,7 +811,7 @@
                 Kunden empfangen, Stempel vergeben, Rewards einloesen und den
                 Tagesbetrieb am Tresen begleiten. Die Stempelanlage selbst ist
                 bewusst nicht Teil dieses Einstiegs und bleibt eine spaetere
-                Option unter Setup und Uebersicht.
+                Option unter Stempelkarte, Verwaltung und Dashboard.
               </div>
             </div>
 
@@ -1009,7 +1009,7 @@
       <div id="appShell" class="app-shell" style="display: none">
         <main class="mainPanel">
           <!-- Welcome / Home -->
-          <div id="homeScreen">
+          <div id="homeScreen" style="display: none">
             <div class="panelTitle">Dein Tresen-Start</div>
             <p class="subtitle" style="text-align: left">
               Hier landet dein Team nach dem Login. Kunden-Links oeffnen
@@ -1023,8 +1023,8 @@
                 <span>QR oeffnen, Kunde sehen, Stempel oder Reward direkt bestaetigen. Alles ist auf Schnelligkeit am Tresen optimiert.</span>
               </div>
               <div class="homeCard">
-                <strong>Setup spaeter im Menue</strong>
-                <span>Stempelkarten, Rewards, Kampagnen und Programmdetails pflegst du spaeter unter Setup und Uebersicht.</span>
+                <strong>Pflege spaeter im Menue</strong>
+                <span>Stempelkarten, Rewards und Programmdetails pflegst du spaeter unter Stempelkarte, Verwaltung und Dashboard.</span>
               </div>
               <div class="homeCard">
                 <strong>Was die Suelzer Kaffekarte liefern soll</strong>
@@ -1069,7 +1069,7 @@
                   <div class="miniStepNum">3</div>
                   <div class="miniStepText">
                     Du vergibst Stempel oder loest Rewards ein, ohne erst durch
-                    Setup-Seiten springen zu muessen.
+                    Pflege-Seiten springen zu muessen.
                   </div>
                 </div>
               </div>
@@ -1084,16 +1084,16 @@
             <div class="menuInfo">
               <strong>Wo du spaeter was findest</strong>
               <span>
-                Unter <b>Setup</b> pflegst du Programmdetails und Profil. Unter
-                <b>Uebersicht</b> findest du weitere Verwaltungs- und
-                Organisationsfunktionen. Der Startbildschirm bleibt bewusst nur
-                fuer den Tagesbetrieb da.
+                Unter <b>Stempelkarte</b> pflegst du Programm und Reward. Unter
+                <b>Verwaltung</b> liegen Zusatzpflege und Organisation. Das
+                <b>Dashboard</b> bleibt fuer den Ueberblick und der Scanner fuer
+                den Tagesbetrieb da.
               </span>
             </div>
           </div>
 
           <!-- Scan / Stamp -->
-          <div id="scannerScreen" style="display: none">
+          <div id="scannerScreen">
             <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
             <p class="subtitle" id="scanSubtitle" style="text-align: left">
               Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
@@ -1193,7 +1193,6 @@
       const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
       const navHome = document.getElementById("navHome");
-      const navScan = document.getElementById("navScan");
       const navLogout = document.getElementById("navLogout");
       const sidebarCafeName = document.getElementById("sidebarCafeName");
       const sidebarAvatar = document.getElementById("sidebarAvatar");
@@ -1361,8 +1360,20 @@
       }
 
       function setActiveNav(view) {
-        if (navHome) navHome.classList.toggle("active", view === "home");
-        if (navScan) navScan.classList.toggle("active", view === "scan");
+        if (navHome) navHome.classList.toggle("active", view === "scan");
+      }
+
+      function getInitialScannerView() {
+        try {
+          const u = new URL(location.href);
+          const raw = String(
+            u.searchParams.get("view") || u.hash.replace(/^#/, "") || "",
+          )
+            .trim()
+            .toLowerCase();
+          if (raw === "home") return "home";
+        } catch (e) {}
+        return "scan";
       }
 
       function setScannerStatus(message) {
@@ -1522,7 +1533,7 @@
       function showLoginUI() {
         loginCard.style.display = "block";
         appShell.style.display = "none";
-        showView("home");
+        showView(getInitialScannerView());
       }
 
       function showAppUI() {
@@ -1656,7 +1667,6 @@
         const source = pendingScan || lastCustomer;
         if (!source) {
           homePending.style.display = "none";
-          navScan.disabled = false;
           return;
         }
 
@@ -1664,7 +1674,6 @@
         const name = source.name || source.customerName || "Unbekannt";
         homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
         homePending.style.display = "block";
-        navScan.disabled = false;
       }
 
       // Show toast
@@ -1736,7 +1745,7 @@
           // Update UI
           updateCafeBadge();
           showAppUI();
-          showView(pendingScan ? "scan" : "home");
+          showView("scan");
           updateHomeStatus();
 
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
@@ -1784,12 +1793,8 @@
 
       if (navHome)
         navHome.onclick = () => {
-          showView("home");
-          updateHomeStatus();
-        };
-      if (navScan)
-        navScan.onclick = () => {
           showView("scan");
+          updateHomeStatus();
         };
       openScanBtn.onclick = () => {
         showView("scan");
@@ -2227,7 +2232,7 @@
             dlog("Auto-Login für Café");
             updateCafeBadge();
             showAppUI();
-            showView(pendingScan ? "scan" : "home");
+            showView("scan");
             customerInfo.style.display = "none";
             if (scanHint) scanHint.style.display = "block";
             updateHomeStatus();
