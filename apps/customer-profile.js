@@ -8,6 +8,7 @@
 
     notLoggedIn: document.getElementById("notLoggedIn"),
     authedOnly: document.getElementById("authedOnly"),
+    forgotPanel: document.getElementById("forgotPanel"),
     profileInfo: document.getElementById("profileInfo"),
 
     currentPassword: document.getElementById("currentPassword"),
@@ -111,6 +112,7 @@
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
+      if (el.forgotPanel) el.forgotPanel.style.display = "flex";
       return;
     }
 
@@ -120,6 +122,7 @@
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";
     if (el.notLoggedIn) el.notLoggedIn.style.display = "none";
     if (el.authedOnly) el.authedOnly.style.display = "block";
+    if (el.forgotPanel) el.forgotPanel.style.display = "none";
 
     if (el.profileInfo) {
       const lines = [];
