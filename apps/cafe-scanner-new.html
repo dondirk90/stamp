@@ -634,8 +634,8 @@
 
       @media (max-width: 520px) {
         .topMenu {
-          gap: 14px;
-          justify-content: flex-start;
+          gap: 10px;
+          justify-content: stretch;
         }
 
         .stamp-presets {
@@ -645,6 +645,65 @@
         #awardBtn {
           min-height: 52px;
         }
+      }
+
+      .topMenu {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .topMenuBtn {
+        width: 100%;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+      }
+
+      .topMenuBtn .lbl {
+        width: 100%;
+        text-align: center;
+      }
+
+      .scannerStage {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.12);
+      }
+
+      .scannerStatus {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      #videoContainer {
+        max-width: 100%;
+        margin: 0;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 241, 233, 0.12);
+        background: rgba(0, 0, 0, 0.26);
+      }
+
+      #video {
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        background: #120d0b;
+      }
+
+      .scan-overlay {
+        width: min(54vw, 220px);
+        height: min(54vw, 220px);
+        border-radius: 24px;
+        border: 2px solid rgba(245, 236, 223, 0.92);
+        box-shadow: 0 0 0 9999px rgba(10, 6, 4, 0.3);
       }
     </style>
   </head>
@@ -687,7 +746,7 @@
           </button>
           <button class="topMenuBtn ghost" id="navScan" type="button">
             <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Kunde</span>
+            <span class="lbl">Scanner</span>
           </button>
           <a class="topMenuBtn ghost" href="/cafe-profile">
             <span class="ico" aria-hidden="true">P</span>
@@ -1047,6 +1106,22 @@
               automatisch hier.
             </div>
 
+            <div class="scannerStage">
+              <div id="videoContainer" aria-label="Kamera Scanner">
+                <video
+                  id="video"
+                  autoplay
+                  muted
+                  playsinline
+                  webkit-playsinline
+                ></video>
+                <div class="scan-overlay" aria-hidden="true"></div>
+              </div>
+              <div id="scannerStatus" class="scannerStatus">
+                Kamera wird aktiviert, sobald du den Scanner oeffnest.
+              </div>
+            </div>
+
             <div id="customerInfo" class="customer-info" style="display: none">
               <div class="label">Kundeninformation</div>
               <div class="value">
@@ -1126,6 +1201,7 @@
       const homePendingText = document.getElementById("homePendingText");
       const openScanBtn = document.getElementById("openScanBtn");
       const scanHint = document.getElementById("scanHint");
+      const scannerStatus = document.getElementById("scannerStatus");
       const apiKeyInput = document.getElementById("apiKeyInput");
       const video = document.getElementById("video");
       const customerInfo = document.getElementById("customerInfo");
@@ -1153,6 +1229,10 @@
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
+      let scanLoopHandle = 0;
+      let scanBusy = false;
+      let scanCanvas = null;
+      let scanContext = null;
 
       const DEBUG = (function () {
         try {
@@ -1285,13 +1365,155 @@
         if (navScan) navScan.classList.toggle("active", view === "scan");
       }
 
+      function setScannerStatus(message) {
+        if (!scannerStatus) return;
+        scannerStatus.textContent = String(message || "");
+      }
+
+      function stopScannerCamera() {
+        scanning = false;
+        scanBusy = false;
+        if (scanLoopHandle) {
+          try {
+            cancelAnimationFrame(scanLoopHandle);
+          } catch (e) {}
+        }
+        scanLoopHandle = 0;
+        try {
+          if (stream && stream.getTracks) {
+            stream.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch (e) {}
+            });
+          }
+        } catch (e2) {}
+        stream = null;
+        try {
+          if (video) video.srcObject = null;
+        } catch (e3) {}
+      }
+
+      function parseScannedPayload(raw) {
+        const value = String(raw || "").trim();
+        if (!value) return null;
+        try {
+          const u = new URL(value);
+          const customer = u.searchParams.get("customer");
+          if (!customer) return null;
+          return {
+            address: customer,
+            name: u.searchParams.get("customerName") || "Unbekannt",
+            cafe: u.searchParams.get("cafe") || u.searchParams.get("qrCafe") || null,
+            cardId:
+              u.searchParams.get("cardId") ||
+              u.searchParams.get("cid") ||
+              u.searchParams.get("card") ||
+              null,
+            action:
+              u.searchParams.get("action") ||
+              (u.searchParams.get("redeem") === "true" ? "redeem" : "stamp"),
+            redeemToken:
+              u.searchParams.get("rt") || u.searchParams.get("redeemToken") || null,
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function scanVideoFrame() {
+        if (!scanning || !video || !stream) return;
+        try {
+          if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+            if (!scanCanvas) scanCanvas = document.createElement("canvas");
+            if (!scanContext) scanContext = scanCanvas.getContext("2d", { willReadFrequently: true });
+            scanCanvas.width = video.videoWidth;
+            scanCanvas.height = video.videoHeight;
+            scanContext.drawImage(video, 0, 0, scanCanvas.width, scanCanvas.height);
+            const image = scanContext.getImageData(
+              0,
+              0,
+              scanCanvas.width,
+              scanCanvas.height,
+            );
+            const qr = window.jsQR
+              ? window.jsQR(image.data, image.width, image.height, {
+                  inversionAttempts: "dontInvert",
+                })
+              : null;
+            if (qr && qr.data && !scanBusy) {
+              const parsed = parseScannedPayload(qr.data);
+              if (parsed && parsed.address) {
+                scanBusy = true;
+                pendingScan = parsed;
+                const a = String(parsed.action || "stamp").toLowerCase();
+                pendingAction =
+                  a === "redeem" ? "redeem" : a === "reset" ? "reset" : "stamp";
+                setScannerStatus("QR erkannt. Kunde wird geladen...");
+                stopScannerCamera();
+                void loadPendingScan().finally(() => {
+                  scanBusy = false;
+                });
+                return;
+              }
+              setScannerStatus("QR erkannt, aber Format passt nicht zur Kaffekarte.");
+            }
+          }
+        } catch (e) {
+          dwarn("Scan frame failed", e);
+        }
+        scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+      }
+
+      async function startScannerCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setScannerStatus("Diese PWA kann auf diesem Geraet die Kamera nicht oeffnen.");
+          return;
+        }
+        if (stream) {
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          scanning = true;
+          if (!scanLoopHandle) scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+          return;
+        }
+        try {
+          setScannerStatus("Kamera wird gestartet...");
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 960 },
+            },
+            audio: false,
+          });
+          if (video) {
+            video.srcObject = stream;
+            try {
+              await video.play();
+            } catch (ePlay) {}
+          }
+          scanning = true;
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+        } catch (e) {
+          setScannerStatus("Kamera konnte nicht gestartet werden. Bitte Zugriff erlauben.");
+          dwarn("Camera start failed", e);
+        }
+      }
+
       function showView(view) {
         if (view === "scan") {
           homeScreen.style.display = "none";
           scannerScreen.style.display = "block";
           setActiveNav("scan");
+          if (scannedCustomer) {
+            setScannerStatus("Kunde geladen. Bei Bedarf neuen QR scannen.");
+          } else {
+            void startScannerCamera();
+          }
           return;
         }
+        stopScannerCamera();
         scannerScreen.style.display = "none";
         homeScreen.style.display = "block";
         setActiveNav("home");
@@ -1549,13 +1771,7 @@
         // and to avoid any leftover UI/scanner state.
         try {
           // Stop camera stream if it is running
-          if (stream && stream.getTracks) {
-            stream.getTracks().forEach((t) => {
-              try {
-                t.stop();
-              } catch (e) {}
-            });
-          }
+          stopScannerCamera();
         } catch (e) {}
         try {
           window.location.replace("/cafe-onboarding");
@@ -1796,6 +2012,7 @@
           if (scanHint) scanHint.style.display = "none";
           awardBtn.disabled = false;
           applyActionUi();
+          setScannerStatus("Kunde geladen. Du kannst jetzt bestaetigen oder erneut scannen.");
           showToast("Kunde geladen");
           showView("scan");
           updateHomeStatus();
@@ -1959,11 +2176,14 @@
               if (stampAmountValue) stampAmountValue.textContent = "1";
             } catch (e) {}
             applyActionUi();
+            setScannerStatus("Bereit fuer den naechsten QR.");
+            void startScannerCamera();
           }, 1800);
         } catch (e) {
           showToast(userSafeErrorMessage(e), true);
           awardBtn.disabled = false;
           applyActionUi();
+          setScannerStatus("Aktion fehlgeschlagen. QR erneut scannen oder Kunde erneut laden.");
         }
       };
 
