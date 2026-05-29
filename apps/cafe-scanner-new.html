@@ -600,6 +600,9 @@
         .homeGrid {
           grid-template-columns: 1fr;
         }
+        .scannerWorkspace {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 720px) {
@@ -638,12 +641,21 @@
           justify-content: stretch;
         }
 
+        .topMenuBtn {
+          min-height: 58px;
+          padding: 10px 8px;
+        }
+
         .stamp-presets {
           grid-template-columns: repeat(5, minmax(44px, 1fr));
         }
 
         #awardBtn {
           min-height: 52px;
+        }
+
+        .cameraControls button {
+          width: 100%;
         }
       }
 
@@ -653,20 +665,58 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 10px;
         align-items: stretch;
+        padding: 8px;
+        border-radius: 24px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.1);
       }
 
       .topMenuBtn {
         width: 100%;
         text-align: center;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 44px;
+        gap: 6px;
+        min-height: 64px;
+        margin: 0;
+        padding: 12px 10px;
+        border-radius: 18px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .topMenuBtn:hover {
+        background: rgba(255, 248, 241, 0.06);
+      }
+
+      .topMenuBtn.active {
+        background: rgba(255, 248, 241, 0.1);
+        border-color: rgba(255, 241, 233, 0.18);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .topMenuBtn .ico {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 248, 241, 0.1);
+        font-size: 12px;
+        font-weight: 900;
       }
 
       .topMenuBtn .lbl {
         width: 100%;
         text-align: center;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
 
       .scannerStage {
@@ -675,6 +725,139 @@
         border-radius: 22px;
         background: rgba(255, 248, 241, 0.04);
         border: 1px solid rgba(255, 241, 233, 0.12);
+      }
+
+      .scannerWorkspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .scannerMain,
+      .scannerSideCard {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.12);
+      }
+
+      .scannerMainHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .scannerEyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scannerEyebrowDot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 80%, white 20%);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 15%, transparent 85%);
+      }
+
+      .scannerLead {
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.55;
+        max-width: 44ch;
+      }
+
+      .cameraControls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .cameraControls button {
+        width: auto;
+        min-width: 160px;
+        margin: 0;
+      }
+
+      .cameraSecondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid rgba(255, 241, 233, 0.16);
+      }
+
+      .cameraSecondary:hover {
+        background: rgba(255, 248, 241, 0.08);
+      }
+
+      .scannerHintCompact {
+        margin-top: 14px;
+        padding: 14px 16px;
+        font-size: 13px;
+      }
+
+      .scannerMetaList {
+        display: grid;
+        gap: 12px;
+      }
+
+      .scannerMetaItem strong,
+      .quickLinksTitle {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .scannerMetaItem span,
+      .quickLinksBody {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .quickLinksGrid {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .quickLinkCard {
+        display: block;
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 248, 241, 0.06);
+        border: 1px solid rgba(255, 241, 233, 0.1);
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .quickLinkCard:hover {
+        background: rgba(255, 248, 241, 0.1);
+      }
+
+      .quickLinkCard strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+
+      .quickLinkCard span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.45;
       }
 
       .scannerStatus {
@@ -1094,31 +1277,85 @@
 
           <!-- Scan / Stamp -->
           <div id="scannerScreen">
-            <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
+            <div class="panelTitle" id="scanTitle">Scanner</div>
             <p class="subtitle" id="scanSubtitle" style="text-align: left">
               Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
               wurde.
             </p>
 
-            <div id="scanHint" class="hintBox">
-              Noch kein Kunde geladen. Sobald ein QR-Link geoeffnet oder ein
-              Kunde ueber den Wallet-Flow kommt, erscheint die passende Ansicht
-              automatisch hier.
-            </div>
+            <div class="scannerWorkspace">
+              <div class="scannerMain">
+                <div class="scannerMainHead">
+                  <div>
+                    <div class="scannerEyebrow">
+                      <span class="scannerEyebrowDot" aria-hidden="true"></span>
+                      Live-Scanner
+                    </div>
+                    <div class="scannerLead">
+                      Die Kamera startet nur kontrolliert. Wenn der Zugriff
+                      einmal erlaubt ist, bleibt der Scanner ruhiger und fragt
+                      nicht bei jedem kleinen Zustandswechsel neu.
+                    </div>
+                  </div>
+                  <div class="cameraControls">
+                    <button id="cameraStartBtn" type="button">
+                      Kamera starten
+                    </button>
+                    <button
+                      id="cameraStopBtn"
+                      type="button"
+                      class="cameraSecondary"
+                      style="display: none"
+                    >
+                      Kamera pausieren
+                    </button>
+                  </div>
+                </div>
 
-            <div class="scannerStage">
-              <div id="videoContainer" aria-label="Kamera Scanner">
-                <video
-                  id="video"
-                  autoplay
-                  muted
-                  playsinline
-                  webkit-playsinline
-                ></video>
-                <div class="scan-overlay" aria-hidden="true"></div>
+                <div id="scanHint" class="hintBox scannerHintCompact">
+                  Noch kein Kunde geladen. Starte die Kamera oder oeffne einen
+                  QR-Link aus der Wallet, dann landet der Vorgang direkt hier.
+                </div>
+
+                <div class="scannerStage">
+                  <div id="videoContainer" aria-label="Kamera Scanner">
+                    <video
+                      id="video"
+                      autoplay
+                      muted
+                      playsinline
+                      webkit-playsinline
+                    ></video>
+                    <div class="scan-overlay" aria-hidden="true"></div>
+                  </div>
+                  <div id="scannerStatus" class="scannerStatus">
+                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am
+                    Tresen scannen willst.
+                  </div>
+                </div>
               </div>
-              <div id="scannerStatus" class="scannerStatus">
-                Kamera wird aktiviert, sobald du den Scanner oeffnest.
+
+              <div class="scannerSideCard">
+                <div class="quickLinksTitle">Arbeitsfluss</div>
+                <div class="quickLinksBody">
+                  Scanner fuer den laufenden Betrieb, Stempelkarte fuer das
+                  Kartenmodell, Verwaltung fuer Zusatzpflege und Dashboard fuer
+                  Zahlen und Verlauf.
+                </div>
+                <div class="quickLinksGrid">
+                  <a class="quickLinkCard" href="/cafe-profile">
+                    <strong>Stempelkarte</strong>
+                    <span>Reward, Stempelstil und Kundenkarte pflegen.</span>
+                  </a>
+                  <a class="quickLinkCard" href="/cafe-profile?view=advanced">
+                    <strong>Verwaltung</strong>
+                    <span>Kampagnen, Details und organisatorische Pflege.</span>
+                  </a>
+                  <a class="quickLinkCard" href="/cafe-dashboard">
+                    <strong>Dashboard</strong>
+                    <span>Verlauf, Aktivitaet und Tagesueberblick sehen.</span>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -1199,6 +1436,8 @@
       const homePending = document.getElementById("homePending");
       const homePendingText = document.getElementById("homePendingText");
       const openScanBtn = document.getElementById("openScanBtn");
+      const cameraStartBtn = document.getElementById("cameraStartBtn");
+      const cameraStopBtn = document.getElementById("cameraStopBtn");
       const scanHint = document.getElementById("scanHint");
       const scannerStatus = document.getElementById("scannerStatus");
       const apiKeyInput = document.getElementById("apiKeyInput");
@@ -1232,6 +1471,7 @@
       let scanBusy = false;
       let scanCanvas = null;
       let scanContext = null;
+      let cameraPermissionState = "unknown";
 
       const DEBUG = (function () {
         try {
@@ -1363,25 +1603,46 @@
         if (navHome) navHome.classList.toggle("active", view === "scan");
       }
 
-      function getInitialScannerView() {
-        try {
-          const u = new URL(location.href);
-          const raw = String(
-            u.searchParams.get("view") || u.hash.replace(/^#/, "") || "",
-          )
-            .trim()
-            .toLowerCase();
-          if (raw === "home") return "home";
-        } catch (e) {}
-        return "scan";
-      }
-
       function setScannerStatus(message) {
         if (!scannerStatus) return;
         scannerStatus.textContent = String(message || "");
       }
 
-      function stopScannerCamera() {
+      async function getCameraPermissionState() {
+        try {
+          if (!navigator.permissions || !navigator.permissions.query) {
+            return "prompt";
+          }
+          const result = await navigator.permissions.query({ name: "camera" });
+          cameraPermissionState = String(
+            result && result.state ? result.state : "prompt",
+          );
+          return cameraPermissionState;
+        } catch (e) {
+          return "prompt";
+        }
+      }
+
+      function syncCameraButtons() {
+        if (cameraStartBtn) {
+          cameraStartBtn.style.display = stream ? "none" : "inline-flex";
+        }
+        if (cameraStopBtn) {
+          cameraStopBtn.style.display = stream ? "inline-flex" : "none";
+        }
+      }
+
+      function updateScannerHint(message) {
+        if (!scanHint) return;
+        if (scannedCustomer) {
+          scanHint.style.display = "none";
+          return;
+        }
+        scanHint.style.display = "block";
+        if (message) scanHint.textContent = message;
+      }
+
+      function pauseScannerLoop() {
         scanning = false;
         scanBusy = false;
         if (scanLoopHandle) {
@@ -1390,6 +1651,10 @@
           } catch (e) {}
         }
         scanLoopHandle = 0;
+      }
+
+      function stopScannerCamera() {
+        pauseScannerLoop();
         try {
           if (stream && stream.getTracks) {
             stream.getTracks().forEach((track) => {
@@ -1403,6 +1668,7 @@
         try {
           if (video) video.srcObject = null;
         } catch (e3) {}
+        syncCameraButtons();
       }
 
       function parseScannedPayload(raw) {
@@ -1461,7 +1727,7 @@
                 pendingAction =
                   a === "redeem" ? "redeem" : a === "reset" ? "reset" : "stamp";
                 setScannerStatus("QR erkannt. Kunde wird geladen...");
-                stopScannerCamera();
+                pauseScannerLoop();
                 void loadPendingScan().finally(() => {
                   scanBusy = false;
                 });
@@ -1476,16 +1742,35 @@
         scanLoopHandle = requestAnimationFrame(scanVideoFrame);
       }
 
-      async function startScannerCamera() {
+      async function startScannerCamera(options) {
+        const opts = options || {};
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           setScannerStatus("Diese PWA kann auf diesem Geraet die Kamera nicht oeffnen.");
+          updateScannerHint(
+            "Dieses Geraet unterstuetzt keinen direkten Kamerazugriff in der Scanner-PWA.",
+          );
           return;
         }
         if (stream) {
           setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
           scanning = true;
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird.",
+          );
           if (!scanLoopHandle) scanLoopHandle = requestAnimationFrame(scanVideoFrame);
           return;
+        }
+        if (!opts.forcePrompt) {
+          const permission = await getCameraPermissionState();
+          if (permission !== "granted") {
+            setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.');
+            updateScannerHint(
+              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+            );
+            syncCameraButtons();
+            return;
+          }
         }
         try {
           setScannerStatus("Kamera wird gestartet...");
@@ -1503,37 +1788,72 @@
               await video.play();
             } catch (ePlay) {}
           }
+          cameraPermissionState = "granted";
           scanning = true;
           setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird.",
+          );
           scanLoopHandle = requestAnimationFrame(scanVideoFrame);
         } catch (e) {
+          cameraPermissionState = "denied";
           setScannerStatus("Kamera konnte nicht gestartet werden. Bitte Zugriff erlauben.");
+          updateScannerHint(
+            "Kamera nicht aktiv. Erlaube den Zugriff im Browser oder in der PWA, damit du direkt am Tresen scannen kannst.",
+          );
+          syncCameraButtons();
           dwarn("Camera start failed", e);
         }
       }
 
-      function showView(view) {
-        if (view === "scan") {
-          homeScreen.style.display = "none";
-          scannerScreen.style.display = "block";
-          setActiveNav("scan");
-          if (scannedCustomer) {
-            setScannerStatus("Kunde geladen. Bei Bedarf neuen QR scannen.");
-          } else {
-            void startScannerCamera();
-          }
+      async function resumeScannerCameraIfAllowed() {
+        if (scannedCustomer) {
+          syncCameraButtons();
           return;
         }
-        stopScannerCamera();
-        scannerScreen.style.display = "none";
-        homeScreen.style.display = "block";
-        setActiveNav("home");
+        if (stream) {
+          scanning = true;
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird.",
+          );
+          if (!scanLoopHandle) scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+          return;
+        }
+        const permission = await getCameraPermissionState();
+        if (permission === "granted") {
+          await startScannerCamera({ forcePrompt: false });
+          return;
+        }
+        setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.');
+        updateScannerHint(
+          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+        );
+        syncCameraButtons();
+      }
+
+      function showView(view) {
+        if (homeScreen) homeScreen.style.display = "none";
+        scannerScreen.style.display = "block";
+        setActiveNav("scan");
+        if (scannedCustomer) {
+          setScannerStatus("Kunde geladen. Bei Bedarf neuen QR scannen.");
+          syncCameraButtons();
+          updateScannerHint();
+          return;
+        }
+        void resumeScannerCameraIfAllowed();
       }
 
       function showLoginUI() {
         loginCard.style.display = "block";
         appShell.style.display = "none";
-        showView(getInitialScannerView());
+        stopScannerCamera();
+        if (homeScreen) homeScreen.style.display = "none";
+        scannerScreen.style.display = "block";
+        setActiveNav("scan");
       }
 
       function showAppUI() {
@@ -1666,14 +1986,23 @@
 
         const source = pendingScan || lastCustomer;
         if (!source) {
-          homePending.style.display = "none";
+          if (homePending) homePending.style.display = "none";
+          updateScannerHint(
+            stream
+              ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
+              : "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+          );
           return;
         }
 
         const addr = source.address || source.customer || "";
         const name = source.name || source.customerName || "Unbekannt";
-        homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
-        homePending.style.display = "block";
+        if (homePendingText)
+          homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
+        if (homePending) homePending.style.display = "block";
+        updateScannerHint(
+          `Letzter Vorgang bereit: ${name}. Wenn du denselben Gast weiter bearbeiten willst, findest du die Karte direkt unten.`,
+        );
       }
 
       // Show toast
@@ -1796,9 +2125,24 @@
           showView("scan");
           updateHomeStatus();
         };
-      openScanBtn.onclick = () => {
-        showView("scan");
-      };
+      if (openScanBtn)
+        openScanBtn.onclick = () => {
+          showView("scan");
+        };
+      if (cameraStartBtn)
+        cameraStartBtn.onclick = () => {
+          void startScannerCamera({ forcePrompt: true });
+        };
+      if (cameraStopBtn)
+        cameraStopBtn.onclick = () => {
+          stopScannerCamera();
+          setScannerStatus(
+            'Kamera pausiert. Tippe auf "Kamera starten", wenn du weiter scannen willst.',
+          );
+          updateScannerHint(
+            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Wallet oeffnen.",
+          );
+        };
 
       // URL-basierter Scan (ohne Kamera)
       let pendingScan = null;
@@ -2014,16 +2358,18 @@
           customerAddress.textContent = scannedCustomer.address;
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
-          if (scanHint) scanHint.style.display = "none";
           awardBtn.disabled = false;
           applyActionUi();
           setScannerStatus("Kunde geladen. Du kannst jetzt bestaetigen oder erneut scannen.");
           showToast("Kunde geladen");
+          syncCameraButtons();
+          updateScannerHint();
           showView("scan");
           updateHomeStatus();
         } catch (e) {
           dwarn("Stempel laden fehlgeschlagen", e);
           showToast("Fehler beim Laden der Stempel", true);
+          updateHomeStatus();
         }
       }
 
@@ -2182,13 +2528,17 @@
             } catch (e) {}
             applyActionUi();
             setScannerStatus("Bereit fuer den naechsten QR.");
-            void startScannerCamera();
+            updateScannerHint(
+              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Wallet-Link.",
+            );
+            void resumeScannerCameraIfAllowed();
           }, 1800);
         } catch (e) {
           showToast(userSafeErrorMessage(e), true);
           awardBtn.disabled = false;
           applyActionUi();
           setScannerStatus("Aktion fehlgeschlagen. QR erneut scannen oder Kunde erneut laden.");
+          syncCameraButtons();
         }
       };
 
@@ -2234,7 +2584,7 @@
             showAppUI();
             showView("scan");
             customerInfo.style.display = "none";
-            if (scanHint) scanHint.style.display = "block";
+            syncCameraButtons();
             updateHomeStatus();
 
             // Lade evtl. vorhandenen Scan direkt
@@ -2265,6 +2615,7 @@
                 awardBtn.disabled = false;
                 pendingAction = "stamp";
                 applyActionUi();
+                syncCameraButtons();
 
                 // Keep welcome as default unless a QR link is active
                 updateHomeStatus();
@@ -2295,6 +2646,20 @@
             loadPendingScan();
           }
         }, 500);
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          pauseScannerLoop();
+          return;
+        }
+        if (cafe && !scannedCustomer) {
+          void resumeScannerCameraIfAllowed();
+        }
+      });
+
+      window.addEventListener("pagehide", () => {
+        stopScannerCamera();
       });
     </script>
     <script src="/pwa/sw-register.js" defer></script>
