@@ -1316,7 +1316,8 @@
   function buildStampSvg(filled, style) {
     stampSvgSeq = (stampSvgSeq + 1) % 1000000;
     var uid = String(stampSvgSeq);
-    var kind = String(style || "cup").trim().toLowerCase();
+    var kind = String(style || "bean").trim().toLowerCase();
+    if (kind === "cup") kind = "bean";
 
     if (kind === "bean") {
       var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
@@ -1462,7 +1463,7 @@
         return style;
       }
     } catch (e) {}
-    return "cup";
+    return "bean";
   }
 
   function getRewardSideNote(label, isFull) {
@@ -1494,17 +1495,17 @@
 
   function renderStampGrid(container, count) {
     var threshold = REWARD_THRESHOLD;
-    var stampStyle = "cup";
+    var stampStyle = "bean";
     try {
       var pass = null;
       if (container && container.closest)
         pass = container.closest(".passCard, .face");
       threshold = getPassRewardThreshold(pass);
       stampStyle = pass
-        ? String(pass.getAttribute("data-stamp-style") || "cup")
+        ? String(pass.getAttribute("data-stamp-style") || "bean")
             .trim()
             .toLowerCase()
-        : "cup";
+        : "bean";
     } catch (eThreshold0) {}
     function hash32(str) {
       var s = String(str || "");
