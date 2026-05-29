@@ -22,8 +22,8 @@
         color: var(--text);
         min-height: 100vh;
         display: flex;
-        justify-content: center;
-        align-items: center;
+        justify-content: flex-start;
+        align-items: stretch;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
@@ -34,17 +34,18 @@
         content: none;
       }
       .container {
-        background: transparent;
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(32, 22, 18, 0.98));
+        border-radius: 30px;
+        border: 1px solid rgba(255, 241, 233, 0.12);
+        box-shadow:
+          0 28px 70px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 250, 244, 0.06) inset;
         padding: calc(var(--space-6) + var(--space-2));
         max-width: 600px;
         width: 100%;
         position: relative;
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
-          rgba(255, 255, 255, 0.01);
+        margin: 0 auto;
       }
       h1 {
         color: var(--brand);
@@ -265,18 +266,23 @@
         display: flex;
         gap: 15px;
         margin-top: 30px;
+        align-items: stretch;
       }
       .btn {
         flex: 1;
-        padding: 15px;
+        padding: 14px 18px;
         border: none;
-        border-radius: 0;
+        border-radius: 999px;
         font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        min-height: 44px;
+        min-height: 52px;
         touch-action: manipulation;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
       }
       .btn-primary {
         background: var(--brand);
@@ -288,13 +294,12 @@
         background: var(--brand-700);
       }
       .btn-secondary {
-        background: transparent;
+        background: rgba(255, 248, 241, 0.04);
         color: var(--text);
-        border: none;
-        border-bottom: 1px solid var(--border);
+        border: 1px solid var(--border);
       }
       .btn-secondary:hover {
-        filter: brightness(0.98);
+        background: rgba(255, 248, 241, 0.08);
       }
 
       /* Success screen */
@@ -311,10 +316,9 @@
         color: #fff;
       }
       .credentials-box {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        border-top: 1px solid var(--border);
+        background: rgba(255, 248, 241, 0.03);
+        border: 1px solid rgba(255, 241, 233, 0.1);
+        border-radius: 18px;
         padding: 20px;
         margin: 20px 0;
         font-family: var(--font-mono);
@@ -329,7 +333,7 @@
         margin-bottom: 5px;
       }
       .credential-value {
-        background: transparent;
+        background: rgba(255, 248, 241, 0.02);
         padding: 10px 0;
         border-radius: 0;
         word-break: break-all;
@@ -338,10 +342,9 @@
         border-bottom: 1px solid var(--border);
       }
       .warning-box {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        border-top: 1px solid var(--border);
+        background: rgba(255, 248, 241, 0.03);
+        border: 1px solid rgba(255, 241, 233, 0.1);
+        border-radius: 18px;
         padding: 15px;
         margin: 20px 0;
         color: var(--text);
@@ -400,6 +403,29 @@
         }
         100% {
           transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: calc(var(--space-3) + var(--safe-top, 0px))
+            calc(var(--space-3) + var(--safe-right, 0px))
+            calc(var(--space-4) + var(--safe-bottom, 0px))
+            calc(var(--space-3) + var(--safe-left, 0px));
+        }
+
+        .container {
+          padding: 22px 18px;
+          border-radius: 24px;
+        }
+
+        .button-group {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .btn {
+          width: 100%;
         }
       }
     </style>
