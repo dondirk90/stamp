@@ -29,11 +29,6 @@
   var el = {
     buildBadge: document.getElementById("buildBadge"),
     liveBadge: document.getElementById("liveBadge"),
-    sessionBadge: document.getElementById("sessionBadge"),
-    logoutBtn: document.getElementById("logoutBtn"),
-    menuToggle: document.getElementById("menuToggle"),
-    menuBackdrop: document.getElementById("menuBackdrop"),
-    menuDrawer: document.getElementById("menuDrawer"),
     bottomTabs: document.querySelector(".bottomTabs"),
 
     authPanel: document.getElementById("authPanel"),
@@ -56,11 +51,6 @@
     authForgotSubmit: document.getElementById("authForgotSubmit"),
     authForgotMsg: document.getElementById("authForgotMsg"),
 
-    mainModeHome: document.getElementById("mainModeHome"),
-    mainModeMap: document.getElementById("mainModeMap"),
-    mainModeWallet: document.getElementById("mainModeWallet"),
-    mainModeHistory: document.getElementById("mainModeHistory"),
-    mainModeAccount: document.getElementById("mainModeAccount"),
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
@@ -394,13 +384,6 @@
 
   function setAuthedUI() {
     var isAuthed = !!(session && session.address);
-
-    if (el.logoutBtn)
-      el.logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
-    if (el.sessionBadge) {
-      el.sessionBadge.textContent = "Anmelden";
-      el.sessionBadge.style.display = isAuthed ? "none" : "inline-flex";
-    }
     if (el.authPanel) el.authPanel.style.display = isAuthed ? "none" : "block";
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
@@ -420,15 +403,6 @@
 
   function navSetActive(which) {
     var w = which || "home";
-    if (el.mainModeHome)
-      el.mainModeHome.classList.toggle("active", w === "home");
-    if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
-    if (el.mainModeWallet)
-      el.mainModeWallet.classList.toggle("active", w === "wallet");
-    if (el.mainModeHistory)
-      el.mainModeHistory.classList.toggle("active", w === "history");
-    if (el.mainModeAccount)
-      el.mainModeAccount.classList.toggle("active", w === "account");
     if (el.bottomModeMap)
       el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
@@ -440,42 +414,10 @@
   }
 
   function setShellMenuOpen(open) {
-    var next = !!open;
-    shellMenuState.open = next;
-    try {
-      document.body.classList.toggle("menuOpen", next);
-    } catch (e0) {}
-    try {
-      if (el.menuToggle) el.menuToggle.setAttribute("aria-expanded", next ? "true" : "false");
-    } catch (e1) {}
-    try {
-      if (el.menuBackdrop) el.menuBackdrop.classList.toggle("open", next);
-    } catch (e2) {}
-    try {
-      if (el.menuDrawer) el.menuDrawer.classList.toggle("open", next);
-    } catch (e3) {}
+    shellMenuState.open = !!open;
   }
 
-  function wireShellMenu() {
-    if (el.menuToggle) {
-      el.menuToggle.addEventListener("click", function () {
-        setShellMenuOpen(!shellMenuState.open);
-      });
-    }
-    if (el.menuBackdrop) {
-      el.menuBackdrop.addEventListener("click", function () {
-        setShellMenuOpen(false);
-      });
-    }
-    try {
-      document.addEventListener("keydown", function (ev) {
-        if (!shellMenuState.open) return;
-        if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
-          setShellMenuOpen(false);
-        }
-      });
-    } catch (e4) {}
-  }
+  function wireShellMenu() {}
 
   function getPageMode() {
     if (currentPageMode) return currentPageMode;
@@ -3167,7 +3109,6 @@
       if (!node) return;
       node.addEventListener("click", function () {
         if (mode === "account") {
-          setShellMenuOpen(false);
           location.href = "/customer-profile";
           return;
         }
@@ -3175,11 +3116,6 @@
       });
     }
 
-    bindModeButton(el.mainModeHome, "wallet");
-    bindModeButton(el.mainModeMap, "map");
-    bindModeButton(el.mainModeWallet, "wallet");
-    bindModeButton(el.mainModeHistory, "history");
-    bindModeButton(el.mainModeAccount, "account");
     bindModeButton(el.bottomModeMap, "map");
     bindModeButton(el.bottomModeWallet, "wallet");
     bindModeButton(el.bottomModeHistory, "history");

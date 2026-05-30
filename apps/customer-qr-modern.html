@@ -390,6 +390,12 @@
         opacity: 1;
       }
 
+      .menuToggle,
+      .menuBackdrop,
+      .menuDrawer {
+        display: none !important;
+      }
+
       .brand {
         display: flex;
         flex-direction: column;
@@ -493,31 +499,8 @@
           gap: 0;
         }
 
-        .brand .kk-brandText,
         .brand #liveBadge {
           display: none;
-        }
-
-        .menuToggle {
-          left: 0;
-          width: 44px;
-          height: 44px;
-          min-width: 44px;
-          border: none !important;
-          border-radius: 0 !important;
-          background: transparent !important;
-          background-image: none !important;
-          box-shadow: none !important;
-          filter: none !important;
-        }
-
-        .menuDrawer {
-          position: fixed;
-          top: calc(64px + var(--safe-top, 0px));
-          left: calc(8px + var(--safe-left, 0px));
-          width: min(300px, calc(100vw - 16px - var(--safe-left, 0px) - var(--safe-right, 0px)));
-          max-height: calc(100svh - 88px - var(--safe-top, 0px) - var(--safe-bottom, 0px));
-          overflow: auto;
         }
 
         .bottomTabs {
