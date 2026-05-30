@@ -349,6 +349,47 @@
         gap: 10px;
       }
 
+      .bottomTabs {
+        display: none;
+      }
+
+      .bottomTabBtn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: rgba(47, 32, 23, 0.72) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 8px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        width: 100%;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-align: center;
+      }
+
+      .bottomTabBtn .ico {
+        width: auto;
+      }
+
+      .bottomTabBtn.active {
+        background: rgba(107, 69, 44, 0.1) !important;
+        color: #241710 !important;
+        opacity: 1;
+      }
+
       .brand {
         display: flex;
         flex-direction: column;
@@ -479,6 +520,25 @@
           overflow: auto;
         }
 
+        .bottomTabs {
+          position: fixed;
+          left: calc(10px + var(--safe-left, 0px));
+          right: calc(10px + var(--safe-right, 0px));
+          bottom: calc(10px + var(--safe-bottom, 0px));
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+          padding: 8px;
+          border-radius: 22px;
+          border: 1px solid rgba(17, 17, 17, 0.08);
+          background: rgba(255, 252, 248, 0.94);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 22px 42px rgba(68, 41, 22, 0.16),
+            0 1px 0 rgba(255, 255, 255, 0.78) inset;
+          z-index: 28;
+        }
+
         .topbar .kk-brandMark {
           width: 44px;
           height: 44px;
@@ -503,7 +563,7 @@
         }
 
         #mainPanel {
-          padding: 18px 0 22px;
+          padding: 18px 0 calc(94px + var(--safe-bottom, 0px));
         }
 
         .home {
@@ -1644,6 +1704,33 @@
         pointer-events: auto;
       }
 
+      .walletCarousel.isCarousel {
+        --cardW: min(340px, 86vw);
+        gap: 14px;
+        overflow-x: auto;
+        overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        scroll-padding-left: 14px;
+        scroll-padding-right: 14px;
+        padding: 14px 14px 18px;
+        touch-action: pan-x;
+      }
+
+      .walletCarousel.isCarousel::before,
+      .walletCarousel.isCarousel::after {
+        display: none;
+      }
+
+      .walletCarousel.isCarousel .passCard + .passCard {
+        margin-left: 0;
+      }
+
+      .walletCarousel.isCarousel .passCard {
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        pointer-events: auto;
+      }
+
       .walletCarousel.isStack::before,
       .walletCarousel.isStack::after {
         display: none;
@@ -2368,6 +2455,11 @@
           --cardW: min(360px, calc(100% - 18px));
         }
 
+        .walletCarousel.isCarousel {
+          --cardW: min(336px, 84vw);
+          gap: 12px;
+        }
+
         .walletCarousel.isSnap {
           --cardW: min(344px, calc(100% - 20px));
           max-height: min(74svh, 720px);
@@ -2481,6 +2573,12 @@
           --cardW: min(338px, calc(100% - 18px));
         }
 
+        .walletCarousel.isCarousel {
+          --cardW: min(318px, 84vw);
+          gap: 10px;
+          padding: 10px 12px 16px;
+        }
+
         .walletCarousel.isSnap {
           --cardW: min(322px, calc(100% - 14px));
           gap: 14px;
@@ -2586,6 +2684,10 @@
 
         .walletCarousel.isStack {
           --cardW: min(320px, calc(100% - 22px));
+        }
+
+        .walletCarousel.isCarousel {
+          --cardW: min(300px, 82vw);
         }
 
         .walletCarousel.isSnap {
@@ -3006,6 +3108,37 @@
             </span>
           </button>
         </div>
+      </div>
+
+      <div class="bottomTabs" aria-label="Hauptnavigation">
+        <button class="bottomTabBtn ghost" id="bottomModeMap" type="button">
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">C</span>
+            <span class="lbl">Cafés</span>
+          </span>
+        </button>
+        <button
+          class="bottomTabBtn ghost active"
+          id="bottomModeWallet"
+          type="button"
+        >
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">W</span>
+            <span class="lbl">Wallet</span>
+          </span>
+        </button>
+        <button class="bottomTabBtn ghost" id="bottomModeHistory" type="button">
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verlauf</span>
+          </span>
+        </button>
+        <button class="bottomTabBtn ghost" id="bottomModeAccount" type="button">
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Konto</span>
+          </span>
+        </button>
       </div>
 
       <div class="grid" id="layoutGrid">

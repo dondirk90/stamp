@@ -10,7 +10,7 @@
   var WALLET_MODE =
     window.matchMedia &&
     window.matchMedia("(hover: none) and (pointer: coarse)").matches
-      ? "snap"
+      ? "carousel"
       : "stack";
   var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
 
@@ -34,6 +34,7 @@
     menuToggle: document.getElementById("menuToggle"),
     menuBackdrop: document.getElementById("menuBackdrop"),
     menuDrawer: document.getElementById("menuDrawer"),
+    bottomTabs: document.querySelector(".bottomTabs"),
 
     authPanel: document.getElementById("authPanel"),
     mainPanel: document.getElementById("mainPanel"),
@@ -60,6 +61,10 @@
     mainModeWallet: document.getElementById("mainModeWallet"),
     mainModeHistory: document.getElementById("mainModeHistory"),
     mainModeAccount: document.getElementById("mainModeAccount"),
+    bottomModeMap: document.getElementById("bottomModeMap"),
+    bottomModeWallet: document.getElementById("bottomModeWallet"),
+    bottomModeHistory: document.getElementById("bottomModeHistory"),
+    bottomModeAccount: document.getElementById("bottomModeAccount"),
 
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
@@ -398,6 +403,7 @@
     }
     if (el.authPanel) el.authPanel.style.display = isAuthed ? "none" : "block";
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
+    if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
 
     if (el.welcomeBadge && isAuthed) {
@@ -423,6 +429,14 @@
       el.mainModeHistory.classList.toggle("active", w === "history");
     if (el.mainModeAccount)
       el.mainModeAccount.classList.toggle("active", w === "account");
+    if (el.bottomModeMap)
+      el.bottomModeMap.classList.toggle("active", w === "map");
+    if (el.bottomModeWallet)
+      el.bottomModeWallet.classList.toggle("active", w === "wallet");
+    if (el.bottomModeHistory)
+      el.bottomModeHistory.classList.toggle("active", w === "history");
+    if (el.bottomModeAccount)
+      el.bottomModeAccount.classList.toggle("active", w === "account");
   }
 
   function setShellMenuOpen(open) {
@@ -2924,6 +2938,7 @@
         setWalletEmptyVisible(false);
         if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
         if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
+        if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
         scheduleWalletStampsRefresh(80);
         return;
       }
@@ -2985,6 +3000,7 @@
 
     if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
     if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
+    if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
 
     scheduleWalletStampsRefresh(40);
   }
@@ -3147,32 +3163,27 @@
   }
 
   function wireNavigation() {
-    if (el.mainModeHome) {
-      el.mainModeHome.addEventListener("click", function () {
-        navigateToMode("wallet");
+    function bindModeButton(node, mode) {
+      if (!node) return;
+      node.addEventListener("click", function () {
+        if (mode === "account") {
+          setShellMenuOpen(false);
+          location.href = "/customer-profile";
+          return;
+        }
+        navigateToMode(mode);
       });
     }
-    if (el.mainModeMap) {
-      el.mainModeMap.addEventListener("click", function () {
-        navigateToMode("map");
-      });
-    }
-    if (el.mainModeWallet) {
-      el.mainModeWallet.addEventListener("click", function () {
-        navigateToMode("wallet");
-      });
-    }
-    if (el.mainModeHistory) {
-      el.mainModeHistory.addEventListener("click", function () {
-        navigateToMode("history");
-      });
-    }
-    if (el.mainModeAccount) {
-      el.mainModeAccount.addEventListener("click", function () {
-        setShellMenuOpen(false);
-        location.href = "/customer-profile";
-      });
-    }
+
+    bindModeButton(el.mainModeHome, "wallet");
+    bindModeButton(el.mainModeMap, "map");
+    bindModeButton(el.mainModeWallet, "wallet");
+    bindModeButton(el.mainModeHistory, "history");
+    bindModeButton(el.mainModeAccount, "account");
+    bindModeButton(el.bottomModeMap, "map");
+    bindModeButton(el.bottomModeWallet, "wallet");
+    bindModeButton(el.bottomModeHistory, "history");
+    bindModeButton(el.bottomModeAccount, "account");
   }
 
   function resetPassCardMotion(node) {
@@ -3197,6 +3208,7 @@
 
   function enableWalletSnapMode(scroller) {
     if (!scroller) return;
+    scroller.classList.remove("isCarousel");
     scroller.classList.remove("isStack");
     scroller.classList.remove("isDragging");
     scroller.classList.add("isSnap");
@@ -3207,6 +3219,21 @@
           closePass(cards[i]);
         }
         resetPassCardMotion(cards[i]);
+      }
+    } catch (e) {}
+  }
+
+  function enableWalletCarouselMode(scroller) {
+    if (!scroller) return;
+    scroller.classList.remove("isStack");
+    scroller.classList.remove("isDragging");
+    scroller.classList.remove("isSnap");
+    scroller.classList.add("isCarousel");
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      for (var i = 0; i < cards.length; i++) {
+        resetPassCardMotion(cards[i]);
+        cards[i].style.pointerEvents = "auto";
       }
     } catch (e) {}
   }
