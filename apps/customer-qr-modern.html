@@ -574,6 +574,12 @@
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 58px);
         }
 
+        .screenPager {
+          overflow-x: hidden;
+          touch-action: pan-y;
+          overscroll-behavior-x: none;
+        }
+
         .mapHero,
         #walletPanel.walletDock,
         #historyPanel {
@@ -1722,7 +1728,7 @@
       }
 
       .walletCarousel.isCarousel .passCard + .passCard {
-        margin-left: 0;
+        margin-left: -46px;
       }
 
       .walletCarousel.isCarousel .passCard {
@@ -2579,6 +2585,10 @@
           padding: 10px 12px 16px;
         }
 
+        .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -34px;
+        }
+
         .walletCarousel.isSnap {
           --cardW: min(322px, calc(100% - 14px));
           gap: 14px;
@@ -2688,6 +2698,10 @@
 
         .walletCarousel.isCarousel {
           --cardW: min(300px, 82vw);
+        }
+
+        .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -28px;
         }
 
         .walletCarousel.isSnap {
