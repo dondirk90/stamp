@@ -494,19 +494,32 @@
 
         .grid.authed,
         #mainPanel {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+          touch-action: pan-y;
+          overscroll-behavior-x: contain;
+        }
+
+        #mainPanel {
+          padding: 18px 0 22px;
         }
 
         .home {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
           gap: 0;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 58px);
         }
 
         .mapHero,
         #walletPanel.walletDock,
         #historyPanel {
           width: 100% !important;
-          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
-          margin: 0;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
+          margin: auto 0;
           padding: 68px 14px 18px;
           border-radius: 30px;
           background: rgba(255, 252, 248, 0.82);
@@ -2847,7 +2860,7 @@
             >
               <span class="menuToggleLines"><span></span></span>
             </button>
-            <a class="kk-brand" href="/">
+            <a class="kk-brand" href="/customer-map">
               <span class="kk-brandMark" aria-hidden="true">
                 <img src="/assets/stamp-bean.png?v=1" alt="" />
               </span>

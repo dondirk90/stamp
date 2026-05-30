@@ -492,6 +492,16 @@
     return "/customer-map";
   }
 
+  function getAdjacentMode(mode, direction) {
+    var order = ["map", "wallet", "history"];
+    var current = String(mode || "map");
+    var idx = order.indexOf(current);
+    if (idx < 0) idx = 0;
+    var next = idx + (direction > 0 ? 1 : -1);
+    if (next < 0 || next >= order.length) return null;
+    return order[next];
+  }
+
   function navigateToMode(mode) {
     var m = mode || "map";
     var href = getModeHref(m);
@@ -817,36 +827,89 @@
     function shouldIgnoreSwipeTarget(target) {
       if (!target || !target.closest) return false;
       return !!target.closest(
-        "input, button, a, select, textarea, #cafeMap, .walletCarousel, .passCard, .passQrBox, .discoverPickOverlay",
+        "input, button, a, select, textarea, #cafeMap, .walletCarousel, .passCard, .passQrBox, .discoverPickOverlay, .leaflet-container, .leaflet-control-container",
       );
     }
 
-    function onPointerDown(ev) {
-      if (!session || !session.address) return;
-      if (shouldIgnoreSwipeTarget(ev.target)) return;
+    function beginDrag(x, y, target, id) {
+      if (!session || !session.address) return false;
+      if (shouldIgnoreSwipeTarget(target)) return false;
       drag = {
-        id: ev.pointerId,
-        x: ev.clientX,
-        y: ev.clientY,
+        id: id == null ? "touch" : id,
+        x: x,
+        y: y,
+        dx: 0,
+        dy: 0,
+        locked: "",
+        moved: false,
       };
+      return true;
+    }
+
+    function updateDrag(x, y) {
+      if (!drag) return false;
+      drag.dx = x - drag.x;
+      drag.dy = y - drag.y;
+      if (!drag.moved) {
+        if (Math.abs(drag.dx) < 8 && Math.abs(drag.dy) < 8) return false;
+        drag.moved = true;
+      }
+      if (!drag.locked) {
+        if (Math.abs(drag.dx) > Math.abs(drag.dy) * 1.12) drag.locked = "x";
+        else if (Math.abs(drag.dy) > Math.abs(drag.dx) * 1.12) drag.locked = "y";
+      }
+      return drag.locked === "x";
+    }
+
+    function finishDrag(x, y, id) {
+      if (!drag || (id != null && drag.id !== id)) return;
+      var dx = x - drag.x;
+      var dy = y - drag.y;
+      drag = null;
+      if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+      var active = getPageMode();
+      var next = dx < 0 ? getAdjacentMode(active, 1) : getAdjacentMode(active, -1);
+      if (next) navigateToMode(next);
+    }
+
+    function onPointerDown(ev) {
+      beginDrag(ev.clientX, ev.clientY, ev.target, ev.pointerId);
     }
 
     function onPointerUp(ev) {
-      if (!drag || drag.id !== ev.pointerId) return;
-      var dx = ev.clientX - drag.x;
-      var dy = ev.clientY - drag.y;
-      drag = null;
-      if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-      var active = getPageMode();
-      if (dx < 0 && active === "map") {
-        navigateToMode("wallet");
-      } else if (dx > 0 && active === "wallet") {
-        navigateToMode("map");
+      finishDrag(ev.clientX, ev.clientY, ev.pointerId);
+    }
+
+    function onTouchStart(ev) {
+      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
+      if (!t) return;
+      beginDrag(t.clientX, t.clientY, ev.target, "touch");
+    }
+
+    function onTouchMove(ev) {
+      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
+      if (!t || !drag || drag.id !== "touch") return;
+      if (updateDrag(t.clientX, t.clientY)) {
+        try {
+          ev.preventDefault();
+        } catch (e0) {}
       }
+    }
+
+    function onTouchEnd(ev) {
+      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
+      if (!t) return;
+      finishDrag(t.clientX, t.clientY, "touch");
     }
 
     el.mainPanel.addEventListener("pointerdown", onPointerDown, { passive: true });
     el.mainPanel.addEventListener("pointerup", onPointerUp, { passive: true });
+    el.mainPanel.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.mainPanel.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.mainPanel.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.mainPanel.addEventListener("touchcancel", function () {
+      drag = null;
+    }, { passive: true });
     el.mainPanel.addEventListener("pointercancel", function () {
       drag = null;
     }, { passive: true });
