@@ -70,6 +70,7 @@
 
     cafeSearch: document.getElementById("cafeSearch"),
     cafeResults: document.getElementById("cafeResults"),
+    screenPager: document.getElementById("screenPager"),
 
     walletPanel: document.getElementById("walletPanel"),
     walletSubtitle: document.getElementById("walletSubtitle"),
@@ -472,7 +473,7 @@
       var p = String(location.pathname || "").toLowerCase();
       if (p.indexOf("/customer-map") === 0) return "map";
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "map";
+      if (p.indexOf("/customer-wallet") === 0) return "wallet";
       if (p.indexOf("/customer-qr") === 0) return "map";
       if (
         p.indexOf("/customer-home") === 0 ||
@@ -500,6 +501,12 @@
     var next = idx + (direction > 0 ? 1 : -1);
     if (next < 0 || next >= order.length) return null;
     return order[next];
+  }
+
+  function getModeIndex(mode) {
+    var order = ["map", "wallet", "history"];
+    var idx = order.indexOf(String(mode || "map"));
+    return idx < 0 ? 0 : idx;
   }
 
   function navigateToMode(mode) {
@@ -801,13 +808,19 @@
     var m = mode || getPageMode();
     currentPageMode = m;
     navSetActive(m === "wallet" ? "wallet" : m);
+    try {
+      document.documentElement.classList.toggle("walletMode", m === "wallet");
+    } catch (eClass) {}
 
-    // These panels live on the same HTML, but we show only one per route.
-    if (el.mapPanel) el.mapPanel.style.display = m === "map" ? "block" : "none";
-    if (el.walletPanel)
-      el.walletPanel.style.display = m === "wallet" ? "block" : "none";
-    if (el.historyPanel)
-      el.historyPanel.style.display = m === "history" ? "block" : "none";
+    try {
+      if (el.screenPager) {
+        var pagerWidth = el.screenPager.clientWidth || 0;
+        if (pagerWidth > 0) {
+          var left = pagerWidth * getModeIndex(m);
+          el.screenPager.scrollTo({ left: left, behavior: "smooth" });
+        }
+      }
+    } catch (eScroll) {}
 
     if (m === "map") {
       ensureMapInit();
@@ -818,101 +831,6 @@
     if (m === "wallet") {
       refreshWallet();
     }
-  }
-
-  function wireModeSwipe() {
-    if (!el.mainPanel) return;
-    var drag = null;
-
-    function shouldIgnoreSwipeTarget(target) {
-      if (!target || !target.closest) return false;
-      return !!target.closest(
-        "input, button, a, select, textarea, #cafeMap, .walletCarousel, .passCard, .passQrBox, .discoverPickOverlay, .leaflet-container, .leaflet-control-container",
-      );
-    }
-
-    function beginDrag(x, y, target, id) {
-      if (!session || !session.address) return false;
-      if (shouldIgnoreSwipeTarget(target)) return false;
-      drag = {
-        id: id == null ? "touch" : id,
-        x: x,
-        y: y,
-        dx: 0,
-        dy: 0,
-        locked: "",
-        moved: false,
-      };
-      return true;
-    }
-
-    function updateDrag(x, y) {
-      if (!drag) return false;
-      drag.dx = x - drag.x;
-      drag.dy = y - drag.y;
-      if (!drag.moved) {
-        if (Math.abs(drag.dx) < 8 && Math.abs(drag.dy) < 8) return false;
-        drag.moved = true;
-      }
-      if (!drag.locked) {
-        if (Math.abs(drag.dx) > Math.abs(drag.dy) * 1.12) drag.locked = "x";
-        else if (Math.abs(drag.dy) > Math.abs(drag.dx) * 1.12) drag.locked = "y";
-      }
-      return drag.locked === "x";
-    }
-
-    function finishDrag(x, y, id) {
-      if (!drag || (id != null && drag.id !== id)) return;
-      var dx = x - drag.x;
-      var dy = y - drag.y;
-      drag = null;
-      if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
-      var active = getPageMode();
-      var next = dx < 0 ? getAdjacentMode(active, 1) : getAdjacentMode(active, -1);
-      if (next) navigateToMode(next);
-    }
-
-    function onPointerDown(ev) {
-      beginDrag(ev.clientX, ev.clientY, ev.target, ev.pointerId);
-    }
-
-    function onPointerUp(ev) {
-      finishDrag(ev.clientX, ev.clientY, ev.pointerId);
-    }
-
-    function onTouchStart(ev) {
-      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
-      if (!t) return;
-      beginDrag(t.clientX, t.clientY, ev.target, "touch");
-    }
-
-    function onTouchMove(ev) {
-      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
-      if (!t || !drag || drag.id !== "touch") return;
-      if (updateDrag(t.clientX, t.clientY)) {
-        try {
-          ev.preventDefault();
-        } catch (e0) {}
-      }
-    }
-
-    function onTouchEnd(ev) {
-      var t = ev && ev.changedTouches ? ev.changedTouches[0] : null;
-      if (!t) return;
-      finishDrag(t.clientX, t.clientY, "touch");
-    }
-
-    el.mainPanel.addEventListener("pointerdown", onPointerDown, { passive: true });
-    el.mainPanel.addEventListener("pointerup", onPointerUp, { passive: true });
-    el.mainPanel.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.mainPanel.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.mainPanel.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.mainPanel.addEventListener("touchcancel", function () {
-      drag = null;
-    }, { passive: true });
-    el.mainPanel.addEventListener("pointercancel", function () {
-      drag = null;
-    }, { passive: true });
   }
 
   function scrollToPanel(node) {
@@ -1750,6 +1668,55 @@
       cell.innerHTML = buildStampSvg(filled, stampStyle);
       container.appendChild(cell);
     }
+  }
+
+  function wireScreenPager() {
+    if (!el.screenPager) return;
+    var settleT = 0;
+
+    function syncModeFromPager() {
+      try {
+        var width = el.screenPager.clientWidth || 0;
+        if (width <= 0) return;
+        var idx = Math.round((el.screenPager.scrollLeft || 0) / width);
+        var order = ["map", "wallet", "history"];
+        var next = order[Math.max(0, Math.min(order.length - 1, idx))] || "map";
+        if (currentPageMode === next) return;
+        currentPageMode = next;
+        navSetActive(next === "wallet" ? "wallet" : next);
+        try {
+          history.replaceState({ mode: next }, "", getModeHref(next));
+        } catch (eState) {}
+        try {
+          document.documentElement.classList.toggle("walletMode", next === "wallet");
+        } catch (eClass) {}
+        if (next === "map") ensureMapInit();
+        if (next === "wallet") refreshWallet();
+        if (next === "history") refreshHistory();
+      } catch (e) {}
+    }
+
+    el.screenPager.addEventListener("scroll", function () {
+      try {
+        if (settleT) window.clearTimeout(settleT);
+      } catch (e0) {}
+      settleT = window.setTimeout(function () {
+        settleT = 0;
+        syncModeFromPager();
+      }, 90);
+    }, { passive: true });
+
+    try {
+      window.addEventListener("resize", function () {
+        try {
+          if (settleT) window.clearTimeout(settleT);
+        } catch (e1) {}
+        settleT = window.setTimeout(function () {
+          settleT = 0;
+          applyPageMode(currentPageMode || getPageMode());
+        }, 70);
+      }, { passive: true });
+    } catch (e2) {}
   }
 
   function findWalletPassCardByCafe(cafeAddress) {
@@ -3093,7 +3060,6 @@
     el.logoutBtn.addEventListener("click", function () {
       clearSession();
       disconnectEventsStream();
-      if (el.historyPanel) el.historyPanel.style.display = "none";
       if (el.walletList) el.walletList.innerHTML = "";
       setWalletEmptyVisible(true);
 
@@ -3114,6 +3080,7 @@
       walletServerCardsDigest = "";
 
       setAuthedUI();
+      currentPageMode = "map";
       navSetActive("home");
     });
   }
@@ -3142,7 +3109,7 @@
             .catch(function () {});
           scheduleWalletStampsRefresh(120);
           try {
-            if (el.historyPanel && el.historyPanel.style.display !== "none") {
+            if (currentPageMode === "history") {
               refreshHistory();
             }
           } catch (eH) {}
@@ -3542,7 +3509,7 @@
             scheduleWalletStampsRefresh(120);
           } catch (eW) {}
           try {
-            if (el.historyPanel && el.historyPanel.style.display !== "none") {
+            if (currentPageMode === "history") {
               refreshHistory();
             }
           } catch (eH) {}
@@ -3927,7 +3894,7 @@
     wireLogout();
     wireShellMenu();
     wireNavigation();
-    wireModeSwipe();
+    wireScreenPager();
     wireVisibility();
     try {
       window.addEventListener("popstate", function () {

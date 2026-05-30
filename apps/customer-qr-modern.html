@@ -1386,6 +1386,36 @@
         min-width: 0;
       }
 
+      .screenPager {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+      }
+
+      .screenPager::-webkit-scrollbar {
+        display: none;
+      }
+
+      .screenSlide {
+        flex: 0 0 100%;
+        width: 100%;
+        min-width: 100%;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        min-height: 0;
+      }
+
+      .screenSlide > * {
+        min-width: 0;
+      }
+
       .mapHero {
         padding: var(--space-4);
       }
@@ -3056,7 +3086,8 @@
         <div class="stack" id="mainPanel" style="display: none">
           <select id="cafeSelect" style="display: none"></select>
 
-          <div class="home" aria-label="Start">
+          <div class="home screenPager" id="screenPager" aria-label="Start">
+            <div class="screenSlide" data-mode="map">
             <div class="card panel mapHero" id="mapPanel">
               <div class="walletDockHead">
                 <div class="stack tight">
@@ -3110,7 +3141,9 @@
 
               <div id="cafeResults" class="mapList"></div>
             </div>
+            </div>
 
+            <div class="screenSlide" data-mode="wallet">
             <div class="card panel walletDock" id="walletPanel">
               <div class="walletDockHead">
                 <h3 style="margin: 0">Wallet</h3>
@@ -3132,8 +3165,10 @@
                 aria-label="Wallet Karten"
               ></div>
             </div>
+            </div>
 
-            <div class="card panel" id="historyPanel" style="display: none">
+            <div class="screenSlide" data-mode="history">
+            <div class="card panel" id="historyPanel">
               <div class="panelHeader">
                 <h3>Stempel-Historie</h3>
               </div>
@@ -3150,11 +3185,12 @@
               </div>
               <div id="historyList" class="historyList"></div>
             </div>
-
-            <div class="notice" id="noCafesNotice" style="display: none">
-              Es sind noch keine Cafés registriert. Bitte zuerst ein Café
-              anlegen (z.B. über die Café-Tools).
             </div>
+
+          </div>
+          <div class="notice" id="noCafesNotice" style="display: none">
+            Es sind noch keine Cafés registriert. Bitte zuerst ein Café
+            anlegen (z.B. über die Café-Tools).
           </div>
         </div>
       </div>
