@@ -402,7 +402,7 @@
   }
 
   function navSetActive(which) {
-    var w = which || "home";
+    var w = which || "map";
     if (el.bottomModeMap)
       el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
