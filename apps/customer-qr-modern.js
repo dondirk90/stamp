@@ -7,7 +7,11 @@
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
 
   var REWARD_THRESHOLD = 10;
-  var WALLET_MODE = "stack"; // parity across desktop/iOS/Android
+  var WALLET_MODE =
+    window.matchMedia &&
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches
+      ? "snap"
+      : "stack";
   var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
@@ -2919,6 +2923,7 @@
       ) {
         setWalletEmptyVisible(false);
         if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
+        if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
         scheduleWalletStampsRefresh(80);
         return;
       }
@@ -2978,9 +2983,8 @@
     walletState.lastStampIconOk = !!stampIconState.ok;
     walletState.lastServerCardsDigest = walletServerCardsDigest;
 
-    if (WALLET_MODE === "stack") {
-      enableWalletStackMode(el.walletList);
-    }
+    if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
+    if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
 
     scheduleWalletStampsRefresh(40);
   }
@@ -3169,6 +3173,42 @@
         location.href = "/customer-profile";
       });
     }
+  }
+
+  function resetPassCardMotion(node) {
+    if (!node) return;
+    node.style.display = "block";
+    node.style.pointerEvents = "auto";
+    node.style.transition = "";
+    node.style.setProperty("--wheel-tx", "0px");
+    node.style.setProperty("--stack-swipe-y", "0px");
+    node.style.setProperty("--wheel-rz", "0deg");
+    node.style.setProperty("--wheel-ry", "0deg");
+    node.style.setProperty("--wheel-tz", "0px");
+    node.style.setProperty("--wheel-opacity", "1");
+    node.style.setProperty("--wheel-scale", "1");
+    node.style.setProperty("--wheel-sat", "1");
+    node.style.setProperty("--wheel-bright", "1");
+    node.style.setProperty("--stack-y", "0px");
+    try {
+      node.style.zIndex = "";
+    } catch (eZ) {}
+  }
+
+  function enableWalletSnapMode(scroller) {
+    if (!scroller) return;
+    scroller.classList.remove("isStack");
+    scroller.classList.remove("isDragging");
+    scroller.classList.add("isSnap");
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].classList && cards[i].classList.contains("open")) {
+          closePass(cards[i]);
+        }
+        resetPassCardMotion(cards[i]);
+      }
+    } catch (e) {}
   }
 
   function apiFetch(path, init) {

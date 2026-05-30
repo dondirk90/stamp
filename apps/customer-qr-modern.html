@@ -1612,6 +1612,38 @@
         touch-action: pan-x;
       }
 
+      .walletCarousel.isSnap {
+        --cardW: min(390px, calc(100% - 8px), 62svh);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scroll-snap-type: y mandatory;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 0 26px;
+        max-height: min(78svh, 760px);
+        justify-items: stretch;
+        touch-action: pan-y;
+      }
+
+      .walletCarousel.isSnap::before,
+      .walletCarousel.isSnap::after {
+        display: none;
+      }
+
+      .walletCarousel.isSnap .passCard + .passCard {
+        margin-left: 0;
+      }
+
+      .walletCarousel.isSnap .passCard {
+        margin: 0 auto;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        pointer-events: auto;
+      }
+
       .walletCarousel.isStack::before,
       .walletCarousel.isStack::after {
         display: none;
@@ -2336,6 +2368,11 @@
           --cardW: min(360px, calc(100% - 18px));
         }
 
+        .walletCarousel.isSnap {
+          --cardW: min(344px, calc(100% - 20px));
+          max-height: min(74svh, 720px);
+        }
+
         .passCard {
           --pass-card-ratio: 1.08;
         }
@@ -2444,6 +2481,13 @@
           --cardW: min(338px, calc(100% - 18px));
         }
 
+        .walletCarousel.isSnap {
+          --cardW: min(322px, calc(100% - 14px));
+          gap: 14px;
+          padding: 8px 0 22px;
+          max-height: min(72svh, 680px);
+        }
+
         /* iOS: size by available width so the card feels like Wallet */
         .ios .walletCarousel {
           --cardW: min(calc(100% - 14px), 96vw);
@@ -2542,6 +2586,11 @@
 
         .walletCarousel.isStack {
           --cardW: min(320px, calc(100% - 22px));
+        }
+
+        .walletCarousel.isSnap {
+          --cardW: min(304px, calc(100% - 18px));
+          max-height: min(68svh, 620px);
         }
 
         .ios .walletCarousel {
