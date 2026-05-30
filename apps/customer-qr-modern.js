@@ -378,8 +378,10 @@
 
     if (el.logoutBtn)
       el.logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
-    if (el.sessionBadge)
-      el.sessionBadge.textContent = isAuthed ? "Konto" : "Anmelden";
+    if (el.sessionBadge) {
+      el.sessionBadge.textContent = "Anmelden";
+      el.sessionBadge.style.display = isAuthed ? "none" : "inline-flex";
+    }
     if (el.authPanel) el.authPanel.style.display = isAuthed ? "none" : "block";
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);

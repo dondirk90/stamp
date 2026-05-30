@@ -3,7 +3,7 @@
 
   const el = {
     buildBadge: document.getElementById("buildBadge"),
-    sessionBadge: document.getElementById("sessionBadge"),
+    profileStatus: document.getElementById("profileStatus"),
     logoutBtn: document.getElementById("logoutBtn"),
 
     notLoggedIn: document.getElementById("notLoggedIn"),
@@ -102,10 +102,10 @@
   }
 
   function renderProfile(session) {
-    if (!el.sessionBadge) return;
+    if (!el.profileStatus) return;
 
     if (!session) {
-      el.sessionBadge.textContent = "Nicht eingeloggt";
+      el.profileStatus.textContent = "Nicht eingeloggt";
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
@@ -113,7 +113,7 @@
       return;
     }
 
-    el.sessionBadge.textContent = `Eingeloggt: ${
+    el.profileStatus.textContent = `Eingeloggt: ${
       session.username || session.email
     }`;
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";

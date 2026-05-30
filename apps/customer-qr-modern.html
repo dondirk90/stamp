@@ -1292,7 +1292,7 @@
         scroll-snap-align: center;
         scroll-snap-stop: always;
         flex: 0 0 auto;
-        --pass-card-ratio: 1.58;
+        --pass-card-ratio: 1.46;
         width: var(--cardW);
         aspect-ratio: var(--pass-card-ratio);
         position: relative;
@@ -1411,7 +1411,9 @@
       }
 
       .passCard[data-pass-theme="paper"] .passFlip::after {
-        opacity: 0.22;
+        opacity: 0.1;
+        background-size: 62% auto, auto, auto, auto;
+        background-position: center 56%, center, center, center;
       }
 
       .passCard[data-pass-theme="clean"] {
@@ -1689,8 +1691,9 @@
 
       .passStampField {
         position: relative;
-        margin-top: 0;
-        padding: 12px 56px 4px 0;
+        width: min(100%, 392px);
+        margin: 0 auto;
+        padding: 12px 44px 10px 0;
         background: transparent;
       }
 
@@ -1729,8 +1732,8 @@
       .passRewardNote {
         position: absolute;
         right: 0;
-        bottom: 4px;
-        width: 50px;
+        bottom: 8px;
+        width: 46px;
         text-align: left;
         font-family: var(--font-mono);
         font-size: 11px;
@@ -1959,7 +1962,7 @@
         opacity: 0.62;
       }
 
-      /* Mobile: reduce card height a bit so it fits below the large top bar */
+      /* Mobile: keep the card taller so the 10 stamp slots stay fully visible. */
       @media (max-width: 420px) {
         .walletDock {
           padding: var(--space-3);
@@ -1975,7 +1978,7 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.18;
+          --pass-card-ratio: 1.08;
         }
 
         .passMain,
@@ -1999,7 +2002,8 @@
         }
 
         .passStampField {
-          padding: 8px 42px 2px 0;
+          width: min(100%, 304px);
+          padding: 8px 32px 8px 0;
         }
 
         .passStampGuide {
@@ -2014,7 +2018,8 @@
         }
 
         .passRewardNote {
-          width: 38px;
+          bottom: 6px;
+          width: 28px;
           font-size: 9px;
           line-height: 1.05;
         }
@@ -2090,7 +2095,7 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.16;
+          --pass-card-ratio: 1.06;
         }
 
         .passMain,
@@ -2114,7 +2119,8 @@
         }
 
         .passStampField {
-          padding: 8px 38px 2px 0;
+          width: min(100%, 292px);
+          padding: 8px 30px 8px 0;
         }
 
         .passStampGuide {
@@ -2129,7 +2135,8 @@
         }
 
         .passRewardNote {
-          width: 34px;
+          bottom: 6px;
+          width: 26px;
           font-size: 8px;
           line-height: 1.05;
         }
@@ -2187,7 +2194,7 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.12;
+          --pass-card-ratio: 1.04;
         }
       }
 
