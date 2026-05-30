@@ -2688,7 +2688,7 @@
       scroller.__stampStackWired = true;
     } catch (eFlag) {}
 
-    function onPointerDown(ev) {
+    function beginStackDrag(pointerId, clientX, clientY, target) {
       var top = scroller.querySelector(".passCard");
       if (!top) return;
 
@@ -2704,18 +2704,18 @@
 
       // If the event originated from the back-side interactive area, ignore.
       try {
-        var t = ev.target;
+        var t = target;
         if (t && t.closest) {
           if (t.closest(".passQr") || t.closest(".passQrBox")) return;
         }
       } catch (e1) {}
 
       walletState.stackDrag = {
-        id: ev.pointerId,
-        startX: ev.clientX,
-        startY: ev.clientY,
-        lastX: ev.clientX,
-        lastY: ev.clientY,
+        id: pointerId,
+        startX: clientX,
+        startY: clientY,
+        lastX: clientX,
+        lastY: clientY,
         lastMoveAt: nowMs(),
         vx: 0,
         vy: 0,
@@ -2730,13 +2730,13 @@
       } catch (e2) {}
     }
 
-    function onPointerMove(ev) {
+    function moveStackDrag(pointerId, clientX, clientY, allowCapture) {
       var d = walletState.stackDrag;
-      if (!d || d.id !== ev.pointerId) return;
-      var dx = ev.clientX - d.startX;
-      var dy = ev.clientY - d.startY;
-      var ddx = ev.clientX - d.lastX;
-      var ddy = ev.clientY - d.lastY;
+      if (!d || d.id !== pointerId) return false;
+      var dx = clientX - d.startX;
+      var dy = clientY - d.startY;
+      var ddx = clientX - d.lastX;
+      var ddy = clientY - d.lastY;
       var tNow = nowMs();
       var dt = Math.max(1, tNow - (d.lastMoveAt || tNow));
       var instVx = ddx / dt;
@@ -2745,8 +2745,8 @@
       d.vy = d.vy * 0.58 + instVy * 0.42;
       d.ax = d.ax * 0.7 + (instVx - d.vx) * 0.3;
       d.ay = d.ay * 0.7 + (instVy - d.vy) * 0.3;
-      d.lastX = ev.clientX;
-      d.lastY = ev.clientY;
+      d.lastX = clientX;
+      d.lastY = clientY;
       d.lastMoveAt = tNow;
 
       if (!d.moved) {
@@ -2756,9 +2756,9 @@
         scroller.classList.add("isDragging");
 
         // Only capture once it is clearly a drag gesture.
-        if (!d.captured && d.activeEl) {
+        if (allowCapture && !d.captured && d.activeEl) {
           try {
-            d.activeEl.setPointerCapture(ev.pointerId);
+            d.activeEl.setPointerCapture(pointerId);
             d.captured = true;
           } catch (eCap) {}
         }
@@ -2782,16 +2782,17 @@
       card.style.setProperty("--wheel-bright", "1");
       card.style.setProperty("--wheel-tz", String(lift.toFixed(2)) + "px");
       updateWalletStackFollowers(scroller, ty);
+      return !!d.moved;
     }
 
-    function onPointerUp(ev) {
+    function endStackDrag(pointerId, clientX, clientY) {
       var d = walletState.stackDrag;
-      if (!d || d.id !== ev.pointerId) return;
+      if (!d || d.id !== pointerId) return;
       walletState.stackDrag = null;
       scroller.classList.remove("isDragging");
 
-      var dx = ev.clientX - d.startX;
-      var dy = ev.clientY - d.startY;
+      var dx = clientX - d.startX;
+      var dy = clientY - d.startY;
       var moved = !!d.moved;
       var card = d.activeEl;
       if (!card) return;
@@ -2831,10 +2832,61 @@
       if (moved) walletState.ignoreClickUntil = nowMs() + 180;
     }
 
+    function findTouchById(list, id) {
+      if (!list) return null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] && list[i].identifier === id) return list[i];
+      }
+      return null;
+    }
+
+    function onPointerDown(ev) {
+      beginStackDrag(ev.pointerId, ev.clientX, ev.clientY, ev.target);
+    }
+
+    function onPointerMove(ev) {
+      moveStackDrag(ev.pointerId, ev.clientX, ev.clientY, true);
+    }
+
+    function onPointerUp(ev) {
+      endStackDrag(ev.pointerId, ev.clientX, ev.clientY);
+    }
+
+    function onTouchStart(ev) {
+      if (!ev.touches || !ev.touches.length) return;
+      var t = ev.touches[0];
+      beginStackDrag(t.identifier, t.clientX, t.clientY, ev.target);
+    }
+
+    function onTouchMove(ev) {
+      var d = walletState.stackDrag;
+      if (!d) return;
+      var t = findTouchById(ev.touches, d.id) || findTouchById(ev.changedTouches, d.id);
+      if (!t) return;
+      var moved = moveStackDrag(t.identifier, t.clientX, t.clientY, false);
+      if (moved) {
+        try {
+          ev.preventDefault();
+        } catch (ePrevent) {}
+      }
+    }
+
+    function onTouchEnd(ev) {
+      var d = walletState.stackDrag;
+      if (!d) return;
+      var t = findTouchById(ev.changedTouches, d.id);
+      if (!t) return;
+      endStackDrag(t.identifier, t.clientX, t.clientY);
+    }
+
     scroller.addEventListener("pointerdown", onPointerDown, { passive: true });
     scroller.addEventListener("pointermove", onPointerMove, { passive: true });
     scroller.addEventListener("pointerup", onPointerUp, { passive: true });
     scroller.addEventListener("pointercancel", onPointerUp, { passive: true });
+    scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroller.addEventListener("touchmove", onTouchMove, { passive: false });
+    scroller.addEventListener("touchend", onTouchEnd, { passive: true });
+    scroller.addEventListener("touchcancel", onTouchEnd, { passive: true });
   }
 
   function refreshWallet() {
