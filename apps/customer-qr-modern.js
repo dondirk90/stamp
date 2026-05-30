@@ -1322,33 +1322,16 @@
     if (kind === "cup") kind = "bean";
 
     if (kind === "bean") {
-      var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
-      var beanPath =
-        "M14 50 C14 28 30 12 50 12 C70 12 86 28 86 50 C86 72 70 88 50 88 C30 88 14 72 14 50 Z";
-      var seamPath = "M28 18 C52 30 54 52 60 62 C66 72 70 78 74 82";
-      if (filled) {
-        return (
-          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-          '<path d="' +
-          beanPath +
-          '" fill="currentColor" opacity="0.96"></path>' +
-          '<path d="' +
-          seamPath +
-          '" fill="none" stroke="' +
-          seam +
-          '" stroke-width="14" stroke-linecap="round" opacity="0.95"></path>' +
-          "</svg>"
-        );
-      }
+      var beanSrc = stampIconState && stampIconState.url
+        ? String(stampIconState.url)
+        : getStampIconUrl();
+      var beanOpacity = filled ? "0.96" : "0.18";
       return (
-        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-        '<path d="' +
-        beanPath +
-        '" fill="none" stroke="currentColor" stroke-width="6" opacity="0.34" stroke-linejoin="round"></path>' +
-        '<path d="' +
-        seamPath +
-        '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" opacity="0.14"></path>' +
-        "</svg>"
+        '<img class="stampIcon stampIconImg" src="' +
+        beanSrc +
+        '" alt="" aria-hidden="true" draggable="false" style="opacity:' +
+        beanOpacity +
+        ';" />'
       );
     }
 
