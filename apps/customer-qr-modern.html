@@ -125,13 +125,11 @@
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-        flex-wrap: wrap;
-
-        padding: 18px 20px;
+        padding: 14px 20px;
+        min-height: 76px;
         border-radius: 28px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: rgba(255, 252, 248, 0.72);
@@ -145,29 +143,38 @@
 
       .brandHead {
         display: flex;
-        align-items: flex-start;
-        gap: 14px;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
       }
 
       .menuToggle {
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
         width: 44px;
         height: 44px;
         min-width: 44px;
-        border-radius: 14px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 255, 255, 0.7);
+        appearance: none;
+        -webkit-appearance: none;
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        background-image: none !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0;
-        box-shadow:
-          0 10px 24px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.72) inset;
+        box-shadow: none !important;
+        outline: none;
+        filter: none !important;
       }
 
       .menuToggleLines {
         position: relative;
-        width: 18px;
+        width: 20px;
         height: 14px;
         display: block;
       }
@@ -181,7 +188,7 @@
         width: 100%;
         height: 2px;
         border-radius: 999px;
-        background: #2f2017;
+        background: #7a5236;
         transition:
           transform 180ms ease,
           opacity 180ms ease;
@@ -346,42 +353,42 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
+        width: 100%;
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 24px;
-        line-height: 1.02;
-        font-weight: 950;
-        letter-spacing: -0.04em;
-      }
-
-      .brand .subtitle {
-        font-size: 13px;
-        color: rgba(59, 42, 31, 0.72);
-        max-width: 36ch;
-        line-height: 1.45;
-      }
-
-      .appSwipeHint {
+      .topbar .kk-brand {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        margin-top: 6px;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.54);
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
       }
 
-      .appSwipeHint::before,
-      .appSwipeHint::after {
-        content: "";
-        width: 12px;
-        height: 1px;
-        background: currentColor;
-        opacity: 0.55;
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #241710;
       }
 
       @media (max-width: 420px) {
@@ -392,6 +399,155 @@
         .menuDrawer {
           width: min(300px, calc(100vw - 24px));
           left: 12px;
+        }
+      }
+
+      @media (max-width: 520px) and (orientation: portrait) {
+        body {
+          padding:
+            calc(8px + var(--safe-top, 0px))
+            calc(8px + var(--safe-right, 0px))
+            calc(10px + var(--safe-bottom, 0px))
+            calc(8px + var(--safe-left, 0px));
+        }
+
+        .shell {
+          max-width: none;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+        }
+
+        .shell::before {
+          width: min(58vw, 320px);
+          height: min(58vw, 320px);
+          inset: auto -18vw -12vh auto;
+        }
+
+        .topbar {
+          position: fixed;
+          top: calc(8px + var(--safe-top, 0px));
+          left: calc(8px + var(--safe-left, 0px));
+          right: calc(8px + var(--safe-right, 0px));
+          margin: 0;
+          padding: 0;
+          border: none;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          backdrop-filter: none;
+          justify-content: flex-start;
+          z-index: 40;
+          pointer-events: none;
+        }
+
+        .topbar .brand,
+        .topbar .row {
+          pointer-events: auto;
+        }
+
+        .topbar .row {
+          display: none;
+        }
+
+        .brand {
+          gap: 0;
+        }
+
+        .brand .kk-brandText,
+        .brand #liveBadge {
+          display: none;
+        }
+
+        .menuToggle {
+          left: 0;
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          border: none !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          filter: none !important;
+        }
+
+        .menuDrawer {
+          position: fixed;
+          top: calc(64px + var(--safe-top, 0px));
+          left: calc(8px + var(--safe-left, 0px));
+          width: min(300px, calc(100vw - 16px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+          max-height: calc(100svh - 88px - var(--safe-top, 0px) - var(--safe-bottom, 0px));
+          overflow: auto;
+        }
+
+        .topbar .kk-brandMark {
+          width: 44px;
+          height: 44px;
+        }
+
+        .topbar .kk-brandWord {
+          font-size: 24px;
+        }
+
+        .grid {
+          gap: 0;
+        }
+
+        .grid.authed,
+        #mainPanel {
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+        }
+
+        .home {
+          gap: 0;
+        }
+
+        .mapHero,
+        #walletPanel.walletDock,
+        #historyPanel {
+          width: 100% !important;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+          margin: 0;
+          padding: 68px 14px 18px;
+          border-radius: 30px;
+          background: rgba(255, 252, 248, 0.82);
+          border: 1px solid rgba(17, 17, 17, 0.08);
+          box-shadow:
+            0 20px 40px rgba(68, 41, 22, 0.08),
+            0 1px 0 rgba(255, 255, 255, 0.7) inset;
+          backdrop-filter: blur(18px);
+        }
+
+        #walletPanel.walletDock::before {
+          display: none;
+        }
+
+        .mapHero {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .walletDockHead {
+          padding: 0 !important;
+        }
+
+        .walletDockHead .badge,
+        #mapHint {
+          display: none;
+        }
+
+        .mapStage {
+          flex: 1 1 auto;
+          min-height: 0;
+          margin-top: 10px;
+        }
+
+        .mapBox {
+          height: min(58svh, 520px);
+          border-radius: 24px;
+        }
+
+        #cafeResults {
+          margin-top: 10px;
         }
       }
 
@@ -2693,26 +2849,28 @@
             </button>
             <a class="kk-brand" href="/">
               <span class="kk-brandMark" aria-hidden="true">
-                <img src="/assets/kaffekarte-mark.svg" alt="" />
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
               </span>
               <span class="kk-brandText">
                 <span class="kk-brandKicker">Kaffee im Veedel</span>
-                <span class="kk-brandWord">Suelzer Kaffekarte</span>
+                <span class="kk-brandWord">Kaffekarte</span>
               </span>
             </a>
           </div>
-          <h1>Deine Stempelkarte</h1>
-          <div class="subtitle">
-            Sammle deine Lieblingscafes an einem Ort und zeig am Tresen einfach deine Suelzer Kaffekarte.
-          </div>
-          <div class="appSwipeHint">Karte links, Wallet per Swipe</div>
           <div class="badge muted" id="liveBadge" style="display: none">
             Live
           </div>
         </div>
-        <div class="row">
+      </div>
+
+      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
+      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
+        <div class="menuDrawerHead">
+          <div class="menuDrawerTitle">Kaffekarte</div>
+        </div>
+        <div class="stack" style="gap: 10px; margin-bottom: 12px">
           <button class="btn secondary" id="sessionBadge" type="button">
-            Account
+            Anmelden
           </button>
           <button
             class="btn secondary"
@@ -2722,14 +2880,6 @@
           >
             Logout
           </button>
-        </div>
-
-      </div>
-
-      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
-      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
-        <div class="menuDrawerHead">
-          <div class="menuDrawerTitle">Suelzer Kaffekarte</div>
         </div>
         <div class="topMenu" aria-label="Navigation">
           <button class="topMenuBtn ghost" id="mainModeMap" type="button">
