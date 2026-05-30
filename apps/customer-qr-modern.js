@@ -37,11 +37,16 @@
     authSubmit: document.getElementById("authSubmit"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
+    authForgotToggle: document.getElementById("authForgotToggle"),
+    authForgotPanel: document.getElementById("authForgotPanel"),
+    authForgotSubmit: document.getElementById("authForgotSubmit"),
+    authForgotMsg: document.getElementById("authForgotMsg"),
 
     mainModeHome: document.getElementById("mainModeHome"),
     mainModeMap: document.getElementById("mainModeMap"),
     mainModeWallet: document.getElementById("mainModeWallet"),
     mainModeHistory: document.getElementById("mainModeHistory"),
+    mainModeAccount: document.getElementById("mainModeAccount"),
 
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
@@ -242,14 +247,7 @@
     } catch (e) {}
   }
 
-  function setBuildBadge() {
-    if (!el.buildBadge) return;
-    try {
-      el.buildBadge.textContent = "v " + new Date().toLocaleString();
-    } catch (e) {
-      el.buildBadge.textContent = "ready";
-    }
-  }
+  function setBuildBadge() {}
 
   function setLiveConnected(isConnected) {
     if (!el.liveBadge) return;
@@ -380,6 +378,8 @@
 
     if (el.logoutBtn)
       el.logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
+    if (el.sessionBadge)
+      el.sessionBadge.textContent = isAuthed ? "Konto" : "Anmelden";
     if (el.authPanel) el.authPanel.style.display = isAuthed ? "none" : "block";
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
@@ -405,6 +405,8 @@
       el.mainModeWallet.classList.toggle("active", w === "wallet");
     if (el.mainModeHistory)
       el.mainModeHistory.classList.toggle("active", w === "history");
+    if (el.mainModeAccount)
+      el.mainModeAccount.classList.toggle("active", w === "account");
   }
 
   function getPageMode() {
@@ -3067,6 +3069,11 @@
         navigateToMode("history");
       });
     }
+    if (el.mainModeAccount) {
+      el.mainModeAccount.addEventListener("click", function () {
+        location.href = "/customer-profile";
+      });
+    }
   }
 
   function apiFetch(path, init) {
@@ -3597,8 +3604,77 @@
           el.historyError.textContent = window.stampUI
             ? stampUI.userSafeErrorMessage(e, "Historie konnte nicht geladen werden.")
             : "Historie konnte nicht geladen werden.";
+      }
+    });
+  }
+
+  function wireForgotPasswordInline() {
+    if (!el.authForgotToggle || !el.authForgotPanel) return;
+
+    function resetForgotNotice() {
+      if (!el.authForgotMsg) return;
+      el.authForgotMsg.style.display = "none";
+      el.authForgotMsg.textContent = "";
+      el.authForgotMsg.className = "notice";
+    }
+
+    function setForgotOpen(open) {
+      el.authForgotPanel.style.display = open ? "flex" : "none";
+      el.authForgotToggle.textContent = open
+        ? "Reset wieder schließen"
+        : "Passwort vergessen?";
+      if (!open) resetForgotNotice();
+    }
+
+    el.authForgotToggle.addEventListener("click", function () {
+      var isOpen = el.authForgotPanel.style.display !== "none";
+      setForgotOpen(!isOpen);
+      if (!isOpen) {
+        try {
+          if (el.email && el.email.focus) el.email.focus();
+        } catch (e) {}
+      }
+    });
+
+    if (el.authForgotSubmit) {
+      el.authForgotSubmit.addEventListener("click", function () {
+        var email = el.email ? String(el.email.value || "").trim() : "";
+        if (!el.authForgotMsg) return;
+        el.authForgotMsg.style.display = "block";
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          el.authForgotMsg.className = "notice danger";
+          el.authForgotMsg.textContent =
+            "Bitte zuerst eine gültige E-Mail eingeben.";
+          return;
         }
+        el.authForgotSubmit.disabled = true;
+        el.authForgotSubmit.textContent = "Wird gesendet...";
+        apiFetch("/customers/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        })
+          .then(function () {
+            el.authForgotMsg.className = "notice";
+            el.authForgotMsg.textContent =
+              "Wenn die Adresse existiert, wurde ein Reset-Link versendet.";
+          })
+          .catch(function (e) {
+            el.authForgotMsg.className = "notice danger";
+            el.authForgotMsg.textContent =
+              window.stampUI && window.stampUI.userSafeErrorMessage
+                ? window.stampUI.userSafeErrorMessage(
+                    e,
+                    "Reset-Link konnte nicht gesendet werden.",
+                  )
+                : "Reset-Link konnte nicht gesendet werden.";
+          })
+          .finally(function () {
+            el.authForgotSubmit.disabled = false;
+            el.authForgotSubmit.textContent = "Reset-Link senden";
+          });
       });
+    }
   }
 
   function bootAuthed() {
@@ -3688,6 +3764,7 @@
     } catch (ePrime) {}
 
     wireAuth();
+    wireForgotPasswordInline();
     wireAccount();
     wireLogout();
     wireNavigation();

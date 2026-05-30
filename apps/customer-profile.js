@@ -37,10 +37,7 @@
         ? location.origin
         : `${location.origin}/api`;
 
-  function setBuildBadge() {
-    if (!el.buildBadge) return;
-    el.buildBadge.textContent = `v ${new Date().toLocaleString()}`;
-  }
+  function setBuildBadge() {}
 
   function showNotice(target, kind, msg) {
     if (!target) return;
@@ -240,7 +237,10 @@
     );
 
     // Dev convenience: show link if API returns it.
-    if (resp && resp.devResetUrl && el.devResetUrl && el.devResetBox) {
+    const isLocalDev =
+      /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "") ||
+      location.protocol === "file:";
+    if (isLocalDev && resp && resp.devResetUrl && el.devResetUrl && el.devResetBox) {
       el.devResetUrl.textContent = String(resp.devResetUrl);
       el.devResetBox.style.display = "block";
     }

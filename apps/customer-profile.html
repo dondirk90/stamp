@@ -29,6 +29,60 @@
           0 1px 0 rgba(255, 255, 255, 0.74) inset;
       }
 
+      .topMenu {
+        flex: 1 0 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .topMenuBtn {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 0;
+        background: transparent !important;
+        border: none !important;
+        padding: 8px 0;
+        cursor: pointer;
+        color: #3b2a1f !important;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        box-shadow: none !important;
+        opacity: 0.76;
+      }
+
+      .topMenuBtn .ico {
+        display: none;
+      }
+
+      .topMenuBtn .lbl {
+        display: block;
+        color: var(--text-muted);
+      }
+
+      .topMenuBtn.active {
+        border-bottom: 2px solid #6b452c !important;
+        opacity: 1;
+      }
+
+      .topMenuBtn.active .lbl {
+        color: #241710;
+      }
+
+      @media (max-width: 420px) {
+        .topMenu {
+          gap: 18px;
+          flex-wrap: wrap;
+        }
+      }
+
       .topbar h1 {
         margin: 6px 0 0;
         font-size: 20px;
@@ -101,10 +155,27 @@
             </span>
           </a>
           <h1>Profil</h1>
-          <div class="subtitle" id="buildBadge">build</div>
         </div>
         <div class="row">
           <a class="btn secondary" href="/customer-wallet">Zurück</a>
+        </div>
+        <div class="topMenu" aria-label="Navigation">
+          <a class="topMenuBtn ghost" href="/customer-map">
+            <span class="ico" aria-hidden="true">C</span>
+            <span class="lbl">Cafés</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/customer-wallet">
+            <span class="ico" aria-hidden="true">W</span>
+            <span class="lbl">Wallet</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/customer-history">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verlauf</span>
+          </a>
+          <a class="topMenuBtn ghost active" href="/customer-profile">
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Konto</span>
+          </a>
         </div>
       </div>
 
@@ -205,7 +276,7 @@
           </button>
           <div id="forgotPwMsg" class="notice" style="display: none"></div>
           <div id="devResetBox" style="display: none">
-            <div class="smallHint" style="margin-top: 6px">Dev: Reset-Link</div>
+            <div class="smallHint" style="margin-top: 6px">Reset-Link</div>
             <div class="tokenBox" id="devResetUrl"></div>
           </div>
           <div class="smallHint">

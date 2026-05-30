@@ -2529,7 +2529,6 @@
           <div class="subtitle">
             Sammle deine Lieblingscafes an einem Ort und zeig am Tresen einfach deine Suelzer Kaffekarte.
           </div>
-          <div class="badge muted" id="buildBadge">build</div>
           <div class="badge muted" id="liveBadge" style="display: none">
             Live
           </div>
@@ -2564,6 +2563,10 @@
           <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
             <span class="ico" aria-hidden="true">V</span>
             <span class="lbl">Verlauf</span>
+          </button>
+          <button class="topMenuBtn ghost" id="mainModeAccount" type="button">
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Konto</span>
           </button>
         </div>
       </div>
@@ -2653,7 +2656,37 @@
             </div>
 
             <div class="hint" style="margin-top: 6px">
-              <a href="/customer-profile">Passwort vergessen?</a>
+              <button
+                id="authForgotToggle"
+                type="button"
+                class="btn secondary"
+                style="
+                  width: auto;
+                  min-height: 0;
+                  margin: 0;
+                  padding: 0;
+                  background: transparent !important;
+                  border: none !important;
+                  color: var(--brand) !important;
+                "
+              >
+                Passwort vergessen?
+              </button>
+            </div>
+
+            <div
+              id="authForgotPanel"
+              class="stack"
+              style="display: none; gap: 10px; margin-top: 4px"
+            >
+              <div class="fieldHint">
+                Wenn die Adresse existiert, schicken wir dir einen sicheren
+                Reset-Link direkt an deine E-Mail.
+              </div>
+              <button class="btn secondary" id="authForgotSubmit" type="button">
+                Reset-Link senden
+              </button>
+              <div id="authForgotMsg" class="notice" style="display: none"></div>
             </div>
 
             <div id="authMsg" class="notice" style="display: none"></div>
