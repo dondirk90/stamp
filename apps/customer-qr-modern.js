@@ -16,11 +16,20 @@
     byKey: {},
   };
 
+  var shellMenuState = {
+    open: false,
+  };
+
+  var currentPageMode = null;
+
   var el = {
     buildBadge: document.getElementById("buildBadge"),
     liveBadge: document.getElementById("liveBadge"),
     sessionBadge: document.getElementById("sessionBadge"),
     logoutBtn: document.getElementById("logoutBtn"),
+    menuToggle: document.getElementById("menuToggle"),
+    menuBackdrop: document.getElementById("menuBackdrop"),
+    menuDrawer: document.getElementById("menuDrawer"),
 
     authPanel: document.getElementById("authPanel"),
     mainPanel: document.getElementById("mainPanel"),
@@ -411,30 +420,82 @@
       el.mainModeAccount.classList.toggle("active", w === "account");
   }
 
+  function setShellMenuOpen(open) {
+    var next = !!open;
+    shellMenuState.open = next;
+    try {
+      document.body.classList.toggle("menuOpen", next);
+    } catch (e0) {}
+    try {
+      if (el.menuToggle) el.menuToggle.setAttribute("aria-expanded", next ? "true" : "false");
+    } catch (e1) {}
+    try {
+      if (el.menuBackdrop) el.menuBackdrop.classList.toggle("open", next);
+    } catch (e2) {}
+    try {
+      if (el.menuDrawer) el.menuDrawer.classList.toggle("open", next);
+    } catch (e3) {}
+  }
+
+  function wireShellMenu() {
+    if (el.menuToggle) {
+      el.menuToggle.addEventListener("click", function () {
+        setShellMenuOpen(!shellMenuState.open);
+      });
+    }
+    if (el.menuBackdrop) {
+      el.menuBackdrop.addEventListener("click", function () {
+        setShellMenuOpen(false);
+      });
+    }
+    try {
+      document.addEventListener("keydown", function (ev) {
+        if (!shellMenuState.open) return;
+        if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
+          setShellMenuOpen(false);
+        }
+      });
+    } catch (e4) {}
+  }
+
   function getPageMode() {
+    if (currentPageMode) return currentPageMode;
+    try {
+      var stateMode =
+        history && history.state && history.state.mode
+          ? String(history.state.mode)
+          : "";
+      if (stateMode === "map" || stateMode === "wallet" || stateMode === "history")
+        return stateMode;
+    } catch (eState) {}
     try {
       var p = String(location.pathname || "").toLowerCase();
       if (p.indexOf("/customer-map") === 0) return "map";
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "wallet";
-      if (p.indexOf("/customer-qr") === 0) return "wallet";
+      if (p.indexOf("/customer-wallet") === 0) return "map";
+      if (p.indexOf("/customer-qr") === 0) return "map";
       if (
         p.indexOf("/customer-home") === 0 ||
         p.indexOf("/customer-start") === 0
       )
-        return "wallet";
-      return "wallet";
+        return "map";
+      return "map";
     } catch (e) {
-      return "wallet";
+      return "map";
     }
   }
 
+  function getModeHref(mode) {
+    var m = mode || "map";
+    if (m === "history") return "/customer-history";
+    if (m === "wallet") return "/customer-wallet";
+    return "/customer-map";
+  }
+
   function navigateToMode(mode) {
-    var m = mode || "wallet";
-    var href = "/customer-wallet";
-    if (m === "map") href = "/customer-map";
-    if (m === "history") href = "/customer-history";
-    if (m === "wallet") href = "/customer-wallet";
+    var m = mode || "map";
+    var href = getModeHref(m);
+    setShellMenuOpen(false);
     try {
       if (location.pathname === href || location.pathname === href + "/") {
         applyPageMode(m);
@@ -442,8 +503,13 @@
       }
     } catch (e) {}
     try {
-      location.href = href;
+      history.pushState({ mode: m }, "", href);
+      applyPageMode(m);
+      return;
     } catch (e2) {}
+    try {
+      location.href = href;
+    } catch (e3) {}
   }
 
   function buildCafeProfileHref(cafe) {
@@ -723,6 +789,7 @@
 
   function applyPageMode(mode) {
     var m = mode || getPageMode();
+    currentPageMode = m;
     navSetActive(m === "wallet" ? "wallet" : m);
 
     // These panels live on the same HTML, but we show only one per route.
@@ -741,6 +808,48 @@
     if (m === "wallet") {
       refreshWallet();
     }
+  }
+
+  function wireModeSwipe() {
+    if (!el.mainPanel) return;
+    var drag = null;
+
+    function shouldIgnoreSwipeTarget(target) {
+      if (!target || !target.closest) return false;
+      return !!target.closest(
+        "input, button, a, select, textarea, #cafeMap, .walletCarousel, .passCard, .passQrBox, .discoverPickOverlay",
+      );
+    }
+
+    function onPointerDown(ev) {
+      if (!session || !session.address) return;
+      if (shouldIgnoreSwipeTarget(ev.target)) return;
+      drag = {
+        id: ev.pointerId,
+        x: ev.clientX,
+        y: ev.clientY,
+      };
+    }
+
+    function onPointerUp(ev) {
+      if (!drag || drag.id !== ev.pointerId) return;
+      var dx = ev.clientX - drag.x;
+      var dy = ev.clientY - drag.y;
+      drag = null;
+      if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      var active = getPageMode();
+      if (dx < 0 && active === "map") {
+        navigateToMode("wallet");
+      } else if (dx > 0 && active === "wallet") {
+        navigateToMode("map");
+      }
+    }
+
+    el.mainPanel.addEventListener("pointerdown", onPointerDown, { passive: true });
+    el.mainPanel.addEventListener("pointerup", onPointerUp, { passive: true });
+    el.mainPanel.addEventListener("pointercancel", function () {
+      drag = null;
+    }, { passive: true });
   }
 
   function scrollToPanel(node) {
@@ -3056,6 +3165,7 @@
     }
     if (el.mainModeAccount) {
       el.mainModeAccount.addEventListener("click", function () {
+        setShellMenuOpen(false);
         location.href = "/customer-profile";
       });
     }
@@ -3752,8 +3862,16 @@
     wireForgotPasswordInline();
     wireAccount();
     wireLogout();
+    wireShellMenu();
     wireNavigation();
+    wireModeSwipe();
     wireVisibility();
+    try {
+      window.addEventListener("popstate", function () {
+        currentPageMode = null;
+        applyPageMode(getPageMode());
+      });
+    } catch (ePop) {}
 
     // Café details modal
     if (el.cafeModalClose)

@@ -143,25 +143,150 @@
         z-index: 1;
       }
 
-      /* Clean top menu (Holm-like) */
-      .topMenu {
-        flex: 1 0 100%;
+      .brandHead {
         display: flex;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .menuToggle {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 14px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.7);
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 26px;
-        margin-top: var(--space-3);
-        padding-top: var(--space-3);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
+        padding: 0;
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
+      }
+
+      .menuToggleLines {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .menuToggleLines::before,
+      .menuToggleLines::after,
+      .menuToggleLines span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #2f2017;
+        transition:
+          transform 180ms ease,
+          opacity 180ms ease;
+      }
+
+      .menuToggleLines::before {
+        top: 0;
+      }
+
+      .menuToggleLines span {
+        top: 6px;
+      }
+
+      .menuToggleLines::after {
+        top: 12px;
+      }
+
+      body.menuOpen .menuToggleLines::before {
+        transform: translateY(6px) rotate(45deg);
+      }
+
+      body.menuOpen .menuToggleLines span {
+        opacity: 0;
+      }
+
+      body.menuOpen .menuToggleLines::after {
+        transform: translateY(-6px) rotate(-45deg);
+      }
+
+      .menuBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(24, 16, 11, 0.18);
+        backdrop-filter: blur(6px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        z-index: 30;
+      }
+
+      .menuBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .menuDrawer {
+        position: absolute;
+        top: 18px;
+        left: 20px;
+        width: min(320px, calc(100vw - 32px));
+        padding: 16px;
+        border-radius: 24px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.92);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 24px 48px rgba(68, 41, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.8) inset;
+        opacity: 0;
+        transform: translateY(-8px) scale(0.985);
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          transform 220ms cubic-bezier(0.2, 0.92, 0.24, 1);
+        z-index: 31;
+      }
+
+      .menuDrawer.open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .menuDrawerHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .menuDrawerTitle {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.72);
+      }
+
+      .topMenu {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
       }
 
       .topMenuBtn {
-        flex: 0 0 auto;
-        width: auto;
+        width: 100%;
         min-width: 0;
         background: transparent !important;
         border: none !important;
-        padding: 8px 0;
+        border-radius: 14px;
+        padding: 12px 12px;
         cursor: pointer;
         touch-action: manipulation;
         color: #3b2a1f !important;
@@ -173,27 +298,17 @@
         opacity: 0.76;
       }
 
-      /* Global theme styles `button.ghost` with a border; ensure top menu is borderless. */
+      /* Global theme styles `button.ghost` with a border; ensure drawer menu is borderless. */
       button.topMenuBtn.ghost {
         border: none !important;
       }
 
-      /* Avoid horizontal overflow on small phones */
-      @media (max-width: 420px) {
-        .topMenu {
-          justify-content: center;
-          gap: 18px;
-          flex-wrap: wrap;
-        }
-
-        .topMenuBtn {
-          width: auto;
-          flex: 0 0 auto;
-        }
-      }
-
       .topMenuBtn .ico {
-        display: none;
+        display: inline-flex;
+        width: 24px;
+        align-items: center;
+        justify-content: center;
+        color: rgba(47, 32, 23, 0.5);
       }
 
       .topMenuBtn .lbl {
@@ -209,12 +324,22 @@
       }
 
       .topMenuBtn.active {
-        border-bottom: 2px solid #6b452c;
+        background: rgba(107, 69, 44, 0.08) !important;
         opacity: 1;
       }
 
       .topMenuBtn.active .lbl {
         color: #241710;
+      }
+
+      .topMenuBtn.active .ico {
+        color: #6b452c;
+      }
+
+      .topMenuBtnContent {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
       .brand {
@@ -236,6 +361,38 @@
         color: rgba(59, 42, 31, 0.72);
         max-width: 36ch;
         line-height: 1.45;
+      }
+
+      .appSwipeHint {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.54);
+      }
+
+      .appSwipeHint::before,
+      .appSwipeHint::after {
+        content: "";
+        width: 12px;
+        height: 1px;
+        background: currentColor;
+        opacity: 0.55;
+      }
+
+      @media (max-width: 420px) {
+        .brandHead {
+          gap: 10px;
+        }
+
+        .menuDrawer {
+          width: min(300px, calc(100vw - 24px));
+          left: 12px;
+        }
       }
 
       #buildBadge {
@@ -2523,19 +2680,32 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <a class="kk-brand" href="/">
-            <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
-            </span>
-            <span class="kk-brandText">
-              <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Suelzer Kaffekarte</span>
-            </span>
-          </a>
+          <div class="brandHead">
+            <button
+              class="menuToggle"
+              id="menuToggle"
+              type="button"
+              aria-label="Menü öffnen"
+              aria-expanded="false"
+              aria-controls="menuDrawer"
+            >
+              <span class="menuToggleLines"><span></span></span>
+            </button>
+            <a class="kk-brand" href="/">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/kaffekarte-mark.svg" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Suelzer Kaffekarte</span>
+              </span>
+            </a>
+          </div>
           <h1>Deine Stempelkarte</h1>
           <div class="subtitle">
             Sammle deine Lieblingscafes an einem Ort und zeig am Tresen einfach deine Suelzer Kaffekarte.
           </div>
+          <div class="appSwipeHint">Karte links, Wallet per Swipe</div>
           <div class="badge muted" id="liveBadge" style="display: none">
             Live
           </div>
@@ -2554,26 +2724,41 @@
           </button>
         </div>
 
+      </div>
+
+      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
+      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
+        <div class="menuDrawerHead">
+          <div class="menuDrawerTitle">Suelzer Kaffekarte</div>
+        </div>
         <div class="topMenu" aria-label="Navigation">
           <button class="topMenuBtn ghost" id="mainModeMap" type="button">
-            <span class="ico" aria-hidden="true">C</span>
-            <span class="lbl">Cafés</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">C</span>
+              <span class="lbl">Cafés</span>
+            </span>
           </button>
           <button
             class="topMenuBtn ghost active"
             id="mainModeWallet"
             type="button"
           >
-            <span class="ico" aria-hidden="true">W</span>
-            <span class="lbl">Wallet</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">W</span>
+              <span class="lbl">Wallet</span>
+            </span>
           </button>
           <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verlauf</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">V</span>
+              <span class="lbl">Verlauf</span>
+            </span>
           </button>
           <button class="topMenuBtn ghost" id="mainModeAccount" type="button">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Konto</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">K</span>
+              <span class="lbl">Konto</span>
+            </span>
           </button>
         </div>
       </div>
