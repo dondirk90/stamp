@@ -473,16 +473,51 @@
       }
 
       .topUtilityBtn {
-        min-height: 40px;
-        min-width: 40px;
-        padding: 8px;
-        border: none !important;
-        background: transparent !important;
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
         color: #5a4030 !important;
-        box-shadow: none !important;
-        font-size: 22px;
-        font-weight: 900;
-        line-height: 1;
+        box-shadow:
+          0 12px 22px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
       }
 
       .utilityMenu {
@@ -3528,7 +3563,7 @@
         </div>
         <div class="row">
           <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
-            ≡
+            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
           </button>
         </div>
       </div>

@@ -2,9 +2,11 @@
   const STORAGE_KEY = "customer_session_v1";
 
   const el = {
-    buildBadge: document.getElementById("buildBadge"),
     profileStatus: document.getElementById("profileStatus"),
+    profileSub: document.getElementById("profileSub"),
     logoutBtn: document.getElementById("logoutBtn"),
+    topUtilityBtn: document.getElementById("topUtilityBtn"),
+    utilityMenu: document.getElementById("utilityMenu"),
 
     notLoggedIn: document.getElementById("notLoggedIn"),
     authedOnly: document.getElementById("authedOnly"),
@@ -36,8 +38,6 @@
       : location.port === "3000"
         ? location.origin
         : `${location.origin}/api`;
-
-  function setBuildBadge() {}
 
   function showNotice(target, kind, msg) {
     if (!target) return;
@@ -101,24 +101,54 @@
     }
   }
 
+  function setUtilityMenuOpen(open) {
+    if (!el.utilityMenu) return;
+    el.utilityMenu.classList.toggle("open", !!open);
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }
+
+  function wireUtilityMenu() {
+    if (!el.topUtilityBtn || !el.utilityMenu) return;
+    el.topUtilityBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setUtilityMenuOpen(!el.utilityMenu.classList.contains("open"));
+    });
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (el.utilityMenu.contains(target) || el.topUtilityBtn.contains(target)) {
+        return;
+      }
+      setUtilityMenuOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setUtilityMenuOpen(false);
+    });
+    el.utilityMenu.querySelectorAll("a").forEach((node) => {
+      node.addEventListener("click", () => setUtilityMenuOpen(false));
+    });
+  }
+
   function renderProfile(session) {
     if (!el.profileStatus) return;
 
     if (!session) {
       el.profileStatus.textContent = "Nicht eingeloggt";
+      if (el.profileSub) el.profileSub.textContent = "Verwalte deine Zugangsdaten.";
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
-      if (el.forgotPanel) el.forgotPanel.style.display = "flex";
+      if (el.forgotPanel) el.forgotPanel.style.display = "block";
       return;
     }
 
-    el.profileStatus.textContent = `Eingeloggt: ${
-      session.username || session.email
-    }`;
+    el.profileStatus.textContent = `Eingeloggt: ${session.username || session.email}`;
+    if (el.profileSub) el.profileSub.textContent = "Dein Account ist aktiv und bereit.";
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";
     if (el.notLoggedIn) el.notLoggedIn.style.display = "none";
-    if (el.authedOnly) el.authedOnly.style.display = "block";
+    if (el.authedOnly) el.authedOnly.style.display = "grid";
     if (el.forgotPanel) el.forgotPanel.style.display = "none";
 
     if (el.profileInfo) {
@@ -132,29 +162,20 @@
     if (el.resetEmail && session.email) el.resetEmail.value = session.email;
   }
 
-  async function handleChangePassword(session) {
+  async function handleChangePassword() {
+    const session = loadSession();
     hideNotice(el.changePwMsg);
     if (!session || !session.email) {
       showNotice(el.changePwMsg, "danger", "Bitte zuerst einloggen.");
       return;
     }
 
-    const currentPassword = el.currentPassword
-      ? String(el.currentPassword.value || "")
-      : "";
-    const newPassword = el.newPassword
-      ? String(el.newPassword.value || "")
-      : "";
-    const newPassword2 = el.newPassword2
-      ? String(el.newPassword2.value || "")
-      : "";
+    const currentPassword = String(el.currentPassword?.value || "");
+    const newPassword = String(el.newPassword?.value || "");
+    const newPassword2 = String(el.newPassword2?.value || "");
 
     if (!currentPassword) {
-      showNotice(
-        el.changePwMsg,
-        "danger",
-        "Bitte aktuelles Passwort eingeben.",
-      );
+      showNotice(el.changePwMsg, "danger", "Bitte aktuelles Passwort eingeben.");
       return;
     }
     if (!newPassword || newPassword.length < 6) {
@@ -166,11 +187,7 @@
       return;
     }
     if (newPassword !== newPassword2) {
-      showNotice(
-        el.changePwMsg,
-        "danger",
-        "Neue Passwörter stimmen nicht überein.",
-      );
+      showNotice(el.changePwMsg, "danger", "Neue Passwoerter stimmen nicht ueberein.");
       return;
     }
 
@@ -188,7 +205,7 @@
       showNotice(
         el.changePwMsg,
         "danger",
-        safeUiErrorMessage(e, "Passwort konnte nicht geändert werden."),
+        safeUiErrorMessage(e, "Passwort konnte nicht geaendert werden."),
       );
       return;
     }
@@ -197,20 +214,16 @@
     if (el.newPassword) el.newPassword.value = "";
     if (el.newPassword2) el.newPassword2.value = "";
 
-    showNotice(el.changePwMsg, "success", "Passwort wurde geändert.");
+    showNotice(el.changePwMsg, "success", "Passwort wurde geaendert.");
   }
 
   async function handleForgotPassword() {
     hideNotice(el.forgotPwMsg);
     if (el.devResetBox) el.devResetBox.style.display = "none";
 
-    const email = el.resetEmail ? String(el.resetEmail.value || "").trim() : "";
+    const email = String(el.resetEmail?.value || "").trim();
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      showNotice(
-        el.forgotPwMsg,
-        "danger",
-        "Bitte eine gültige E-Mail eingeben.",
-      );
+      showNotice(el.forgotPwMsg, "danger", "Bitte eine gueltige E-Mail eingeben.");
       return;
     }
 
@@ -236,7 +249,6 @@
       "Wenn die Adresse existiert, wurde ein Reset-Link versendet.",
     );
 
-    // Dev convenience: show link if API returns it.
     const isLocalDev =
       /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "") ||
       location.protocol === "file:";
@@ -249,19 +261,15 @@
   async function handleResetPassword(token) {
     hideNotice(el.resetPwMsg);
 
-    const pw1 = el.resetNewPw ? String(el.resetNewPw.value || "") : "";
-    const pw2 = el.resetNewPw2 ? String(el.resetNewPw2.value || "") : "";
+    const pw1 = String(el.resetNewPw?.value || "");
+    const pw2 = String(el.resetNewPw2?.value || "");
 
     if (!pw1 || pw1.length < 6) {
-      showNotice(
-        el.resetPwMsg,
-        "danger",
-        "Passwort muss mindestens 6 Zeichen haben.",
-      );
+      showNotice(el.resetPwMsg, "danger", "Passwort muss mindestens 6 Zeichen haben.");
       return;
     }
     if (pw1 !== pw2) {
-      showNotice(el.resetPwMsg, "danger", "Passwörter stimmen nicht überein.");
+      showNotice(el.resetPwMsg, "danger", "Passwoerter stimmen nicht ueberein.");
       return;
     }
 
@@ -289,7 +297,6 @@
       "Passwort wurde gesetzt. Du kannst dich jetzt einloggen.",
     );
 
-    // Remove token from URL for safety
     try {
       const u = new URL(location.href);
       u.searchParams.delete("resetToken");
@@ -306,11 +313,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
-
       const who =
-        (resp && (resp.username || resp.email)
+        resp && (resp.username || resp.email)
           ? String(resp.username || resp.email)
-          : "dieses Konto");
+          : "dieses Konto";
       showNotice(
         el.resetPwMsg,
         "info",
@@ -330,7 +336,7 @@
   }
 
   function boot() {
-    setBuildBadge();
+    wireUtilityMenu();
 
     const session = loadSession();
     renderProfile(session);
@@ -350,13 +356,11 @@
     }
 
     if (el.changePwBtn) {
-      el.changePwBtn.addEventListener("click", () =>
-        handleChangePassword(session),
-      );
+      el.changePwBtn.addEventListener("click", () => void handleChangePassword());
     }
 
     if (el.forgotPwBtn) {
-      el.forgotPwBtn.addEventListener("click", handleForgotPassword);
+      el.forgotPwBtn.addEventListener("click", () => void handleForgotPassword());
     }
 
     if (el.resetPwBtn) {

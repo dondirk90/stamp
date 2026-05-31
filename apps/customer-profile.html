@@ -2,292 +2,303 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Customer — Profil — Suelzer Kaffekarte</title>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>Customer - Profil - Suelzer Kaffekarte</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-4) + env(safe-area-inset-top, 0px))
+          calc(var(--space-4) + env(safe-area-inset-right, 0px))
+          calc(var(--space-5) + env(safe-area-inset-bottom, 0px))
+          calc(var(--space-4) + env(safe-area-inset-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(205, 166, 125, 0.22), rgba(205, 166, 125, 0) 34%),
+          linear-gradient(180deg, #fbf6f0 0%, #f4ede6 28%, #efe6dd 100%) !important;
       }
 
       .shell {
-        max-width: 980px;
+        width: min(440px, 100%);
         margin: 0 auto;
         position: relative;
       }
 
-      .shell::before {
-        content: "";
-        position: fixed;
-        inset: auto -12vw -10vh auto;
-        width: min(44vw, 360px);
-        height: min(44vw, 360px);
-        background:
-          radial-gradient(circle, rgba(107, 69, 44, 0.1), rgba(107, 69, 44, 0) 72%);
-        pointer-events: none;
-        z-index: 0;
-      }
-
       .topbar {
+        position: relative;
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-        margin-bottom: var(--space-4);
-        flex-wrap: wrap;
-        padding: 18px 20px;
-        border-radius: 28px;
+        align-items: center;
+        justify-content: center;
+        min-height: 78px;
+        padding: 16px 56px;
+        margin-bottom: 14px;
+        border-radius: 30px;
         border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.72);
+        background: rgba(255, 252, 248, 0.8);
         backdrop-filter: blur(18px);
         box-shadow:
           0 18px 40px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.68) inset;
-        position: relative;
-        z-index: 1;
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
       }
 
-      .topMenu {
-        flex: 1 0 100%;
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandText {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 26px;
-        margin-top: var(--space-3);
-        padding-top: var(--space-3);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
-      .topMenuBtn {
-        flex: 0 0 auto;
-        width: auto;
-        min-width: 0;
-        background: transparent !important;
-        border: none !important;
-        padding: 8px 0;
-        cursor: pointer;
-        touch-action: manipulation;
-        color: #3b2a1f !important;
-        text-decoration: none;
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        box-shadow: none !important;
-        opacity: 0.76;
-      }
-
-      .topMenuBtn .ico {
+      .topbar .kk-brandKicker {
         display: none;
       }
 
-      .topMenuBtn .lbl {
-        display: block;
-        text-align: left;
-        font-size: inherit;
-        font-weight: inherit;
-        margin: 0;
-        color: var(--text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .topMenuBtn.active {
-        border-bottom: 2px solid #6b452c !important;
-        opacity: 1;
-      }
-
-      .topMenuBtn.active .lbl {
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
         color: #241710;
       }
 
-      @media (max-width: 420px) {
-        .topMenu {
-          justify-content: center;
-          gap: 18px;
-          flex-wrap: wrap;
-        }
-
-        .topMenuBtn {
-          width: auto;
-          flex: 0 0 auto;
-        }
+      .topUtilityBtn {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
+        box-shadow:
+          0 12px 22px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
       }
 
-      .brand {
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: absolute;
+        top: 86px;
+        right: 10px;
+        width: min(220px, calc(100vw - 40px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 30;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuLink {
         display: flex;
-        flex-direction: column;
-        gap: 2px;
+        align-items: center;
+        min-height: 48px;
+        padding: 0 14px;
+        border-radius: 14px;
+        color: #241710;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
       }
 
-      .brand h1 {
+      .utilityMenuLink:hover {
+        background: rgba(107, 69, 44, 0.08);
+      }
+
+      .profileStage {
+        display: grid;
+        gap: 14px;
+      }
+
+      .profilePanel {
+        padding: 22px 20px;
+        border-radius: 30px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.82);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
+      }
+
+      .profileIntro {
+        display: grid;
+        gap: 10px;
+      }
+
+      .profileEyebrow {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.68);
+      }
+
+      .profileHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .profileHead h1 {
         margin: 0;
-        font-size: 24px;
-        line-height: 1.02;
-        font-weight: 950;
+        font-size: 28px;
+        line-height: 1;
         letter-spacing: -0.04em;
       }
 
-      .brand .subtitle {
-        font-size: 13px;
-        color: rgba(59, 42, 31, 0.72);
-        max-width: 36ch;
-        line-height: 1.45;
+      .profileLead {
+        margin: 0;
+        color: rgba(59, 42, 31, 0.78);
+        line-height: 1.55;
       }
 
-      .panel {
-        padding: var(--space-5);
+      .sectionCard {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 22px;
         border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow: 0 14px 34px rgba(68, 41, 22, 0.04);
+        background: rgba(255, 255, 255, 0.54);
       }
 
-      .bottomTabs {
-        display: none;
-      }
-
-      .bottomTabBtn {
-        flex: 1 1 0;
-        min-width: 0;
-        min-height: 56px;
-        border: none !important;
-        border-radius: 16px;
-        background: transparent !important;
-        color: rgba(47, 32, 23, 0.72) !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 8px;
-        box-shadow: none !important;
-        text-decoration: none;
-      }
-
-      .bottomTabBtn .lbl {
-        font-size: 10px;
+      .sectionTitle {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 900;
         letter-spacing: 0.12em;
-        text-align: center;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.68);
       }
 
-      .bottomTabBtn.active {
-        background: rgba(107, 69, 44, 0.1) !important;
-        color: #241710 !important;
-        opacity: 1;
+      .sectionLead {
+        margin: 0 0 14px;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.5;
+      }
+
+      .divider {
+        height: 1px;
+        background: rgba(17, 17, 17, 0.08);
+        margin: 16px 0;
       }
 
       .formRow {
         display: grid;
         grid-template-columns: 1fr;
-        gap: var(--space-3);
-      }
-
-      @media (min-width: 720px) {
-        .formRow {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-
-      .divider {
-        height: 1px;
-        background: var(--border);
-        margin: var(--space-4) 0;
+        gap: 14px;
       }
 
       .smallHint {
         font-size: 12px;
-        color: var(--text-muted);
+        color: rgba(59, 42, 31, 0.68);
+        line-height: 1.5;
       }
 
       .tokenBox {
         font-family: var(--font-mono);
         font-size: 12px;
-        padding: 10px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        word-break: break-all;
+        line-height: 1.55;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.72);
+        word-break: break-word;
       }
 
-      a.btn {
-        text-decoration: none;
+      .hiddenWhenLoggedOut {
+        display: none;
       }
 
-      @media (max-width: 520px) and (orientation: portrait) {
+      @media (max-width: 520px) {
         body {
-          padding:
-            calc(8px + env(safe-area-inset-top, 0px))
-            8px
-            calc(10px + env(safe-area-inset-bottom, 0px))
-            8px;
-        }
-
-        .shell {
-          max-width: none;
-          min-height: calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 18px);
+          padding: calc(10px + env(safe-area-inset-top, 0px))
+            10px
+            calc(12px + env(safe-area-inset-bottom, 0px))
+            10px;
         }
 
         .topbar {
-          width: min(420px, calc(100vw - 16px));
-          margin: 0 auto 12px;
-          padding: 18px 16px 14px;
-          border-radius: 30px;
+          min-height: 72px;
+          padding: 14px 50px;
+          border-radius: 28px;
         }
 
-        .topMenu {
-          display: none;
+        .topbar .kk-brandWord {
+          font-size: 24px;
         }
 
-        .brand {
-          gap: 6px;
-          width: 100%;
+        .profilePanel {
+          padding: 18px 16px;
+          border-radius: 28px;
         }
 
-        .brand h1 {
-          font-size: 18px;
-        }
-
-        .brand .subtitle {
-          max-width: 24ch;
-          font-size: 12px;
-        }
-
-        .row {
-          justify-content: flex-start !important;
-        }
-
-        .panel {
-          width: min(420px, calc(100vw - 16px));
-          margin: 0 auto;
-          padding: 18px 16px calc(96px + env(safe-area-inset-bottom, 0px));
-          border-radius: 30px;
-        }
-
-        .tokenBox {
-          font-size: 11px;
-          line-height: 1.5;
-        }
-
-        .formRow {
-          gap: 12px;
-        }
-
-        .bottomTabs {
-          position: fixed;
-          left: 10px;
-          right: 10px;
-          bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-          display: flex;
+        .profileHead {
+          flex-direction: column;
           align-items: stretch;
-          gap: 8px;
-          padding: 8px;
-          border-radius: 22px;
-          border: 1px solid rgba(17, 17, 17, 0.08);
-          background: rgba(255, 252, 248, 0.94);
-          backdrop-filter: blur(18px);
-          box-shadow:
-            0 22px 42px rgba(68, 41, 22, 0.16),
-            0 1px 0 rgba(255, 255, 255, 0.78) inset;
-          z-index: 28;
+        }
+
+        .profileHead h1 {
+          font-size: 24px;
         }
       }
     </style>
@@ -301,196 +312,174 @@
 
     <div class="shell">
       <div class="topbar">
-        <div class="brand">
-          <a class="kk-brand" href="/">
-            <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
-            </span>
-            <span class="kk-brandText">
-              <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Suelzer Kaffekarte</span>
-            </span>
-          </a>
-          <h1>Profil</h1>
-          <div class="subtitle">
-            Verwalte deine Zugangsdaten in derselben ruhigen Produktansicht wie
-            deine Wallet.
-          </div>
-        </div>
-        <div class="row">
-          <button
-            class="btn secondary"
-            id="logoutBtn"
-            type="button"
-            style="display: none"
-          >
-            Logout
-          </button>
-        </div>
-        <div class="topMenu" aria-label="Navigation">
-          <a class="topMenuBtn ghost" href="/customer-map">
-            <span class="ico" aria-hidden="true">C</span>
-            <span class="lbl">Cafés</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/customer-wallet">
-            <span class="ico" aria-hidden="true">W</span>
-            <span class="lbl">Wallet</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/customer-history">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verlauf</span>
-          </a>
-          <a class="topMenuBtn ghost active" href="/customer-profile">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Konto</span>
-          </a>
-        </div>
+        <a class="kk-brand" href="/customer-map">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Kaffee im Veedel</span>
+            <span class="kk-brandWord">Kaffekarte</span>
+          </span>
+        </a>
+        <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menue">
+          <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
+        </button>
       </div>
 
-      <div class="card panel">
-        <div class="row" style="justify-content: space-between">
-          <div class="stack" style="gap: 6px">
-            <div class="badge" id="profileStatus">Nicht eingeloggt</div>
-            <div class="smallHint" id="profileSub">
-              Verwalte deine Zugangsdaten.
+      <div class="utilityMenu" id="utilityMenu" aria-label="Menue">
+        <a class="utilityMenuLink" href="/customer-map">Zur Karte</a>
+        <a class="utilityMenuLink" href="/customer-history">Verlauf</a>
+      </div>
+
+      <div class="profileStage">
+        <div class="profilePanel">
+          <div class="profileIntro">
+            <div class="profileEyebrow">Konto</div>
+            <div class="profileHead">
+              <div class="stack" style="gap: 8px">
+                <h1>Profil</h1>
+                <p class="profileLead">
+                  Verwalte deine Zugangsdaten in derselben ruhigen
+                  Produktansicht wie deine Wallet.
+                </p>
+              </div>
+              <button
+                class="btn secondary hiddenWhenLoggedOut"
+                id="logoutBtn"
+                type="button"
+              >
+                Logout
+              </button>
             </div>
           </div>
-        </div>
 
-        <div class="divider"></div>
-
-        <div id="notLoggedIn" class="notice" style="display: none">
-          Du bist nicht eingeloggt. Du kannst trotzdem einen Reset-Link
-          anfordern.
-        </div>
-
-        <div id="authedOnly" class="stack" style="display: none">
-          <div class="stack" style="gap: 6px">
-            <div style="font-weight: 900; color: var(--brand)">Account</div>
-            <div class="tokenBox" id="profileInfo"></div>
+          <div class="sectionCard">
+            <div class="row" style="justify-content: space-between">
+              <div class="stack" style="gap: 6px">
+                <div class="badge" id="profileStatus">Nicht eingeloggt</div>
+                <div class="smallHint" id="profileSub">
+                  Verwalte deine Zugangsdaten.
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="divider"></div>
+          <div id="notLoggedIn" class="notice" style="display: none; margin-top: 16px">
+            Du bist nicht eingeloggt. Du kannst trotzdem einen Reset-Link
+            anfordern.
+          </div>
 
-          <div class="stack" style="gap: 10px">
-            <div style="font-weight: 900; color: var(--brand)">
-              Passwort ändern
+          <div id="authedOnly" class="stack" style="display: none; gap: 16px; margin-top: 16px">
+            <div class="sectionCard">
+              <div class="sectionTitle">Account</div>
+              <div class="sectionLead">
+                Deine Accountdaten liegen kompakt an einem Ort.
+              </div>
+              <div class="tokenBox" id="profileInfo"></div>
+            </div>
+
+            <div class="sectionCard">
+              <div class="sectionTitle">Passwort aendern</div>
+              <div class="sectionLead">
+                Halte deinen Zugang aktuell, ohne den App-Kontext zu verlassen.
+              </div>
+              <div class="formRow">
+                <div class="stack" style="gap: 6px">
+                  <label for="currentPassword">Aktuelles Passwort</label>
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    autocomplete="current-password"
+                  />
+                </div>
+                <div class="stack" style="gap: 6px">
+                  <label for="newPassword">Neues Passwort</label>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </div>
+                <div class="stack" style="gap: 6px">
+                  <label for="newPassword2">Neues Passwort bestaetigen</label>
+                  <input
+                    id="newPassword2"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </div>
+              </div>
+              <button class="btn primary" id="changePwBtn" type="button">
+                Passwort aendern
+              </button>
+              <div id="changePwMsg" class="notice" style="display: none"></div>
+              <div class="smallHint" style="margin-top: 10px">
+                Aus Sicherheitsgruenden brauchst du dein aktuelles Passwort.
+              </div>
+            </div>
+          </div>
+
+          <div id="forgotPanel" class="sectionCard" style="margin-top: 16px">
+            <div class="sectionTitle">Passwort vergessen</div>
+            <div class="sectionLead">
+              Fordere einen Reset-Link an, wenn du nicht mehr in deinen Account
+              kommst.
             </div>
             <div class="formRow">
               <div class="stack" style="gap: 6px">
-                <label for="currentPassword">Aktuelles Passwort</label>
+                <label for="resetEmail">E-Mail</label>
                 <input
-                  id="currentPassword"
-                  type="password"
-                  autocomplete="current-password"
-                />
-              </div>
-              <div></div>
-              <div class="stack" style="gap: 6px">
-                <label for="newPassword">Neues Passwort</label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  autocomplete="new-password"
-                />
-              </div>
-              <div class="stack" style="gap: 6px">
-                <label for="newPassword2">Neues Passwort bestätigen</label>
-                <input
-                  id="newPassword2"
-                  type="password"
-                  autocomplete="new-password"
+                  id="resetEmail"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="email"
                 />
               </div>
             </div>
-            <button class="btn primary" id="changePwBtn" type="button">
-              Passwort ändern
+            <button class="btn secondary" id="forgotPwBtn" type="button">
+              Reset-Link senden
             </button>
-            <div id="changePwMsg" class="notice" style="display: none"></div>
-            <div class="smallHint">
-              Aus Sicherheitsgründen brauchst du dein aktuelles Passwort.
+            <div id="forgotPwMsg" class="notice" style="display: none"></div>
+            <div id="devResetBox" style="display: none">
+              <div class="smallHint" style="margin-top: 10px">Reset-Link</div>
+              <div class="tokenBox" id="devResetUrl"></div>
+            </div>
+            <div class="smallHint" style="margin-top: 10px">
+              Wenn die E-Mail existiert, bekommst du eine Nachricht. Es gibt
+              keinen Hinweis, ob der Account existiert.
             </div>
           </div>
 
-          <div class="divider"></div>
-        </div>
-
-        <div id="forgotPanel" class="stack" style="gap: 10px">
-          <div style="font-weight: 900; color: var(--brand)">
-            Passwort vergessen
-          </div>
-          <div class="formRow">
-            <div class="stack" style="gap: 6px">
-              <label for="resetEmail">E-Mail</label>
-              <input
-                id="resetEmail"
-                type="email"
-                inputmode="email"
-                autocomplete="email"
-              />
+          <div id="resetPanel" class="sectionCard" style="display: none; margin-top: 16px">
+            <div class="sectionTitle">Neues Passwort setzen</div>
+            <div class="sectionLead">
+              Der Link ist nur begrenzt gueltig und kann einmal verwendet
+              werden.
             </div>
-            <div></div>
-          </div>
-          <button class="btn secondary" id="forgotPwBtn" type="button">
-            Reset-Link senden
-          </button>
-          <div id="forgotPwMsg" class="notice" style="display: none"></div>
-          <div id="devResetBox" style="display: none">
-            <div class="smallHint" style="margin-top: 6px">Reset-Link</div>
-            <div class="tokenBox" id="devResetUrl"></div>
-          </div>
-          <div class="smallHint">
-            Wenn die E-Mail existiert, bekommst du eine Nachricht. (Kein
-            Hinweis, ob der Account existiert.)
-          </div>
-        </div>
-
-        <div id="resetPanel" class="stack" style="display: none">
-          <div class="divider"></div>
-          <div style="font-weight: 900; color: var(--brand)">
-            Neues Passwort setzen
-          </div>
-          <div class="formRow">
-            <div class="stack" style="gap: 6px">
-              <label for="resetNewPw">Neues Passwort</label>
-              <input
-                id="resetNewPw"
-                type="password"
-                autocomplete="new-password"
-              />
+            <div class="formRow">
+              <div class="stack" style="gap: 6px">
+                <label for="resetNewPw">Neues Passwort</label>
+                <input
+                  id="resetNewPw"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="stack" style="gap: 6px">
+                <label for="resetNewPw2">Neues Passwort bestaetigen</label>
+                <input
+                  id="resetNewPw2"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
             </div>
-            <div class="stack" style="gap: 6px">
-              <label for="resetNewPw2">Neues Passwort bestätigen</label>
-              <input
-                id="resetNewPw2"
-                type="password"
-                autocomplete="new-password"
-              />
-            </div>
-          </div>
-          <button class="btn primary" id="resetPwBtn" type="button">
-            Passwort setzen
-          </button>
-          <div id="resetPwMsg" class="notice" style="display: none"></div>
-          <div class="smallHint">
-            Der Link ist nur begrenzt gültig und kann nur einmal benutzt werden.
+            <button class="btn primary" id="resetPwBtn" type="button">
+              Passwort setzen
+            </button>
+            <div id="resetPwMsg" class="notice" style="display: none"></div>
           </div>
         </div>
-      </div>
-
-      <div class="bottomTabs" aria-label="Hauptnavigation">
-        <a class="bottomTabBtn ghost" href="/customer-map">
-          <span class="lbl">Cafés</span>
-        </a>
-        <a class="bottomTabBtn ghost" href="/customer-wallet">
-          <span class="lbl">Wallet</span>
-        </a>
-        <a class="bottomTabBtn ghost" href="/customer-history">
-          <span class="lbl">Verlauf</span>
-        </a>
-        <a class="bottomTabBtn ghost active" href="/customer-profile">
-          <span class="lbl">Konto</span>
-        </a>
       </div>
     </div>
 
