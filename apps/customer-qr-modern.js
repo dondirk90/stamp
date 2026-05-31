@@ -967,7 +967,7 @@
     try {
       var mapSlide = getModeSlide("map");
       var historySlide = getModeSlide("history");
-      if (mapSlide) mapSlide.style.display = m === "history" ? "none" : "block";
+      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
       if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
       if (el.screenPager) {
         el.screenPager.scrollLeft = 0;
