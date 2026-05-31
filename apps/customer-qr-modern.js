@@ -605,7 +605,17 @@
     } catch (eState) {}
     try {
       var p = String(location.pathname || "").toLowerCase();
-      if (p.indexOf("/customer-map") === 0) return "map";
+      var qs = "";
+      try {
+        qs = String(location.search || "");
+      } catch (eQs) {
+        qs = "";
+      }
+      var forceMap = /[?&]view=map(?:&|$)/i.test(qs);
+      if (p.indexOf("/customer-map") === 0) {
+        if (forceMap) return "map";
+        return session && session.address ? "wallet" : "map";
+      }
       if (p.indexOf("/customer-history") === 0) return "history";
       if (p.indexOf("/customer-wallet") === 0) return "wallet";
       if (p.indexOf("/customer-qr") === 0) return "wallet";
@@ -624,7 +634,7 @@
     var m = mode || "map";
     if (m === "history") return "/customer-history";
     if (m === "wallet") return "/customer-wallet";
-    return "/customer-map";
+    return "/customer-map?view=map";
   }
 
   function getAdjacentMode(mode, direction) {
