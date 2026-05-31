@@ -42,6 +42,9 @@
     qrSheetBox: document.getElementById("qrSheetBox"),
     qrSheetHint: document.getElementById("qrSheetHint"),
     qrSheetClose: document.getElementById("qrSheetClose"),
+    walletOverlayBackdrop: document.getElementById("walletOverlayBackdrop"),
+    walletOverlay: document.getElementById("walletOverlay"),
+    walletOverlayClose: document.getElementById("walletOverlayClose"),
 
     authPanel: document.getElementById("authPanel"),
     mainPanel: document.getElementById("mainPanel"),
@@ -167,6 +170,7 @@
     stampsRefreshQueuedAt: 0,
     stampsLastRunAt: 0,
     stampsInFlight: {},
+    overlayOpen: false,
   };
 
   function nowMs() {
@@ -400,6 +404,7 @@
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
+    if (!isAuthed) closeWalletOverlay({ silent: true });
 
     if (el.welcomeBadge && isAuthed) {
       var uname = session.username || session.email || "";
@@ -425,6 +430,38 @@
       el.bottomModeAccount.classList.toggle("active", w === "account");
   }
 
+  function setWalletOverlayOpen(open) {
+    var next = !!open;
+    walletState.overlayOpen = next;
+    try {
+      if (el.walletOverlayBackdrop)
+        el.walletOverlayBackdrop.classList.toggle("open", next);
+      if (el.walletOverlay)
+        el.walletOverlay.classList.toggle("open", next);
+      if (el.walletOverlay)
+        el.walletOverlay.setAttribute("aria-hidden", next ? "false" : "true");
+      document.body.classList.toggle("walletOverlayOpen", next);
+      document.documentElement.classList.toggle("walletMode", next);
+    } catch (e) {}
+  }
+
+  function openWalletOverlay() {
+    refreshWallet();
+    setWalletOverlayOpen(true);
+    navSetActive("wallet");
+  }
+
+  function closeWalletOverlay(opts) {
+    var o = opts || {};
+    setWalletOverlayOpen(false);
+    if (o.silent) return;
+    if (currentPageMode === "wallet") {
+      navigateToMode("map");
+      return;
+    }
+    navSetActive(currentPageMode === "history" ? "history" : "map");
+  }
+
   function setShellMenuOpen(open) {
     shellMenuState.open = !!open;
   }
@@ -440,9 +477,27 @@
         closeQrSheet();
       });
     }
+    if (el.walletOverlayBackdrop) {
+      el.walletOverlayBackdrop.addEventListener("click", function () {
+        closeWalletOverlay();
+      });
+    }
+    if (el.walletOverlayClose) {
+      el.walletOverlayClose.addEventListener("click", function () {
+        closeWalletOverlay();
+      });
+    }
     try {
       document.addEventListener("keydown", function (ev) {
         if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
+          if (qrSheetState.open) {
+            closeQrSheet();
+            return;
+          }
+          if (walletState.overlayOpen) {
+            closeWalletOverlay();
+            return;
+          }
           closeQrSheet();
         }
       });
@@ -501,8 +556,7 @@
 
   function getModeSlide(mode) {
     var target = null;
-    if (mode === "wallet") target = el.walletPanel;
-    else if (mode === "history") target = el.historyPanel;
+    if (mode === "history") target = el.historyPanel;
     else target = el.mapPanel;
     try {
       return target && target.closest ? target.closest(".screenSlide") : null;
@@ -810,30 +864,34 @@
     var m = mode || getPageMode();
     currentPageMode = m;
     navSetActive(m === "wallet" ? "wallet" : m);
-    try {
-      document.documentElement.classList.toggle("walletMode", m === "wallet");
-    } catch (eClass) {}
 
     try {
       var mapSlide = getModeSlide("map");
-      var walletSlide = getModeSlide("wallet");
       var historySlide = getModeSlide("history");
-      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
-      if (walletSlide) walletSlide.style.display = m === "wallet" ? "block" : "none";
+      if (mapSlide) mapSlide.style.display = m === "history" ? "none" : "block";
       if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
       if (el.screenPager) {
         el.screenPager.scrollLeft = 0;
       }
     } catch (eScroll) {}
 
+    if (m === "history") {
+      closeWalletOverlay({ silent: true });
+      refreshHistory();
+      return;
+    }
+
+    ensureMapInit();
+
+    if (m === "wallet") {
+      openWalletOverlay();
+      return;
+    }
+
+    closeWalletOverlay({ silent: true });
+
     if (m === "map") {
       ensureMapInit();
-    }
-    if (m === "history") {
-      refreshHistory();
-    }
-    if (m === "wallet") {
-      refreshWallet();
     }
   }
 
@@ -1168,6 +1226,7 @@
     addFavorite(addr);
     hideDiscoverPick();
     refreshWallet();
+    navigateToMode("wallet");
   }
 
   function teardownMap() {
@@ -3196,10 +3255,11 @@
       walletState.stampsInFlight = {};
       walletServerCardsByCafe = {};
       walletServerCardsDigest = "";
+      closeWalletOverlay({ silent: true });
 
       setAuthedUI();
       currentPageMode = "map";
-      navSetActive("home");
+      navSetActive("map");
     });
   }
 
@@ -4081,6 +4141,7 @@
         addFavorite(addr);
         refreshWallet();
         closeCafeModal();
+        navigateToMode("wallet");
       });
 
     if (el.discoverPickAddBtn) {

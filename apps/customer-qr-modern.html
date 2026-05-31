@@ -384,10 +384,44 @@
         width: auto;
       }
 
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 64px;
+        margin-top: -18px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
+      }
+
+      .bottomTabBtn.walletHeroBtn .topMenuBtnContent {
+        gap: 8px;
+      }
+
+      .bottomTabBtn.walletHeroBtn .ico,
+      .bottomTabBtn.walletHeroBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn.walletHeroBtn .lbl {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+
       .bottomTabBtn.active {
         background: rgba(107, 69, 44, 0.1) !important;
         color: #241710 !important;
         opacity: 1;
+      }
+
+      .bottomTabBtn.walletHeroBtn.active {
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
+        color: #fffaf5 !important;
       }
 
       .menuToggle,
@@ -522,6 +556,11 @@
           z-index: 28;
         }
 
+        .bottomTabBtn.walletHeroBtn {
+          margin-top: -24px;
+          min-height: 70px;
+        }
+
         .topbar .kk-brandMark {
           width: 44px;
           height: 44px;
@@ -564,7 +603,6 @@
         }
 
         .mapHero,
-        #walletPanel.walletDock,
         #historyPanel {
           width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
@@ -577,10 +615,6 @@
             0 20px 40px rgba(68, 41, 22, 0.08),
             0 1px 0 rgba(255, 255, 255, 0.7) inset;
           backdrop-filter: blur(18px);
-        }
-
-        #walletPanel.walletDock::before {
-          display: none;
         }
 
         .mapHero {
@@ -628,8 +662,17 @@
           width: 100%;
         }
 
-        #walletPanel.walletDock {
-          justify-content: center;
+        .walletOverlay {
+          inset:
+            calc(12px + var(--safe-top, 0px))
+            calc(10px + var(--safe-right, 0px))
+            calc(94px + var(--safe-bottom, 0px))
+            calc(10px + var(--safe-left, 0px));
+        }
+
+        .walletOverlayInner {
+          width: 100%;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
         }
       }
 
@@ -3126,6 +3169,96 @@
         margin: 0 auto;
       }
 
+      .walletOverlayBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(21, 14, 10, 0.24);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        z-index: 50;
+      }
+
+      .walletOverlayBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .walletOverlay {
+        position: fixed;
+        inset:
+          calc(14px + var(--safe-top, 0px))
+          calc(12px + var(--safe-right, 0px))
+          calc(94px + var(--safe-bottom, 0px))
+          calc(12px + var(--safe-left, 0px));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(18px) scale(0.985);
+        transition:
+          opacity 240ms ease,
+          transform 280ms cubic-bezier(0.2, 0.9, 0.2, 1);
+        z-index: 51;
+      }
+
+      .walletOverlay.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+
+      .walletOverlayInner {
+        width: min(430px, calc(100vw - 24px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        max-height: 100%;
+        min-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 136px));
+        display: flex;
+        flex-direction: column;
+      }
+
+      .walletOverlay .walletDock {
+        width: 100% !important;
+        min-height: 100%;
+        margin: 0;
+        padding-top: 72px;
+      }
+
+      .walletOverlayClose {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 2;
+        width: 42px;
+        min-width: 42px;
+        height: 42px;
+        min-height: 42px;
+        border: none !important;
+        border-radius: 16px;
+        background: rgba(107, 69, 44, 0.08) !important;
+        color: #241710 !important;
+        box-shadow: none !important;
+      }
+
+      .walletOverlay .walletDockHead {
+        text-align: center;
+        align-items: center;
+      }
+
+      .walletOverlay .walletDockHead h3 {
+        font-size: 28px;
+        letter-spacing: -0.04em;
+      }
+
+      .walletOverlay .walletDockHead .hint,
+      .walletOverlay #walletEmpty {
+        max-width: 280px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+      }
+
       /* Cafe modal: no framed secondary buttons */
       #cafeModal .btn.secondary {
         border: none;
@@ -3274,7 +3407,7 @@
           </span>
         </button>
         <button
-          class="bottomTabBtn ghost"
+          class="bottomTabBtn ghost walletHeroBtn"
           id="bottomModeWallet"
           type="button"
         >
@@ -3484,30 +3617,6 @@
             </div>
             </div>
 
-            <div class="screenSlide" data-mode="wallet">
-            <div class="card panel walletDock" id="walletPanel">
-              <div class="walletDockHead">
-                <h3 style="margin: 0">Wallet</h3>
-                <div class="hint" id="walletSubtitle">
-                  Wische durch deine Karten. Tippe eine Karte für den QR.
-                </div>
-              </div>
-              <div
-                id="walletEmpty"
-                class="hint"
-                style="display: none; margin-top: var(--space-3)"
-              >
-                Noch keine Karten. Wähle ein Café auf der Karte und tippe
-                „Stempelkarte holen“.
-              </div>
-              <div
-                id="walletList"
-                class="walletCarousel"
-                aria-label="Wallet Karten"
-              ></div>
-            </div>
-            </div>
-
             <div class="screenSlide" data-mode="history">
             <div class="card panel" id="historyPanel">
               <div class="panelHeader">
@@ -3528,6 +3637,35 @@
             </div>
             </div>
 
+          </div>
+          <div class="walletOverlayBackdrop" id="walletOverlayBackdrop" aria-hidden="true"></div>
+          <div class="walletOverlay" id="walletOverlay" aria-hidden="true" aria-label="Wallet">
+            <div class="walletOverlayInner">
+              <div class="card panel walletDock" id="walletPanel">
+                <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Schließen">
+                  ×
+                </button>
+                <div class="walletDockHead">
+                  <h3 style="margin: 0">Wallet</h3>
+                  <div class="hint" id="walletSubtitle">
+                    Öffne deine Karten hier zentral. Tippe eine Karte für den QR am Tresen.
+                  </div>
+                </div>
+                <div
+                  id="walletEmpty"
+                  class="hint"
+                  style="display: none; margin-top: var(--space-3)"
+                >
+                  Noch keine Karten. Wähle ein Café auf der Karte und tippe
+                  „Stempelkarte holen“.
+                </div>
+                <div
+                  id="walletList"
+                  class="walletCarousel"
+                  aria-label="Wallet Karten"
+                ></div>
+              </div>
+            </div>
           </div>
           <div class="notice" id="noCafesNotice" style="display: none">
             Es sind noch keine Cafés registriert. Bitte zuerst ein Café
