@@ -5,6 +5,7 @@
   var STORAGE_KEY_V1 = "customer_session_v1";
   var STORAGE_KEY_V2 = "customer_session_v2"; // read-only (backward compat)
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
+  var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
 
   var REWARD_THRESHOLD = 10;
   var WALLET_MODE =
@@ -943,6 +944,80 @@
     } catch (e) {}
   }
 
+  function isAddressLike(value) {
+    var s = String(value || "").trim();
+    if (!s) return false;
+    if (/^0x[0-9a-f]{12,}$/i.test(s)) return true;
+    if (/^[0-9a-f]{20,}$/i.test(s)) return true;
+    return false;
+  }
+
+  function getCafeMetaCache() {
+    try {
+      var raw = localStorage.getItem(CAFE_META_CACHE_KEY_V1);
+      var data = raw ? JSON.parse(raw) : {};
+      return data && typeof data === "object" ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setCafeMetaCache(map) {
+    try {
+      localStorage.setItem(CAFE_META_CACHE_KEY_V1, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function rememberCafeMeta(addr, meta) {
+    var key = normalizeAddr(addr || "");
+    if (!key) return;
+    var name = meta && meta.name ? String(meta.name).trim() : "";
+    var address = meta && meta.address ? String(meta.address).trim() : "";
+    if (isAddressLike(name)) name = "";
+    if (!name && !address) return;
+    var map = getCafeMetaCache();
+    map[key] = {
+      name: name || "",
+      address: address || "",
+    };
+    setCafeMetaCache(map);
+  }
+
+  function getRememberedCafeMeta(addr) {
+    var key = normalizeAddr(addr || "");
+    if (!key) return null;
+    try {
+      var map = getCafeMetaCache();
+      return map && map[key] ? map[key] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function resolveCafeDisplayMeta(addr, serverCard, cafe) {
+    var remembered = getRememberedCafeMeta(addr) || {};
+    var name = "";
+    var address = "";
+
+    if (serverCard && serverCard.name) name = String(serverCard.name || "").trim();
+    if (isAddressLike(name)) name = "";
+    if (!name && cafe && cafe.name) name = String(cafe.name || "").trim();
+    if (isAddressLike(name)) name = "";
+    if (!name && remembered && remembered.name) name = String(remembered.name || "").trim();
+    if (isAddressLike(name)) name = "";
+
+    if (serverCard && serverCard.address) address = String(serverCard.address || "").trim();
+    if (!address && cafe && cafe.address) address = String(cafe.address || "").trim();
+    if (!address && remembered && remembered.address)
+      address = String(remembered.address || "").trim();
+
+    return {
+      name: name || "Kaffekarte",
+      address: address || "",
+      loading: !name,
+    };
+  }
+
   function addFavorite(addr) {
     var a = normalizeAddr(addr);
     if (!a) return false;
@@ -1201,6 +1276,10 @@
           if (!addr) continue;
           addrs.push(addr);
           nextMap[addr] = card;
+          rememberCafeMeta(addr, {
+            name: card.name || card.cafeName || "",
+            address: card.address || "",
+          });
         }
         walletServerCardsByCafe = nextMap;
         var nextDigest = buildServerCardsDigest(cards);
@@ -3157,17 +3236,12 @@
       var cafe = cafesByCafeAddress[addr] || null;
       var serverCard = getServerCard(addr);
       var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
+      var meta = resolveCafeDisplayMeta(addr, serverCard, cafe);
       frag.appendChild(
         buildPassCard({
           cafeAddress: addr,
-          name:
-            (serverCard && serverCard.name) ||
-            (cafe && cafe.name) ||
-            addr.slice(0, 10) + "...",
-          address:
-            (serverCard && serverCard.address) ||
-            (cafe && cafe.address) ||
-            "",
+          name: meta.name,
+          address: meta.address,
           about: (cafe && cafe.about) || "",
           netStamps:
             Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0,
@@ -3181,7 +3255,12 @@
             cafe && cafe.cardBackgroundDataUrl
               ? cafe.cardBackgroundDataUrl
               : null,
-          cardBackText: cafe && cafe.cardBackText ? cafe.cardBackText : null,
+          cardBackText:
+            cafe && cafe.cardBackText
+              ? cafe.cardBackText
+              : meta.loading
+                ? "Café wird geladen…"
+                : null,
         }),
       );
     }
@@ -4054,6 +4133,10 @@
           var addr = normalizeAddr(c.cafeAddress || c.address);
           if (!addr) continue;
           cafesByCafeAddress[addr] = c;
+          rememberCafeMeta(addr, {
+            name: c.name || "",
+            address: c.address || "",
+          });
         }
 
         cafesVersion = (cafesVersion || 0) + 1;

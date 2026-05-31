@@ -3195,8 +3195,7 @@
       .walletOverlayBackdrop {
         position: fixed;
         inset: 0;
-        background: rgba(21, 14, 10, 0.24);
-        backdrop-filter: blur(12px);
+        background: rgba(21, 14, 10, 0.18);
         opacity: 0;
         pointer-events: none;
         transition: opacity 220ms ease;
@@ -3235,53 +3234,39 @@
 
       .walletOverlayInner {
         width: min(430px, calc(100vw - 24px - var(--safe-left, 0px) - var(--safe-right, 0px)));
-        max-height: 100%;
-        min-height: min(700px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 156px));
+        max-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px));
+        min-height: min(620px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 172px));
         display: flex;
         flex-direction: column;
         position: relative;
       }
 
       .walletOverlayInner::before {
-        content: "";
-        position: absolute;
-        inset: 104px 24px 74px;
-        border-radius: 40px;
-        background:
-          radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0) 58%),
-          linear-gradient(180deg, rgba(243, 229, 213, 0.42), rgba(243, 229, 213, 0.08));
-        box-shadow:
-          0 28px 44px rgba(47, 31, 22, 0.08);
-        opacity: 0.88;
-        pointer-events: none;
+        content: none;
       }
 
       .walletOverlayInner::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        bottom: 88px;
-        transform: translateX(-50%);
-        width: min(226px, 56%);
-        height: 20px;
-        border-radius: 999px;
-        background: radial-gradient(ellipse at center, rgba(41, 29, 21, 0.18), rgba(41, 29, 21, 0) 72%);
-        filter: blur(12px);
-        opacity: 0.54;
-        pointer-events: none;
+        content: none;
       }
 
       .walletOverlay .walletDock {
         width: 100% !important;
-        min-height: 100%;
+        min-height: auto;
+        height: 100%;
         margin: 0;
-        padding: 74px 18px 18px;
-        background: transparent;
-        border: none;
-        box-shadow: none;
+        padding: 74px 18px 20px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 232, 0.97));
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        border-radius: 34px;
+        box-shadow:
+          0 32px 54px rgba(47, 31, 22, 0.18),
+          0 10px 20px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.86) inset;
         backdrop-filter: none;
         position: relative;
         z-index: 1;
+        overflow: hidden;
       }
 
       .walletOverlayClose {
@@ -3309,29 +3294,26 @@
       .walletOverlay .walletDock::before {
         content: "";
         position: absolute;
-        inset: 124px 17% auto;
-        height: 214px;
-        border-radius: 42px;
+        inset: 0 0 auto;
+        height: 118px;
+        border-radius: 34px 34px 0 0;
         background:
-          radial-gradient(circle at top, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 58%),
-          linear-gradient(180deg, rgba(107, 69, 44, 0.1), rgba(107, 69, 44, 0) 72%);
-        filter: blur(22px);
-        opacity: 0.78;
+          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 62%),
+          linear-gradient(180deg, rgba(118, 82, 54, 0.12), rgba(118, 82, 54, 0) 78%);
+        opacity: 0.96;
         pointer-events: none;
       }
 
       .walletOverlay .walletDock::after {
-        content: "Tippe auf die Karte für den QR";
+        content: "";
         position: absolute;
         left: 50%;
-        bottom: 14px;
+        bottom: 18px;
         transform: translateX(-50%);
-        font-size: 10px;
-        font-weight: 900;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(82, 59, 41, 0.58);
-        white-space: nowrap;
+        width: 120px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(95, 67, 46, 0.18);
         pointer-events: none;
       }
 
@@ -3344,13 +3326,13 @@
       }
 
       .walletOverlay .walletDockHead::before {
-        content: "Treuekarte";
+        content: "Wallet";
         display: block;
         font-size: 10px;
         font-weight: 900;
         letter-spacing: 0.22em;
         text-transform: uppercase;
-        color: rgba(82, 59, 41, 0.48);
+        color: rgba(82, 59, 41, 0.42);
       }
 
       .walletOverlay .walletDockHead h3 {
@@ -3371,8 +3353,8 @@
       }
 
       .walletOverlay .walletCarousel {
-        padding-top: 10px;
-        padding-bottom: 22px;
+        padding-top: 14px;
+        padding-bottom: 28px;
       }
 
       .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
