@@ -3210,10 +3210,10 @@
       .walletOverlay {
         position: fixed;
         inset:
-          calc(14px + var(--safe-top, 0px))
-          calc(12px + var(--safe-right, 0px))
-          calc(94px + var(--safe-bottom, 0px))
-          calc(12px + var(--safe-left, 0px));
+          calc(26px + var(--safe-top, 0px))
+          calc(18px + var(--safe-right, 0px))
+          calc(108px + var(--safe-bottom, 0px))
+          calc(18px + var(--safe-left, 0px));
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3233,9 +3233,9 @@
       }
 
       .walletOverlayInner {
-        width: min(430px, calc(100vw - 24px - var(--safe-left, 0px) - var(--safe-right, 0px)));
-        max-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px));
-        min-height: min(620px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 172px));
+        width: min(396px, calc(100vw - 36px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        max-height: min(690px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 160px));
+        min-height: min(560px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 192px));
         display: flex;
         flex-direction: column;
         position: relative;
@@ -3254,11 +3254,11 @@
         min-height: auto;
         height: 100%;
         margin: 0;
-        padding: 74px 18px 20px;
+        padding: 68px 14px 16px;
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 232, 0.97));
         border: 1px solid rgba(81, 58, 40, 0.1);
-        border-radius: 34px;
+        border-radius: 28px;
         box-shadow:
           0 32px 54px rgba(47, 31, 22, 0.18),
           0 10px 20px rgba(47, 31, 22, 0.08),
@@ -3295,8 +3295,8 @@
         content: "";
         position: absolute;
         inset: 0 0 auto;
-        height: 118px;
-        border-radius: 34px 34px 0 0;
+        height: 96px;
+        border-radius: 28px 28px 0 0;
         background:
           radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 62%),
           linear-gradient(180deg, rgba(118, 82, 54, 0.12), rgba(118, 82, 54, 0) 78%);
@@ -3336,7 +3336,7 @@
       }
 
       .walletOverlay .walletDockHead h3 {
-        font-size: 30px;
+        font-size: 27px;
         font-weight: 950;
         letter-spacing: -0.045em;
         color: #241710;
@@ -3345,20 +3345,22 @@
 
       .walletOverlay .walletDockHead .hint,
       .walletOverlay #walletEmpty {
-        max-width: 300px;
+        max-width: 278px;
         margin-left: auto;
         margin-right: auto;
         text-align: center;
         color: rgba(59, 42, 31, 0.66);
+        font-size: 11px;
+        line-height: 1.4;
       }
 
       .walletOverlay .walletCarousel {
-        padding-top: 14px;
-        padding-bottom: 28px;
+        padding-top: 10px;
+        padding-bottom: 18px;
       }
 
       .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
-        margin-left: -58px;
+        margin-left: -44px;
       }
 
       .walletOverlay .passCard {

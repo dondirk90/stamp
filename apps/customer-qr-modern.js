@@ -135,6 +135,7 @@
   var cafesVersion = 0;
 
   var cafes = [];
+  var cafesLoaded = false;
   var walletServerCardsByCafe = {};
   var walletServerCardsDigest = "";
 
@@ -453,6 +454,12 @@
     refreshWallet();
     setWalletOverlayOpen(true);
     navSetActive("wallet");
+    window.setTimeout(function () {
+      try {
+        closeAllPasses();
+        centerWalletPrimaryCard();
+      } catch (e0) {}
+    }, 24);
   }
 
   function closeWalletOverlay(opts) {
@@ -473,6 +480,32 @@
       return;
     }
     navSetActive(currentPageMode === "history" ? "history" : "map");
+  }
+
+  function closeAllPasses(exceptEl) {
+    try {
+      if (!el.walletList) return;
+      var cards = el.walletList.querySelectorAll(".passCard.open");
+      for (var i = 0; i < cards.length; i++) {
+        if (exceptEl && cards[i] === exceptEl) continue;
+        closePass(cards[i]);
+      }
+    } catch (e) {}
+  }
+
+  function centerWalletPrimaryCard() {
+    try {
+      if (!el.walletList) return;
+      var target =
+        el.walletList.querySelector(".passCard.open") ||
+        el.walletList.querySelector(".passCard");
+      if (!target || !target.scrollIntoView) return;
+      target.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "center",
+      });
+    } catch (e) {}
   }
 
   function setShellMenuOpen(open) {
@@ -1014,7 +1047,7 @@
     return {
       name: name || "Kaffekarte",
       address: address || "",
-      loading: !name,
+      loading: !name && !cafesLoaded,
     };
   }
 
@@ -1281,12 +1314,15 @@
             address: card.address || "",
           });
         }
-        walletServerCardsByCafe = nextMap;
-        var nextDigest = buildServerCardsDigest(cards);
-        var digestChanged = nextDigest !== walletServerCardsDigest;
-        walletServerCardsDigest = nextDigest;
-        evaluateCardCampaigns(cards);
-        return mergeFavorites(addrs) || digestChanged;
+      walletServerCardsByCafe = nextMap;
+      var nextDigest = buildServerCardsDigest(cards);
+      var digestChanged = nextDigest !== walletServerCardsDigest;
+      walletServerCardsDigest = nextDigest;
+      evaluateCardCampaigns(cards);
+      try {
+        if (cards && cards.length) refreshWallet();
+      } catch (eR0) {}
+      return mergeFavorites(addrs) || digestChanged;
       })
       .catch(function () {
         return false;
@@ -2298,6 +2334,7 @@
 
   function openPass(passEl) {
     if (!passEl) return;
+    closeAllPasses(passEl);
     try {
       if (passEl.__forceBackTimer) {
         window.clearTimeout(passEl.__forceBackTimer);
@@ -4127,6 +4164,7 @@
             ? data.cafes
             : [];
         cafes = dedupeCafes(list);
+        cafesLoaded = true;
         cafesByCafeAddress = {};
         for (var i = 0; i < cafes.length; i++) {
           var c = cafes[i] || {};
@@ -4146,6 +4184,7 @@
         ensureMapInit();
       })
       .catch(function () {
+        cafesLoaded = true;
         // non-fatal
       })
       .then(function () {
