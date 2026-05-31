@@ -3256,13 +3256,21 @@
         margin: 0;
         padding: 68px 14px 16px;
         background:
-          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 232, 0.97));
+          linear-gradient(180deg, rgba(255, 252, 247, 0.985), rgba(247, 238, 228, 0.975)),
+          repeating-linear-gradient(
+            -11deg,
+            rgba(124, 92, 64, 0.02) 0,
+            rgba(124, 92, 64, 0.02) 2px,
+            rgba(255, 255, 255, 0) 2px,
+            rgba(255, 255, 255, 0) 12px
+          );
         border: 1px solid rgba(81, 58, 40, 0.1);
-        border-radius: 28px;
+        border-radius: 34px;
         box-shadow:
-          0 32px 54px rgba(47, 31, 22, 0.18),
+          0 34px 58px rgba(47, 31, 22, 0.17),
           0 10px 20px rgba(47, 31, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.86) inset;
+          0 1px 0 rgba(255, 255, 255, 0.88) inset,
+          0 -1px 0 rgba(131, 96, 68, 0.05) inset;
         backdrop-filter: none;
         position: relative;
         z-index: 1;
@@ -3296,10 +3304,10 @@
         position: absolute;
         inset: 0 0 auto;
         height: 96px;
-        border-radius: 28px 28px 0 0;
+        border-radius: 34px 34px 0 0;
         background:
-          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 62%),
-          linear-gradient(180deg, rgba(118, 82, 54, 0.12), rgba(118, 82, 54, 0) 78%);
+          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0) 62%),
+          linear-gradient(180deg, rgba(118, 82, 54, 0.1), rgba(118, 82, 54, 0) 78%);
         opacity: 0.96;
         pointer-events: none;
       }
@@ -3310,10 +3318,10 @@
         left: 50%;
         bottom: 18px;
         transform: translateX(-50%);
-        width: 120px;
-        height: 4px;
+        width: 116px;
+        height: 5px;
         border-radius: 999px;
-        background: rgba(95, 67, 46, 0.18);
+        background: rgba(95, 67, 46, 0.16);
         pointer-events: none;
       }
 
@@ -3333,6 +3341,15 @@
         letter-spacing: 0.22em;
         text-transform: uppercase;
         color: rgba(82, 59, 41, 0.42);
+      }
+
+      .walletOverlay .walletDockHead::after {
+        content: "";
+        display: block;
+        width: 54px;
+        height: 1px;
+        margin: 4px auto 0;
+        background: rgba(102, 73, 50, 0.18);
       }
 
       .walletOverlay .walletDockHead h3 {
