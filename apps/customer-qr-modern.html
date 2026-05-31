@@ -472,17 +472,58 @@
         color: #241710;
       }
 
-      .topAccountBtn {
+      .topUtilityBtn {
         min-height: 40px;
-        padding: 8px 0;
+        min-width: 40px;
+        padding: 8px;
         border: none !important;
         background: transparent !important;
         color: #5a4030 !important;
         box-shadow: none !important;
-        font-size: 11px;
+        font-size: 22px;
         font-weight: 900;
-        letter-spacing: 0.18em;
+        line-height: 1;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 45;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 14px;
+        color: #241710 !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+      }
+
+      .utilityMenuBtn:hover {
+        background: rgba(107, 69, 44, 0.08) !important;
       }
 
       @media (max-width: 420px) {
@@ -587,10 +628,10 @@
           font-size: 24px;
         }
 
-        .topAccountBtn {
+        .topUtilityBtn {
           min-height: 34px;
-          font-size: 10px;
-          letter-spacing: 0.16em;
+          min-width: 34px;
+          font-size: 20px;
         }
 
         .grid {
@@ -3486,8 +3527,15 @@
           </div>
         </div>
         <div class="row">
-          <button class="topAccountBtn" id="topAccountBtn" type="button">Konto</button>
+          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
+            ≡
+          </button>
         </div>
+      </div>
+
+      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+        <button class="utilityMenuBtn" id="utilityHistoryBtn" type="button">Verlauf</button>
+        <button class="utilityMenuBtn" id="utilityAccountBtn" type="button">Konto</button>
       </div>
 
       <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
@@ -3541,12 +3589,6 @@
       </div>
 
       <div class="bottomTabs" aria-label="Hauptnavigation">
-        <button class="bottomTabBtn ghost active" id="bottomModeMap" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">C</span>
-            <span class="lbl">Cafés</span>
-          </span>
-        </button>
         <button
           class="bottomTabBtn ghost walletHeroBtn"
           id="bottomModeWallet"
@@ -3555,12 +3597,6 @@
           <span class="topMenuBtnContent">
             <span class="ico" aria-hidden="true">W</span>
             <span class="lbl">Wallet</span>
-          </span>
-        </button>
-        <button class="bottomTabBtn ghost" id="bottomModeHistory" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verlauf</span>
           </span>
         </button>
       </div>

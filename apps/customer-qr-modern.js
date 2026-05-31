@@ -70,7 +70,10 @@
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
-    topAccountBtn: document.getElementById("topAccountBtn"),
+    topUtilityBtn: document.getElementById("topUtilityBtn"),
+    utilityMenu: document.getElementById("utilityMenu"),
+    utilityHistoryBtn: document.getElementById("utilityHistoryBtn"),
+    utilityAccountBtn: document.getElementById("utilityAccountBtn"),
 
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
@@ -407,10 +410,10 @@
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
     if (!isAuthed) closeWalletOverlay({ silent: true });
-    if (el.topAccountBtn) {
-      el.topAccountBtn.style.display = isAuthed ? "" : "none";
-      el.topAccountBtn.textContent = "Konto";
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.style.display = isAuthed ? "" : "none";
     }
+    if (!isAuthed) setShellMenuOpen(false);
 
     if (el.welcomeBadge && isAuthed) {
       var uname = session.username || session.email || "";
@@ -426,12 +429,8 @@
 
   function navSetActive(which) {
     var w = which || "map";
-    if (el.bottomModeMap)
-      el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
-    if (el.bottomModeHistory)
-      el.bottomModeHistory.classList.toggle("active", w === "history");
   }
 
   function setWalletOverlayOpen(open) {
@@ -510,9 +509,31 @@
 
   function setShellMenuOpen(open) {
     shellMenuState.open = !!open;
+    try {
+      if (el.utilityMenu) el.utilityMenu.classList.toggle("open", shellMenuState.open);
+      if (el.topUtilityBtn)
+        el.topUtilityBtn.setAttribute("aria-expanded", shellMenuState.open ? "true" : "false");
+    } catch (e) {}
   }
 
   function wireShellMenu() {
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.addEventListener("click", function () {
+        setShellMenuOpen(!shellMenuState.open);
+      });
+    }
+    if (el.utilityHistoryBtn) {
+      el.utilityHistoryBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        navigateToMode("history");
+      });
+    }
+    if (el.utilityAccountBtn) {
+      el.utilityAccountBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        location.href = "/customer-profile";
+      });
+    }
     if (el.qrSheetBackdrop) {
       el.qrSheetBackdrop.addEventListener("click", function () {
         closeQrSheet();
@@ -544,10 +565,24 @@
             closeWalletOverlay();
             return;
           }
+          if (shellMenuState.open) {
+            setShellMenuOpen(false);
+            return;
+          }
           closeQrSheet();
         }
       });
     } catch (e4) {}
+    try {
+      document.addEventListener("click", function (ev) {
+        if (!shellMenuState.open) return;
+        var t = ev && ev.target ? ev.target : null;
+        if (!t) return;
+        if (el.utilityMenu && el.utilityMenu.contains(t)) return;
+        if (el.topUtilityBtn && el.topUtilityBtn.contains(t)) return;
+        setShellMenuOpen(false);
+      });
+    } catch (e5) {}
   }
 
   function getPageMode() {
@@ -3473,24 +3508,17 @@
     }
 
     if (el.sessionBadge) el.sessionBadge.addEventListener("click", onAccountClick);
-    if (el.topAccountBtn) el.topAccountBtn.addEventListener("click", onAccountClick);
   }
 
   function wireNavigation() {
     function bindModeButton(node, mode) {
       if (!node) return;
       node.addEventListener("click", function () {
-        if (mode === "account") {
-          location.href = "/customer-profile";
-          return;
-        }
         navigateToMode(mode);
       });
     }
 
-    bindModeButton(el.bottomModeMap, "map");
     bindModeButton(el.bottomModeWallet, "wallet");
-    bindModeButton(el.bottomModeHistory, "history");
   }
 
   function resetPassCardMotion(node) {
