@@ -72,6 +72,7 @@
     bottomModeHistory: document.getElementById("bottomModeHistory"),
     topUtilityBtn: document.getElementById("topUtilityBtn"),
     utilityMenu: document.getElementById("utilityMenu"),
+    utilityMapBtn: document.getElementById("utilityMapBtn"),
     utilityHistoryBtn: document.getElementById("utilityHistoryBtn"),
     utilityAccountBtn: document.getElementById("utilityAccountBtn"),
 
@@ -93,6 +94,7 @@
     walletPanel: document.getElementById("walletPanel"),
     walletSubtitle: document.getElementById("walletSubtitle"),
     walletEmpty: document.getElementById("walletEmpty"),
+    walletEmptyMapBtn: document.getElementById("walletEmptyMapBtn"),
     walletList: document.getElementById("walletList"),
 
     historyPanel: document.getElementById("historyPanel"),
@@ -522,6 +524,12 @@
         setShellMenuOpen(!shellMenuState.open);
       });
     }
+    if (el.utilityMapBtn) {
+      el.utilityMapBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        navigateToMode("map");
+      });
+    }
     if (el.utilityHistoryBtn) {
       el.utilityHistoryBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
@@ -600,7 +608,7 @@
       if (p.indexOf("/customer-map") === 0) return "map";
       if (p.indexOf("/customer-history") === 0) return "history";
       if (p.indexOf("/customer-wallet") === 0) return "wallet";
-      if (p.indexOf("/customer-qr") === 0) return "map";
+      if (p.indexOf("/customer-qr") === 0) return "wallet";
       if (
         p.indexOf("/customer-home") === 0 ||
         p.indexOf("/customer-start") === 0
@@ -1590,6 +1598,21 @@
 
   function setWalletEmptyVisible(show) {
     if (el.walletEmpty) el.walletEmpty.style.display = show ? "block" : "none";
+    if (el.walletEmpty) {
+      try {
+        var lead = el.walletEmpty.querySelector(".walletEmptyLead");
+        if (lead) {
+          lead.textContent = "Noch keine Karten. Entdecke zuerst ein Café auf der Karte.";
+        }
+        var nodes = el.walletEmpty.childNodes || [];
+        for (var i = nodes.length - 1; i >= 0; i--) {
+          var node = nodes[i];
+          if (node && node.nodeType === 3 && String(node.nodeValue || "").trim()) {
+            el.walletEmpty.removeChild(node);
+          }
+        }
+      } catch (e) {}
+    }
   }
 
   var stampSvgSeq = 0;
@@ -4306,6 +4329,12 @@
     if (el.discoverPickAddBtn) {
       el.discoverPickAddBtn.addEventListener("click", function () {
         onAddPickedCafe();
+      });
+    }
+    if (el.walletEmptyMapBtn) {
+      el.walletEmptyMapBtn.addEventListener("click", function () {
+        closeWalletOverlay({ silent: true });
+        navigateToMode("map");
       });
     }
 
