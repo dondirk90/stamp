@@ -469,6 +469,18 @@
     return idx < 0 ? 0 : idx;
   }
 
+  function getModeSlide(mode) {
+    var target = null;
+    if (mode === "wallet") target = el.walletPanel;
+    else if (mode === "history") target = el.historyPanel;
+    else target = el.mapPanel;
+    try {
+      return target && target.closest ? target.closest(".screenSlide") : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function navigateToMode(mode) {
     var m = mode || "map";
     var href = getModeHref(m);
@@ -773,12 +785,14 @@
     } catch (eClass) {}
 
     try {
+      var mapSlide = getModeSlide("map");
+      var walletSlide = getModeSlide("wallet");
+      var historySlide = getModeSlide("history");
+      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
+      if (walletSlide) walletSlide.style.display = m === "wallet" ? "block" : "none";
+      if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
       if (el.screenPager) {
-        var pagerWidth = el.screenPager.clientWidth || 0;
-        if (pagerWidth > 0) {
-          var left = pagerWidth * getModeIndex(m);
-          el.screenPager.scrollTo({ left: left, behavior: "smooth" });
-        }
+        el.screenPager.scrollLeft = 0;
       }
     } catch (eScroll) {}
 
@@ -1631,51 +1645,14 @@
   }
 
   function wireScreenPager() {
-    if (!el.screenPager) return;
-    var settleT = 0;
-
-    function syncModeFromPager() {
-      try {
-        var width = el.screenPager.clientWidth || 0;
-        if (width <= 0) return;
-        var idx = Math.round((el.screenPager.scrollLeft || 0) / width);
-        var order = ["map", "wallet", "history"];
-        var next = order[Math.max(0, Math.min(order.length - 1, idx))] || "map";
-        if (currentPageMode === next) return;
-        currentPageMode = next;
-        navSetActive(next === "wallet" ? "wallet" : next);
-        try {
-          history.replaceState({ mode: next }, "", getModeHref(next));
-        } catch (eState) {}
-        try {
-          document.documentElement.classList.toggle("walletMode", next === "wallet");
-        } catch (eClass) {}
-        if (next === "map") ensureMapInit();
-        if (next === "wallet") refreshWallet();
-        if (next === "history") refreshHistory();
-      } catch (e) {}
-    }
-
-    el.screenPager.addEventListener("scroll", function () {
-      try {
-        if (settleT) window.clearTimeout(settleT);
-      } catch (e0) {}
-      settleT = window.setTimeout(function () {
-        settleT = 0;
-        syncModeFromPager();
-      }, 90);
-    }, { passive: true });
-
     try {
-      window.addEventListener("resize", function () {
-        try {
-          if (settleT) window.clearTimeout(settleT);
-        } catch (e1) {}
-        settleT = window.setTimeout(function () {
-          settleT = 0;
+      window.addEventListener(
+        "resize",
+        function () {
           applyPageMode(currentPageMode || getPageMode());
-        }, 70);
-      }, { passive: true });
+        },
+        { passive: true },
+      );
     } catch (e2) {}
   }
 
