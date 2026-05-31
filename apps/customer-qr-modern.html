@@ -566,10 +566,10 @@
         .mapHero,
         #walletPanel.walletDock,
         #historyPanel {
-          width: 100% !important;
+          width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
-          margin: auto 0;
-          padding: 68px 14px 18px;
+          margin: auto;
+          padding: 66px 16px 20px;
           border-radius: 30px;
           background: rgba(255, 252, 248, 0.82);
           border: 1px solid rgba(17, 17, 17, 0.08);
@@ -586,6 +586,7 @@
         .mapHero {
           display: flex;
           flex-direction: column;
+          justify-content: center;
         }
 
         .walletDockHead {
@@ -604,12 +605,31 @@
         }
 
         .mapBox {
-          height: min(58svh, 520px);
+          height: min(44svh, 420px);
           border-radius: 24px;
         }
 
         #cafeResults {
           margin-top: 10px;
+        }
+
+        #historyPanel {
+          justify-content: flex-start;
+          align-items: stretch;
+        }
+
+        #historyPanel .panelHeader,
+        #historySubtitle,
+        #historyEmpty,
+        #historyList {
+          max-width: 332px;
+          margin-left: auto;
+          margin-right: auto;
+          width: 100%;
+        }
+
+        #walletPanel.walletDock {
+          justify-content: center;
         }
       }
 

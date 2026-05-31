@@ -143,6 +143,38 @@
         box-shadow: 0 14px 34px rgba(68, 41, 22, 0.04);
       }
 
+      .bottomTabs {
+        display: none;
+      }
+
+      .bottomTabBtn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: rgba(47, 32, 23, 0.72) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 8px;
+        box-shadow: none !important;
+        text-decoration: none;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-align: center;
+      }
+
+      .bottomTabBtn.active {
+        background: rgba(107, 69, 44, 0.1) !important;
+        color: #241710 !important;
+        opacity: 1;
+      }
+
       .formRow {
         display: grid;
         grid-template-columns: 1fr;
@@ -178,6 +210,85 @@
 
       a.btn {
         text-decoration: none;
+      }
+
+      @media (max-width: 520px) and (orientation: portrait) {
+        body {
+          padding:
+            calc(8px + env(safe-area-inset-top, 0px))
+            8px
+            calc(10px + env(safe-area-inset-bottom, 0px))
+            8px;
+        }
+
+        .shell {
+          max-width: none;
+          min-height: calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 18px);
+        }
+
+        .topbar {
+          width: min(420px, calc(100vw - 16px));
+          margin: 0 auto 12px;
+          padding: 18px 16px 14px;
+          border-radius: 30px;
+        }
+
+        .topMenu {
+          display: none;
+        }
+
+        .brand {
+          gap: 6px;
+          width: 100%;
+        }
+
+        .brand h1 {
+          font-size: 18px;
+        }
+
+        .brand .subtitle {
+          max-width: 24ch;
+          font-size: 12px;
+        }
+
+        .row {
+          justify-content: flex-start !important;
+        }
+
+        .panel {
+          width: min(420px, calc(100vw - 16px));
+          margin: 0 auto;
+          padding: 18px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+          border-radius: 30px;
+        }
+
+        .tokenBox {
+          font-size: 11px;
+          line-height: 1.5;
+        }
+
+        .formRow {
+          gap: 12px;
+        }
+
+        .bottomTabs {
+          position: fixed;
+          left: 10px;
+          right: 10px;
+          bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+          padding: 8px;
+          border-radius: 22px;
+          border: 1px solid rgba(17, 17, 17, 0.08);
+          background: rgba(255, 252, 248, 0.94);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 22px 42px rgba(68, 41, 22, 0.16),
+            0 1px 0 rgba(255, 255, 255, 0.78) inset;
+          z-index: 28;
+        }
       }
     </style>
   </head>
@@ -365,6 +476,21 @@
             Der Link ist nur begrenzt gültig und kann nur einmal benutzt werden.
           </div>
         </div>
+      </div>
+
+      <div class="bottomTabs" aria-label="Hauptnavigation">
+        <a class="bottomTabBtn ghost" href="/customer-map">
+          <span class="lbl">Cafés</span>
+        </a>
+        <a class="bottomTabBtn ghost" href="/customer-wallet">
+          <span class="lbl">Wallet</span>
+        </a>
+        <a class="bottomTabBtn ghost" href="/customer-history">
+          <span class="lbl">Verlauf</span>
+        </a>
+        <a class="bottomTabBtn ghost active" href="/customer-profile">
+          <span class="lbl">Konto</span>
+        </a>
       </div>
     </div>
 
