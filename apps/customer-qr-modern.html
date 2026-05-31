@@ -472,6 +472,19 @@
         color: #241710;
       }
 
+      .topAccountBtn {
+        min-height: 40px;
+        padding: 8px 0;
+        border: none !important;
+        background: transparent !important;
+        color: #5a4030 !important;
+        box-shadow: none !important;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
       @media (max-width: 420px) {
         .brandHead {
           gap: 10px;
@@ -526,7 +539,11 @@
         }
 
         .topbar .row {
-          display: none;
+          display: flex;
+          position: fixed;
+          top: calc(18px + var(--safe-top, 0px));
+          right: calc(14px + var(--safe-right, 0px));
+          z-index: 41;
         }
 
         .brand {
@@ -568,6 +585,12 @@
 
         .topbar .kk-brandWord {
           font-size: 24px;
+        }
+
+        .topAccountBtn {
+          min-height: 34px;
+          font-size: 10px;
+          letter-spacing: 0.16em;
         }
 
         .grid {
@@ -3347,6 +3370,9 @@
             Live
           </div>
         </div>
+        <div class="row">
+          <button class="topAccountBtn" id="topAccountBtn" type="button">Konto</button>
+        </div>
       </div>
 
       <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
@@ -3420,12 +3446,6 @@
           <span class="topMenuBtnContent">
             <span class="ico" aria-hidden="true">V</span>
             <span class="lbl">Verlauf</span>
-          </span>
-        </button>
-        <button class="bottomTabBtn ghost" id="bottomModeAccount" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Konto</span>
           </span>
         </button>
       </div>

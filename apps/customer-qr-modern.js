@@ -69,7 +69,7 @@
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
-    bottomModeAccount: document.getElementById("bottomModeAccount"),
+    topAccountBtn: document.getElementById("topAccountBtn"),
 
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
@@ -405,6 +405,10 @@
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
     if (!isAuthed) closeWalletOverlay({ silent: true });
+    if (el.topAccountBtn) {
+      el.topAccountBtn.style.display = isAuthed ? "" : "none";
+      el.topAccountBtn.textContent = "Konto";
+    }
 
     if (el.welcomeBadge && isAuthed) {
       var uname = session.username || session.email || "";
@@ -426,8 +430,6 @@
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
     if (el.bottomModeHistory)
       el.bottomModeHistory.classList.toggle("active", w === "history");
-    if (el.bottomModeAccount)
-      el.bottomModeAccount.classList.toggle("active", w === "account");
   }
 
   function setWalletOverlayOpen(open) {
@@ -446,6 +448,7 @@
   }
 
   function openWalletOverlay() {
+    closeQrSheet();
     refreshWallet();
     setWalletOverlayOpen(true);
     navSetActive("wallet");
@@ -453,6 +456,15 @@
 
   function closeWalletOverlay(opts) {
     var o = opts || {};
+    closeQrSheet();
+    try {
+      if (el.walletList) {
+        var cards = el.walletList.querySelectorAll(".passCard.open");
+        for (var i = 0; i < cards.length; i++) {
+          closePass(cards[i]);
+        }
+      }
+    } catch (e0) {}
     setWalletOverlayOpen(false);
     if (o.silent) return;
     if (currentPageMode === "wallet") {
@@ -2206,8 +2218,6 @@
   }
 
   function openPass(passEl) {
-    openQrSheet(passEl);
-    return;
     if (!passEl) return;
     try {
       if (passEl.__forceBackTimer) {
@@ -2337,8 +2347,6 @@
   }
 
   function closePass(passEl) {
-    closeQrSheet();
-    return;
     if (!passEl) return;
     try {
       if (passEl.__forceBackTimer) {
@@ -3314,8 +3322,7 @@
   }
 
   function wireAccount() {
-    if (!el.sessionBadge) return;
-    el.sessionBadge.addEventListener("click", function () {
+    function onAccountClick() {
       var isAuthed = !!(session && session.address);
       if (isAuthed) {
         try {
@@ -3347,7 +3354,10 @@
         if (el.email && el.email.focus) el.email.focus();
         else if (el.username && el.username.focus) el.username.focus();
       } catch (e5) {}
-    });
+    }
+
+    if (el.sessionBadge) el.sessionBadge.addEventListener("click", onAccountClick);
+    if (el.topAccountBtn) el.topAccountBtn.addEventListener("click", onAccountClick);
   }
 
   function wireNavigation() {
@@ -3365,7 +3375,6 @@
     bindModeButton(el.bottomModeMap, "map");
     bindModeButton(el.bottomModeWallet, "wallet");
     bindModeButton(el.bottomModeHistory, "history");
-    bindModeButton(el.bottomModeAccount, "account");
   }
 
   function resetPassCardMotion(node) {
