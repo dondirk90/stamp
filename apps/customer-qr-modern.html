@@ -3007,6 +3007,125 @@
         flex: 1;
       }
 
+      .qrSheetBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(21, 14, 10, 0.28);
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        z-index: 60;
+      }
+
+      .qrSheetBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .qrSheet {
+        position: fixed;
+        left: 50%;
+        bottom: max(10px, env(safe-area-inset-bottom, 0px));
+        transform: translate(-50%, 24px);
+        width: min(420px, calc(100vw - 16px));
+        border-radius: 30px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.97);
+        box-shadow:
+          0 26px 48px rgba(41, 29, 21, 0.2),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          opacity 220ms ease;
+        z-index: 61;
+      }
+
+      .qrSheet.open {
+        transform: translate(-50%, 0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .qrSheetInner {
+        padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .qrSheetHandle {
+        width: 42px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(48, 34, 24, 0.16);
+        margin: 0 auto 2px;
+      }
+
+      .qrSheetHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .qrSheetTitle {
+        font-size: 22px;
+        font-weight: 950;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: #241710;
+      }
+
+      .qrSheetMeta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .qrSheetSub,
+      .qrSheetHint {
+        font-size: 12px;
+        line-height: 1.45;
+        color: rgba(59, 42, 31, 0.72);
+      }
+
+      .qrSheetClose {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        min-height: 40px;
+        border: none !important;
+        border-radius: 14px;
+        background: rgba(107, 69, 44, 0.08) !important;
+        box-shadow: none !important;
+        color: #241710 !important;
+        font-size: 18px;
+      }
+
+      .qrSheetBox {
+        min-height: 244px;
+        border-radius: 24px;
+        border: 1px dashed rgba(32, 24, 20, 0.16);
+        background: rgba(255, 255, 255, 0.84);
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+
+      .qrSheetBox svg,
+      .qrSheetBox img,
+      .qrSheetBox canvas {
+        display: block;
+        width: min(252px, 100%);
+        height: auto;
+        max-width: 252px;
+        margin: 0 auto;
+      }
+
       /* Cafe modal: no framed secondary buttons */
       #cafeModal .btn.secondary {
         border: none;
@@ -3046,6 +3165,26 @@
         </div>
       </div>
     </noscript>
+
+    <div class="qrSheetBackdrop" id="qrSheetBackdrop" aria-hidden="true"></div>
+    <div class="qrSheet" id="qrSheet" aria-hidden="true" aria-label="QR Code">
+      <div class="qrSheetInner">
+        <div class="qrSheetHandle" aria-hidden="true"></div>
+        <div class="qrSheetHead">
+          <div class="qrSheetMeta">
+            <div class="qrSheetTitle" id="qrSheetTitle">Karte</div>
+            <div class="qrSheetSub" id="qrSheetSub">QR wird geladen…</div>
+          </div>
+          <button class="qrSheetClose" id="qrSheetClose" type="button" aria-label="Schließen">
+            ×
+          </button>
+        </div>
+        <div class="qrSheetBox" id="qrSheetBox"></div>
+        <div class="qrSheetHint" id="qrSheetHint">
+          Am Tresen scannen lassen.
+        </div>
+      </div>
+    </div>
 
     <div class="shell">
       <div class="topbar">

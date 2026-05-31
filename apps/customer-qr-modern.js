@@ -24,12 +24,24 @@
     open: false,
   };
 
+  var qrSheetState = {
+    open: false,
+    passEl: null,
+  };
+
   var currentPageMode = null;
 
   var el = {
     buildBadge: document.getElementById("buildBadge"),
     liveBadge: document.getElementById("liveBadge"),
     bottomTabs: document.querySelector(".bottomTabs"),
+    qrSheetBackdrop: document.getElementById("qrSheetBackdrop"),
+    qrSheet: document.getElementById("qrSheet"),
+    qrSheetTitle: document.getElementById("qrSheetTitle"),
+    qrSheetSub: document.getElementById("qrSheetSub"),
+    qrSheetBox: document.getElementById("qrSheetBox"),
+    qrSheetHint: document.getElementById("qrSheetHint"),
+    qrSheetClose: document.getElementById("qrSheetClose"),
 
     authPanel: document.getElementById("authPanel"),
     mainPanel: document.getElementById("mainPanel"),
@@ -417,7 +429,25 @@
     shellMenuState.open = !!open;
   }
 
-  function wireShellMenu() {}
+  function wireShellMenu() {
+    if (el.qrSheetBackdrop) {
+      el.qrSheetBackdrop.addEventListener("click", function () {
+        closeQrSheet();
+      });
+    }
+    if (el.qrSheetClose) {
+      el.qrSheetClose.addEventListener("click", function () {
+        closeQrSheet();
+      });
+    }
+    try {
+      document.addEventListener("keydown", function (ev) {
+        if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
+          closeQrSheet();
+        }
+      });
+    } catch (e4) {}
+  }
 
   function getPageMode() {
     if (currentPageMode) return currentPageMode;
@@ -1941,7 +1971,184 @@
     }
   }
 
+  function renderQrIntoBox(box, link, onDone) {
+    if (!box || !link) return;
+    box.innerHTML = "";
+    if (
+      typeof QRCode === "undefined" ||
+      !QRCode ||
+      (!QRCode.toString && !QRCode.toDataURL && !QRCode.toCanvas)
+    ) {
+      box.textContent = "QR konnte nicht erzeugt werden.";
+      return;
+    }
+    if (QRCode && typeof QRCode.toString === "function") {
+      try {
+        QRCode.toString(
+          link,
+          { type: "svg", width: 252, margin: 1, errorCorrectionLevel: "M" },
+          function (errSvg, svgText) {
+            if (!errSvg && svgText) {
+              box.innerHTML = String(svgText);
+              if (onDone) onDone(true);
+              return;
+            }
+            renderQrIntoBoxWithImage(box, link, onDone);
+          },
+        );
+        return;
+      } catch (eSvg) {}
+    }
+    renderQrIntoBoxWithImage(box, link, onDone);
+  }
+
+  function renderQrIntoBoxWithImage(box, link, onDone) {
+    if (!box || !link) return;
+    if (QRCode && typeof QRCode.toDataURL === "function") {
+      try {
+        QRCode.toDataURL(
+          link,
+          { width: 252, margin: 1, errorCorrectionLevel: "M" },
+          function (err, url) {
+            if (!err && url) {
+              box.innerHTML = "";
+              var img = document.createElement("img");
+              img.alt = "QR Code";
+              img.src = String(url);
+              box.appendChild(img);
+              if (onDone) onDone(true);
+              return;
+            }
+            renderQrIntoBoxWithCanvas(box, link, onDone);
+          },
+        );
+        return;
+      } catch (eImg) {}
+    }
+    renderQrIntoBoxWithCanvas(box, link, onDone);
+  }
+
+  function renderQrIntoBoxWithCanvas(box, link, onDone) {
+    if (!box || !link) return;
+    box.innerHTML = "";
+    var canvas = document.createElement("canvas");
+    box.appendChild(canvas);
+    try {
+      QRCode.toCanvas(
+        canvas,
+        link,
+        { width: 252, margin: 1, errorCorrectionLevel: "M" },
+        function (err) {
+          if (err) {
+            box.textContent = "QR konnte nicht erzeugt werden.";
+            if (onDone) onDone(false);
+            return;
+          }
+          if (onDone) onDone(true);
+        },
+      );
+    } catch (eCanvas) {
+      box.textContent = "QR konnte nicht erzeugt werden.";
+      if (onDone) onDone(false);
+    }
+  }
+
+  function setQrSheetOpen(open) {
+    var next = !!open;
+    qrSheetState.open = next;
+    try {
+      if (el.qrSheetBackdrop) el.qrSheetBackdrop.classList.toggle("open", next);
+      if (el.qrSheet) el.qrSheet.classList.toggle("open", next);
+      if (el.qrSheet) el.qrSheet.setAttribute("aria-hidden", next ? "false" : "true");
+      document.body.classList.toggle("qrSheetOpen", next);
+    } catch (e) {}
+  }
+
+  function closeQrSheet() {
+    qrSheetState.passEl = null;
+    setQrSheetOpen(false);
+    try {
+      if (el.qrSheetBox) el.qrSheetBox.innerHTML = "";
+    } catch (e) {}
+  }
+
+  function openQrSheet(passEl) {
+    if (!passEl) return;
+    qrSheetState.passEl = passEl;
+    try {
+      if (el.qrSheetTitle) {
+        var titleEl = passEl.querySelector(".passTitle");
+        el.qrSheetTitle.textContent = titleEl
+          ? String(titleEl.textContent || "Kaffekarte")
+          : "Kaffekarte";
+      }
+      if (el.qrSheetSub) {
+        var countEl = passEl.querySelector(".passCountLine");
+        el.qrSheetSub.textContent = countEl
+          ? String(countEl.textContent || "QR wird geladen…")
+          : "QR wird geladen…";
+      }
+      if (el.qrSheetHint) {
+        var stamps = getPassStampCount(passEl);
+        var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
+        el.qrSheetHint.textContent = full
+          ? "Am Tresen scannen lassen, um die Belohnung einzulösen."
+          : "Am Tresen scannen lassen, damit dein nächster Stempel dazukommt.";
+      }
+      if (el.qrSheetBox) {
+        el.qrSheetBox.textContent = "QR wird geladen…";
+      }
+    } catch (eMeta) {}
+
+    setQrSheetOpen(true);
+
+    try {
+      var cafeAddress = passEl.getAttribute("data-cafe") || "";
+      var stamps = getPassStampCount(passEl);
+      var renderLink = function (count) {
+        var full = Number(count || 0) >= getPassRewardThreshold(passEl);
+        var link = full ? buildRedeemLink(cafeAddress) : buildCafeLink(cafeAddress);
+        if (!link || !el.qrSheetBox) {
+          if (el.qrSheetBox) el.qrSheetBox.textContent = "QR konnte nicht erzeugt werden.";
+          return;
+        }
+        renderQrIntoBox(el.qrSheetBox, link);
+      };
+
+      if (stamps == null) {
+        apiFetch(
+          "/stamps/" +
+            encodeURIComponent(session.address) +
+            "?fallback=1&cafe=" +
+            encodeURIComponent(cafeAddress),
+        )
+          .then(function (data) {
+            var s =
+              data && data.stamps != null
+                ? Number(data.stamps)
+                : data && data.count != null
+                  ? Number(data.count)
+                  : 0;
+            if (!Number.isFinite(s)) s = 0;
+            try {
+              setPassCardStamps(passEl, s);
+            } catch (e1) {}
+            renderLink(s);
+          })
+          .catch(function () {
+            if (el.qrSheetBox) el.qrSheetBox.textContent = "QR Fehler.";
+          });
+        return;
+      }
+      renderLink(stamps);
+    } catch (e) {
+      if (el.qrSheetBox) el.qrSheetBox.textContent = "QR Fehler.";
+    }
+  }
+
   function openPass(passEl) {
+    openQrSheet(passEl);
+    return;
     if (!passEl) return;
     try {
       if (passEl.__forceBackTimer) {
@@ -2071,6 +2278,8 @@
   }
 
   function closePass(passEl) {
+    closeQrSheet();
+    return;
     if (!passEl) return;
     try {
       if (passEl.__forceBackTimer) {
