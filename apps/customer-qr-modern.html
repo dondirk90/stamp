@@ -542,12 +542,15 @@
       }
 
       .utilityMenuBtn,
+      button.utilityMenuBtn,
       button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
         width: 100%;
         min-height: 48px;
         border: none !important;
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
+        background-color: rgba(255, 252, 247, 0.98) !important;
+        background-image: none !important;
         box-shadow: none !important;
         border-radius: 14px;
         color: #241710 !important;
@@ -557,6 +560,8 @@
         text-transform: uppercase;
         text-align: left;
         padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
       }
 
       .utilityMenuBtn:hover,
@@ -1714,23 +1719,26 @@
         color: rgba(32, 24, 20, 0.62);
       }
 
-      /* In Wallet tab, reduce padding so the card "floats" on black. */
+      /* Wallet-first mode should still feel like a paper dialog, not a blank stage. */
       html.walletMode #walletPanel.walletDock {
-        padding: 0;
+        padding: 68px 14px 16px;
       }
 
       html.walletMode .walletDockHead {
-        padding: 0 var(--space-1);
+        padding: 0 var(--space-2);
       }
 
-      /* Wallet label away: show only the card on black. */
       html.walletMode #walletPanel .walletDockHead {
-        display: none;
+        display: flex;
       }
 
       html.walletMode .walletCarousel {
-        padding-left: 0;
-        padding-right: 0;
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      html.walletMode #walletPanel.walletDock::before {
+        display: none;
       }
 
       /* Mobile/WebView: slightly flatter for smoother motion */
