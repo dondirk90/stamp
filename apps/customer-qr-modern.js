@@ -486,10 +486,25 @@
   function closeAllPasses(exceptEl) {
     try {
       if (!el.walletList) return;
-      var cards = el.walletList.querySelectorAll(".passCard.open");
+      var cards = el.walletList.querySelectorAll(".passCard.open, .passCard.isFocused");
       for (var i = 0; i < cards.length; i++) {
         if (exceptEl && cards[i] === exceptEl) continue;
         closePass(cards[i]);
+      }
+    } catch (e) {}
+  }
+
+  function focusPass(passEl) {
+    if (!passEl) return;
+    closeAllPasses(passEl);
+    try {
+      if (passEl.classList) passEl.classList.add("isFocused");
+      if (passEl.scrollIntoView) {
+        passEl.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
       }
     } catch (e) {}
   }
@@ -498,6 +513,7 @@
     try {
       if (!el.walletList) return;
       var target =
+        el.walletList.querySelector(".passCard.isFocused") ||
         el.walletList.querySelector(".passCard.open") ||
         el.walletList.querySelector(".passCard");
       if (!target || !target.scrollIntoView) return;
@@ -2403,7 +2419,10 @@
         window.clearTimeout(passEl.__forceBackTimer);
         passEl.__forceBackTimer = 0;
       }
-      if (passEl.classList) passEl.classList.add("forceBack");
+      if (passEl.classList) {
+        passEl.classList.add("forceBack");
+        passEl.classList.add("isFocused");
+      }
     } catch (ePrepOpen) {}
     passEl.classList.add("open");
     syncPassFaceHeight(passEl);
@@ -2532,7 +2551,10 @@
         window.clearTimeout(passEl.__forceBackTimer);
         passEl.__forceBackTimer = 0;
       }
-      if (passEl.classList) passEl.classList.remove("forceBack");
+      if (passEl.classList) {
+        passEl.classList.remove("forceBack");
+        passEl.classList.remove("isFocused");
+      }
     } catch (ePrepClose) {}
     passEl.classList.remove("open");
   }
@@ -2806,16 +2828,16 @@
 
     mainBtn.addEventListener("click", function () {
       if (nowMs() < walletState.ignoreClickUntil) return;
-      // Toggle: makes "flip back" robust even if the click target ends up on the front
-      // due to browser hit-testing quirks during 3D transforms.
       try {
         if (passCard.classList && passCard.classList.contains("open")) {
           closePass(passCard);
+        } else if (passCard.classList && passCard.classList.contains("isFocused")) {
+          openQrSheet(passCard);
         } else {
-          openPass(passCard);
+          focusPass(passCard);
         }
       } catch (e0) {
-        openPass(passCard);
+        focusPass(passCard);
       }
     });
 
