@@ -6,6 +6,7 @@
   var STORAGE_KEY_V2 = "customer_session_v2"; // read-only (backward compat)
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
   var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
+  var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
 
   var REWARD_THRESHOLD = 10;
   var WALLET_MODE =
@@ -149,6 +150,9 @@
   var pickedCafe = null;
   var mapInitTimer = 0;
   var mapInitAttempts = 0;
+  var mapHasAskedForLocation = false;
+  var mapUserMarker = null;
+  var mapLastKnownCenter = null;
 
   var walletState = {
     stackDrag: null,
@@ -993,6 +997,16 @@
 
     if (m === "map") {
       ensureMapInit();
+      requestCurrentMapLocation();
+      try {
+        if (leafletMap) {
+          window.setTimeout(function () {
+            try {
+              if (leafletMap) leafletMap.invalidateSize();
+            } catch (e0) {}
+          }, 40);
+        }
+      } catch (e1) {}
     }
   }
 
@@ -1030,6 +1044,72 @@
         JSON.stringify(Array.isArray(list) ? list : []),
       );
     } catch (e) {}
+  }
+
+  function getDefaultMapCenter() {
+    return [50.9375, 6.9603];
+  }
+
+  function readCachedMapCenter() {
+    try {
+      var raw = localStorage.getItem(MAP_CENTER_CACHE_KEY_V1);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      var lat = Number(parsed && parsed.lat);
+      var lng = Number(parsed && parsed.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return [lat, lng];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function cacheMapCenter(lat, lng) {
+    try {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      localStorage.setItem(
+        MAP_CENTER_CACHE_KEY_V1,
+        JSON.stringify({
+          lat: Number(lat),
+          lng: Number(lng),
+          ts: Date.now(),
+        }),
+      );
+    } catch (e) {}
+  }
+
+  function getPreferredMapCenter() {
+    if (
+      Array.isArray(mapLastKnownCenter) &&
+      mapLastKnownCenter.length === 2 &&
+      Number.isFinite(Number(mapLastKnownCenter[0])) &&
+      Number.isFinite(Number(mapLastKnownCenter[1]))
+    ) {
+      return [Number(mapLastKnownCenter[0]), Number(mapLastKnownCenter[1])];
+    }
+    var cached = readCachedMapCenter();
+    if (cached) return cached;
+    var firstWithPos = null;
+    for (var i = 0; i < cafes.length; i++) {
+      var c = cafes[i];
+      if (c && Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng))) {
+        firstWithPos = c;
+        break;
+      }
+    }
+    if (firstWithPos) return [Number(firstWithPos.lat), Number(firstWithPos.lng)];
+    return getDefaultMapCenter();
+  }
+
+  function getPreferredMapZoom() {
+    if (mapLastKnownCenter || readCachedMapCenter()) return 14;
+    for (var i = 0; i < cafes.length; i++) {
+      var c = cafes[i];
+      if (c && Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng))) {
+        return 13;
+      }
+    }
+    return 12;
   }
 
   function isAddressLike(value) {
@@ -1522,29 +1602,97 @@
     }
   }
 
+  function syncMapMarkers() {
+    if (!leafletMap || !window.L || !window.L.marker) return;
+    try {
+      if (leafletMarkers && leafletMarkers.length) {
+        for (var i = 0; i < leafletMarkers.length; i++) {
+          try {
+            leafletMarkers[i].remove();
+          } catch (e0) {}
+        }
+      }
+    } catch (e1) {}
+    leafletMarkers = [];
+
+    for (var j = 0; j < cafes.length; j++) {
+      var cafe = cafes[j];
+      if (!cafe || !Number.isFinite(Number(cafe.lat)) || !Number.isFinite(Number(cafe.lng))) {
+        continue;
+      }
+      (function (cafe2) {
+        var icon = buildCafePinIcon(cafe2);
+        var marker = window.L.marker(
+          [Number(cafe2.lat), Number(cafe2.lng)],
+          icon ? { icon: icon } : undefined,
+        );
+        marker.addTo(leafletMap);
+        marker.on("click", function () {
+          openCafeModal(cafe2);
+        });
+        leafletMarkers.push(marker);
+      })(cafe);
+    }
+  }
+
+  function ensureUserLocationMarker(lat, lng) {
+    if (!leafletMap || !window.L || !window.L.circleMarker) return;
+    try {
+      if (!mapUserMarker) {
+        mapUserMarker = window.L.circleMarker([lat, lng], {
+          radius: 8,
+          weight: 3,
+          color: "#fffaf2",
+          fillColor: "#5b7cfa",
+          fillOpacity: 0.95,
+        }).addTo(leafletMap);
+      } else {
+        mapUserMarker.setLatLng([lat, lng]);
+      }
+    } catch (e) {}
+  }
+
+  function requestCurrentMapLocation() {
+    if (mapHasAskedForLocation) return;
+    mapHasAskedForLocation = true;
+    try {
+      if (!navigator.geolocation || !leafletMap) return;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          try {
+            var lat = Number(pos && pos.coords && pos.coords.latitude);
+            var lng = Number(pos && pos.coords && pos.coords.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || !leafletMap) return;
+            mapLastKnownCenter = [lat, lng];
+            cacheMapCenter(lat, lng);
+            ensureUserLocationMarker(lat, lng);
+            leafletMap.setView([lat, lng], Math.max(leafletMap.getZoom(), 14), {
+              animate: true,
+            });
+          } catch (e1) {}
+        },
+        function () {},
+        {
+          enableHighAccuracy: false,
+          timeout: 4500,
+          maximumAge: 300000,
+        },
+      );
+    } catch (e) {}
+  }
+
   function initMapIfReady() {
     if (!el.cafeMap) return false;
     if (leafletMap) return true;
-    if (!cafes || !cafes.length) return false;
     if (!window.L || !window.L.map) return false;
-
-    var firstWithPos = null;
-    for (var i = 0; i < cafes.length; i++) {
-      var c = cafes[i];
-      if (c && isFinite(Number(c.lat)) && isFinite(Number(c.lng))) {
-        firstWithPos = c;
-        break;
-      }
-    }
-    var center = firstWithPos
-      ? [Number(firstWithPos.lat), Number(firstWithPos.lng)]
-      : [52.52, 13.405];
+    var center = getPreferredMapCenter();
+    var zoom = getPreferredMapZoom();
 
     try {
       leafletMap = window.L.map(el.cafeMap, {
         zoomControl: false,
         attributionControl: false,
-      }).setView(center, firstWithPos ? 14 : 5);
+      }).setView(center, zoom);
 
       window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -1553,24 +1701,7 @@
       leafletMap.on("click", function () {
         hideDiscoverPick();
       });
-
-      for (var j = 0; j < cafes.length; j++) {
-        var cafe = cafes[j];
-        if (!cafe || !isFinite(Number(cafe.lat)) || !isFinite(Number(cafe.lng)))
-          continue;
-        (function (cafe2) {
-          var icon = buildCafePinIcon(cafe2);
-          var marker = window.L.marker(
-            [Number(cafe2.lat), Number(cafe2.lng)],
-            icon ? { icon: icon } : undefined,
-          );
-          marker.addTo(leafletMap);
-          marker.on("click", function () {
-            openCafeModal(cafe2);
-          });
-          leafletMarkers.push(marker);
-        })(cafe);
-      }
+      syncMapMarkers();
 
       // Leaflet often needs a size recalculation after being shown.
       window.setTimeout(function () {
@@ -4259,6 +4390,7 @@
 
         // The map page uses the searchable list (#cafeResults). A second list would duplicate items.
         wireCafeSearch();
+        syncMapMarkers();
         ensureMapInit();
       })
       .catch(function () {
