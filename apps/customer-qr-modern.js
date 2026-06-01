@@ -1611,8 +1611,17 @@
     if (el.walletEmpty) {
       try {
         var lead = el.walletEmpty.querySelector(".walletEmptyLead");
+        var body = el.walletEmpty.querySelector(".walletEmptyBody");
+        var cta = el.walletEmpty.querySelector("#walletEmptyMapBtn");
         if (lead) {
-          lead.textContent = "Noch keine Karten. Entdecke zuerst ein Café auf der Karte.";
+          lead.textContent = "Noch keine Karten";
+        }
+        if (body) {
+          body.textContent =
+            "Entdecke zuerst ein Café auf der Karte und hole dir dort deine erste digitale Stempelkarte.";
+        }
+        if (cta) {
+          cta.textContent = "Cafés entdecken";
         }
         var nodes = el.walletEmpty.childNodes || [];
         for (var i = nodes.length - 1; i >= 0; i--) {

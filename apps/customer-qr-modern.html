@@ -541,11 +541,13 @@
         display: block;
       }
 
-      .utilityMenuBtn {
+      .utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
         width: 100%;
         min-height: 48px;
         border: none !important;
-        background: transparent !important;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
         box-shadow: none !important;
         border-radius: 14px;
         color: #241710 !important;
@@ -557,7 +559,8 @@
         padding: 0 14px;
       }
 
-      .utilityMenuBtn:hover {
+      .utilityMenuBtn:hover,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
         background: rgba(107, 69, 44, 0.08) !important;
       }
 
@@ -3447,6 +3450,27 @@
         line-height: 1.4;
       }
 
+      .walletOverlay #walletEmpty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 280px;
+        padding: 18px 0 10px;
+      }
+
+      .walletEmptyLead {
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #241710;
+      }
+
+      .walletEmptyBody {
+        max-width: 26ch;
+      }
+
       .walletOverlay .walletCarousel {
         padding-top: 10px;
         padding-bottom: 18px;
@@ -3864,6 +3888,7 @@
                   style="display: none; margin-top: var(--space-3)"
                 >
                   <div class="walletEmptyLead"></div>
+                  <div class="walletEmptyBody"></div>
                   <button
                     class="btn secondary"
                     id="walletEmptyMapBtn"
