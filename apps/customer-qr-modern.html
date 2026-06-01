@@ -3356,28 +3356,6 @@
         overflow: hidden;
       }
 
-      .walletOverlayClose {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        z-index: 2;
-        width: 42px;
-        min-width: 42px;
-        height: 42px;
-        min-height: 42px;
-        border: none !important;
-        border-radius: 999px;
-        background: rgba(255, 251, 246, 0.82) !important;
-        color: #6b452c !important;
-        box-shadow:
-          0 8px 20px rgba(56, 37, 23, 0.1),
-          0 1px 0 rgba(255, 255, 255, 0.84) inset !important;
-      }
-
-      .walletOverlayClose:hover {
-        background: rgba(255, 251, 246, 0.96) !important;
-      }
-
       .walletOverlay .walletDock::before {
         content: "";
         position: absolute;
@@ -3873,9 +3851,6 @@
           <div class="walletOverlay" id="walletOverlay" aria-hidden="true" aria-label="Wallet">
             <div class="walletOverlayInner">
               <div class="card panel walletDock" id="walletPanel">
-                <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Schließen">
-                  ×
-                </button>
                 <div class="walletDockHead">
                   <h3 style="margin: 0">Wallet</h3>
                   <div class="hint" id="walletSubtitle">

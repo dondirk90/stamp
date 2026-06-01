@@ -552,25 +552,11 @@
         closeQrSheet();
       });
     }
-    if (el.walletOverlayBackdrop) {
-      el.walletOverlayBackdrop.addEventListener("click", function () {
-        closeWalletOverlay();
-      });
-    }
-    if (el.walletOverlayClose) {
-      el.walletOverlayClose.addEventListener("click", function () {
-        closeWalletOverlay();
-      });
-    }
     try {
       document.addEventListener("keydown", function (ev) {
         if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
           if (qrSheetState.open) {
             closeQrSheet();
-            return;
-          }
-          if (walletState.overlayOpen) {
-            closeWalletOverlay();
             return;
           }
           if (shellMenuState.open) {
