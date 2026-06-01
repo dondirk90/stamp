@@ -627,6 +627,10 @@
           position: fixed;
           top: calc(18px + var(--safe-top, 0px));
           right: calc(14px + var(--safe-right, 0px));
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
           z-index: 41;
         }
 
@@ -3181,12 +3185,12 @@
         left: 50%;
         bottom: max(10px, env(safe-area-inset-bottom, 0px));
         transform: translate(-50%, 24px);
-        width: min(420px, calc(100vw - 16px));
-        border-radius: 30px;
+        width: min(460px, calc(100vw - 12px));
+        border-radius: 34px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: rgba(255, 252, 248, 0.97);
         box-shadow:
-          0 26px 48px rgba(41, 29, 21, 0.2),
+          0 32px 58px rgba(41, 29, 21, 0.22),
           0 1px 0 rgba(255, 255, 255, 0.82) inset;
         opacity: 0;
         pointer-events: none;
@@ -3203,10 +3207,10 @@
       }
 
       .qrSheetInner {
-        padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+        padding: 16px 16px calc(22px + env(safe-area-inset-bottom, 0px));
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 16px;
       }
 
       .qrSheetHandle {
@@ -3225,7 +3229,7 @@
       }
 
       .qrSheetTitle {
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 950;
         line-height: 1.02;
         letter-spacing: -0.03em;
@@ -3241,7 +3245,7 @@
 
       .qrSheetSub,
       .qrSheetHint {
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1.45;
         color: rgba(59, 42, 31, 0.72);
       }
@@ -3260,22 +3264,22 @@
       }
 
       .qrSheetBox {
-        min-height: 244px;
-        border-radius: 24px;
+        min-height: 312px;
+        border-radius: 28px;
         border: 1px dashed rgba(32, 24, 20, 0.16);
         background: rgba(255, 255, 255, 0.84);
         display: grid;
         place-items: center;
-        padding: 16px;
+        padding: 20px;
       }
 
       .qrSheetBox svg,
       .qrSheetBox img,
       .qrSheetBox canvas {
         display: block;
-        width: min(252px, 100%);
+        width: min(312px, 100%);
         height: auto;
-        max-width: 252px;
+        max-width: 312px;
         margin: 0 auto;
       }
 
