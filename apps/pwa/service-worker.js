@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v1";
+const CACHE_VERSION = "stamp-shell-v2-20260601";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -18,6 +18,14 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(APP_SHELL_URLS))
       .then(() => self.skipWaiting()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  try {
+    if (event && event.data === "SKIP_WAITING") {
+      self.skipWaiting();
+    }
+  } catch (e) {}
 });
 
 self.addEventListener("activate", (event) => {
@@ -104,7 +112,7 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".svg")
   ) {
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(networkFirst(request));
     return;
   }
 
