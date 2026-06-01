@@ -2235,7 +2235,7 @@
       try {
         QRCode.toString(
           link,
-          { type: "svg", width: 252, margin: 1, errorCorrectionLevel: "M" },
+          { type: "svg", width: 320, margin: 1, errorCorrectionLevel: "M" },
           function (errSvg, svgText) {
             if (!errSvg && svgText) {
               box.innerHTML = String(svgText);
@@ -2257,7 +2257,7 @@
       try {
         QRCode.toDataURL(
           link,
-          { width: 252, margin: 1, errorCorrectionLevel: "M" },
+          { width: 320, margin: 1, errorCorrectionLevel: "M" },
           function (err, url) {
             if (!err && url) {
               box.innerHTML = "";
@@ -2286,7 +2286,7 @@
       QRCode.toCanvas(
         canvas,
         link,
-        { width: 252, margin: 1, errorCorrectionLevel: "M" },
+        { width: 320, margin: 1, errorCorrectionLevel: "M" },
         function (err) {
           if (err) {
             box.textContent = "QR konnte nicht erzeugt werden.";
