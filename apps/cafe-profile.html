@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Profil</title>
+    <meta name="theme-color" content="#6b452c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Kaffekarte" />
+    <link rel="manifest" href="/pwa/manifest.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/pwa/icons/icon-192.png"
+    />
+    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -245,7 +258,7 @@
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Suelzer Kaffekarte</span>
+              <span class="kk-brandWord">Kaffekarte</span>
             </span>
           </a>
           <div class="avatar" id="cafeAvatar">C</div>
@@ -1385,5 +1398,6 @@
 
       init();
     </script>
+    <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
