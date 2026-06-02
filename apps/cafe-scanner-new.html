@@ -36,15 +36,15 @@
       body {
         font-family: var(--font-sans);
         background:
-          radial-gradient(circle at top, rgba(210, 159, 110, 0.18), rgba(210, 159, 110, 0) 34%),
-          linear-gradient(180deg, #241813 0%, #2b1d18 30%, #1f1511 100%);
+          radial-gradient(circle at top, rgba(210, 159, 110, 0.16), rgba(210, 159, 110, 0) 34%),
+          linear-gradient(180deg, #fbf5ed 0%, #f4eadf 54%, #efe4d8 100%);
         min-height: 100vh;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
         position: relative;
-        color: var(--text);
+        color: #362318;
       }
       body::before {
         content: none;
@@ -65,12 +65,11 @@
         padding: 18px 20px;
         border-radius: 28px;
         background:
-          linear-gradient(180deg, rgba(255, 249, 243, 0.08), rgba(255, 249, 243, 0.03));
-        border: 1px solid rgba(255, 241, 233, 0.1);
+          linear-gradient(180deg, rgba(255, 251, 246, 0.95), rgba(247, 239, 231, 0.92));
+        border: 1px solid rgba(138, 106, 79, 0.12);
         box-shadow:
-          0 24px 54px rgba(0, 0, 0, 0.24),
-          0 1px 0 rgba(255, 250, 244, 0.08) inset;
-        backdrop-filter: blur(18px);
+          0 18px 42px rgba(58, 36, 24, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.68) inset;
         position: relative;
         z-index: 1;
       }
@@ -691,8 +690,8 @@
         align-items: stretch;
         padding: 8px;
         border-radius: 24px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 241, 233, 0.1);
+        background: rgba(255, 252, 247, 0.7);
+        border: 1px solid rgba(138, 106, 79, 0.1);
       }
 
       .topMenuBtn {
@@ -709,18 +708,18 @@
         border-radius: 18px;
         background: transparent;
         border: 1px solid transparent;
-        color: var(--text);
+        color: #442d1e;
         text-decoration: none;
       }
 
       .topMenuBtn:hover {
-        background: rgba(255, 248, 241, 0.06);
+        background: rgba(255, 250, 244, 0.92);
       }
 
       .topMenuBtn.active {
-        background: rgba(255, 248, 241, 0.1);
-        border-color: rgba(255, 241, 233, 0.18);
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+        background: rgba(255, 255, 255, 0.95);
+        border-color: rgba(138, 106, 79, 0.16);
+        box-shadow: 0 10px 24px rgba(58, 36, 24, 0.08);
       }
 
       .topMenuBtn .ico {
@@ -729,7 +728,7 @@
         border-radius: 999px;
         display: grid;
         place-items: center;
-        background: rgba(255, 248, 241, 0.1);
+        background: rgba(121, 82, 53, 0.08);
         font-size: 12px;
         font-weight: 900;
       }
@@ -747,8 +746,8 @@
         margin-top: 18px;
         padding: 18px;
         border-radius: 22px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 241, 233, 0.12);
+        background: rgba(255, 252, 247, 0.72);
+        border: 1px solid rgba(138, 106, 79, 0.12);
       }
 
       .scannerWorkspace {
@@ -762,8 +761,9 @@
       .scannerSideCard {
         padding: 18px;
         border-radius: 22px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 241, 233, 0.12);
+        background: rgba(255, 252, 247, 0.86);
+        border: 1px solid rgba(138, 106, 79, 0.12);
+        box-shadow: 0 16px 34px rgba(58, 36, 24, 0.06);
       }
 
       .scannerMainHead {
@@ -782,7 +782,7 @@
         font-weight: 900;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--text-muted);
+        color: rgba(92, 68, 48, 0.7);
       }
 
       .scannerEyebrowDot {
@@ -795,7 +795,7 @@
 
       .scannerLead {
         margin-top: 8px;
-        color: var(--text-muted);
+        color: rgba(92, 68, 48, 0.78);
         font-size: 14px;
         line-height: 1.55;
         max-width: 44ch;

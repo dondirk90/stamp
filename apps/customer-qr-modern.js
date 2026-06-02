@@ -115,6 +115,9 @@
     cafeModalLogo: document.getElementById("cafeModalLogo"),
     cafeModalAbout: document.getElementById("cafeModalAbout"),
     cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
+    cafeModalLinks: document.getElementById("cafeModalLinks"),
+    cafeModalWebsite: document.getElementById("cafeModalWebsite"),
+    cafeModalInstagram: document.getElementById("cafeModalInstagram"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
@@ -811,6 +814,10 @@
     var name = cafe && cafe.name ? String(cafe.name) : "Café";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
+    var websiteUrl =
+      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "";
+    var instagramUrl =
+      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "";
     var cafeAddr = normalizeAddr(
       (cafe && (cafe.cafeAddress || cafe.address)) || "",
     );
@@ -828,6 +835,27 @@
           el.cafeModalLogo.removeAttribute("src");
         } catch (eLogo) {}
       }
+    }
+
+    if (el.cafeModalLinks && el.cafeModalWebsite && el.cafeModalInstagram) {
+      var hasLinks = false;
+      if (websiteUrl) {
+        el.cafeModalWebsite.style.display = "inline-flex";
+        el.cafeModalWebsite.href = websiteUrl;
+        hasLinks = true;
+      } else {
+        el.cafeModalWebsite.style.display = "none";
+        el.cafeModalWebsite.href = "#";
+      }
+      if (instagramUrl) {
+        el.cafeModalInstagram.style.display = "inline-flex";
+        el.cafeModalInstagram.href = instagramUrl;
+        hasLinks = true;
+      } else {
+        el.cafeModalInstagram.style.display = "none";
+        el.cafeModalInstagram.href = "#";
+      }
+      el.cafeModalLinks.style.display = hasLinks ? "flex" : "none";
     }
 
     // About text
@@ -922,6 +950,8 @@
         address: cafe.address,
         cafeAddress: cafe.cafeAddress,
         about: cafe.about || "",
+        websiteUrl: cafe.websiteUrl || "",
+        instagramUrl: cafe.instagramUrl || "",
         logoDataUrl: cafe.logoDataUrl || null,
         cardBackgroundDataUrl: cafe.cardBackgroundDataUrl || null,
         images: cafe.images || null,

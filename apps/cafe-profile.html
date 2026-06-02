@@ -483,6 +483,45 @@
             </div>
           </div>
 
+          <div id="sectionLinks" class="cardSection">
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Links im Kunden-Popup
+            </div>
+            <div class="logoRow" style="align-items: flex-end; gap: 12px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Website
+                </div>
+                <input
+                  id="profileWebsiteUrl"
+                  class="input"
+                  type="url"
+                  maxlength="240"
+                  placeholder="https://deincafe.de"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Instagram
+                </div>
+                <input
+                  id="profileInstagramUrl"
+                  class="input"
+                  type="url"
+                  maxlength="240"
+                  placeholder="https://instagram.com/deincafe"
+                  style="width: 100%"
+                />
+              </div>
+            </div>
+            <div class="muted" style="margin-top: 8px">
+              Diese Links erscheinen spaeter im kleinen Cafe-Fenster auf der
+              Kundenkarte und helfen beim direkten Wechsel zu Website oder
+              Instagram.
+            </div>
+          </div>
+
           <div id="sectionRedeem" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Einlöse-Text (wenn Karte voll ist)
@@ -779,6 +818,8 @@
       function renderProfile(cafeInfo) {
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
+        const websiteEl = document.getElementById("profileWebsiteUrl");
+        const instagramEl = document.getElementById("profileInstagramUrl");
         const logoPreview = document.getElementById("profileLogoPreview");
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
@@ -828,6 +869,16 @@
           redeemEl.value =
             cafeInfo && cafeInfo.redeemMessage
               ? String(cafeInfo.redeemMessage)
+              : "";
+        }
+        if (websiteEl) {
+          websiteEl.value =
+            cafeInfo && cafeInfo.websiteUrl ? String(cafeInfo.websiteUrl) : "";
+        }
+        if (instagramEl) {
+          instagramEl.value =
+            cafeInfo && cafeInfo.instagramUrl
+              ? String(cafeInfo.instagramUrl)
               : "";
         }
 
@@ -1048,6 +1099,8 @@
       async function saveProfile() {
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
+        const websiteEl = document.getElementById("profileWebsiteUrl");
+        const instagramEl = document.getElementById("profileInstagramUrl");
         const logoInput = document.getElementById("profileLogo");
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
@@ -1107,6 +1160,8 @@
           const redeemMessage = redeemEl
             ? String(redeemEl.value || "").trim()
             : "";
+          const websiteUrl = websiteEl ? String(websiteEl.value || "").trim() : "";
+          const instagramUrl = instagramEl ? String(instagramEl.value || "").trim() : "";
 
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
@@ -1139,6 +1194,8 @@
             body: JSON.stringify({
               about,
               redeemMessage,
+              websiteUrl: websiteUrl || null,
+              instagramUrl: instagramUrl || null,
               logoDataUrl: logoDataUrl || null,
               cardBgDataUrl: cardBgDataUrl || null,
               cardBackText: cardBackText || null,

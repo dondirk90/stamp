@@ -3235,6 +3235,32 @@
         gap: 10px;
       }
 
+      .modalLinkRow {
+        display: none;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .modalLinkPill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(128, 98, 70, 0.16);
+        background: rgba(255, 252, 247, 0.9);
+        color: rgba(92, 68, 48, 0.9);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+        box-shadow: 0 8px 16px rgba(69, 45, 29, 0.05);
+      }
+
+      .modalLinkPill:hover {
+        background: rgba(255, 252, 247, 0.98);
+      }
+
       .modalActions button {
         flex: 1;
         min-width: 0;
@@ -4097,6 +4123,29 @@
           ></div>
           <div class="hint" id="cafeModalAboutEmpty" style="display: none">
             Noch keine Beschreibung.
+          </div>
+
+          <div class="modalLinkRow" id="cafeModalLinks">
+            <a
+              class="modalLinkPill"
+              id="cafeModalWebsite"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display: none"
+            >
+              Website
+            </a>
+            <a
+              class="modalLinkPill"
+              id="cafeModalInstagram"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display: none"
+            >
+              Instagram
+            </a>
           </div>
 
           <div class="modalActions">

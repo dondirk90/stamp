@@ -598,6 +598,8 @@ CREATE TABLE IF NOT EXISTS cafes (
   country TEXT,
   lat REAL,
   lng REAL,
+  website_url TEXT,
+  instagram_url TEXT,
   password_hash TEXT,
   about_text TEXT,
   redeem_message TEXT,
@@ -728,6 +730,14 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN lng REAL",
   "Failed to add cafes.lng column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN website_url TEXT",
+  "Failed to add cafes.website_url column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN instagram_url TEXT",
+  "Failed to add cafes.instagram_url column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN password_hash TEXT",
@@ -947,8 +957,8 @@ const markRedeemTokenUsed = db.prepare(
 // Cafes prepared statements
 const insertCafe = db.prepare(
   db.client === "postgres"
-    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at) RETURNING id"
-    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at)",
+    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at) RETURNING id"
+    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at)",
 );
 const getCafeById = db.prepare("SELECT * FROM cafes WHERE id = ?");
 const getCafeByName = db.prepare(
@@ -993,7 +1003,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -2141,6 +2151,8 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         locationAddress: cafeRow.location_address || null,
         lat: cafeRow.lat != null ? Number(cafeRow.lat) : null,
         lng: cafeRow.lng != null ? Number(cafeRow.lng) : null,
+        websiteUrl: cafeRow.website_url || null,
+        instagramUrl: cafeRow.instagram_url || null,
         about: cafeRow.about_text || null,
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
@@ -2229,6 +2241,20 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         body.redeemMessage == null ? "" : String(body.redeemMessage);
       const trimmed = rawMsg.trim();
       redeemMessage = trimmed ? trimmed.slice(0, 600) : null;
+    }
+
+    let websiteUrl = current.website_url || null;
+    if (Object.prototype.hasOwnProperty.call(body, "websiteUrl")) {
+      const raw = body.websiteUrl == null ? "" : String(body.websiteUrl);
+      const trimmed = raw.trim();
+      websiteUrl = trimmed ? trimmed.slice(0, 240) : null;
+    }
+
+    let instagramUrl = current.instagram_url || null;
+    if (Object.prototype.hasOwnProperty.call(body, "instagramUrl")) {
+      const raw = body.instagramUrl == null ? "" : String(body.instagramUrl);
+      const trimmed = raw.trim();
+      instagramUrl = trimmed ? trimmed.slice(0, 240) : null;
     }
 
     let logoMime = current.logo_mime || null;
@@ -2404,6 +2430,8 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       locationAddress,
       lat,
       lng,
+      websiteUrl,
+      instagramUrl,
       cardTheme,
       stampStyle,
       stampsForReward,
@@ -2429,6 +2457,8 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         locationAddress: updated.location_address || null,
         lat: updated.lat != null ? Number(updated.lat) : null,
         lng: updated.lng != null ? Number(updated.lng) : null,
+        websiteUrl: updated.website_url || null,
+        instagramUrl: updated.instagram_url || null,
         about: updated.about_text || null,
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
@@ -3549,6 +3579,8 @@ app.post("/cafes/register-with-email", async (req, res) => {
       country: sCountry,
       lat: addrCheck.lat,
       lng: addrCheck.lng,
+      website_url: null,
+      instagram_url: null,
       password_hash,
       about_text: null,
       redeem_message: null,
@@ -3653,7 +3685,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -3667,6 +3699,8 @@ app.get("/cafes/public", async (req, res) => {
           cafeAddress: row.address || null,
           lat: row.lat != null ? Number(row.lat) : null,
           lng: row.lng != null ? Number(row.lng) : null,
+          websiteUrl: row.website_url || null,
+          instagramUrl: row.instagram_url || null,
           about: row.about_text ? String(row.about_text).slice(0, 280) : null,
           logoDataUrl:
             row.logo_data && row.logo_mime
@@ -3702,7 +3736,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -3730,6 +3764,8 @@ app.get("/cafes/public/:id", async (req, res) => {
         address: row.location_address || null,
         lat: row.lat != null ? Number(row.lat) : null,
         lng: row.lng != null ? Number(row.lng) : null,
+        websiteUrl: row.website_url || null,
+        instagramUrl: row.instagram_url || null,
         about: row.about_text ? String(row.about_text).slice(0, 1200) : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
