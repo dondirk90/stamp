@@ -6,10 +6,10 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Barista App - Suelzer Kaffekarte</title>
+    <title>Barista App - Kaffekarte</title>
     <meta
       name="description"
-      content="Barista App der Suelzer Kaffekarte zum ruhigen Stempeln und Einloesen direkt am Tresen."
+      content="Barista App der Kaffekarte zum ruhigen Scannen, Stempeln und Einloesen direkt am Tresen."
     />
     <meta name="theme-color" content="#6b452c" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -87,6 +87,16 @@
         font-weight: 950;
         font-family: var(--font-display);
         letter-spacing: -0.03em;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
       }
 
       .brand .avatar {
@@ -653,6 +663,10 @@
         .subtitle {
           text-align: left;
         }
+
+        .topbar .kk-brandWord {
+          font-size: 24px;
+        }
       }
 
       @media (max-width: 520px) {
@@ -683,8 +697,8 @@
 
       .scannerWorkspace {
         display: grid;
-        grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
-        gap: 16px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
         align-items: start;
       }
 
@@ -698,11 +712,10 @@
       }
 
       .scannerMainHead {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        flex-wrap: wrap;
+        display: grid;
+        gap: 18px;
+        justify-items: center;
+        text-align: center;
       }
 
       .scannerEyebrow {
@@ -727,22 +740,34 @@
       .scannerLead {
         margin-top: 8px;
         color: var(--text-muted);
-        font-size: 14px;
+        font-size: 15px;
         line-height: 1.55;
-        max-width: 44ch;
+        max-width: 40ch;
       }
 
       .cameraControls {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
         align-items: center;
+        justify-content: center;
       }
 
       .cameraControls button {
         width: auto;
-        min-width: 160px;
+        min-width: 180px;
         margin: 0;
+      }
+
+      #cameraStartBtn {
+        min-height: 60px;
+        padding: 16px 24px;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        box-shadow:
+          0 18px 34px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.1) inset;
       }
 
       .cameraSecondary {
@@ -757,8 +782,10 @@
 
       .scannerHintCompact {
         margin-top: 14px;
-        padding: 14px 16px;
-        font-size: 13px;
+        padding: 12px 14px;
+        font-size: 12px;
+        text-align: center;
+        opacity: 0.9;
       }
 
       .scannerMetaList {
@@ -816,9 +843,26 @@
       }
 
       .scannerStatus {
-        margin-top: 10px;
+        margin-top: 12px;
         font-size: 13px;
         color: var(--text-muted);
+        text-align: center;
+      }
+
+      .scannerSideCard {
+        padding: 14px 16px;
+        opacity: 0.88;
+      }
+
+      .scannerSideCard .quickLinksTitle {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scannerSideCard .quickLinksBody {
+        margin-bottom: 12px;
       }
 
       #videoContainer {
@@ -856,7 +900,7 @@
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Suelzer Kaffekarte</span>
+              <span class="kk-brandWord">Kaffekarte</span>
             </span>
           </a>
           <div class="avatar" id="cafeAvatar">C</div>
@@ -900,7 +944,7 @@
       <div class="card" id="loginCard">
         <!-- Login Screen -->
         <div id="loginScreen">
-          <div class="introBadge">Suelzer Kaffekarte fuer den Tresen</div>
+          <div class="introBadge">Kaffekarte fuer den Tresen</div>
           <h2>Willkommen in der Barista App</h2>
           <p class="subtitle">
             Melde dich kurz an und arbeite in derselben ruhigen Produktwelt wie
@@ -919,7 +963,7 @@
             </div>
             <div class="featureCard">
               <strong>Mehr als nur eine Karte</strong>
-              <span>Die Suelzer Kaffekarte unterstuetzt Kundenbindung, Rueckkehr-Anreize und ein sauberes Erlebnis fuer Stammgaeste.</span>
+              <span>Die Kaffekarte unterstuetzt Kundenbindung, Rueckkehr-Anreize und ein sauberes Erlebnis fuer Stammgaeste.</span>
             </div>
           </div>
           <h2>Café Scanner</h2>
@@ -1165,7 +1209,7 @@
                 <span>Stempelkarten, Rewards und Programmdetails pflegst du spaeter unter Stempelkarte, Verwaltung und Dashboard.</span>
               </div>
               <div class="homeCard">
-                <strong>Was die Suelzer Kaffekarte liefern soll</strong>
+                <strong>Was die Kaffekarte liefern soll</strong>
                 <span>Weniger Reibung fuer das Team, klarere Reward-Logik und eine staerkere Kundenbindung ohne App-Chaos.</span>
               </div>
             </div>
@@ -1244,12 +1288,11 @@
                   <div>
                     <div class="scannerEyebrow">
                       <span class="scannerEyebrowDot" aria-hidden="true"></span>
-                      Live-Scanner
+                      Scanner bereit
                     </div>
                     <div class="scannerLead">
-                      Die Kamera startet nur kontrolliert. Wenn der Zugriff
-                      einmal erlaubt ist, bleibt der Scanner ruhiger und fragt
-                      nicht bei jedem kleinen Zustandswechsel neu.
+                      Starte die Kamera und halte den QR ruhig in den Rahmen.
+                      Genau das ist hier die Hauptaktion.
                     </div>
                   </div>
                   <div class="cameraControls">
@@ -1269,7 +1312,7 @@
 
                 <div id="scanHint" class="hintBox scannerHintCompact">
                   Noch kein Kunde geladen. Starte die Kamera oder oeffne einen
-                  QR-Link aus der Wallet, dann landet der Vorgang direkt hier.
+                  QR-Link direkt aus der Wallet.
                 </div>
 
                 <div class="scannerStage">
@@ -1291,11 +1334,10 @@
               </div>
 
               <div class="scannerSideCard">
-                <div class="quickLinksTitle">Arbeitsfluss</div>
+                <div class="quickLinksTitle">Weitere Bereiche</div>
                 <div class="quickLinksBody">
-                  Scanner fuer den laufenden Betrieb, Stempelkarte fuer das
-                  Kartenmodell, Verwaltung fuer Zusatzpflege und Dashboard fuer
-                  Zahlen und Verlauf.
+                  Scanner zuerst. Alles andere liegt nur als Nebenweg hier,
+                  falls du kurz etwas pflegen oder nachschauen musst.
                 </div>
                 <div class="quickLinksGrid">
                   <a class="quickLinkCard" href="/cafe-profile">
