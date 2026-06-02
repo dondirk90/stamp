@@ -80,6 +80,10 @@
         min-width: 0;
       }
 
+      .brandScanner {
+        align-items: flex-start;
+      }
+
       .brand h1 {
         margin: 6px 0 0;
         font-size: 20px;
@@ -97,6 +101,32 @@
         font-size: 28px;
         line-height: 1;
         letter-spacing: -0.04em;
+      }
+
+      .scannerBrandMeta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        padding-top: 4px;
+      }
+
+      .scannerBrandLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scannerBrandCafe {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 34ch;
       }
 
       .brand .avatar {
@@ -850,8 +880,7 @@
       }
 
       .scannerSideCard {
-        padding: 14px 16px;
-        opacity: 0.88;
+        display: none;
       }
 
       .scannerSideCard .quickLinksTitle {
@@ -893,7 +922,7 @@
     <div class="shell">
       <!-- Café Header + Top Menu (customer-style) -->
       <div id="cafeBadge" class="topbar" style="display: none">
-        <div class="brand">
+        <div class="brand brandScanner">
           <a class="kk-brand" href="/">
             <span class="kk-brandMark" aria-hidden="true">
               <img src="/assets/kaffekarte-mark.svg" alt="" />
@@ -903,10 +932,9 @@
               <span class="kk-brandWord">Kaffekarte</span>
             </span>
           </a>
-          <div class="avatar" id="cafeAvatar">C</div>
-          <div>
-            <h1 id="cafeName">Café</h1>
-            <div class="subtitle">Barista App fuer ruhige Tresen-Momente</div>
+          <div class="scannerBrandMeta">
+            <div class="scannerBrandLabel">Barista App</div>
+            <div class="scannerBrandCafe" id="cafeName">Café</div>
           </div>
         </div>
 
@@ -1333,27 +1361,6 @@
                 </div>
               </div>
 
-              <div class="scannerSideCard">
-                <div class="quickLinksTitle">Weitere Bereiche</div>
-                <div class="quickLinksBody">
-                  Scanner zuerst. Alles andere liegt nur als Nebenweg hier,
-                  falls du kurz etwas pflegen oder nachschauen musst.
-                </div>
-                <div class="quickLinksGrid">
-                  <a class="quickLinkCard" href="/cafe-profile">
-                    <strong>Stempelkarte</strong>
-                    <span>Reward, Stempelstil und Kundenkarte pflegen.</span>
-                  </a>
-                  <a class="quickLinkCard" href="/cafe-profile?view=advanced">
-                    <strong>Verwaltung</strong>
-                    <span>Kampagnen, Details und organisatorische Pflege.</span>
-                  </a>
-                  <a class="quickLinkCard" href="/cafe-dashboard">
-                    <strong>Dashboard</strong>
-                    <span>Verlauf, Aktivitaet und Tagesueberblick sehen.</span>
-                  </a>
-                </div>
-              </div>
             </div>
 
             <div id="customerInfo" class="customer-info" style="display: none">
@@ -1469,6 +1476,7 @@
       let scanCanvas = null;
       let scanContext = null;
       let cameraPermissionState = "unknown";
+      const CAMERA_AUTO_START_KEY = "scanner_camera_auto_start";
 
       const DEBUG = (function () {
         try {
@@ -1603,6 +1611,21 @@
       function setScannerStatus(message) {
         if (!scannerStatus) return;
         scannerStatus.textContent = String(message || "");
+      }
+
+      function getScannerAutoStartPreference() {
+        try {
+          return localStorage.getItem(CAMERA_AUTO_START_KEY) === "1";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function setScannerAutoStartPreference(enabled) {
+        try {
+          if (enabled) localStorage.setItem(CAMERA_AUTO_START_KEY, "1");
+          else localStorage.removeItem(CAMERA_AUTO_START_KEY);
+        } catch (e) {}
       }
 
       async function getCameraPermissionState() {
@@ -1786,6 +1809,7 @@
             } catch (ePlay) {}
           }
           cameraPermissionState = "granted";
+          setScannerAutoStartPreference(true);
           scanning = true;
           setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
           syncCameraButtons();
@@ -1822,6 +1846,10 @@
         const permission = await getCameraPermissionState();
         if (permission === "granted") {
           await startScannerCamera({ forcePrompt: false });
+          return;
+        }
+        if (getScannerAutoStartPreference()) {
+          await startScannerCamera({ forcePrompt: true });
           return;
         }
         setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.');
@@ -2018,7 +2046,6 @@
         }
         cafeBadge.style.display = "flex";
         cafeName.textContent = cafe.name || "Café";
-        cafeAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
 
         if (sidebarCafeName) sidebarCafeName.textContent = cafe.name || "Café";
         if (sidebarAvatar)
