@@ -3145,6 +3145,39 @@
         color: rgba(82, 61, 44, 0.78);
       }
 
+      .modalMetaRow {
+        display: none;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .modalMetaPill,
+      .modalStatusPill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+      }
+
+      .modalMetaPill {
+        border: 1px dashed rgba(128, 98, 70, 0.24);
+        color: rgba(92, 68, 48, 0.82);
+        background: rgba(255, 252, 247, 0.7);
+      }
+
+      .modalStatusPill {
+        border: 1px solid rgba(108, 80, 57, 0.14);
+        color: rgba(73, 53, 37, 0.92);
+        background: rgba(245, 234, 219, 0.86);
+      }
+
       .modalImage {
         margin-top: 18px;
         display: grid;
@@ -4094,8 +4127,13 @@
               </div>
               <div style="min-width: 0">
                 <div class="modalKicker">Cafe im Veedel</div>
-              <h3 class="modalTitle" id="cafeModalName">Café</h3>
-              <div class="modalAddr" id="cafeModalAddr"></div>
+                <h3 class="modalTitle" id="cafeModalName">Café</h3>
+                <div class="modalAddr" id="cafeModalAddr"></div>
+                <div class="modalMetaRow" id="cafeModalMetaRow">
+                  <div class="modalStatusPill" id="cafeModalStatus" style="display: none"></div>
+                  <div class="modalMetaPill" id="cafeModalRewardCycle" style="display: none"></div>
+                  <div class="modalMetaPill" id="cafeModalRewardHint" style="display: none"></div>
+                </div>
             </div>
             </div>
             <button

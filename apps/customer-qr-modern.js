@@ -113,6 +113,10 @@
     cafeModalGallery: document.getElementById("cafeModalGallery"),
     cafeModalLogoWrap: document.getElementById("cafeModalLogoWrap"),
     cafeModalLogo: document.getElementById("cafeModalLogo"),
+    cafeModalMetaRow: document.getElementById("cafeModalMetaRow"),
+    cafeModalStatus: document.getElementById("cafeModalStatus"),
+    cafeModalRewardCycle: document.getElementById("cafeModalRewardCycle"),
+    cafeModalRewardHint: document.getElementById("cafeModalRewardHint"),
     cafeModalAbout: document.getElementById("cafeModalAbout"),
     cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
     cafeModalLinks: document.getElementById("cafeModalLinks"),
@@ -814,6 +818,17 @@
     var name = cafe && cafe.name ? String(cafe.name) : "Café";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
+    var program = cafe && cafe.program ? cafe.program : {};
+    var rewardThreshold =
+      program && program.stampsForReward != null
+        ? Number(program.stampsForReward)
+        : 10;
+    if (!Number.isFinite(rewardThreshold) || rewardThreshold < 1)
+      rewardThreshold = 10;
+    var rewardDescription =
+      program && program.rewardDescription
+        ? String(program.rewardDescription).trim()
+        : "";
     var websiteUrl =
       cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "";
     var instagramUrl =
@@ -856,6 +871,30 @@
         el.cafeModalInstagram.href = "#";
       }
       el.cafeModalLinks.style.display = hasLinks ? "flex" : "none";
+    }
+
+    if (
+      el.cafeModalMetaRow &&
+      el.cafeModalStatus &&
+      el.cafeModalRewardCycle &&
+      el.cafeModalRewardHint
+    ) {
+      var alreadyInWallet = isCafeInWallet(cafeAddr);
+      el.cafeModalStatus.style.display = "inline-flex";
+      el.cafeModalStatus.textContent = alreadyInWallet
+        ? "Schon in deiner Wallet"
+        : "Neu fuer deine Wallet";
+      el.cafeModalRewardCycle.style.display = "inline-flex";
+      el.cafeModalRewardCycle.textContent =
+        "Jeder " + rewardThreshold + ". Kaffee";
+      if (rewardDescription) {
+        el.cafeModalRewardHint.style.display = "inline-flex";
+        el.cafeModalRewardHint.textContent = rewardDescription;
+      } else {
+        el.cafeModalRewardHint.style.display = "none";
+        el.cafeModalRewardHint.textContent = "";
+      }
+      el.cafeModalMetaRow.style.display = "flex";
     }
 
     // About text
@@ -950,6 +989,7 @@
         address: cafe.address,
         cafeAddress: cafe.cafeAddress,
         about: cafe.about || "",
+        program: cafe.program || null,
         websiteUrl: cafe.websiteUrl || "",
         instagramUrl: cafe.instagramUrl || "",
         logoDataUrl: cafe.logoDataUrl || null,

@@ -3685,7 +3685,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -3708,6 +3708,11 @@ app.get("/cafes/public", async (req, res) => {
               : null,
           cardTheme: row.card_theme || "paper",
           cardBackText: row.card_back_text || null,
+          program: {
+            stampsForReward:
+              row.stamps_for_reward != null ? Number(row.stamps_for_reward) : 10,
+            rewardDescription: row.reward_description || null,
+          },
           cardBackgroundDataUrl:
             row.card_bg_data && row.card_bg_mime
               ? `data:${row.card_bg_mime};base64,${row.card_bg_data}`
@@ -3736,7 +3741,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -3770,6 +3775,11 @@ app.get("/cafes/public/:id", async (req, res) => {
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
         cardBackText: row.card_back_text || null,
+        program: {
+          stampsForReward:
+            row.stamps_for_reward != null ? Number(row.stamps_for_reward) : 10,
+          rewardDescription: row.reward_description || null,
+        },
         logoDataUrl:
           row.logo_data && row.logo_mime
             ? `data:${row.logo_mime};base64,${row.logo_data}`
