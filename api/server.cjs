@@ -1486,7 +1486,7 @@ app.use("/static", require("express").static(appsDir));
 
 // Friendly routes for scanner and dashboard
 app.get("/cafe-scanner", (req, res) => {
-  res.sendFile(path.join(appsDir, "cafe-scanner.html"));
+  res.sendFile(path.join(appsDir, "cafe-scanner-new.html"));
 });
 app.get("/cafe-dashboard", (req, res) => {
   res.sendFile(path.join(appsDir, "cafe-dashboard.html"));
