@@ -37,14 +37,14 @@
         font-family: var(--font-sans);
         background:
           radial-gradient(circle at top, rgba(210, 159, 110, 0.16), rgba(210, 159, 110, 0) 34%),
-          linear-gradient(180deg, #fbf5ed 0%, #f4eadf 54%, #efe4d8 100%);
+          linear-gradient(180deg, #241812 0%, #1d130f 54%, #160f0c 100%);
         min-height: 100vh;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
         position: relative;
-        color: #362318;
+        color: var(--text);
       }
       body::before {
         content: none;
@@ -63,13 +63,12 @@
         flex-wrap: wrap;
         margin-bottom: clamp(18px, 3vw, 30px);
         padding: 18px 20px;
-        border-radius: 28px;
         background:
-          linear-gradient(180deg, rgba(255, 251, 246, 0.95), rgba(247, 239, 231, 0.92));
-        border: 1px solid rgba(138, 106, 79, 0.12);
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
         box-shadow:
-          0 18px 42px rgba(58, 36, 24, 0.1),
-          0 1px 0 rgba(255, 255, 255, 0.68) inset;
+          0 16px 34px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 1;
       }
@@ -108,19 +107,18 @@
       .card {
         width: min(560px, 100%);
         margin: clamp(28px, 5vw, 54px) auto;
-        background:
-          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(246, 236, 227, 0.96));
+        background: color-mix(in srgb, var(--surface) 92%, white 8%);
         padding: clamp(24px, 4vw, 40px);
         border-radius: 30px;
-        border: 1px solid rgba(255, 244, 236, 0.38);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         box-shadow:
-          0 28px 70px rgba(19, 11, 8, 0.24),
-          0 1px 0 rgba(255, 255, 255, 0.7) inset;
+          0 24px 56px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 1;
-        --paper-text: #322117;
-        --paper-muted: rgba(79, 56, 39, 0.78);
-        --paper-border: rgba(77, 53, 37, 0.18);
+        --paper-text: var(--text);
+        --paper-muted: var(--text-muted);
+        --paper-border: var(--border);
       }
       .introBadge {
         display: inline-flex;
@@ -129,7 +127,7 @@
         min-height: 34px;
         padding: 8px 14px;
         border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 12%, white 88%);
+        background: color-mix(in srgb, var(--brand) 14%, transparent 86%);
         color: var(--brand);
         font-size: 12px;
         font-weight: 900;
@@ -161,8 +159,8 @@
       .homeCard {
         padding: 16px;
         border-radius: 18px;
-        background: rgba(255, 255, 255, 0.52);
-        border: 1px solid rgba(53, 34, 22, 0.08);
+        background: rgba(255, 248, 241, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
       .featureCard strong,
       .homeCard strong {
@@ -208,14 +206,14 @@
         padding: 10px 14px;
         border-radius: var(--radius-sm);
         background: transparent;
-        border: 1px solid var(--border);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         color: var(--paper-text);
         text-decoration: none;
         font-size: 14px;
         font-weight: 800;
       }
       .ghostLink:hover {
-        background: var(--surface-muted);
+        background: rgba(255, 248, 241, 0.08);
       }
       #loginScreen > .featureGrid + h2,
       #loginScreen > .featureGrid + h2 + p.subtitle {
@@ -289,7 +287,7 @@
         color: var(--paper-muted);
       }
       #loginCard .kk-brandKicker {
-        color: rgba(79, 56, 39, 0.72);
+        color: var(--text-muted);
       }
       #loginCard .kk-brandWord,
       #loginCard .kk-brandSub,
@@ -530,15 +528,14 @@
         width: 100%;
         margin: 0 auto;
         padding: clamp(24px, 4vw, 38px);
-        background:
-          linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(246, 237, 228, 0.96));
-        border: 1px solid rgba(53, 34, 22, 0.08);
+        background: color-mix(in srgb, var(--surface) 92%, white 8%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 30px;
         box-shadow:
-          0 24px 60px rgba(19, 11, 8, 0.2),
-          0 1px 0 rgba(255, 255, 255, 0.72) inset;
-        --paper-text: #322117;
-        --paper-muted: rgba(79, 56, 39, 0.78);
+          0 18px 42px rgba(0, 0, 0, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        --paper-text: var(--text);
+        --paper-muted: var(--text-muted);
         color: var(--paper-text);
       }
       .panelTitle {
@@ -550,7 +547,7 @@
       }
       .hintBox {
         background: var(--surface-muted);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: var(--radius);
         padding: 18px;
         margin-top: 18px;
@@ -589,8 +586,8 @@
         margin-top: 18px;
         padding: 16px;
         border-radius: var(--radius);
-        background: color-mix(in srgb, var(--surface) 94%, white 6%);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+        background: rgba(255, 248, 241, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
       .menuInfo strong {
         display: block;
@@ -659,16 +656,6 @@
       }
 
       @media (max-width: 520px) {
-        .topMenu {
-          gap: 10px;
-          justify-content: stretch;
-        }
-
-        .topMenuBtn {
-          min-height: 58px;
-          padding: 10px 8px;
-        }
-
         .stamp-presets {
           grid-template-columns: repeat(5, minmax(44px, 1fr));
         }
@@ -683,71 +670,15 @@
       }
 
       .topMenu {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-        align-items: stretch;
-        padding: 8px;
-        border-radius: 24px;
-        background: rgba(255, 252, 247, 0.7);
-        border: 1px solid rgba(138, 106, 79, 0.1);
-      }
-
-      .topMenuBtn {
-        width: 100%;
-        text-align: center;
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        min-height: 64px;
-        margin: 0;
-        padding: 12px 10px;
-        border-radius: 18px;
-        background: transparent;
-        border: 1px solid transparent;
-        color: #442d1e;
-        text-decoration: none;
-      }
-
-      .topMenuBtn:hover {
-        background: rgba(255, 250, 244, 0.92);
-      }
-
-      .topMenuBtn.active {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: rgba(138, 106, 79, 0.16);
-        box-shadow: 0 10px 24px rgba(58, 36, 24, 0.08);
-      }
-
-      .topMenuBtn .ico {
-        width: 28px;
-        height: 28px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background: rgba(121, 82, 53, 0.08);
-        font-size: 12px;
-        font-weight: 900;
-      }
-
-      .topMenuBtn .lbl {
-        width: 100%;
-        text-align: center;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        width: auto;
       }
 
       .scannerStage {
         margin-top: 18px;
         padding: 18px;
         border-radius: 22px;
-        background: rgba(255, 252, 247, 0.72);
-        border: 1px solid rgba(138, 106, 79, 0.12);
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .scannerWorkspace {
@@ -761,9 +692,9 @@
       .scannerSideCard {
         padding: 18px;
         border-radius: 22px;
-        background: rgba(255, 252, 247, 0.86);
-        border: 1px solid rgba(138, 106, 79, 0.12);
-        box-shadow: 0 16px 34px rgba(58, 36, 24, 0.06);
+        background: rgba(255, 248, 241, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
       }
 
       .scannerMainHead {
@@ -782,20 +713,20 @@
         font-weight: 900;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: rgba(92, 68, 48, 0.7);
+        color: var(--text-muted);
       }
 
       .scannerEyebrowDot {
         width: 8px;
         height: 8px;
         border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 80%, white 20%);
-        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 15%, transparent 85%);
+        background: color-mix(in srgb, var(--brand) 84%, transparent 16%);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 12%, transparent 88%);
       }
 
       .scannerLead {
         margin-top: 8px;
-        color: rgba(92, 68, 48, 0.78);
+        color: var(--text-muted);
         font-size: 14px;
         line-height: 1.55;
         max-width: 44ch;
@@ -817,7 +748,7 @@
       .cameraSecondary {
         background: transparent;
         color: var(--text);
-        border: 1px solid rgba(255, 241, 233, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.12);
       }
 
       .cameraSecondary:hover {
@@ -861,8 +792,8 @@
         display: block;
         padding: 14px;
         border-radius: 18px;
-        background: rgba(255, 248, 241, 0.06);
-        border: 1px solid rgba(255, 241, 233, 0.1);
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         color: inherit;
         text-decoration: none;
       }
@@ -895,7 +826,7 @@
         margin: 0;
         border-radius: 18px;
         overflow: hidden;
-        border: 1px solid rgba(255, 241, 233, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.26);
       }
 
