@@ -1,9 +1,11 @@
-const CACHE_VERSION = "stamp-shell-v2-20260601";
+const CACHE_VERSION = "stamp-shell-v3-20260603";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
   "/customer-wallet",
   "/cafe-scanner",
+  "/cafe-profile",
+  "/cafe-dashboard",
   "/theme.css",
   "/pwa/manifest.webmanifest",
   "/pwa/icons/icon-192.png",
@@ -57,9 +59,13 @@ function isApiRequest(url) {
 function isAppShellRequest(url) {
   if (url.pathname === "/" || url.pathname === "/customer-wallet") return true;
   if (url.pathname === "/cafe-scanner") return true;
+  if (url.pathname === "/cafe-profile") return true;
+  if (url.pathname === "/cafe-dashboard") return true;
   if (url.pathname === "/customer-wallet.html") return true;
   if (url.pathname === "/cafe-scanner.html") return true;
   if (url.pathname === "/cafe-scanner-new.html") return true;
+  if (url.pathname === "/cafe-profile.html") return true;
+  if (url.pathname === "/cafe-dashboard.html") return true;
   return false;
 }
 
