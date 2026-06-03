@@ -56,40 +56,195 @@
       }
 
       .topbar {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        gap: var(--space-3);
-        margin-bottom: clamp(18px, 3vw, 30px);
-        padding: 18px 20px;
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--space-4);
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.72);
+        backdrop-filter: blur(18px);
         box-shadow:
-          0 16px 34px rgba(0, 0, 0, 0.18),
-          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.68) inset;
         position: relative;
-        z-index: 1;
+        z-index: 3;
       }
 
       .brand {
         display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
+      }
+
+      .brandHead {
+        display: flex;
         align-items: center;
-        gap: var(--space-3);
-        min-width: 0;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
       }
 
-      .brandScanner {
-        align-items: flex-start;
+      .menuToggle {
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #7a5236 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
       }
 
-      .brand h1 {
-        margin: 6px 0 0;
-        font-size: 20px;
-        line-height: 1.15;
-        font-weight: 950;
-        font-family: var(--font-display);
-        letter-spacing: -0.03em;
+      .menuToggleLines {
+        position: relative;
+        width: 20px;
+        height: 14px;
+        display: block;
+      }
+
+      .menuToggleLines::before,
+      .menuToggleLines::after,
+      .menuToggleLines span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+      }
+
+      .menuToggleLines::before {
+        top: 0;
+      }
+
+      .menuToggleLines span {
+        top: 6px;
+      }
+
+      .menuToggleLines::after {
+        top: 12px;
+      }
+
+      body.menuOpen .menuToggleLines::before {
+        transform: translateY(6px) rotate(45deg);
+      }
+
+      body.menuOpen .menuToggleLines span {
+        opacity: 0;
+      }
+
+      body.menuOpen .menuToggleLines::after {
+        transform: translateY(-6px) rotate(-45deg);
+      }
+
+      .menuBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 12, 9, 0.24);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+        z-index: 61;
+      }
+
+      .menuBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .menuDrawer {
+        position: absolute;
+        top: 18px;
+        left: 20px;
+        width: min(320px, calc(100vw - 32px));
+        padding: 16px;
+        border-radius: 24px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.985);
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        z-index: 72;
+      }
+
+      .menuDrawer.open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .menuDrawerHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(81, 58, 40, 0.08);
+      }
+
+      .menuDrawerTitle {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.72);
+      }
+
+      .menuDrawerMeta {
+        margin-top: 6px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.48);
+      }
+
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
       }
 
       .topbar .kk-brandKicker {
@@ -100,59 +255,229 @@
         font-size: 28px;
         line-height: 1;
         letter-spacing: -0.04em;
+        color: #241710;
       }
 
-      .topbar .kk-brandMark img {
-        object-fit: contain;
-        padding: 6px;
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
+        color: #5a4030 !important;
+        box-shadow:
+          0 12px 22px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      .scannerBrandMeta {
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
+        background-color: rgba(255, 252, 247, 0.98) !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        border-radius: 14px;
+        color: #241710 !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .utilityMenuBtn:hover,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
+        background: rgba(107, 69, 44, 0.08) !important;
+      }
+
+      .topMenu {
         display: flex;
         flex-direction: column;
+        align-items: stretch;
         gap: 4px;
+      }
+
+      .topMenuBtn {
+        width: 100%;
         min-width: 0;
-        padding-top: 4px;
-      }
-
-      .scannerBrandLabel {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-      }
-
-      .scannerBrandCafe {
-        font-size: 14px;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 14px;
+        padding: 12px 12px;
+        cursor: pointer;
+        touch-action: manipulation;
+        color: #3b2a1f !important;
+        font-size: 12px;
         font-weight: 800;
-        color: var(--text);
-        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        box-shadow: none !important;
+        opacity: 0.76;
+      }
+
+      button.topMenuBtn.ghost {
+        border: none !important;
+      }
+
+      .topMenuBtn .ico {
+        display: inline-flex;
+        width: 24px;
+        align-items: center;
+        justify-content: center;
+        color: rgba(47, 32, 23, 0.5);
+      }
+
+      .topMenuBtn .lbl {
+        display: block;
+        text-align: left;
+        font-size: inherit;
+        font-weight: inherit;
+        margin: 0;
+        color: var(--text-muted);
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 34ch;
+        white-space: nowrap;
       }
 
-      .scannerBuildBadge {
+      .topMenuBtn.active {
+        background: rgba(107, 69, 44, 0.08) !important;
+        opacity: 1;
+      }
+
+      .topMenuBtn.active .lbl {
+        color: #241710;
+      }
+
+      .topMenuBtn.active .ico {
+        color: #6b452c;
+      }
+
+      .topMenuBtnContent {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bottomTabs {
+        display: none;
+      }
+
+      .bottomTabSpacer {
+        flex: 1 1 0;
+      }
+
+      .bottomTabBtn {
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: rgba(47, 32, 23, 0.72) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .bottomTabBtn .ico,
+      .bottomTabBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn .lbl {
         font-size: 11px;
-        color: var(--text-muted);
-        letter-spacing: 0.04em;
+        letter-spacing: 0.16em;
       }
 
-      .brand .avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        background: var(--brand);
-        display: grid;
-        place-items: center;
-        color: var(--on-brand, #fff);
-        font-weight: 900;
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 64px;
+        margin-top: -18px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
       }
 
-      .topbarActions {
-        justify-self: end;
-        align-self: start;
+      .bottomTabBtn.walletHeroBtn.active {
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
+        color: #fffaf5 !important;
       }
 
       .card {
@@ -678,18 +1003,44 @@
 
       @media (max-width: 720px) {
         body {
-          padding: calc(var(--space-4) + var(--safe-top, 0px))
+          padding: calc(8px + var(--safe-top, 0px))
             calc(var(--space-3) + var(--safe-right, 0px))
-            calc(var(--space-4) + var(--safe-bottom, 0px))
+            calc(12px + var(--safe-bottom, 0px))
             calc(var(--space-3) + var(--safe-left, 0px));
         }
 
         .topbar {
-          grid-template-columns: 1fr;
+          position: fixed;
+          top: calc(8px + var(--safe-top, 0px));
+          left: calc(8px + var(--safe-left, 0px));
+          right: calc(8px + var(--safe-right, 0px));
+          margin: 0;
+          padding: 0;
+          border: none;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          backdrop-filter: none;
+          justify-content: flex-start;
+          z-index: 70;
+          pointer-events: none;
         }
 
-        .topbarActions {
-          justify-self: start;
+        .topbar .brand,
+        .topbar .row {
+          pointer-events: auto;
+        }
+
+        .topbar .row {
+          display: flex;
+          position: fixed;
+          top: calc(18px + var(--safe-top, 0px));
+          right: calc(14px + var(--safe-right, 0px));
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          z-index: 71;
         }
 
         .card,
@@ -708,6 +1059,43 @@
         .topbar .kk-brandWord {
           font-size: 24px;
         }
+
+        .shell {
+          max-width: none;
+        }
+
+        .brand {
+          gap: 0;
+        }
+
+        .bottomTabs {
+          position: fixed;
+          left: calc(10px + var(--safe-left, 0px));
+          right: calc(10px + var(--safe-right, 0px));
+          bottom: calc(10px + var(--safe-bottom, 0px));
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+          padding: 8px;
+          border-radius: 22px;
+          border: 1px solid rgba(17, 17, 17, 0.08);
+          background: rgba(255, 252, 248, 0.94);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 22px 42px rgba(68, 41, 22, 0.16),
+            0 1px 0 rgba(255, 255, 255, 0.78) inset;
+          z-index: 28;
+        }
+
+        .bottomTabBtn.walletHeroBtn {
+          margin-top: -24px;
+          min-height: 70px;
+        }
+
+        #appShell {
+          padding-top: 66px;
+          padding-bottom: calc(96px + var(--safe-bottom, 0px));
+        }
       }
 
       @media (max-width: 520px) {
@@ -722,14 +1110,6 @@
         .cameraControls button {
           width: 100%;
         }
-      }
-
-      .topMenu {
-        width: 100%;
-        grid-column: 1 / -1;
-        justify-content: flex-start;
-        gap: 22px;
-        margin-top: 8px;
       }
 
       .scannerStage {
@@ -1426,13 +1806,128 @@
 
     <div id="toast" class="toast">Stempel vergeben</div>
 
+    <script>
+      (function mountCafeShell() {
+        const badge = document.getElementById("cafeBadge");
+        const shell = document.querySelector(".shell");
+        const appShell = document.getElementById("appShell");
+        if (!badge || !shell || !appShell) return;
+
+        badge.innerHTML = `
+          <div class="brand">
+            <div class="brandHead">
+              <button
+                class="menuToggle"
+                id="menuToggle"
+                type="button"
+                aria-label="Navigation öffnen"
+                aria-expanded="false"
+                aria-controls="menuDrawer"
+              >
+                <span class="menuToggleLines"><span></span></span>
+              </button>
+              <a class="kk-brand" href="/cafe-scanner">
+                <span class="kk-brandMark" aria-hidden="true">
+                  <img src="/assets/stamp-bean.png?v=1" alt="" />
+                </span>
+                <span class="kk-brandText">
+                  <span class="kk-brandKicker">Kaffee im Veedel</span>
+                  <span class="kk-brandWord">Kaffekarte</span>
+                </span>
+              </a>
+            </div>
+          </div>
+          <div class="row">
+            <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
+              <span class="topUtilityIcon"><span></span></span>
+            </button>
+          </div>
+        `;
+
+        badge.insertAdjacentHTML(
+          "afterend",
+          `
+            <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+              <button class="utilityMenuBtn" id="utilityWelcomeBtn" type="button">Start</button>
+              <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
+              <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
+              <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
+            </div>
+            <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
+            <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
+              <div class="menuDrawerHead">
+                <div>
+                  <div class="menuDrawerTitle">Kaffekarte</div>
+                  <div class="menuDrawerMeta" id="cafeName">Barista App</div>
+                  <div class="menuDrawerMeta">scanner-new · ui-20260603c</div>
+                </div>
+              </div>
+              <div class="topMenu" aria-label="Navigation">
+                <button class="topMenuBtn ghost active" id="navWelcome" type="button">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">H</span>
+                    <span class="lbl">Start</span>
+                  </span>
+                </button>
+                <button class="topMenuBtn ghost" id="navScanner" type="button">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">S</span>
+                    <span class="lbl">Scanner</span>
+                  </span>
+                </button>
+                <a class="topMenuBtn ghost" href="/cafe-profile">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">K</span>
+                    <span class="lbl">Stempelkarte</span>
+                  </span>
+                </a>
+                <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">V</span>
+                    <span class="lbl">Verwaltung</span>
+                  </span>
+                </a>
+                <a class="topMenuBtn ghost" href="/cafe-dashboard">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">D</span>
+                    <span class="lbl">Dashboard</span>
+                  </span>
+                </a>
+                <button class="topMenuBtn ghost" id="navLogout" type="button">
+                  <span class="topMenuBtnContent">
+                    <span class="ico" aria-hidden="true">A</span>
+                    <span class="lbl">Abmelden</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          `,
+        );
+
+        appShell.insertAdjacentHTML(
+          "afterend",
+          `
+            <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
+              <div class="bottomTabSpacer" aria-hidden="true"></div>
+              <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
+                <span class="topMenuBtnContent">
+                  <span class="ico" aria-hidden="true">S</span>
+                  <span class="lbl">Scanner</span>
+                </span>
+              </button>
+              <div class="bottomTabSpacer" aria-hidden="true"></div>
+            </div>
+          `,
+        );
+      })();
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
       // Elements
       const loginScreen = document.getElementById("loginScreen");
       const scannerScreen = document.getElementById("scannerScreen");
       const loginBtn = document.getElementById("loginBtn");
-      const logoutBtn = document.getElementById("logoutBtn");
       const loginCard = document.getElementById("loginCard");
       const appShell = document.getElementById("appShell");
       const forgotPwBtn = document.getElementById("forgotPwBtn");
@@ -1449,12 +1944,9 @@
       const forgotScopeThis = document.getElementById("forgotScopeThis");
       const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
-      const navHome = document.getElementById("navHome");
+      const navWelcome = document.getElementById("navWelcome");
+      const navScanner = document.getElementById("navScanner");
       const navLogout = document.getElementById("navLogout");
-      const sidebarCafeName = document.getElementById("sidebarCafeName");
-      const sidebarAvatar = document.getElementById("sidebarAvatar");
-      const homePending = document.getElementById("homePending");
-      const homePendingText = document.getElementById("homePendingText");
       const openScanBtn = document.getElementById("openScanBtn");
       const cameraStartBtn = document.getElementById("cameraStartBtn");
       const cameraStopBtn = document.getElementById("cameraStopBtn");
@@ -1475,8 +1967,18 @@
       const scanSubtitle = document.getElementById("scanSubtitle");
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
-      const cafeAvatar = document.getElementById("cafeAvatar");
       const toast = document.getElementById("toast");
+      const menuToggle = document.getElementById("menuToggle");
+      const menuBackdrop = document.getElementById("menuBackdrop");
+      const menuDrawer = document.getElementById("menuDrawer");
+      const topUtilityBtn = document.getElementById("topUtilityBtn");
+      const utilityMenu = document.getElementById("utilityMenu");
+      const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
+      const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+      const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
+      const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+      const bottomTabs = document.getElementById("bottomTabs");
+      const bottomModeScanner = document.getElementById("bottomModeScanner");
 
       // State
       let cafe = null;
@@ -1493,6 +1995,8 @@
       let scanContext = null;
       let cameraPermissionState = "unknown";
       const CAMERA_AUTO_START_KEY = "scanner_camera_auto_start";
+      let currentView = "home";
+      const shellState = { drawerOpen: false, utilityOpen: false };
 
       const DEBUG = (function () {
         try {
@@ -1621,7 +2125,110 @@
       }
 
       function setActiveNav(view) {
-        if (navHome) navHome.classList.toggle("active", view === "scan");
+        currentView = view === "scan" ? "scan" : "home";
+        if (navWelcome) navWelcome.classList.toggle("active", currentView === "home");
+        if (navScanner) navScanner.classList.toggle("active", currentView === "scan");
+        if (bottomModeScanner)
+          bottomModeScanner.classList.toggle("active", currentView === "scan");
+      }
+
+      function setDrawerOpen(open) {
+        shellState.drawerOpen = !!open;
+        if (menuDrawer) menuDrawer.classList.toggle("open", shellState.drawerOpen);
+        if (menuBackdrop) menuBackdrop.classList.toggle("open", shellState.drawerOpen);
+        if (menuToggle) menuToggle.setAttribute("aria-expanded", shellState.drawerOpen ? "true" : "false");
+        document.body.classList.toggle("menuOpen", shellState.drawerOpen);
+      }
+
+      function setUtilityMenuOpen(open) {
+        shellState.utilityOpen = !!open;
+        if (utilityMenu) utilityMenu.classList.toggle("open", shellState.utilityOpen);
+        if (topUtilityBtn)
+          topUtilityBtn.setAttribute("aria-expanded", shellState.utilityOpen ? "true" : "false");
+      }
+
+      function syncScannerUrl(view) {
+        try {
+          const url = new URL(location.href);
+          if (view === "scan") url.searchParams.set("view", "scan");
+          else url.searchParams.delete("view");
+          history.replaceState({}, "", url.pathname + url.search + url.hash);
+        } catch (e) {}
+      }
+
+      function getInitialView() {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          return sp.get("view") === "scan" ? "scan" : "home";
+        } catch (e) {
+          return "home";
+        }
+      }
+
+      function goToWelcome() {
+        setDrawerOpen(false);
+        setUtilityMenuOpen(false);
+        showView("home");
+      }
+
+      function goToScanner() {
+        setDrawerOpen(false);
+        setUtilityMenuOpen(false);
+        showView("scan");
+      }
+
+      function wireShellChrome() {
+        if (menuToggle) {
+          menuToggle.addEventListener("click", () => {
+            setDrawerOpen(!shellState.drawerOpen);
+          });
+        }
+        if (menuBackdrop) {
+          menuBackdrop.addEventListener("click", () => {
+            setDrawerOpen(false);
+          });
+        }
+        if (topUtilityBtn) {
+          topUtilityBtn.addEventListener("click", () => {
+            setUtilityMenuOpen(!shellState.utilityOpen);
+          });
+        }
+        if (utilityWelcomeBtn) utilityWelcomeBtn.addEventListener("click", goToWelcome);
+        if (utilityAdminBtn)
+          utilityAdminBtn.addEventListener("click", () => {
+            location.href = "/cafe-profile?view=advanced";
+          });
+        if (utilityDashboardBtn)
+          utilityDashboardBtn.addEventListener("click", () => {
+            location.href = "/cafe-dashboard";
+          });
+        if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
+        if (navWelcome) navWelcome.addEventListener("click", goToWelcome);
+        if (navScanner) navScanner.addEventListener("click", goToScanner);
+        if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
+        document.addEventListener("click", (ev) => {
+          const t = ev && ev.target ? ev.target : null;
+          if (!t) return;
+          if (
+            shellState.utilityOpen &&
+            utilityMenu &&
+            !utilityMenu.contains(t) &&
+            topUtilityBtn &&
+            !topUtilityBtn.contains(t)
+          ) {
+            setUtilityMenuOpen(false);
+          }
+        });
+        document.addEventListener("keydown", (ev) => {
+          if (!ev || (ev.key !== "Escape" && ev.key !== "Esc")) return;
+          if (shellState.utilityOpen) {
+            setUtilityMenuOpen(false);
+            return;
+          }
+          if (shellState.drawerOpen) {
+            setDrawerOpen(false);
+          }
+        });
       }
 
       function setScannerStatus(message) {
@@ -1876,9 +2483,19 @@
       }
 
       function showView(view) {
-        if (homeScreen) homeScreen.style.display = "none";
-        scannerScreen.style.display = "block";
-        setActiveNav("scan");
+        const targetView = view === "scan" ? "scan" : "home";
+        if (homeScreen) homeScreen.style.display = targetView === "home" ? "block" : "none";
+        if (scannerScreen) scannerScreen.style.display = targetView === "scan" ? "block" : "none";
+        setActiveNav(targetView);
+        syncScannerUrl(targetView);
+        if (targetView === "home") {
+          stopScannerCamera();
+          setScannerStatus("Scanner bereit. Öffne ihn unten, wenn du direkt am Tresen scannen willst.");
+          updateScannerHint(
+            "Dein Team startet hier ruhig und wechselt erst beim Scannen in die Kamerabühne.",
+          );
+          return;
+        }
         if (scannedCustomer) {
           setScannerStatus("Kunde geladen. Bei Bedarf neuen QR scannen.");
           syncCameraButtons();
@@ -1893,13 +2510,15 @@
         appShell.style.display = "none";
         stopScannerCamera();
         if (homeScreen) homeScreen.style.display = "none";
-        scannerScreen.style.display = "block";
-        setActiveNav("scan");
+        if (scannerScreen) scannerScreen.style.display = "none";
+        if (bottomTabs) bottomTabs.style.display = "none";
+        setActiveNav("home");
       }
 
       function showAppUI() {
         loginCard.style.display = "none";
         appShell.style.display = "block";
+        if (bottomTabs) bottomTabs.style.display = "";
       }
 
       function hideForgotNotice() {
@@ -2022,27 +2641,16 @@
       }
 
       function updateHomeStatus() {
-        const last = localStorage.getItem("last_scanned_customer");
-        const lastCustomer = last ? JSON.parse(last) : null;
-
-        const source = pendingScan || lastCustomer;
-        if (!source) {
-          if (homePending) homePending.style.display = "none";
+        if (scannedCustomer) {
           updateScannerHint(
-            stream
-              ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
-              : "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+            `Letzter Vorgang bereit: ${scannedCustomer.name || "Kunde"}. Öffne unten den Scanner, um direkt weiterzumachen.`,
           );
           return;
         }
-
-        const addr = source.address || source.customer || "";
-        const name = source.name || source.customerName || "Unbekannt";
-        if (homePendingText)
-          homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
-        if (homePending) homePending.style.display = "block";
         updateScannerHint(
-          `Letzter Vorgang bereit: ${name}. Wenn du denselben Gast weiter bearbeiten willst, findest du die Karte direkt unten.`,
+          stream
+            ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
+            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus der Wallet.",
         );
       }
 
@@ -2061,13 +2669,7 @@
           return;
         }
         cafeBadge.style.display = "flex";
-        cafeName.textContent = cafe.name || "Café";
-
-        if (sidebarCafeName) sidebarCafeName.textContent = cafe.name || "Café";
-        if (sidebarAvatar)
-          sidebarAvatar.textContent = (cafe.name || "C")
-            .charAt(0)
-            .toUpperCase();
+        if (cafeName) cafeName.textContent = cafe.name || "Barista App";
       }
 
       // Login
@@ -2114,7 +2716,7 @@
           // Update UI
           updateCafeBadge();
           showAppUI();
-          showView("scan");
+          showView(pendingScan ? "scan" : getInitialView());
           updateHomeStatus();
 
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
@@ -2157,14 +2759,7 @@
           window.location.href = "/cafe-onboarding";
         }
       }
-      if (logoutBtn) logoutBtn.onclick = doLogout;
       if (navLogout) navLogout.onclick = doLogout;
-
-      if (navHome)
-        navHome.onclick = () => {
-          showView("scan");
-          updateHomeStatus();
-        };
       if (openScanBtn)
         openScanBtn.onclick = () => {
           showView("scan");
@@ -2583,6 +3178,8 @@
       };
 
       // Auto-login if saved
+      wireShellChrome();
+
       (async function autoLogin() {
         try {
           apiBase = await detectAPI();
@@ -2622,7 +3219,7 @@
             dlog("Auto-Login für Café");
             updateCafeBadge();
             showAppUI();
-            showView("scan");
+            showView(pendingScan ? "scan" : getInitialView());
             customerInfo.style.display = "none";
             syncCameraButtons();
             updateHomeStatus();
