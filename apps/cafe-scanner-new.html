@@ -56,11 +56,10 @@
       }
 
       .topbar {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
         gap: var(--space-3);
-        flex-wrap: wrap;
         margin-bottom: clamp(18px, 3vw, 30px);
         padding: 18px 20px;
         background:
@@ -103,6 +102,11 @@
         letter-spacing: -0.04em;
       }
 
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
       .scannerBrandMeta {
         display: flex;
         flex-direction: column;
@@ -141,7 +145,8 @@
       }
 
       .topbarActions {
-        margin-left: auto;
+        justify-self: end;
+        align-self: start;
       }
 
       .card {
@@ -674,11 +679,11 @@
         }
 
         .topbar {
-          align-items: flex-start;
+          grid-template-columns: 1fr;
         }
 
         .topbarActions {
-          margin-left: 0;
+          justify-self: start;
         }
 
         .card,
@@ -714,7 +719,11 @@
       }
 
       .topMenu {
-        width: auto;
+        width: 100%;
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        gap: 22px;
+        margin-top: 8px;
       }
 
       .scannerStage {
@@ -925,7 +934,7 @@
         <div class="brand brandScanner">
           <a class="kk-brand" href="/">
             <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
+              <img src="/assets/stamp-bean.png?v=1" alt="" />
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
