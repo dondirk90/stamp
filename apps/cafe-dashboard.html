@@ -207,7 +207,7 @@
         <div class="brand">
           <a class="kk-brand" href="/">
             <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
+              <img src="/assets/stamp-bean.png?v=1" alt="" />
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
@@ -218,7 +218,7 @@
           <div>
             <h1 id="cafeName">Café Dashboard</h1>
             <div class="subtitle">Umsatznahe Treue-Momente im Blick</div>
-            <div class="subtitle" id="buildBadge">—</div>
+            <div class="subtitle" id="buildBadge">dashboard · ui-20260603b</div>
             <div class="sourceRow">
               <span class="badge" id="sourceBadge">Quelle: —</span>
               <span class="badge" id="refreshBadge">Aktualisiert: —</span>
@@ -414,7 +414,8 @@
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Dashboard";
 
-          document.getElementById("buildBadge").textContent = `API: ${apiBase}`;
+          document.getElementById("buildBadge").textContent =
+            `dashboard · ui-20260603b · API: ${apiBase}`;
 
           // Default source badges (updated on refreshAll)
           setBadge("sourceBadge", "Quelle: —");

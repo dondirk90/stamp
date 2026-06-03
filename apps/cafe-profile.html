@@ -254,7 +254,7 @@
         <div class="brand">
           <a class="kk-brand" href="/">
             <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
+              <img src="/assets/stamp-bean.png?v=1" alt="" />
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
@@ -265,7 +265,7 @@
           <div>
             <h1 id="cafeName">Café Profil</h1>
             <div class="subtitle">Karte, Reward und Auftritt an einem Ort</div>
-            <div class="subtitle" id="buildBadge">—</div>
+            <div class="subtitle" id="buildBadge">profile · ui-20260603b</div>
           </div>
         </div>
         <div class="row">
@@ -1274,7 +1274,8 @@
             .toUpperCase();
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
-          document.getElementById("buildBadge").textContent = `API: ${apiBase}`;
+          document.getElementById("buildBadge").textContent =
+            `profile · ui-20260603b · API: ${apiBase}`;
           applyProfileViewMode(getProfileViewMode());
 
           document
