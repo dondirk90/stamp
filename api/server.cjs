@@ -618,6 +618,10 @@ CREATE TABLE IF NOT EXISTS cafes (
   popup_almost_reward_enabled INTEGER DEFAULT 1,
   popup_almost_reward_remaining INTEGER DEFAULT 2,
   popup_almost_reward_message TEXT,
+  accepted_privacy_at INTEGER,
+  accepted_terms_at INTEGER,
+  privacy_version TEXT,
+  terms_version TEXT,
   updated_at INTEGER,
   created_at INTEGER
 );
@@ -638,6 +642,10 @@ CREATE TABLE IF NOT EXISTS customers (
   address TEXT,
   encrypted_key TEXT,
   password_hash TEXT,
+  accepted_privacy_at INTEGER,
+  accepted_terms_at INTEGER,
+  privacy_version TEXT,
+  terms_version TEXT,
   created_at INTEGER
 );
 
@@ -817,6 +825,22 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN updated_at INTEGER",
   "Failed to add cafes.updated_at column:",
 );
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN accepted_privacy_at INTEGER",
+  "Failed to add cafes.accepted_privacy_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN accepted_terms_at INTEGER",
+  "Failed to add cafes.accepted_terms_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN privacy_version TEXT",
+  "Failed to add cafes.privacy_version column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN terms_version TEXT",
+  "Failed to add cafes.terms_version column:",
+);
 
 // Ensure legacy databases pick up newer customer columns
 runSqliteOnlyAlter(
@@ -830,6 +854,22 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE customers ADD COLUMN password_hash TEXT",
   "Failed to add customers.password_hash column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN accepted_privacy_at INTEGER",
+  "Failed to add customers.accepted_privacy_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN accepted_terms_at INTEGER",
+  "Failed to add customers.accepted_terms_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN privacy_version TEXT",
+  "Failed to add customers.privacy_version column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN terms_version TEXT",
+  "Failed to add customers.terms_version column:",
 );
 
 // Ensure legacy databases pick up the additional columns for event tracking
@@ -957,8 +997,8 @@ const markRedeemTokenUsed = db.prepare(
 // Cafes prepared statements
 const insertCafe = db.prepare(
   db.client === "postgres"
-    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at) RETURNING id"
-    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @updated_at, @created_at)",
+    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @updated_at, @created_at) RETURNING id"
+    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @updated_at, @created_at)",
 );
 const getCafeById = db.prepare("SELECT * FROM cafes WHERE id = ?");
 const getCafeByName = db.prepare(
@@ -1023,7 +1063,7 @@ const deleteCafeImageByIdForCafe = db.prepare(
 
 // Customers prepared statements
 const insertCustomer = db.prepare(
-  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @created_at)",
+  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @created_at)",
 );
 const listCustomers = db.prepare("SELECT * FROM customers ORDER BY id DESC");
 const getCustomerByEmail = db.prepare(
@@ -3483,6 +3523,7 @@ app.post("/cafes/reset-password/preview", async (req, res) => {
 
 app.post("/cafes/register-with-email", async (req, res) => {
   try {
+    const LEGAL_VERSION = "2026-06-mvp";
     const {
       name,
       email,
@@ -3496,6 +3537,8 @@ app.post("/cafes/register-with-email", async (req, res) => {
       stampsForReward,
       rewardDescription,
       products,
+      acceptPrivacy,
+      acceptTerms,
     } = req.body || {};
 
     if (!name || !email || !password) {
@@ -3510,6 +3553,12 @@ app.post("/cafes/register-with-email", async (req, res) => {
     }
     if (String(password).length < 8) {
       return res.status(400).json({ ok: false, error: "weak_password" });
+    }
+    if (!acceptPrivacy) {
+      return res.status(400).json({ ok: false, error: "privacy_consent_required" });
+    }
+    if (!acceptTerms) {
+      return res.status(400).json({ ok: false, error: "terms_consent_required" });
     }
 
     const sStreet = street != null ? String(street).trim().slice(0, 128) : "";
@@ -3595,6 +3644,10 @@ app.post("/cafes/register-with-email", async (req, res) => {
       popup_almost_reward_enabled: config.popupAlmostRewardEnabled,
       popup_almost_reward_remaining: config.popupAlmostRewardRemaining,
       popup_almost_reward_message: config.popupAlmostRewardMessage,
+      accepted_privacy_at: Date.now(),
+      accepted_terms_at: Date.now(),
+      privacy_version: LEGAL_VERSION,
+      terms_version: LEGAL_VERSION,
       updated_at: Date.now(),
       created_at: Date.now(),
     };
@@ -3939,7 +3992,8 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
 
 app.post("/customers/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body || {};
+    const LEGAL_VERSION = "2026-06-mvp";
+    const { username, email, password, acceptPrivacy, acceptTerms } = req.body || {};
     const uname = username != null ? String(username).trim() : "";
     const em = email != null ? String(email).trim() : "";
     const pw = password != null ? String(password) : "";
@@ -3953,6 +4007,12 @@ app.post("/customers/register", async (req, res) => {
 
     if (!pw || pw.length < 6) {
       return res.status(400).json({ error: "invalid_password" });
+    }
+    if (!acceptPrivacy) {
+      return res.status(400).json({ error: "privacy_consent_required" });
+    }
+    if (!acceptTerms) {
+      return res.status(400).json({ error: "terms_consent_required" });
     }
 
     // If email already exists, surface that clearly in register mode.
@@ -3993,6 +4053,10 @@ app.post("/customers/register", async (req, res) => {
       address,
       encrypted_key: null,
       password_hash,
+      accepted_privacy_at: Date.now(),
+      accepted_terms_at: Date.now(),
+      privacy_version: LEGAL_VERSION,
+      terms_version: LEGAL_VERSION,
       created_at: Date.now(),
     };
     await insertCustomer.run(info);

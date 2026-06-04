@@ -4235,6 +4235,8 @@
     var confirmPassword = el.confirmPassword
       ? String(el.confirmPassword.value || "").trim()
       : "";
+    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
+    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
     if (!email || !password) {
       showMsg("danger", "Bitte E-Mail und Passwort ausfüllen.");
@@ -4251,6 +4253,15 @@
         return;
       }
 
+      if (!acceptPrivacy) {
+        showMsg("danger", "Bitte bestÃ¤tige die DatenschutzerklÃ¤rung.");
+        return;
+      }
+      if (!acceptTerms) {
+        showMsg("danger", "Bitte akzeptiere die AGB.");
+        return;
+      }
+
       apiFetch("/customers/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -4258,6 +4269,8 @@
           username: username,
           email: email,
           password: password,
+          acceptPrivacy: acceptPrivacy,
+          acceptTerms: acceptTerms,
         }),
       })
         .then(function (data) {

@@ -987,6 +987,27 @@
         margin-top: 2px;
       }
 
+      .legalChecks {
+        display: grid;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--text-muted);
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--brand);
+      }
+
       .navRow {
         display: flex;
         align-items: center;
@@ -3905,6 +3926,21 @@
                 <label for="username">Username</label>
                 <input id="username" type="text" autocomplete="nickname" />
                 <div class="fieldHint">Nur fuer deinen Account, nicht als oeffentlicher Name gedacht.</div>
+              </div>
+              <div class="legalChecks">
+                <label class="legalCheck" for="acceptPrivacy">
+                  <input type="checkbox" id="acceptPrivacy" />
+                  <span>
+                    Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerklärung</a>
+                    gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
+                  </span>
+                </label>
+                <label class="legalCheck" for="acceptTerms">
+                  <input type="checkbox" id="acceptTerms" />
+                  <span>
+                    Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffekarte.
+                  </span>
+                </label>
               </div>
             </div>
             <div class="stack" style="gap: 6px">

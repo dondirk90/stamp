@@ -249,6 +249,33 @@
         font-weight: 600;
       }
 
+      .legalChecks {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--brand);
+      }
+
+      .legalCheck a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
       /* Product list */
       .product-list {
         margin-top: 15px;
@@ -862,6 +889,22 @@
           ></textarea>
         </div>
 
+        <div class="legalChecks">
+          <label class="legalCheck" for="acceptPrivacy">
+            <input type="checkbox" id="acceptPrivacy" />
+            <span>
+              Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerklärung</a>
+              gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
+            </span>
+          </label>
+          <label class="legalCheck" for="acceptTerms">
+            <input type="checkbox" id="acceptTerms" />
+            <span>
+              Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffekarte.
+            </span>
+          </label>
+        </div>
+
         <div class="button-group">
           <button class="btn btn-secondary" onclick="goToStep1()">
             ← Zurück
@@ -1353,6 +1396,8 @@
         const rewardDescription = document
           .getElementById("rewardDescription")
           .value.trim();
+        const acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
+        const acceptTerms = !!document.getElementById("acceptTerms")?.checked;
         const products = Array.from(document.querySelectorAll(".product-input"))
           .map((el) => String(el.value || "").trim())
           .filter(Boolean);
@@ -1371,6 +1416,14 @@
         }
         if (!rewardDescription) {
           showError("Bitte gib eine Belohnungs-Beschreibung ein");
+          return;
+        }
+        if (!acceptPrivacy) {
+          showError("Bitte bestätige die Datenschutzerklärung");
+          return;
+        }
+        if (!acceptTerms) {
+          showError("Bitte akzeptiere die AGB");
           return;
         }
 
@@ -1395,6 +1448,8 @@
               stampsForReward,
               rewardDescription,
               products,
+              acceptPrivacy,
+              acceptTerms,
             }),
           });
 
