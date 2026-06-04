@@ -328,7 +328,8 @@ const server = http.createServer((req, res) => {
   // Allow trailing slash access for single-page routes
   if (pathname === "/customer-profile/index.html")
     pathname = "/customer-profile.html";
-  if (pathname === "/cafe/index.html") pathname = "/cafe-public.html";
+  if (pathname === "/cafe/index.html") pathname = "/cafe-scanner-new.html";
+  if (pathname === "/wallet/index.html") pathname = "/customer-qr-modern.html";
 
   // Aliase ohne .html Endung für wichtige Seiten
   if (pathname === "/customer-register") pathname = "/customer-qr-modern.html";
@@ -341,10 +342,12 @@ const server = http.createServer((req, res) => {
     pathname = "/customer-qr-modern.html";
   if (pathname === "/customer-wallet" || pathname === "/customer-wallet.html")
     pathname = "/customer-qr-modern.html";
+  if (pathname === "/wallet" || pathname === "/wallet.html")
+    pathname = "/customer-qr-modern.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
-  if (pathname === "/cafe" || pathname === "/cafe-public")
-    pathname = "/cafe-public.html";
+  if (pathname === "/cafe" || pathname === "/cafe.html" || pathname === "/cafe-public")
+    pathname = "/cafe-scanner-new.html";
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
     pathname = "/cafe-scanner-new.html";

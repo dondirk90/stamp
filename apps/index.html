@@ -3,137 +3,144 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Suelzer Kaffekarte - Digitale Stempelkarte fuer Cafes</title>
+    <title>Kaffekarte - Lokale Stempelkarten fuer Cafes und Gaeste</title>
     <meta
       name="description"
-      content="Die Suelzer Kaffekarte verbindet digitale Stempelkarten fuer Gaeste mit einer ruhigen Barista-App fuer Cafes."
+      content="Kaffekarte bringt lokale Stempelkarten in eine ruhige Wallet fuer Gaeste und eine schnelle Scanner-App fuer Cafes."
     />
+    <meta name="theme-color" content="#f7efe6" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
-          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-6) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(229, 197, 164, 0.22), rgba(229, 197, 164, 0) 34%),
+          linear-gradient(180deg, #fcf8f3 0%, #f4ede4 100%);
       }
 
-      .welcomeShell {
-        max-width: 1160px;
+      .siteShell {
+        width: min(1160px, 100%);
         margin: 0 auto;
       }
 
-      .pageIntro {
+      .siteHeader {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 18px;
-        flex-wrap: wrap;
+        gap: 16px;
+        padding: 14px 18px;
+        margin-bottom: 22px;
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.78);
+        backdrop-filter: blur(16px);
+        box-shadow:
+          0 18px 36px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
       }
 
-      .brandMark {
+      .headerNav {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .headerNav a {
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
         display: inline-flex;
         align-items: center;
-        gap: 12px;
-        font-size: 14px;
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .brandMark .kk-brandWord {
-        font-size: 34px;
-      }
-
-      .brandMark .kk-brandKicker {
-        color: var(--coffee-ink-soft);
-      }
-
-      .audienceSwitch {
-        display: inline-flex;
-        gap: 6px;
-        padding: 6px;
-        border: 1px solid var(--border);
-        background: var(--surface);
-      }
-
-      .audienceSwitch button {
-        min-height: 0;
-        padding: 10px 14px;
-        background: transparent !important;
-        color: var(--text) !important;
-        border: none !important;
+        justify-content: center;
         font-size: 12px;
         font-weight: 900;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
+        color: var(--text);
+        background: rgba(255, 252, 248, 0.9);
       }
 
-      .audienceSwitch button.active {
-        background: var(--brand) !important;
-        color: var(--on-brand) !important;
+      .headerNav a.primary {
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+        color: #fffaf5;
+        border-color: rgba(72, 47, 30, 0.4);
       }
 
       .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-        gap: 28px;
-        align-items: start;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 22px;
+        align-items: stretch;
         margin-bottom: var(--space-6);
       }
 
-      .heroPanel,
-      .infoPanel,
-      .audiencePanel {
-        border: 1px solid var(--border);
+      .heroCard,
+      .featureCard,
+      .railCard,
+      .audienceCard,
+      .journeyCard,
+      .ctaCard {
+        border-radius: 34px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
         background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 242, 236, 0.96));
-        padding: 26px;
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.96));
+        box-shadow:
+          0 22px 48px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
       }
 
-      .heroPanel {
+      .heroCard {
+        padding: clamp(28px, 4vw, 48px);
         position: relative;
         overflow: hidden;
       }
 
-      .heroPanel::after {
+      .heroCard::after {
         content: "";
         position: absolute;
-        inset: auto -10% -28% auto;
-        width: 320px;
-        height: 320px;
+        right: -80px;
+        bottom: -100px;
+        width: 340px;
+        height: 340px;
         background:
-          radial-gradient(circle, rgba(194, 150, 103, 0.18), rgba(194, 150, 103, 0) 68%);
+          radial-gradient(circle, rgba(184, 132, 83, 0.18), rgba(184, 132, 83, 0) 70%);
         pointer-events: none;
       }
 
       .eyebrow {
         display: inline-flex;
         align-items: center;
-        padding: 7px 12px;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        color: var(--text);
+        min-height: 34px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.55);
         font-size: 12px;
         font-weight: 900;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         margin-bottom: 16px;
       }
 
       .heroTitle {
         margin: 0 0 14px;
-        font-size: clamp(34px, 6vw, 60px);
-        line-height: 0.98;
-        letter-spacing: -0.04em;
+        font-size: clamp(40px, 6vw, 72px);
+        line-height: 0.94;
+        letter-spacing: -0.05em;
       }
 
       .heroLead {
+        max-width: 58ch;
         margin: 0 0 18px;
         font-size: 18px;
-        line-height: 1.55;
+        line-height: 1.58;
         color: var(--text-muted);
-        max-width: 58ch;
       }
 
       .heroProof {
@@ -144,21 +151,22 @@
       }
 
       .proofCard {
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 255, 255, 0.78);
         padding: 14px 14px 12px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.58);
       }
 
       .proofValue {
-        font-size: 22px;
+        margin-bottom: 4px;
+        font-size: 24px;
         font-weight: 950;
         letter-spacing: -0.04em;
-        margin-bottom: 4px;
       }
 
       .proofLabel {
         font-size: 12px;
-        line-height: 1.4;
+        line-height: 1.42;
         color: var(--text-muted);
       }
 
@@ -166,105 +174,311 @@
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        margin: 22px 0 18px;
+        margin-top: 22px;
       }
 
-      .heroList {
-        display: grid;
+      .ctaRow .btn {
+        min-height: 52px;
+        padding-inline: 18px;
+      }
+
+      .phoneStage {
+        position: relative;
+        min-height: 640px;
+        border-radius: 34px;
+        overflow: hidden;
+        padding: 22px;
+        background:
+          radial-gradient(circle at top right, rgba(255, 245, 234, 0.12), rgba(255, 245, 234, 0) 36%),
+          linear-gradient(180deg, #161210 0%, #2d221b 42%, #4b3427 100%);
+      }
+
+      .phoneShell {
+        position: absolute;
+        inset: 20px 26px;
+        border-radius: 36px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.98));
+        box-shadow:
+          0 28px 54px rgba(0, 0, 0, 0.34),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        overflow: hidden;
+      }
+
+      .phoneTopbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 22px 24px 0;
+      }
+
+      .phoneBrand {
+        display: inline-flex;
+        align-items: center;
         gap: 10px;
-        margin-top: 18px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 26px;
+        line-height: 1;
+        color: #241710;
       }
 
-      .heroItem {
-        display: grid;
-        grid-template-columns: 24px minmax(0, 1fr);
+      .phoneBrand img {
+        width: 44px;
+        height: 44px;
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(247, 238, 228, 0.94));
+      }
+
+      .phoneMenu {
+        width: 18px;
+        height: 14px;
+        position: relative;
+      }
+
+      .phoneMenu::before,
+      .phoneMenu::after,
+      .phoneMenu span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+      }
+
+      .phoneMenu::before {
+        top: 0;
+      }
+
+      .phoneMenu span {
+        top: 6px;
+      }
+
+      .phoneMenu::after {
+        top: 12px;
+      }
+
+      .phoneBody {
+        padding: 18px 24px 118px;
+      }
+
+      .phoneWalletCard {
+        margin: 18px auto 0;
+        width: min(100%, 320px);
+        aspect-ratio: 1.56 / 1;
+        border-radius: 28px;
+        padding: 20px 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(245, 236, 226, 0.98));
+        box-shadow:
+          0 16px 32px rgba(68, 41, 22, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        position: relative;
+      }
+
+      .phoneWalletCard::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          repeating-linear-gradient(
+            -12deg,
+            rgba(108, 79, 52, 0.03) 0 2px,
+            rgba(255, 255, 255, 0) 2px 11px
+          );
+        pointer-events: none;
+      }
+
+      .walletTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
-        align-items: start;
+        margin-bottom: 12px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(36, 23, 16, 0.72);
       }
 
-      .heroIndex {
-        width: 24px;
-        height: 24px;
+      .walletCafe {
+        margin: 0 0 4px;
+        font-size: 34px;
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .walletSub {
+        margin: 0 0 22px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(36, 23, 16, 0.56);
+      }
+
+      .stampHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .stampGrid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stampDot {
+        aspect-ratio: 1 / 1;
+        border-radius: 999px;
+        border: 1.5px solid rgba(36, 23, 16, 0.2);
+        background: rgba(255, 255, 255, 0.52);
         display: grid;
         place-items: center;
-        background: var(--brand);
-        color: var(--on-brand, #fff);
-        font-size: 12px;
+      }
+
+      .stampDot img {
+        width: 72%;
+        height: 72%;
+        object-fit: contain;
+        opacity: 0.28;
+      }
+
+      .stampDot.filled {
+        border-color: rgba(36, 23, 16, 0.56);
+        background: rgba(107, 69, 44, 0.08);
+      }
+
+      .stampDot.filled img {
+        opacity: 1;
+      }
+
+      .phoneTabs {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        align-items: end;
+        padding: 10px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.96);
+      }
+
+      .phoneTab {
+        min-height: 50px;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
         font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(36, 23, 16, 0.62);
       }
 
-      .heroItemText {
-        color: var(--text-muted);
-        line-height: 1.45;
-        font-size: 14px;
+      .phoneTab.hero {
+        min-width: 120px;
+        padding: 0 18px;
+        border-radius: 18px;
+        color: #fffaf5;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.2),
+          0 1px 0 rgba(255, 255, 255, 0.14) inset;
+        transform: translateY(-18px);
       }
 
-      .panelTitle {
+      .featureGrid,
+      .audienceGrid,
+      .journeyGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: var(--space-6);
+      }
+
+      .featureCard,
+      .audienceCard,
+      .journeyCard,
+      .railCard,
+      .ctaCard {
+        padding: 24px;
+      }
+
+      .featureCard h3,
+      .audienceCard h3,
+      .journeyCard h3,
+      .railCard h3,
+      .ctaCard h3 {
         margin: 0 0 10px;
         font-size: 22px;
       }
 
-      .panelText {
-        margin: 0 0 14px;
+      .sectionLead,
+      .featureCard p,
+      .audienceCard p,
+      .journeyCard p,
+      .railCard p,
+      .ctaCard p {
+        margin: 0;
         color: var(--text-muted);
-        line-height: 1.55;
+        line-height: 1.58;
       }
 
-      .benefitGrid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: var(--space-6);
+      .featureKicker {
+        margin-bottom: 12px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(36, 23, 16, 0.58);
       }
 
       .audienceGrid {
-        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-        margin-bottom: var(--space-6);
       }
 
-      .audiencePanel h3,
-      .infoPanel h3 {
-        margin: 0 0 10px;
-        font-size: 18px;
-      }
-
-      .audienceList,
-      .infoList {
+      .list {
         display: grid;
         gap: 10px;
-        margin: 14px 0 0;
+        margin-top: 16px;
       }
 
-      .audienceList div,
-      .infoList div {
+      .list div {
         color: var(--text-muted);
-        line-height: 1.45;
-        font-size: 14px;
+        line-height: 1.48;
       }
 
-      .audienceList strong,
-      .infoList strong {
+      .list strong {
         color: var(--text);
       }
 
-      .appGrid.cols2 {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-      }
-
-      .overviewRail {
-        display: grid;
-        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-        gap: 18px;
-        margin-bottom: var(--space-6);
+      .journeyGrid {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
       }
 
       .journeyList {
         display: grid;
-        gap: 12px;
+        gap: 14px;
+        margin-top: 18px;
       }
 
       .journeyStep {
@@ -272,549 +486,346 @@
         grid-template-columns: 34px minmax(0, 1fr);
         gap: 12px;
         align-items: start;
-        padding: 14px 0;
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .journeyStep:first-child {
-        border-top: none;
-        padding-top: 0;
       }
 
       .journeyNo {
         width: 34px;
         height: 34px;
+        border-radius: 999px;
         display: grid;
         place-items: center;
         background: #6b452c;
-        color: #fff;
+        color: #fffaf5;
         font-size: 12px;
         font-weight: 900;
       }
 
-      .journeyTitle {
+      .journeyStepTitle {
         margin: 0 0 4px;
         font-size: 16px;
-        font-weight: 850;
-      }
-
-      .journeyText {
-        color: var(--text-muted);
-        font-size: 14px;
-        line-height: 1.5;
-      }
-
-      .productShot {
-        display: grid;
-        gap: 14px;
-      }
-
-      .productStage {
-        position: relative;
-        min-height: 420px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background:
-          linear-gradient(180deg, #171412 0%, #2f241c 38%, #4a3326 100%);
-        overflow: hidden;
-        padding: 24px;
-      }
-
-      .productStage::before {
-        content: "";
-        position: absolute;
-        inset: 22px 18px auto auto;
-        width: 220px;
-        height: 220px;
-        background:
-          radial-gradient(circle, rgba(255, 245, 235, 0.16), rgba(255, 245, 235, 0) 70%);
-        pointer-events: none;
-      }
-
-      .phoneCard {
-        position: absolute;
-        left: 34px;
-        right: 34px;
-        border-radius: 28px;
-        padding: 18px 18px 20px;
-        color: #fff8f0;
-        box-shadow:
-          0 28px 54px rgba(0, 0, 0, 0.34),
-          0 2px 0 rgba(255, 255, 255, 0.12) inset;
-      }
-
-      .phoneCard.primary {
-        top: 26px;
-        background:
-          linear-gradient(160deg, rgba(148, 98, 61, 0.98), rgba(74, 45, 28, 0.98)),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
-        transform: rotate(-2.5deg);
-      }
-
-      .phoneCard.secondary {
-        bottom: 26px;
-        background:
-          linear-gradient(160deg, rgba(252, 247, 241, 0.98), rgba(237, 225, 214, 0.98));
-        color: #2f231c;
-        transform: rotate(3deg);
-      }
-
-      .phoneTop {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 16px;
-      }
-
-      .phoneEyebrow {
-        font-size: 11px;
         font-weight: 900;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        opacity: 0.84;
       }
 
-      .phoneBalance {
-        font-size: 13px;
-        font-weight: 800;
-        opacity: 0.8;
-      }
-
-      .phoneTitle {
-        margin: 0;
-        font-size: 28px;
-        line-height: 0.96;
-        letter-spacing: -0.04em;
-      }
-
-      .phoneText {
-        margin: 10px 0 16px;
-        font-size: 14px;
-        line-height: 1.5;
-        opacity: 0.86;
-      }
-
-      .miniStampRow {
+      .journeyRail {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 10px;
+        gap: 18px;
       }
 
-      .miniStamp {
-        aspect-ratio: 1 / 1;
-        border-radius: 999px;
-        border: 1.5px solid rgba(255, 248, 240, 0.28);
+      .ctaSection {
         display: grid;
-        place-items: center;
-        font-size: 13px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
       }
 
-      .secondary .miniStamp {
-        border-color: rgba(47, 35, 28, 0.14);
-      }
-
-      .miniStamp.filled {
-        background: rgba(255, 248, 240, 0.12);
-        border-color: rgba(255, 248, 240, 0.48);
-      }
-
-      .secondary .miniStamp.filled {
-        background: rgba(107, 69, 44, 0.08);
-        border-color: rgba(47, 35, 28, 0.24);
-      }
-
-      .phoneMeta {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 14px;
-        font-size: 12px;
-        font-weight: 800;
-        opacity: 0.78;
-      }
-
-      .appPanel {
-        border: 1px solid var(--border);
-        background: transparent;
-        padding: 24px;
-      }
-
-      .appPanel h2 {
-        margin: 0 0 8px;
-      }
-
-      .appPanel .subtitle {
-        line-height: 1.55;
-      }
-
-      .appCtas {
+      .miniCtaRow {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
         margin-top: 18px;
       }
 
-      .quickHint {
-        margin-top: var(--space-5);
+      .footerNote {
+        margin-top: 22px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
       }
 
-      .audienceSection {
-        display: none;
-      }
-
-      .audienceSection.active {
-        display: block;
-      }
-
-      @media (max-width: 860px) {
+      @media (max-width: 980px) {
         .hero,
-        .benefitGrid,
+        .featureGrid,
         .audienceGrid,
-        .appGrid.cols2,
-        .overviewRail,
+        .journeyGrid,
+        .ctaSection,
         .heroProof {
           grid-template-columns: 1fr;
         }
 
-        .productStage {
-          min-height: 460px;
+        .phoneStage {
+          min-height: 560px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        body {
+          padding: calc(var(--space-4) + var(--safe-top, 0px))
+            calc(var(--space-4) + var(--safe-right, 0px))
+            calc(var(--space-5) + var(--safe-bottom, 0px))
+            calc(var(--space-4) + var(--safe-left, 0px));
         }
 
-        .phoneCard {
-          left: 20px;
-          right: 20px;
+        .siteHeader {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .headerNav {
+          width: 100%;
+        }
+
+        .headerNav a {
+          flex: 1 1 calc(50% - 6px);
+        }
+
+        .phoneShell {
+          inset: 14px;
+        }
+
+        .phoneBody {
+          padding-inline: 18px;
+        }
+
+        .phoneBrand {
+          font-size: 22px;
+        }
+
+        .walletCafe {
+          font-size: 28px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="welcomeShell">
-      <div class="pageIntro">
-        <a class="kk-brand brandMark is-hero" href="/">
+    <div class="siteShell">
+      <header class="siteHeader">
+        <a class="kk-brand is-hero" href="/">
           <span class="kk-brandMark" aria-hidden="true">
-            <img src="/assets/kaffekarte-mark.svg" alt="" />
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
           </span>
           <span class="kk-brandText">
             <span class="kk-brandKicker">Kaffee im Veedel</span>
-            <span class="kk-brandWord">Suelzer Kaffekarte</span>
+            <span class="kk-brandWord">Kaffekarte</span>
           </span>
         </a>
-        <div class="audienceSwitch" aria-label="Perspektive">
-          <button id="viewCustomerBtn" class="active" type="button">Fuer Gaeste</button>
-          <button id="viewCafeBtn" type="button">Fuer Cafes</button>
-        </div>
-      </div>
+        <nav class="headerNav" aria-label="Produktnavigation">
+          <a href="#gaeste">Für Gäste</a>
+          <a href="#cafes">Für Cafés</a>
+          <a class="primary" href="/wallet">Wallet öffnen</a>
+          <a href="/cafe">Café Login</a>
+        </nav>
+      </header>
 
-      <div class="hero">
-        <section class="heroPanel">
-          <div class="eyebrow">Dein Kaffee-Alltag, digital und ruhig</div>
-          <h1 class="heroTitle">Deine Lieblingscafes, deine Stempel, deine Belohnungen.</h1>
+      <section class="hero">
+        <div class="heroCard">
+          <div class="eyebrow">Lokal. Schnell. Unkompliziert.</div>
+          <h1 class="heroTitle">Die Stempelkarte, die ins Viertel passt.</h1>
           <p class="heroLead">
-            Die Suelzer Kaffekarte ist vor allem zuerst eine Customer-App: Du sammelst Stempel
-            digital, behältst deine Rewards im Blick und zeigst am Tresen nur
-            noch deinen QR. Fuer Cafes gibt es die passende Scanner- und Setup-Seite
-            direkt dahinter.
+            Kaffekarte bringt lokale Treuekarten in eine ruhige Wallet für Gäste
+            und eine schnelle Scanner-App für Cafés. Keine Zettelwirtschaft, kein
+            langes Erklären am Tresen, kein App-Chaos.
           </p>
 
           <div class="ctaRow">
-            <a class="btn primary" href="/customer-wallet">Wallet oeffnen</a>
-            <a class="btn secondary" href="/customer-profile">Konto</a>
-            <a class="btn secondary" href="/cafe-onboarding">Cafe-Bereich</a>
-          </div>
-
-          <div class="heroList">
-            <div class="heroItem">
-              <div class="heroIndex">1</div>
-              <div class="heroItemText">
-                Deine Stempelkarten wohnen gesammelt in einer Wallet statt als lose Papierkarten in Jacke oder Geldbeutel.
-              </div>
-            </div>
-            <div class="heroItem">
-              <div class="heroIndex">2</div>
-              <div class="heroItemText">
-                Du siehst jederzeit, wie nah du an deiner naechsten Belohnung bist und welches Cafe sich gerade lohnt.
-              </div>
-            </div>
-            <div class="heroItem">
-              <div class="heroIndex">3</div>
-              <div class="heroItemText">
-                Am Tresen bleibt es schnell: QR zeigen, Stempel kassieren, weiter Kaffee geniessen.
-              </div>
-            </div>
+            <a class="btn primary" href="/wallet">Wallet starten</a>
+            <a class="btn secondary" href="/cafe">Café registrieren</a>
           </div>
 
           <div class="heroProof">
             <div class="proofCard">
-              <div class="proofValue">1 Wallet</div>
-              <div class="proofLabel">fuer mehrere Lieblingscafes und ihre Rewards</div>
+              <div class="proofValue">Lokal</div>
+              <div class="proofLabel">Für Cafés im Viertel, nicht als beliebige Coupon-Plattform.</div>
             </div>
             <div class="proofCard">
-              <div class="proofValue">1 QR</div>
-              <div class="proofLabel">fuer schnelle Vergabe und Einloesung am Tresen</div>
+              <div class="proofValue">Schnell</div>
+              <div class="proofLabel">Karte öffnen, QR zeigen, weiter Kaffee genießen.</div>
             </div>
             <div class="proofCard">
-              <div class="proofValue">0 Papier</div>
-              <div class="proofLabel">mehr Chaos im Portemonnaie brauchst du nicht</div>
+              <div class="proofValue">Klar</div>
+              <div class="proofLabel">Eine Wallet für Gäste, ein Scanner für den Tresen.</div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <aside class="infoPanel">
-          <h2 class="panelTitle">Was du hier sofort findest</h2>
-          <p class="panelText">
-            Die App startet aus Kundensicht. Der wichtigste Einstieg ist deshalb
-            die Wallet. Wenn du ein Cafe betreibst, findest du den Setup- und Scanner-Bereich
-            bewusst getrennt darunter.
-          </p>
-          <div class="infoList">
-            <div><strong>Wallet:</strong> Karten, Stempelstand, QR und Reward-Moment an einem Ort.</div>
-            <div><strong>Cafes entdecken:</strong> Lieblingscafe auswaehlen und neue Karten direkt in die Wallet holen.</div>
-            <div><strong>Verlauf:</strong> nachvollziehen, wann und wo deine Stempel dazugekommen sind.</div>
-            <div><strong>Cafe-Tools:</strong> Scanner, Onboarding und Stempelkarten-Setup fuer Betreiber und Team.</div>
+        <div class="phoneStage" aria-hidden="true">
+          <div class="phoneShell">
+            <div class="phoneTopbar">
+              <div class="phoneBrand">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+                <span>Kaffekarte</span>
+              </div>
+              <span class="phoneMenu"><span></span></span>
+            </div>
+            <div class="phoneBody">
+              <div class="walletTop">
+                <span>Jeder 10. Kaffee gratis</span>
+                <span>7 / 10</span>
+              </div>
+              <div class="phoneWalletCard">
+                <div class="walletTop">
+                  <span>Treuekarte</span>
+                  <span>Köln</span>
+                </div>
+                <h2 class="walletCafe">Cafe Mausbert</h2>
+                <p class="walletSub">Kaffeespezialitaeten</p>
+                <div class="stampHeader">
+                  <span>Hier stempeln</span>
+                  <span>7 / 10 Stempel</span>
+                </div>
+                <div class="stampGrid">
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                </div>
+              </div>
+            </div>
+            <div class="phoneTabs">
+              <div class="phoneTab">Cafés</div>
+              <div class="phoneTab hero">Wallet</div>
+              <div class="phoneTab">Konto</div>
+            </div>
           </div>
-        </aside>
-      </div>
+        </div>
+      </section>
 
-      <section id="customerSection" class="audienceSection active">
-        <div class="overviewRail">
-          <article class="infoPanel">
-            <h3>So fuehlt sich die App fuer Gaeste an</h3>
-            <p class="panelText">
-              Nicht wie ein Verwaltungsportal, sondern wie ein ruhiger Begleiter
-              fuer deinen Kaffee-Alltag. Du oeffnest die App, siehst sofort deine
-              Karten und entscheidest, wohin dein naechster Besuch gehen soll.
+      <section class="featureGrid">
+        <article class="featureCard">
+          <div class="featureKicker">Mehrwert für Gäste</div>
+          <h3>Alle Karten an einem Ort</h3>
+          <p>
+            Statt lose Papierkarten in Jacke oder Geldbeutel zu sammeln, wohnen
+            deine Café-Karten in einer ruhigen Wallet mit QR, Stempelstand und Reward.
+          </p>
+        </article>
+        <article class="featureCard">
+          <div class="featureKicker">Mehrwert für Cafés</div>
+          <h3>Schnell am Tresen</h3>
+          <p>
+            Die Scanner-App ist als Arbeitswerkzeug gebaut: klarer Einstieg,
+            Kamera im Mittelpunkt, keine unnötigen Umwege bei echtem Thekenbetrieb.
+          </p>
+        </article>
+        <article class="featureCard">
+          <div class="featureKicker">Produktprinzip</div>
+          <h3>Unkompliziert statt überladen</h3>
+          <p>
+            Kaffekarte will keine große Loyalty-Maschinerie sein, sondern eine
+            einfache, lokale Gewohnheit: wiederkommen, stempeln, belohnt werden.
+          </p>
+        </article>
+      </section>
+
+      <section class="audienceGrid">
+        <article class="audienceCard" id="gaeste">
+          <h3>Für Gäste</h3>
+          <p class="sectionLead">
+            Die Wallet ist dein ruhiger Startpunkt: Karte öffnen, Lieblingscafé
+            sehen, QR zeigen, Belohnung im Blick behalten.
+          </p>
+          <div class="list">
+            <div><strong>Wallet-first:</strong> deine aktive Stempelkarte steht im Vordergrund.</div>
+            <div><strong>Map nur wenn nötig:</strong> Cafés entdecken, sobald du eine neue Karte suchst.</div>
+            <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Erklären am Tresen.</div>
+          </div>
+          <div class="miniCtaRow">
+            <a class="btn primary" href="/wallet">Zur Wallet</a>
+          </div>
+        </article>
+
+        <article class="audienceCard" id="cafes">
+          <h3>Für Cafés</h3>
+          <p class="sectionLead">
+            Die Café-PWA bündelt Scanner, Stempelkarte, Verwaltung und Dashboard
+            in einer einzigen ruhigen Oberfläche.
+          </p>
+          <div class="list">
+            <div><strong>Ein Klick zum Scan:</strong> der Scanner bleibt auf jeder Seite präsent.</div>
+            <div><strong>Eigene Karte pflegen:</strong> Reward, Beschreibung, Website und Bild an einem Ort.</div>
+            <div><strong>Arbeitsmodus statt Website:</strong> für echte Tresen-Situationen gebaut.</div>
+          </div>
+          <div class="miniCtaRow">
+            <a class="btn primary" href="/cafe">Zum Café-Bereich</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="journeyGrid">
+        <article class="journeyCard">
+          <h3>So funktioniert es</h3>
+          <p class="sectionLead">
+            Ein klarer Flow für beide Seiten: entdecken, stempeln, wiederkommen.
+          </p>
+          <div class="journeyList">
+            <div class="journeyStep">
+              <div class="journeyNo">1</div>
+              <div>
+                <div class="journeyStepTitle">Café ansehen</div>
+                <p>Auf der Karte ein Café öffnen, Kurzvorstellung sehen und entscheiden, ob du die Karte holen möchtest.</p>
+              </div>
+            </div>
+            <div class="journeyStep">
+              <div class="journeyNo">2</div>
+              <div>
+                <div class="journeyStepTitle">Stempelkarte holen</div>
+                <p>Die Karte wandert direkt in deine Wallet und bleibt dort als physisch wirkendes Objekt im Fokus.</p>
+              </div>
+            </div>
+            <div class="journeyStep">
+              <div class="journeyNo">3</div>
+              <div>
+                <div class="journeyStepTitle">QR am Tresen zeigen</div>
+                <p>Beim Bezahlen oder Abholen öffnest du die Karte, fokussierst sie und zeigst den QR zum Stempeln.</p>
+              </div>
+            </div>
+            <div class="journeyStep">
+              <div class="journeyNo">4</div>
+              <div>
+                <div class="journeyStepTitle">Belohnung im Blick behalten</div>
+                <p>Du siehst sofort, wie nah du an deinem nächsten Gratiskaffee oder Reward bist.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div class="journeyRail">
+          <article class="railCard">
+            <h3>Warum Kaffekarte?</h3>
+            <p>
+              Weil kleine Cafés keine schwere Loyalty-Plattform brauchen, sondern
+              ein Werkzeug, das menschlich, lokal und schnell funktioniert.
             </p>
-            <div class="journeyList">
-              <div class="journeyStep">
-                <div class="journeyNo">1</div>
-                <div>
-                  <div class="journeyTitle">Cafe finden oder merken</div>
-                  <div class="journeyText">In der App ein Cafe oeffnen, kurz ansehen und bei Bedarf direkt zur Wallet hinzufuegen.</div>
-                </div>
-              </div>
-              <div class="journeyStep">
-                <div class="journeyNo">2</div>
-                <div>
-                  <div class="journeyTitle">Karte durchwischen</div>
-                  <div class="journeyText">Wie in einer echten Wallet: Karte waehlen, Stand sehen, Belohnung antizipieren.</div>
-                </div>
-              </div>
-              <div class="journeyStep">
-                <div class="journeyNo">3</div>
-                <div>
-                  <div class="journeyTitle">QR zeigen, weiter geniessen</div>
-                  <div class="journeyText">Am Tresen kein langes Erklaeren, sondern ein schneller Moment zwischen Gast und Barista.</div>
-                </div>
-              </div>
-            </div>
           </article>
-
-          <article class="productShot">
-            <div class="productStage">
-              <div class="phoneCard primary">
-                <div class="phoneTop">
-                  <div class="phoneEyebrow">Wallet</div>
-                  <div class="phoneBalance">8 von 10 Stempeln</div>
-                </div>
-                <h3 class="phoneTitle">Rueckkehr, die man sehen kann.</h3>
-                <p class="phoneText">
-                  Die Karte soll sich wie ein Objekt anfuehlen, nicht wie eine trockene Datenbox.
-                </p>
-                <div class="miniStampRow">
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                </div>
-                <div class="miniStampRow" style="margin-top: 10px">
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp filled">+</div>
-                  <div class="miniStamp"></div>
-                  <div class="miniStamp"></div>
-                </div>
-                <div class="phoneMeta">
-                  <span>Lieblingscafe</span>
-                  <span>Nur noch 2 bis Reward</span>
-                </div>
-              </div>
-
-              <div class="phoneCard secondary">
-                <div class="phoneTop">
-                  <div class="phoneEyebrow">Entdecken</div>
-                  <div class="phoneBalance">In deiner Naehe</div>
-                </div>
-                <h3 class="phoneTitle">Nicht nur sammeln. Auch entscheiden.</h3>
-                <p class="phoneText">
-                  Die App hilft dir, Cafes wiederzufinden, Karten zu verwalten und Rewards bewusster wahrzunehmen.
-                </p>
-                <div class="phoneMeta">
-                  <span>Cafe ansehen</span>
-                  <span>Zur Wallet hinzufuegen</span>
-                </div>
-              </div>
+          <article class="railCard">
+            <h3>URL-Struktur</h3>
+            <div class="list">
+              <div><strong>/</strong> öffentliche Produktseite</div>
+              <div><strong>/wallet</strong> Gäste-PWA mit Wallet, Map, QR und Verlauf</div>
+              <div><strong>/cafe</strong> Café-PWA mit Welcome, Scanner, Verwaltung und Dashboard</div>
             </div>
           </article>
         </div>
+      </section>
 
-        <section class="audienceGrid">
-        <article class="audiencePanel">
-          <h3>Vorteile fuer Kundinnen und Kunden</h3>
-          <div class="audienceList">
-            <div><strong>Alles im Handy:</strong> Keine verlorenen Karten, keine unleserlichen Stempel.</div>
-            <div><strong>Sofort sichtbar:</strong> Wie viele Besuche fehlen noch bis zur Belohnung?</div>
-            <div><strong>Schneller Zugriff:</strong> QR aufrufen, zeigen, fertig.</div>
-            <div><strong>Mehr Bindung:</strong> Lieblingscafes bleiben praesent und motivieren zur Rueckkehr.</div>
-          </div>
-        </article>
-
-        <article class="audiencePanel">
-          <h3>Vorteile fuer Cafes</h3>
-          <div class="audienceList">
-            <div><strong>Weniger Reibung:</strong> Auch aus Kundensicht bleibt der Prozess schnell und klar.</div>
-            <div><strong>Hoehere Bindung:</strong> Wer die Belohnung vor Augen hat, kommt eher wieder.</div>
-            <div><strong>Besserer Eindruck:</strong> Digitale Karten wirken zeitgemaess und sauberen Service-orientiert.</div>
-            <div><strong>Ruhigere Interaktion:</strong> Scanner und Wallet sprechen dieselbe Sprache statt zwei Welten zu sein.</div>
-          </div>
-        </article>
-        </section>
-
-        <section class="benefitGrid">
-        <article class="infoPanel">
-          <h3>Als Gast</h3>
-          <p class="panelText">
-            Die Wallet ist fuer Menschen gedacht, die ihr Lieblingscafe regelmaessig
-            besuchen und ihre Karte lieber digital als in der Hosentasche tragen.
+      <section class="ctaSection">
+        <article class="ctaCard">
+          <h3>Ich sammle Stempel</h3>
+          <p>
+            Öffne die Wallet, melde dich an und behalte deine lokalen Karten an einem Ort.
           </p>
-          <div class="appCtas">
-            <a class="btn primary" href="/customer-wallet">Wallet oeffnen</a>
-            <a class="btn secondary" href="/customer-profile">Profil</a>
+          <div class="miniCtaRow">
+            <a class="btn primary" href="/wallet">Wallet öffnen</a>
           </div>
         </article>
-
-        <article class="infoPanel">
-          <h3>Als Cafe</h3>
-          <p class="panelText">
-            Das Cafe-Setup fuehrt dich zuerst zur Stempelkarte und laesst
-            fortgeschrittene Themen wie Kampagnen oder Zusatzverwaltung bewusst spaeter folgen.
+        <article class="ctaCard">
+          <h3>Ich betreibe ein Café</h3>
+          <p>
+            Starte im Café-Bereich, richte deine Karte ein und nutze den Scanner direkt am Tresen.
           </p>
-          <div class="appCtas">
-            <a class="btn primary" href="/cafe-onboarding">Cafe einrichten</a>
-            <a class="btn secondary" href="/cafe-profile">Stempelkarte gestalten</a>
+          <div class="miniCtaRow">
+            <a class="btn primary" href="/cafe">Café starten</a>
           </div>
         </article>
-        </section>
       </section>
 
-      <section id="cafeSection" class="audienceSection">
-        <div class="overviewRail">
-          <article class="infoPanel">
-            <h3>Die Cafe-Sicht bewusst nachgelagert</h3>
-            <p class="panelText">
-              Betreiber sollen in der Suelzer Kaffekarte nicht erst durch Gast-Features navigieren
-              muessen. Deshalb bleibt der Cafe-Bereich getrennt und konzentriert:
-              Stempelkarte anlegen, Reward definieren, Scanner fuer das Team oeffnen.
-            </p>
-            <div class="journeyList">
-              <div class="journeyStep">
-                <div class="journeyNo">1</div>
-                <div>
-                  <div class="journeyTitle">Stempelkarte aufsetzen</div>
-                  <div class="journeyText">Zuerst das Kernprodukt definieren: Wie viele Stempel? Welche Belohnung? Welches Kartendesign?</div>
-                </div>
-              </div>
-              <div class="journeyStep">
-                <div class="journeyNo">2</div>
-                <div>
-                  <div class="journeyTitle">Scanner fuer das Team oeffnen</div>
-                  <div class="journeyText">Die operative Flaeche am Tresen bleibt schnell, freundlich und konzentriert.</div>
-                </div>
-              </div>
-              <div class="journeyStep">
-                <div class="journeyNo">3</div>
-                <div>
-                  <div class="journeyTitle">Spaeter Kampagnen erweitern</div>
-                  <div class="journeyText">Popup-Hinweise, Rueckkehr-Anreize und weitere Feinheiten kommen erst danach.</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article class="infoPanel">
-            <h3>Worauf Cafes einzahlen</h3>
-            <div class="audienceList">
-              <div><strong>Mehr Wiederkehr:</strong> der Reward wird fuer Gaeste sichtbar und damit relevanter.</div>
-              <div><strong>Weniger Erklaerbedarf:</strong> Scanner und Wallet sind fuer echte Tresen-Situationen gedacht.</div>
-              <div><strong>Wertiger Markenmoment:</strong> die Karte soll sich wie ein Teil des Cafes anfuehlen.</div>
-              <div><strong>Saubere Einfuehrung:</strong> erst die Karte, dann die Verwaltung, dann Kampagnen.</div>
-            </div>
-            <div class="appCtas">
-              <a class="btn primary" href="/cafe-onboarding">Cafe starten</a>
-              <a class="btn secondary" href="/cafe-scanner">Scanner</a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="appGrid cols2">
-        <div class="card appPanel">
-          <h2>Suelzer Wallet</h2>
-          <div class="subtitle">
-            Digitale Stempelkarten, QR, Rewards und mobile Kartenansicht fuer
-            echte Wiederkehr statt Papierchaos.
-          </div>
-          <div class="appCtas">
-            <a class="btn primary" href="/customer-wallet">Oeffnen</a>
-            <a class="btn secondary" href="/customer-profile">Profil</a>
-          </div>
-        </div>
-
-        <div class="card appPanel">
-          <h2>Cafe Tools</h2>
-          <div class="subtitle">
-            Onboarding, Stempelkarte, Scanner und spaetere Verwaltung fuer das
-            Team im Cafe.
-          </div>
-          <div class="appCtas">
-            <a class="btn primary" href="/cafe-onboarding">Onboarding</a>
-            <a class="btn secondary" href="/cafe-scanner">Scanner</a>
-          </div>
-        </div>
-      </section>
-
-      <div class="notice info quickHint">
-        Tipp: Fuer Mobile und LAN immer die Links ueber diesen Server nutzen,
-        damit API-Calls sauber ueber <span class="mono">/api</span> laufen.
-      </div>
+      <p class="footerNote">
+        Kaffekarte verbindet lokale Lieblingscafés mit einer ruhigeren, schnelleren Treue-Erfahrung.
+      </p>
     </div>
-    <script>
-      (function () {
-        var customerBtn = document.getElementById("viewCustomerBtn");
-        var cafeBtn = document.getElementById("viewCafeBtn");
-        var customerSection = document.getElementById("customerSection");
-        var cafeSection = document.getElementById("cafeSection");
-
-        function setAudience(view) {
-          var showCafe = view === "cafe";
-          if (customerBtn) customerBtn.classList.toggle("active", !showCafe);
-          if (cafeBtn) cafeBtn.classList.toggle("active", showCafe);
-          if (customerSection)
-            customerSection.classList.toggle("active", !showCafe);
-          if (cafeSection) cafeSection.classList.toggle("active", showCafe);
-        }
-
-        if (customerBtn) {
-          customerBtn.addEventListener("click", function () {
-            setAudience("customer");
-          });
-        }
-        if (cafeBtn) {
-          cafeBtn.addEventListener("click", function () {
-            setAudience("cafe");
-          });
-        }
-      })();
-    </script>
   </body>
 </html>
