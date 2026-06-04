@@ -65,13 +65,6 @@
         background: rgba(255, 252, 248, 0.9);
       }
 
-      .headerNav a.primary {
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
-        color: #fffaf5;
-        border-color: rgba(72, 47, 30, 0.4);
-      }
-
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
@@ -517,13 +510,6 @@
         gap: 18px;
       }
 
-      .miniCtaRow {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 18px;
-      }
-
       .footerNote {
         margin-top: 22px;
         text-align: center;
@@ -560,7 +546,6 @@
         .featureGrid,
         .audienceGrid,
         .journeyGrid,
-        .ctaSection,
         .heroProof {
           grid-template-columns: 1fr;
         }
@@ -624,8 +609,8 @@
         <nav class="headerNav" aria-label="Produktnavigation">
           <a href="#gaeste">Für Gäste</a>
           <a href="#cafes">Für Cafés</a>
-          <a class="primary" href="/wallet">Wallet öffnen</a>
-          <a href="/cafe">Café Login</a>
+          <a href="#ablauf">Ablauf</a>
+          <a href="#cta">Starten</a>
         </nav>
       </header>
 
@@ -641,7 +626,7 @@
 
           <div class="ctaRow">
             <a class="btn primary" href="/wallet">Wallet starten</a>
-            <a class="btn secondary" href="/cafe">Café registrieren</a>
+            <a class="btn secondary" href="/cafe">Café starten</a>
           </div>
 
           <div class="heroProof">
@@ -747,9 +732,6 @@
             <div><strong>Map nur wenn nötig:</strong> Cafés entdecken, sobald du eine neue Karte suchst.</div>
             <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Erklären am Tresen.</div>
           </div>
-          <div class="miniCtaRow">
-            <a class="btn primary" href="/wallet">Zur Wallet</a>
-          </div>
         </article>
 
         <article class="audienceCard" id="cafes">
@@ -760,16 +742,14 @@
           </p>
           <div class="list">
             <div><strong>Ein Klick zum Scan:</strong> der Scanner bleibt auf jeder Seite präsent.</div>
+            <div><strong>Direkt aus der Kameraansicht:</strong> auf dem Handy springt ihr ohne zusätzliche App-Suche oder Menüwege direkt in den Scan.</div>
             <div><strong>Eigene Karte pflegen:</strong> Reward, Beschreibung, Website und Bild an einem Ort.</div>
             <div><strong>Arbeitsmodus statt Website:</strong> für echte Tresen-Situationen gebaut.</div>
-          </div>
-          <div class="miniCtaRow">
-            <a class="btn primary" href="/cafe">Zum Café-Bereich</a>
           </div>
         </article>
       </section>
 
-      <section class="journeyGrid">
+      <section class="journeyGrid" id="ablauf">
         <article class="journeyCard">
           <h3>So funktioniert es</h3>
           <p class="sectionLead">
@@ -816,34 +796,27 @@
             </p>
           </article>
           <article class="railCard">
-            <h3>URL-Struktur</h3>
-            <div class="list">
-              <div><strong>/</strong> öffentliche Produktseite</div>
-              <div><strong>/wallet</strong> Gäste-PWA mit Wallet, Map, QR und Verlauf</div>
-              <div><strong>/cafe</strong> Café-PWA mit Welcome, Scanner, Verwaltung und Dashboard</div>
-            </div>
+            <h3>Für echte Wiederkehr</h3>
+            <p>
+              Kaffekarte ist nicht auf Masse ausgelegt, sondern auf Lieblingsorte:
+              bekannte Cafés, schnelle Abläufe und eine Treuekarte, die man wirklich wieder benutzt.
+            </p>
           </article>
         </div>
       </section>
 
-      <section class="ctaSection">
+      <section class="ctaSection" id="cta">
         <article class="ctaCard">
           <h3>Ich sammle Stempel</h3>
           <p>
             Öffne die Wallet, melde dich an und behalte deine lokalen Karten an einem Ort.
           </p>
-          <div class="miniCtaRow">
-            <a class="btn primary" href="/wallet">Wallet öffnen</a>
-          </div>
         </article>
         <article class="ctaCard">
           <h3>Ich betreibe ein Café</h3>
           <p>
             Starte im Café-Bereich, richte deine Karte ein und nutze den Scanner direkt am Tresen.
           </p>
-          <div class="miniCtaRow">
-            <a class="btn primary" href="/cafe">Café starten</a>
-          </div>
         </article>
       </section>
 
