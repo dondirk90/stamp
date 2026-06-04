@@ -330,6 +330,9 @@ const server = http.createServer((req, res) => {
     pathname = "/customer-profile.html";
   if (pathname === "/cafe/index.html") pathname = "/cafe-scanner-new.html";
   if (pathname === "/wallet/index.html") pathname = "/customer-qr-modern.html";
+  if (pathname === "/impressum/index.html") pathname = "/impressum.html";
+  if (pathname === "/datenschutz/index.html") pathname = "/datenschutz.html";
+  if (pathname === "/agb/index.html") pathname = "/agb.html";
 
   // Aliase ohne .html Endung für wichtige Seiten
   if (pathname === "/customer-register") pathname = "/customer-qr-modern.html";
@@ -344,6 +347,9 @@ const server = http.createServer((req, res) => {
     pathname = "/customer-qr-modern.html";
   if (pathname === "/wallet" || pathname === "/wallet.html")
     pathname = "/customer-qr-modern.html";
+  if (pathname === "/impressum") pathname = "/impressum.html";
+  if (pathname === "/datenschutz") pathname = "/datenschutz.html";
+  if (pathname === "/agb") pathname = "/agb.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
   if (pathname === "/cafe" || pathname === "/cafe.html" || pathname === "/cafe-public")

@@ -531,6 +531,30 @@
         font-size: 13px;
       }
 
+      .footerLinks {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .footerLinks a {
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: rgba(255, 252, 248, 0.88);
+        color: var(--text);
+      }
+
       @media (max-width: 980px) {
         .hero,
         .featureGrid,
@@ -826,6 +850,11 @@
       <p class="footerNote">
         Kaffekarte verbindet lokale Lieblingscafés mit einer ruhigeren, schnelleren Treue-Erfahrung.
       </p>
+      <div class="footerLinks" aria-label="Rechtliches">
+        <a href="/impressum">Impressum</a>
+        <a href="/datenschutz">Datenschutz</a>
+        <a href="/agb">AGB</a>
+      </div>
     </div>
   </body>
 </html>

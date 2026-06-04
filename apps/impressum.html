@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Impressum - Kaffekarte</title>
+    <meta name="theme-color" content="#f7efe6" />
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-6) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(229, 197, 164, 0.22), rgba(229, 197, 164, 0) 34%),
+          linear-gradient(180deg, #fcf8f3 0%, #f4ede4 100%);
+      }
+
+      .legalShell {
+        width: min(900px, 100%);
+        margin: 0 auto;
+      }
+
+      .legalCard {
+        padding: clamp(28px, 4vw, 42px);
+        border-radius: 34px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.96));
+        box-shadow:
+          0 22px 48px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(34px, 5vw, 54px);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .lead,
+      p,
+      li {
+        color: var(--text-muted);
+        line-height: 1.62;
+      }
+
+      h2 {
+        margin: 28px 0 10px;
+        font-size: 24px;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .todoBox,
+      .infoBox {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .todoBox strong,
+      .infoBox strong {
+        color: var(--text);
+      }
+
+      .legalNav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .legalNav a {
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: rgba(255, 252, 248, 0.92);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="legalShell">
+      <div class="legalCard">
+        <a class="kk-brand is-hero" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Kaffee im Veedel</span>
+            <span class="kk-brandWord">Kaffekarte</span>
+          </span>
+        </a>
+
+        <div class="eyebrow">Rechtliches</div>
+        <h1>Impressum</h1>
+        <p class="lead">
+          Dieses Impressum ist als MVP-Grundlage vorbereitet. Bitte ersetzt die
+          Platzhalter vor dem Livegang durch eure echten Unternehmens- und Kontaktdaten.
+        </p>
+
+        <div class="todoBox">
+          <strong>Vor Veröffentlichung ausfüllen:</strong>
+          <ul>
+            <li>Vollständiger Name / Firmenname</li>
+            <li>Rechtsform</li>
+            <li>Ladungsfähige Anschrift</li>
+            <li>E-Mail-Adresse</li>
+            <li>Telefonnummer oder weitere schnelle Kontaktmöglichkeit</li>
+            <li>Vertretungsberechtigte Person</li>
+            <li>Registereintrag / Registernummer, falls vorhanden</li>
+            <li>USt-IdNr., falls vorhanden</li>
+          </ul>
+        </div>
+
+        <h2>Angaben gemäß § 5 DDG</h2>
+        <p>
+          <strong>[Name / Firma einsetzen]</strong><br />
+          <strong>[Rechtsform einsetzen]</strong><br />
+          <strong>[Straße und Hausnummer einsetzen]</strong><br />
+          <strong>[PLZ und Ort einsetzen]</strong><br />
+          Deutschland
+        </p>
+
+        <h2>Vertreten durch</h2>
+        <p><strong>[Name der vertretungsberechtigten Person einsetzen]</strong></p>
+
+        <h2>Kontakt</h2>
+        <p>
+          E-Mail: <strong>[E-Mail-Adresse einsetzen]</strong><br />
+          Telefon: <strong>[Telefonnummer einsetzen]</strong>
+        </p>
+
+        <h2>Registereintrag</h2>
+        <p>
+          Eintragung im Handelsregister / Vereinsregister / Partnerschaftsregister:
+          <strong>[falls vorhanden eintragen, sonst Abschnitt anpassen oder entfernen]</strong><br />
+          Registernummer: <strong>[Nummer einsetzen]</strong>
+        </p>
+
+        <h2>Umsatzsteuer</h2>
+        <p>
+          Umsatzsteuer-Identifikationsnummer gemäß § 27 a UStG:
+          <strong>[falls vorhanden einsetzen]</strong>
+        </p>
+
+        <h2>Inhaltlich verantwortlich</h2>
+        <p><strong>[Name und Anschrift der verantwortlichen Person einsetzen]</strong></p>
+
+        <div class="infoBox">
+          <strong>Hinweis:</strong> Dieses Impressum ist keine Rechtsberatung.
+          Für den Go-Live solltet ihr die finalen Angaben noch einmal rechtlich prüfen.
+        </div>
+
+        <nav class="legalNav" aria-label="Rechtliche Navigation">
+          <a href="/">Startseite</a>
+          <a href="/wallet">Wallet</a>
+          <a href="/cafe">Café</a>
+          <a href="/datenschutz">Datenschutz</a>
+          <a href="/agb">AGB</a>
+        </nav>
+      </div>
+    </div>
+  </body>
+</html>

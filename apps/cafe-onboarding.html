@@ -60,6 +60,40 @@
         font-size: 0.95rem;
       }
 
+      .legalFooter {
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 241, 233, 0.12);
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .legalFooterLinks {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .legalFooterLinks a {
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
       .brandIntro {
         display: flex;
         justify-content: center;
@@ -882,6 +916,16 @@
       <div class="loading" id="loading">
         <div class="spinner"></div>
         <p>Erstelle dein Café-System...</p>
+      </div>
+
+      <div class="legalFooter">
+        Mit der Nutzung von Kaffekarte bewegst du dich in einem echten Live-System
+        für Wallet, Scanner und Café-Verwaltung.
+        <div class="legalFooterLinks">
+          <a href="/impressum">Impressum</a>
+          <a href="/datenschutz">Datenschutz</a>
+          <a href="/agb">AGB</a>
+        </div>
       </div>
     </div>
 

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Datenschutzerklärung - Kaffekarte</title>
+    <meta name="theme-color" content="#f7efe6" />
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-6) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(229, 197, 164, 0.22), rgba(229, 197, 164, 0) 34%),
+          linear-gradient(180deg, #fcf8f3 0%, #f4ede4 100%);
+      }
+
+      .legalShell {
+        width: min(980px, 100%);
+        margin: 0 auto;
+      }
+
+      .legalCard {
+        padding: clamp(28px, 4vw, 42px);
+        border-radius: 34px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.96));
+        box-shadow:
+          0 22px 48px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(34px, 5vw, 54px);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        margin: 28px 0 10px;
+        font-size: 24px;
+      }
+
+      p,
+      li {
+        color: var(--text-muted);
+        line-height: 1.62;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .todoBox,
+      .infoBox {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .todoBox strong,
+      .infoBox strong {
+        color: var(--text);
+      }
+
+      .legalNav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .legalNav a {
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: rgba(255, 252, 248, 0.92);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="legalShell">
+      <div class="legalCard">
+        <a class="kk-brand is-hero" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Kaffee im Veedel</span>
+            <span class="kk-brandWord">Kaffekarte</span>
+          </span>
+        </a>
+
+        <div class="eyebrow">Rechtliches</div>
+        <h1>Datenschutzerklärung</h1>
+        <p>
+          Diese Datenschutzerklärung ist als MVP-Grundlage vorbereitet und muss
+          vor dem Livegang mit euren echten Unternehmensdaten, Dienstleistern
+          und Speicherfristen finalisiert werden.
+        </p>
+
+        <div class="todoBox">
+          <strong>Vor Veröffentlichung prüfen und ergänzen:</strong>
+          <ul>
+            <li>Name und Kontaktdaten des Verantwortlichen</li>
+            <li>Datenschutz-Kontakt / Datenschutzbeauftragter, falls vorhanden</li>
+            <li>tatsächlich eingesetzte Hosting-, Mail- und Infrastruktur-Dienstleister</li>
+            <li>konkrete Speicherfristen</li>
+            <li>ggf. Analytics-, Monitoring- oder Push-Dienste</li>
+          </ul>
+        </div>
+
+        <h2>1. Verantwortlicher</h2>
+        <p>
+          Verantwortlich für die Datenverarbeitung ist:<br />
+          <strong>[Name / Firma einsetzen]</strong><br />
+          <strong>[Anschrift einsetzen]</strong><br />
+          E-Mail: <strong>[E-Mail-Adresse einsetzen]</strong>
+        </p>
+
+        <h2>2. Welche Daten wir verarbeiten</h2>
+        <ul>
+          <li>Bestandsdaten wie Name, Caféname, E-Mail-Adresse und Zugangsdaten</li>
+          <li>Nutzungsdaten innerhalb der Wallet- und Café-PWA</li>
+          <li>Stempel- und Reward-Daten zur Darstellung und Einlösung von Treuekarten</li>
+          <li>Standortdaten, wenn du der Kartenansicht den Zugriff erlaubst</li>
+          <li>Kamerazugriff, wenn du in der Café-App den Scanner verwendest</li>
+          <li>Technische Logdaten zur Bereitstellung und Fehlerbehebung</li>
+        </ul>
+
+        <h2>3. Zwecke und Rechtsgrundlagen</h2>
+        <ul>
+          <li><strong>Bereitstellung der App und Konten</strong> auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO</li>
+          <li><strong>Passwort-Reset und Service-E-Mails</strong> auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO</li>
+          <li><strong>Missbrauchsvermeidung und Systemsicherheit</strong> auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO</li>
+          <li><strong>Standort- und Kamerazugriff</strong> nur nach deiner Freigabe im Gerät / Browser</li>
+        </ul>
+
+        <h2>4. Standort und Karte</h2>
+        <p>
+          Wenn du in der Wallet-Karte Cafés in deiner Nähe sehen möchtest, kann
+          die PWA den aktuellen Standort abfragen. Die Freigabe erfolgt über
+          dein Gerät oder den Browser. Ohne Freigabe bleibt die Kartenfunktion
+          grundsätzlich nutzbar, zentriert sich aber nicht automatisch auf deinen aktuellen Standort.
+        </p>
+
+        <h2>5. Kamera im Scanner</h2>
+        <p>
+          Die Café-PWA verwendet die Kamera ausschließlich, um QR-Codes im
+          Scanner zu erfassen. Der Zugriff wird über dein Gerät oder den Browser
+          freigegeben. Eine dauerhafte lokale Speicherung der Kamerabilder ist
+          nach unserem aktuellen MVP-Stand nicht vorgesehen.
+        </p>
+
+        <h2>6. E-Mail-Kommunikation</h2>
+        <p>
+          Für Registrierung, Passwort-Reset und transaktionale Hinweise verwenden
+          wir E-Mail. Dabei werden deine E-Mail-Adresse und die für den Versand
+          erforderlichen Metadaten verarbeitet.
+        </p>
+
+        <h2>7. Lokale Speicherung und PWA-Funktionen</h2>
+        <p>
+          Die PWA speichert technisch notwendige Informationen lokal auf dem
+          Gerät, etwa Session-Daten, Darstellungszustände oder zuletzt genutzte
+          Ansichten, damit die Anwendung stabil und schnell funktioniert. Soweit
+          diese Speicherung für den Betrieb erforderlich ist, erfolgt sie auf
+          Grundlage der einschlägigen gesetzlichen Erlaubnisse.
+        </p>
+
+        <h2>8. Empfänger und Dienstleister</h2>
+        <p>
+          Wir setzen für Hosting, API-Betrieb und E-Mail-Versand technische
+          Dienstleister ein. Bitte ergänzt hier vor dem Livegang die tatsächlich
+          genutzten Anbieter und, falls erforderlich, Hinweise zu Drittlandtransfers.
+        </p>
+
+        <h2>9. Speicherdauer</h2>
+        <p>
+          Wir speichern personenbezogene Daten grundsätzlich nur so lange, wie es
+          für die Bereitstellung der App, die Abwicklung von Konten und die
+          Erfüllung gesetzlicher Pflichten erforderlich ist. Die konkreten
+          Speicherfristen sollten vor dem Livegang final ergänzt werden.
+        </p>
+
+        <h2>10. Deine Rechte</h2>
+        <p>
+          Dir stehen die gesetzlichen Rechte auf Auskunft, Berichtigung, Löschung,
+          Einschränkung der Verarbeitung, Datenübertragbarkeit sowie Widerspruch zu.
+          Außerdem kannst du dich bei einer Datenschutzaufsichtsbehörde beschweren.
+        </p>
+
+        <h2>11. Änderungen dieser Datenschutzerklärung</h2>
+        <p>
+          Wir behalten uns vor, diese Datenschutzerklärung anzupassen, wenn sich
+          Funktionen, Rechtsgrundlagen oder Dienstleister ändern. Für einen
+          produktiven Betrieb ist eine Versionierung der Rechtstexte empfehlenswert.
+        </p>
+
+        <div class="infoBox">
+          <strong>Hinweis:</strong> Diese Seite ist eine technisch saubere MVP-Vorlage,
+          ersetzt aber keine abschließende rechtliche Prüfung.
+        </div>
+
+        <nav class="legalNav" aria-label="Rechtliche Navigation">
+          <a href="/">Startseite</a>
+          <a href="/wallet">Wallet</a>
+          <a href="/cafe">Café</a>
+          <a href="/impressum">Impressum</a>
+          <a href="/agb">AGB</a>
+        </nav>
+      </div>
+    </div>
+  </body>
+</html>
