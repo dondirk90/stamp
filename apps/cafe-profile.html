@@ -24,6 +24,7 @@
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
+        overflow-x: hidden;
       }
 
       .shell {
@@ -33,47 +34,194 @@
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-
-        padding: 18px 20px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.72);
+        backdrop-filter: blur(18px);
         box-shadow:
-          0 16px 34px rgba(0, 0, 0, 0.18),
-          0 1px 0 rgba(255, 255, 255, 0.06) inset;
-        border-bottom: none;
+          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.68) inset;
+        position: relative;
+        z-index: 3;
       }
 
       .brand {
         display: flex;
         align-items: center;
-        gap: var(--space-3);
+        justify-content: center;
+        width: 100%;
       }
 
-      .avatar {
-        width: 42px;
-        height: 42px;
+      .brandHead {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
+      }
+
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #241710;
+      }
+
+      .topbar .row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
+        color: #5a4030 !important;
+        box-shadow:
+          0 12px 22px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
         border-radius: 999px;
-        background: var(--brand);
-        display: grid;
-        place-items: center;
-        color: var(--on-brand, #fff);
-        font-weight: 900;
+        background: #7a5236;
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 20px;
-        font-family: var(--font-display);
-        letter-spacing: -0.03em;
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
+        background-color: rgba(255, 252, 247, 0.98) !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        border-radius: 14px;
+        color: #241710 !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
       }
 
       .subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .pageMeta {
+        margin: 0 0 var(--space-4);
+        padding: 0 var(--space-1);
+      }
+
+      .pageMetaTitle {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+
+      .pageMetaSub {
         font-size: 13px;
         color: var(--text-muted);
       }
@@ -252,51 +400,38 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <a class="kk-brand" href="/">
-            <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/stamp-bean.png?v=1" alt="" />
-            </span>
-            <span class="kk-brandText">
-              <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Kaffekarte</span>
-            </span>
-          </a>
-          <div class="avatar" id="cafeAvatar">C</div>
-          <div>
-            <h1 id="cafeName">Café Profil</h1>
-            <div class="subtitle">Karte, Reward und Auftritt an einem Ort</div>
-            <div class="subtitle" id="buildBadge">profile · ui-20260603b</div>
+          <div class="brandHead">
+            <a class="kk-brand" href="/cafe-scanner">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Kaffekarte</span>
+              </span>
+            </a>
           </div>
         </div>
         <div class="row">
-          <button
-            class="btn secondary"
-            type="button"
-            id="logoutBtn"
-            onclick="location.href = '/cafe-logout.html'"
-          >
-            Abmelden
+          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
+            <span class="topUtilityIcon"><span></span></span>
           </button>
         </div>
+      </div>
 
-        <div class="topMenu" aria-label="Navigation">
-          <a class="topMenuBtn ghost" href="/cafe-scanner?view=scan">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </a>
-          <a class="topMenuBtn ghost active" id="navCardSetup" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Stempelkarte</span>
-          </a>
-          <a class="topMenuBtn ghost" id="navAdvanced" href="/cafe-profile?view=advanced">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verwaltung</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-dashboard">
-            <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
-          </a>
-        </div>
+      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
+        <button class="utilityMenuBtn" id="utilityScannerBtn" type="button">Scanner</button>
+        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
+        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
+        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
+        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
+      </div>
+
+      <div class="pageMeta">
+        <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
+        <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
+        <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -1257,6 +1392,49 @@
         window.location.href = "/cafe-onboarding";
       }
 
+      function wireUtilityMenu() {
+        const topUtilityBtn = document.getElementById("topUtilityBtn");
+        const utilityMenu = document.getElementById("utilityMenu");
+        const utilityStartBtn = document.getElementById("utilityStartBtn");
+        const utilityScannerBtn = document.getElementById("utilityScannerBtn");
+        const utilityCardBtn = document.getElementById("utilityCardBtn");
+        const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+        const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
+        const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+
+        const setOpen = (open) => {
+          if (!utilityMenu) return;
+          utilityMenu.classList.toggle("open", !!open);
+          if (topUtilityBtn) {
+            topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
+          }
+        };
+
+        if (topUtilityBtn) {
+          topUtilityBtn.addEventListener("click", () => {
+            const isOpen = utilityMenu && utilityMenu.classList.contains("open");
+            setOpen(!isOpen);
+          });
+        }
+        if (utilityStartBtn) utilityStartBtn.addEventListener("click", () => (location.href = "/cafe-scanner"));
+        if (utilityScannerBtn)
+          utilityScannerBtn.addEventListener("click", () => (location.href = "/cafe-scanner?view=scan"));
+        if (utilityCardBtn) utilityCardBtn.addEventListener("click", () => (location.href = "/cafe-profile"));
+        if (utilityAdminBtn)
+          utilityAdminBtn.addEventListener("click", () => (location.href = "/cafe-profile?view=advanced"));
+        if (utilityDashboardBtn)
+          utilityDashboardBtn.addEventListener("click", () => (location.href = "/cafe-dashboard"));
+        if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
+
+        document.addEventListener("click", (ev) => {
+          const t = ev && ev.target ? ev.target : null;
+          if (!t || !utilityMenu) return;
+          if (utilityMenu.contains(t)) return;
+          if (topUtilityBtn && topUtilityBtn.contains(t)) return;
+          setOpen(false);
+        });
+      }
+
       async function init() {
         try {
           apiBase = await resolveApiBase();
@@ -1269,18 +1447,12 @@
 
           cafe = JSON.parse(saved);
 
-          document.getElementById("cafeAvatar").textContent = (cafe.name || "C")
-            .charAt(0)
-            .toUpperCase();
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
           document.getElementById("buildBadge").textContent =
-            `profile · ui-20260603b · API: ${apiBase}`;
+            `profile · ui-20260603c · API: ${apiBase}`;
           applyProfileViewMode(getProfileViewMode());
-
-          document
-            .getElementById("logoutBtn")
-            .addEventListener("click", doLogout);
+          wireUtilityMenu();
 
           const btn = document.getElementById("profileSaveBtn");
           if (btn) btn.addEventListener("click", saveProfile);
