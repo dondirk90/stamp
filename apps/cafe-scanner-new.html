@@ -1007,6 +1007,8 @@
             calc(var(--space-3) + var(--safe-right, 0px))
             calc(12px + var(--safe-bottom, 0px))
             calc(var(--space-3) + var(--safe-left, 0px));
+          overflow: hidden;
+          overscroll-behavior: none;
         }
 
         .topbar {
@@ -1029,6 +1031,10 @@
         .topbar .brand,
         .topbar .row {
           pointer-events: auto;
+        }
+
+        .menuToggle {
+          display: none !important;
         }
 
         .topbar .row {
@@ -1062,6 +1068,7 @@
 
         .shell {
           max-width: none;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 20px);
         }
 
         .brand {
@@ -1095,6 +1102,113 @@
         #appShell {
           padding-top: 66px;
           padding-bottom: calc(96px + var(--safe-bottom, 0px));
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px));
+        }
+
+        .mainPanel {
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 162px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        #homeScreen,
+        #scannerScreen {
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
+          max-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 12px;
+        }
+
+        #homeScreen .homeGrid,
+        #homeScreen .menuInfo,
+        #homePending,
+        #homeScreen .hintBox:last-of-type {
+          display: none !important;
+        }
+
+        #homeScreen .panelTitle {
+          margin-bottom: 0;
+        }
+
+        #homeScreen > .subtitle {
+          margin-bottom: 0;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        #homeScreen .hintBox {
+          margin-top: 6px;
+          padding: 14px;
+          font-size: 13px;
+        }
+
+        #scannerScreen > .panelTitle,
+        #scannerScreen > .subtitle {
+          display: none;
+        }
+
+        .scannerMain {
+          padding: 14px;
+          border-radius: 20px;
+        }
+
+        .scannerMainHead {
+          gap: 12px;
+        }
+
+        .scannerLead {
+          margin-top: 6px;
+          font-size: 13px;
+          line-height: 1.4;
+          max-width: 30ch;
+        }
+
+        .cameraControls {
+          gap: 10px;
+        }
+
+        #cameraStartBtn {
+          min-height: 54px;
+          padding: 14px 20px;
+          font-size: 16px;
+        }
+
+        .scannerStage {
+          margin-top: 10px;
+          padding: 12px;
+          border-radius: 18px;
+        }
+
+        #videoContainer {
+          max-width: min(100%, 320px);
+          margin: 0 auto;
+        }
+
+        #video {
+          aspect-ratio: 1 / 1.04;
+          max-height: min(40svh, 340px);
+        }
+
+        .scan-overlay {
+          width: min(50vw, 188px);
+          height: min(50vw, 188px);
+        }
+
+        .scannerStatus,
+        .scannerHintCompact {
+          margin-top: 8px;
+          font-size: 12px;
+        }
+
+        #customerInfo {
+          margin-top: 10px;
+          padding: 14px;
+          max-height: 34svh;
+          overflow: auto;
         }
       }
 
@@ -2471,11 +2585,11 @@
           await startScannerCamera({ forcePrompt: false });
           return;
         }
-        if (getScannerAutoStartPreference()) {
-          await startScannerCamera({ forcePrompt: true });
-          return;
-        }
-        setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.');
+        setScannerStatus(
+          getScannerAutoStartPreference()
+            ? 'Kamera bereit. iOS fragt nach einem kompletten Schließen der PWA eventuell erneut. Tippe auf "Kamera starten", um weiterzumachen.'
+            : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.',
+        );
         updateScannerHint(
           "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
         );
