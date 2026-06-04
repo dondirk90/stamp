@@ -22,7 +22,7 @@
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
-          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
           calc(var(--space-5) + var(--safe-left, 0px));
         overflow-x: hidden;
       }
@@ -208,6 +208,72 @@
         -webkit-appearance: none;
       }
 
+      .bottomTabs {
+        position: fixed;
+        left: calc(10px + var(--safe-left, 0px));
+        right: calc(10px + var(--safe-right, 0px));
+        bottom: calc(10px + var(--safe-bottom, 0px));
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.94);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 22px 42px rgba(68, 41, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.78) inset;
+        z-index: 28;
+      }
+
+      .bottomTabSpacer {
+        flex: 1 1 0;
+      }
+
+      .bottomTabBtn {
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: rgba(47, 32, 23, 0.72) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .bottomTabBtn .ico,
+      .bottomTabBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 70px;
+        margin-top: -24px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
+      }
+
       .pageMeta {
         margin: 0 0 var(--space-4);
         padding: 0 var(--space-1);
@@ -374,7 +440,6 @@
 
       <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
         <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
-        <button class="utilityMenuBtn" id="utilityScannerBtn" type="button">Scanner</button>
         <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
         <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
         <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
@@ -464,6 +529,17 @@
           </div>
         </div>
       </div>
+
+      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
+        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">S</span>
+            <span class="lbl">Scanner</span>
+          </span>
+        </button>
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
+      </div>
     </div>
 
     <script src="/ui.js"></script>
@@ -535,12 +611,12 @@
         const topUtilityBtn = document.getElementById("topUtilityBtn");
         const utilityMenu = document.getElementById("utilityMenu");
         const utilityStartBtn = document.getElementById("utilityStartBtn");
-        const utilityScannerBtn = document.getElementById("utilityScannerBtn");
         const utilityCardBtn = document.getElementById("utilityCardBtn");
         const utilityAdminBtn = document.getElementById("utilityAdminBtn");
         const utilityDashboardBtn =
           document.getElementById("utilityDashboardBtn");
         const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+        const bottomModeScanner = document.getElementById("bottomModeScanner");
 
         const setOpen = (open) => {
           if (!utilityMenu) return;
@@ -562,11 +638,6 @@
             window.location.href = "/cafe-scanner";
           });
         }
-        if (utilityScannerBtn) {
-          utilityScannerBtn.addEventListener("click", () => {
-            window.location.href = "/cafe-scanner?view=scan";
-          });
-        }
         if (utilityCardBtn) {
           utilityCardBtn.addEventListener("click", () => {
             window.location.href = "/cafe-profile";
@@ -586,6 +657,11 @@
           utilityLogoutBtn.addEventListener("click", () => {
             setOpen(false);
             logout();
+          });
+        }
+        if (bottomModeScanner) {
+          bottomModeScanner.addEventListener("click", () => {
+            window.location.href = "/cafe-scanner?view=scan";
           });
         }
 

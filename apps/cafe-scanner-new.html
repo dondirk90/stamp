@@ -1963,6 +1963,7 @@
           `
             <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
               <button class="utilityMenuBtn" id="utilityWelcomeBtn" type="button">Start</button>
+              <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
               <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
               <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
               <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
@@ -1981,12 +1982,6 @@
                   <span class="topMenuBtnContent">
                     <span class="ico" aria-hidden="true">H</span>
                     <span class="lbl">Start</span>
-                  </span>
-                </button>
-                <button class="topMenuBtn ghost" id="navScanner" type="button">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">S</span>
-                    <span class="lbl">Scanner</span>
                   </span>
                 </button>
                 <a class="topMenuBtn ghost" href="/cafe-profile">
@@ -2088,6 +2083,7 @@
       const topUtilityBtn = document.getElementById("topUtilityBtn");
       const utilityMenu = document.getElementById("utilityMenu");
       const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
+      const utilityCardBtn = document.getElementById("utilityCardBtn");
       const utilityAdminBtn = document.getElementById("utilityAdminBtn");
       const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
       const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
@@ -2308,6 +2304,11 @@
           });
         }
         if (utilityWelcomeBtn) utilityWelcomeBtn.addEventListener("click", goToWelcome);
+        if (utilityCardBtn) {
+          utilityCardBtn.addEventListener("click", () => {
+            location.href = "/cafe-profile";
+          });
+        }
         if (utilityAdminBtn)
           utilityAdminBtn.addEventListener("click", () => {
             location.href = "/cafe-profile?view=advanced";
@@ -2318,7 +2319,6 @@
           });
         if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
         if (navWelcome) navWelcome.addEventListener("click", goToWelcome);
-        if (navScanner) navScanner.addEventListener("click", goToScanner);
         if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
         document.addEventListener("click", (ev) => {
           const t = ev && ev.target ? ev.target : null;
