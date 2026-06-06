@@ -713,6 +713,7 @@
           overscroll-behavior-x: none;
         }
 
+        #welcomePanel,
         .mapHero,
         #historyPanel {
           width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
@@ -1661,6 +1662,55 @@
 
       .screenSlide > * {
         min-width: 0;
+      }
+
+      #welcomePanel {
+        width: min(460px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        margin: auto;
+        display: grid;
+        gap: 16px;
+        padding: 28px 22px;
+      }
+
+      .welcomeIntro {
+        display: grid;
+        gap: 10px;
+      }
+
+      .welcomeKicker {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .welcomeLeadText {
+        color: rgba(59, 42, 31, 0.8);
+        line-height: 1.6;
+      }
+
+      .welcomeFacts {
+        display: grid;
+        gap: 10px;
+      }
+
+      .welcomeFact {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.48);
+        color: rgba(59, 42, 31, 0.82);
+        line-height: 1.5;
+      }
+
+      .welcomeFact strong {
+        color: var(--text);
+      }
+
+      .welcomeActions {
+        display: grid;
+        gap: 10px;
       }
 
       .mapHero {
@@ -3790,7 +3840,7 @@
             >
               <span class="menuToggleLines"><span></span></span>
             </button>
-            <a class="kk-brand" href="/customer-map">
+            <a class="kk-brand" href="/wallet">
               <span class="kk-brandMark" aria-hidden="true">
                 <img src="/assets/stamp-bean.png?v=1" alt="" />
               </span>
@@ -4043,14 +4093,29 @@
           <div class="home screenPager" id="screenPager" aria-label="Start">
             <div class="screenSlide" data-mode="welcome">
             <div class="card panel" id="welcomePanel">
-              <div class="panelHeader">
-                <h3 id="welcomeTitle">Hallo</h3>
+              <div class="welcomeIntro">
+                <div class="welcomeKicker">Deine Kaffeekarte</div>
+                <div class="panelHeader">
+                  <h3 id="welcomeTitle">Hallo</h3>
+                </div>
+                <div class="welcomeLeadText" id="welcomeLead">
+                  Deine Stempelkarten wohnen hier an einem Ort. Öffne direkt deine Wallet
+                  oder suche ein neues Café in deiner Nähe.
+                </div>
               </div>
-              <div class="hint" id="welcomeLead">
-                Deine Stempelkarten wohnen hier an einem Ort. Öffne direkt deine Wallet
-                oder suche ein neues Café in deiner Nähe.
+              <div class="welcomeFacts">
+                <div class="welcomeFact">
+                  <strong>Alle Karten an einem Ort:</strong> lokale Treuekarten, klar
+                  gesammelt statt lose im Geldbeutel.
+                </div>
+                <div class="welcomeFact">
+                  <strong>Schnell am Tresen:</strong> Karte öffnen, QR zeigen, weiter Kaffee genießen.
+                </div>
+                <div class="welcomeFact">
+                  <strong>Lokal statt laut:</strong> Lieblingscafés entdecken, wiederkommen und Belohnungen im Blick behalten.
+                </div>
               </div>
-              <div class="stack" style="gap: 12px; margin-top: var(--space-4)">
+              <div class="welcomeActions">
                 <button class="btn primary" id="welcomeOpenWalletBtn" type="button">
                   Wallet öffnen
                 </button>
