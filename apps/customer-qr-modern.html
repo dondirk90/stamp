@@ -717,16 +717,23 @@
         .mapHero,
         #historyPanel {
           width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
-          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px);
           margin: auto;
-          padding: 66px 16px 20px;
+          padding: 82px 16px 28px;
           border-radius: 30px;
-          background: rgba(255, 252, 248, 0.82);
-          border: 1px solid rgba(17, 17, 17, 0.08);
+          background: rgba(251, 246, 240, 0.52);
+          border: 1px solid rgba(17, 17, 17, 0.05);
           box-shadow:
-            0 20px 40px rgba(68, 41, 22, 0.08),
-            0 1px 0 rgba(255, 255, 255, 0.7) inset;
-          backdrop-filter: blur(18px);
+            0 12px 28px rgba(68, 41, 22, 0.04),
+            0 1px 0 rgba(255, 255, 255, 0.58) inset;
+          backdrop-filter: blur(10px);
+        }
+
+        #welcomePanel {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+          backdrop-filter: none;
         }
 
         .mapHero {
@@ -1669,8 +1676,12 @@
         margin: auto;
         display: grid;
         gap: 16px;
-        padding: 58px 22px 32px;
-        min-height: 520px;
+        padding: 74px 22px 40px;
+        min-height: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
       }
 
       .welcomeIntro {
