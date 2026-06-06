@@ -633,6 +633,26 @@
     } catch (e5) {}
   }
 
+  function bindBrandLinksToWelcome() {
+    try {
+      var links = document.querySelectorAll('.kk-brand[href="/wallet"]');
+      for (var i = 0; i < links.length; i++) {
+        links[i].addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+          } catch (e0) {}
+          setShellMenuOpen(false);
+          closeWalletOverlay({ silent: true });
+          try {
+            history.pushState({ mode: "welcome" }, "", "/wallet");
+          } catch (e1) {}
+          currentPageMode = "welcome";
+          applyPageMode("welcome");
+        });
+      }
+    } catch (e) {}
+  }
+
   function getPageMode() {
     if (currentPageMode) return currentPageMode;
     try {
@@ -4653,6 +4673,7 @@
     wireAccount();
     wireLogout();
     wireShellMenu();
+    bindBrandLinksToWelcome();
     wireNavigation();
     wireScreenPager();
     wireVisibility();
