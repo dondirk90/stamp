@@ -468,8 +468,8 @@
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent = uname
-        ? "Schön, dass du wieder da bist. Öffne deine Wallet oder entdecke ein neues Café in deiner Nähe."
-        : "Öffne deine Wallet oder entdecke ein neues Café in deiner Nähe.";
+        ? "Schön, dass du wieder da bist. Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
+        : "Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel.";
     }
   }
 
