@@ -1,7 +1,8 @@
-const CACHE_VERSION = "stamp-shell-v3-20260603";
+const CACHE_VERSION = "stamp-shell-v4-20260606";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
+  "/wallet",
   "/customer-wallet",
   "/cafe-scanner",
   "/cafe-profile",
@@ -57,7 +58,7 @@ function isApiRequest(url) {
 }
 
 function isAppShellRequest(url) {
-  if (url.pathname === "/" || url.pathname === "/customer-wallet") return true;
+  if (url.pathname === "/" || url.pathname === "/wallet" || url.pathname === "/customer-wallet") return true;
   if (url.pathname === "/cafe-scanner") return true;
   if (url.pathname === "/cafe-profile") return true;
   if (url.pathname === "/cafe-dashboard") return true;
@@ -123,6 +124,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isAppShellRequest(url)) {
-    event.respondWith(networkFirst(request, "/customer-wallet"));
+    event.respondWith(networkFirst(request, "/wallet"));
   }
 });

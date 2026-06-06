@@ -5,7 +5,7 @@
   "description": "Digitale Stempelkarten fuer Cafes mit Wallet fuer Gaeste und Scanner fuer das Team.",
   "lang": "de",
   "dir": "ltr",
-  "start_url": "/customer-wallet",
+  "start_url": "/wallet",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -38,7 +38,7 @@
       "name": "Wallet",
       "short_name": "Wallet",
       "description": "Digitale Stempelkarte fuer Gaeste oeffnen.",
-      "url": "/customer-wallet",
+      "url": "/wallet",
       "icons": [
         {
           "src": "/pwa/icons/icon-192.png",

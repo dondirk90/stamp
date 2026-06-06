@@ -682,8 +682,8 @@
         return session && session.address ? "welcome" : "map";
       }
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "wallet";
-      if (p.indexOf("/customer-qr") === 0) return "wallet";
+      if (p.indexOf("/customer-wallet") === 0) return "welcome";
+      if (p.indexOf("/customer-qr") === 0) return "welcome";
       if (
         p.indexOf("/customer-home") === 0 ||
         p.indexOf("/customer-start") === 0
