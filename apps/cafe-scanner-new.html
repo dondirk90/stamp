@@ -736,6 +736,22 @@
         margin-top: 24px;
         border: 1px solid color-mix(in srgb, var(--border) 90%, white 10%);
       }
+
+      #scannerScreen.customerLoaded .scannerStage {
+        display: none;
+      }
+
+      #scannerScreen.customerLoaded #scanHint {
+        display: none;
+      }
+
+      #scannerScreen.customerLoaded .scannerMain {
+        padding-bottom: 6px;
+      }
+
+      #scannerScreen.customerLoaded .scannerLead {
+        max-width: none;
+      }
       .customer-info .label {
         font-weight: 600;
         color: var(--text);
@@ -1234,8 +1250,29 @@
         #customerInfo {
           margin-top: 10px;
           padding: 14px;
-          max-height: 34svh;
-          overflow: auto;
+          max-height: none;
+          overflow: visible;
+        }
+
+        #scannerScreen.customerLoaded {
+          justify-content: flex-start;
+          gap: 10px;
+        }
+
+        #scannerScreen.customerLoaded .scannerMain {
+          padding: 14px;
+        }
+
+        #scannerScreen.customerLoaded .scannerMainHead {
+          gap: 10px;
+        }
+
+        #scannerScreen.customerLoaded .scannerLead {
+          font-size: 13px;
+        }
+
+        #scannerScreen.customerLoaded .scannerStatus {
+          margin-top: 0;
         }
       }
 
@@ -2304,6 +2341,11 @@
         scannerStatus.textContent = String(message || "");
       }
 
+      function setCustomerLoadedUi(loaded) {
+        if (!scannerScreen) return;
+        scannerScreen.classList.toggle("customerLoaded", !!loaded);
+      }
+
       function getScannerAutoStartPreference() {
         try {
           return localStorage.getItem(CAMERA_AUTO_START_KEY) === "1";
@@ -2554,6 +2596,7 @@
         const targetView = view === "scan" ? "scan" : "home";
         if (homeScreen) homeScreen.style.display = targetView === "home" ? "block" : "none";
         if (scannerScreen) scannerScreen.style.display = targetView === "scan" ? "block" : "none";
+        setCustomerLoadedUi(targetView === "scan" && !!scannedCustomer);
         setActiveNav(targetView);
         syncScannerUrl(targetView);
         if (targetView === "home") {
@@ -3060,6 +3103,7 @@
           customerAddress.textContent = scannedCustomer.address;
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
+          setCustomerLoadedUi(true);
           awardBtn.disabled = false;
           applyActionUi();
           setScannerStatus("Kunde geladen. Du kannst jetzt bestaetigen oder erneut scannen.");
@@ -3221,6 +3265,7 @@
             scannedCustomer = null;
             localStorage.removeItem("last_scanned_customer");
             customerInfo.style.display = "none";
+            setCustomerLoadedUi(false);
             awardBtn.disabled = false;
             pendingScan = null;
             pendingAction = "stamp";
@@ -3288,6 +3333,7 @@
             showAppUI();
             showView(pendingScan ? "scan" : getInitialView());
             customerInfo.style.display = "none";
+            setCustomerLoadedUi(false);
             syncCameraButtons();
             updateHomeStatus();
 
@@ -3304,6 +3350,7 @@
                 customerName.textContent = scannedCustomer.name;
                 customerAddress.textContent = scannedCustomer.address;
                 customerInfo.style.display = "block";
+                setCustomerLoadedUi(true);
 
                 // Fetch current stamps
                 const stampsRes = await fetch(
