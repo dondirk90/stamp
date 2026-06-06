@@ -33,9 +33,9 @@
   --info: #175cd3;
   --info-bg: #eff8ff;
 
-  /* Completely rectangular */
-  --radius: 0px;
-  --radius-sm: 0px;
+  /* Shared soft geometry for wallet-like product feel */
+  --radius: 28px;
+  --radius-sm: 18px;
 
   --space-1: 6px;
   --space-2: 10px;
@@ -244,10 +244,13 @@ a:hover {
 /* Common page container used across many static pages */
 .card {
   /* Avoid “cards everywhere”: default to a simple section wrapper */
-  background: transparent;
-  border: none;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
+  border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow:
+    0 18px 40px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset;
 }
 
 h1,
@@ -282,28 +285,29 @@ input,
 select,
 textarea {
   color: var(--text);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  padding: 10px 12px;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.66) inset,
+    0 8px 18px rgba(68, 41, 22, 0.04);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--brand);
+  border-color: rgba(107, 69, 44, 0.42);
   box-shadow: 0 0 0 3px var(--focus);
 }
 
 button {
   background: var(--brand);
   color: var(--on-brand, #fff);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 12px 16px;
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -337,10 +341,9 @@ button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
 
 button.secondary,
 button.ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.56);
   color: var(--text);
-  border: none;
-  border-bottom: 1px solid var(--border);
+  border: 1px solid rgba(17, 17, 17, 0.1);
 }
 
 /* Modern utility + layout helpers */
@@ -381,7 +384,7 @@ button.ghost {
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.56);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -409,9 +412,9 @@ button.ghost {
 }
 
 .btn.secondary {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.56) !important;
   color: var(--text) !important;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(17, 17, 17, 0.1);
 }
 
 /* Clean top navigation (Holm-like): text links on white */
@@ -554,7 +557,7 @@ button.topMenuBtn.ghost {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.62);
   color: var(--text);
 }
 
@@ -612,6 +615,13 @@ button.topMenuBtn.ghost {
 
 .appPanel {
   padding: var(--space-5);
+  border-radius: var(--radius);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
+  box-shadow:
+    0 18px 40px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset;
 }
 
 .appCtas {
