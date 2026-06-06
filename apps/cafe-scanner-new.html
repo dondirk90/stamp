@@ -62,12 +62,12 @@
         padding: 14px 20px;
         min-height: 76px;
         border-radius: 28px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.72);
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.82);
         backdrop-filter: blur(18px);
         box-shadow:
-          0 18px 40px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.68) inset;
+          0 18px 40px rgba(0, 0, 0, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
       }
@@ -172,12 +172,12 @@
         width: min(320px, calc(100vw - 32px));
         padding: 16px;
         border-radius: 24px;
-        border: 1px solid rgba(81, 58, 40, 0.1);
+        border: 1px solid rgba(255, 241, 233, 0.14);
         background:
-          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+          linear-gradient(180deg, rgba(42, 29, 24, 0.98), rgba(31, 21, 17, 0.98));
         box-shadow:
-          0 20px 42px rgba(47, 31, 22, 0.16),
-          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+          0 20px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
         opacity: 0;
         transform: translateY(-6px) scale(0.985);
         pointer-events: none;
@@ -261,14 +261,13 @@
         min-height: 44px;
         min-width: 44px;
         padding: 0;
-        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border: 1px solid rgba(255, 241, 233, 0.12) !important;
         border-radius: 16px;
-        background:
-          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
-        color: #5a4030 !important;
+        background: rgba(255, 248, 241, 0.06) !important;
+        color: var(--text) !important;
         box-shadow:
-          0 12px 22px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+          0 12px 22px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -333,12 +332,12 @@
         min-height: 48px;
         border: none !important;
         background:
-          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
-        background-color: rgba(255, 252, 247, 0.98) !important;
+          linear-gradient(180deg, rgba(255, 248, 241, 0.05), rgba(255, 248, 241, 0.03)) !important;
+        background-color: rgba(255, 248, 241, 0.04) !important;
         background-image: none !important;
         box-shadow: none !important;
         border-radius: 14px;
-        color: #241710 !important;
+        color: var(--text) !important;
         font-size: 12px;
         font-weight: 900;
         letter-spacing: 0.16em;
@@ -470,7 +469,7 @@
         border: none !important;
         border-radius: 16px;
         background: transparent !important;
-        color: rgba(47, 32, 23, 0.72) !important;
+        color: var(--text-muted) !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -517,13 +516,13 @@
         width: min(560px, 100%);
         margin: clamp(28px, 5vw, 54px) auto;
         background:
-          linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(31, 21, 17, 0.94));
         padding: clamp(24px, 4vw, 40px);
         border-radius: 30px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
+        border: 1px solid rgba(255, 241, 233, 0.10);
         box-shadow:
-          0 18px 40px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.74) inset;
+          0 24px 56px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset;
         position: relative;
         z-index: 1;
         --paper-text: var(--text);
@@ -569,8 +568,8 @@
       .homeCard {
         padding: 16px;
         border-radius: 18px;
-        background: rgba(107, 69, 44, 0.05);
-        border: 1px solid rgba(107, 69, 44, 0.10);
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.10);
       }
       .featureCard strong,
       .homeCard strong {
@@ -616,7 +615,7 @@
         padding: 10px 14px;
         border-radius: var(--radius-sm);
         background: transparent;
-        border: 1px solid rgba(107, 69, 44, 0.14);
+        border: 1px solid rgba(255, 241, 233, 0.12);
         color: var(--paper-text);
         text-decoration: none;
         font-size: 14px;
@@ -939,12 +938,12 @@
         margin: 0 auto;
         padding: clamp(24px, 4vw, 38px);
         background:
-          linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
-        border: 1px solid rgba(17, 17, 17, 0.08);
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(31, 21, 17, 0.94));
+        border: 1px solid rgba(255, 241, 233, 0.10);
         border-radius: 30px;
         box-shadow:
-          0 18px 40px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.74) inset;
+          0 24px 56px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset;
         --paper-text: var(--text);
         --paper-muted: var(--text-muted);
         color: var(--paper-text);
@@ -957,8 +956,8 @@
         letter-spacing: -0.02em;
       }
       .hintBox {
-        background: rgba(107, 69, 44, 0.05);
-        border: 1px solid rgba(107, 69, 44, 0.10);
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.10);
         border-radius: var(--radius);
         padding: 18px;
         margin-top: 18px;
@@ -1053,12 +1052,12 @@
           right: auto;
           margin: 0 0 var(--space-4);
           padding: 14px 20px;
-          border: 1px solid rgba(17, 17, 17, 0.08);
+          border: 1px solid rgba(255, 241, 233, 0.14);
           border-radius: 28px;
-          background: rgba(255, 252, 248, 0.72);
+          background: rgba(42, 29, 24, 0.82);
           box-shadow:
-            0 18px 40px rgba(68, 41, 22, 0.08),
-            0 1px 0 rgba(255, 255, 255, 0.68) inset;
+            0 18px 40px rgba(0, 0, 0, 0.22),
+            0 1px 0 rgba(255, 255, 255, 0.06) inset;
           backdrop-filter: blur(18px);
           justify-content: center;
           z-index: 70;
@@ -1113,12 +1112,12 @@
           gap: 8px;
           padding: 8px;
           border-radius: 22px;
-          border: 1px solid rgba(17, 17, 17, 0.08);
-          background: rgba(255, 252, 248, 0.94);
+          border: 1px solid rgba(255, 241, 233, 0.14);
+          background: rgba(42, 29, 24, 0.94);
           backdrop-filter: blur(18px);
           box-shadow:
-            0 22px 42px rgba(68, 41, 22, 0.16),
-            0 1px 0 rgba(255, 255, 255, 0.78) inset;
+            0 22px 42px rgba(0, 0, 0, 0.28),
+            0 1px 0 rgba(255, 255, 255, 0.06) inset;
           z-index: 28;
         }
 
