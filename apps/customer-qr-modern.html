@@ -4041,6 +4041,26 @@
           <select id="cafeSelect" style="display: none"></select>
 
           <div class="home screenPager" id="screenPager" aria-label="Start">
+            <div class="screenSlide" data-mode="welcome">
+            <div class="card panel" id="welcomePanel">
+              <div class="panelHeader">
+                <h3 id="welcomeTitle">Hallo</h3>
+              </div>
+              <div class="hint" id="welcomeLead">
+                Deine Stempelkarten wohnen hier an einem Ort. Öffne direkt deine Wallet
+                oder suche ein neues Café in deiner Nähe.
+              </div>
+              <div class="stack" style="gap: 12px; margin-top: var(--space-4)">
+                <button class="btn primary" id="welcomeOpenWalletBtn" type="button">
+                  Wallet öffnen
+                </button>
+                <button class="btn secondary" id="welcomeDiscoverBtn" type="button">
+                  Cafés entdecken
+                </button>
+              </div>
+            </div>
+            </div>
+
             <div class="screenSlide" data-mode="map">
             <div class="card panel mapHero" id="mapPanel">
               <div class="walletDockHead">

@@ -77,6 +77,11 @@
     utilityHistoryBtn: document.getElementById("utilityHistoryBtn"),
     utilityAccountBtn: document.getElementById("utilityAccountBtn"),
 
+    welcomePanel: document.getElementById("welcomePanel"),
+    welcomeTitle: document.getElementById("welcomeTitle"),
+    welcomeLead: document.getElementById("welcomeLead"),
+    welcomeOpenWalletBtn: document.getElementById("welcomeOpenWalletBtn"),
+    welcomeDiscoverBtn: document.getElementById("welcomeDiscoverBtn"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -438,6 +443,7 @@
         ? "Willkommen, " + uname
         : "Willkommen";
     }
+    if (isAuthed) updateWelcomeUI();
     if (el.addressLine) {
       el.addressLine.style.display = "none";
       el.addressLine.textContent = "";
@@ -448,6 +454,23 @@
     var w = which || "map";
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
+  }
+
+  function updateWelcomeUI() {
+    var uname = "";
+    try {
+      uname = String((session && (session.username || session.email)) || "").trim();
+    } catch (e) {
+      uname = "";
+    }
+    if (el.welcomeTitle) {
+      el.welcomeTitle.textContent = uname ? "Hallo, " + uname : "Hallo";
+    }
+    if (el.welcomeLead) {
+      el.welcomeLead.textContent = uname
+        ? "Schön, dass du wieder da bist. Öffne deine Wallet oder entdecke ein neues Café in deiner Nähe."
+        : "Öffne deine Wallet oder entdecke ein neues Café in deiner Nähe.";
+    }
   }
 
   function setWalletOverlayOpen(open) {
@@ -492,10 +515,10 @@
     setWalletOverlayOpen(false);
     if (o.silent) return;
     if (currentPageMode === "wallet") {
-      navigateToMode("map");
+      navigateToMode("welcome");
       return;
     }
-    navSetActive(currentPageMode === "history" ? "history" : "map");
+    navSetActive(currentPageMode === "wallet" ? "wallet" : "");
   }
 
   function closeAllPasses(exceptEl) {
@@ -617,7 +640,12 @@
         history && history.state && history.state.mode
           ? String(history.state.mode)
           : "";
-      if (stateMode === "map" || stateMode === "wallet" || stateMode === "history")
+      if (
+        stateMode === "welcome" ||
+        stateMode === "map" ||
+        stateMode === "wallet" ||
+        stateMode === "history"
+      )
         return stateMode;
     } catch (eState) {}
     try {
@@ -631,7 +659,7 @@
       var forceMap = /[?&]view=map(?:&|$)/i.test(qs);
       if (p.indexOf("/customer-map") === 0) {
         if (forceMap) return "map";
-        return session && session.address ? "wallet" : "map";
+        return session && session.address ? "welcome" : "map";
       }
       if (p.indexOf("/customer-history") === 0) return "history";
       if (p.indexOf("/customer-wallet") === 0) return "wallet";
@@ -640,23 +668,25 @@
         p.indexOf("/customer-home") === 0 ||
         p.indexOf("/customer-start") === 0
       )
-        return "map";
-      return "map";
+        return "welcome";
+      if (p === "/wallet" || p === "/wallet/") return "welcome";
+      return "welcome";
     } catch (e) {
-      return "map";
+      return "welcome";
     }
   }
 
   function getModeHref(mode) {
     var m = mode || "map";
+    if (m === "welcome") return "/wallet";
     if (m === "history") return "/customer-history";
     if (m === "wallet") return "/customer-wallet";
     return "/customer-map?view=map";
   }
 
   function getAdjacentMode(mode, direction) {
-    var order = ["map", "wallet", "history"];
-    var current = String(mode || "map");
+    var order = ["welcome", "map", "wallet", "history"];
+    var current = String(mode || "welcome");
     var idx = order.indexOf(current);
     if (idx < 0) idx = 0;
     var next = idx + (direction > 0 ? 1 : -1);
@@ -665,14 +695,15 @@
   }
 
   function getModeIndex(mode) {
-    var order = ["map", "wallet", "history"];
-    var idx = order.indexOf(String(mode || "map"));
+    var order = ["welcome", "map", "wallet", "history"];
+    var idx = order.indexOf(String(mode || "welcome"));
     return idx < 0 ? 0 : idx;
   }
 
   function getModeSlide(mode) {
     var target = null;
-    if (mode === "history") target = el.historyPanel;
+    if (mode === "welcome") target = el.welcomePanel;
+    else if (mode === "history") target = el.historyPanel;
     else target = el.mapPanel;
     try {
       return target && target.closest ? target.closest(".screenSlide") : null;
@@ -1110,8 +1141,10 @@
     navSetActive(m === "wallet" ? "wallet" : m);
 
     try {
+      var welcomeSlide = getModeSlide("welcome");
       var mapSlide = getModeSlide("map");
       var historySlide = getModeSlide("history");
+      if (welcomeSlide) welcomeSlide.style.display = m === "welcome" ? "block" : "none";
       if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
       if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
       if (el.screenPager) {
@@ -1125,14 +1158,16 @@
       return;
     }
 
-    ensureMapInit();
-
     if (m === "wallet") {
       openWalletOverlay();
       return;
     }
 
     closeWalletOverlay({ silent: true });
+
+    if (m === "welcome") {
+      return;
+    }
 
     if (m === "map") {
       ensureMapInit();
@@ -3839,6 +3874,16 @@
     }
 
     bindModeButton(el.bottomModeWallet, "wallet");
+    if (el.welcomeOpenWalletBtn) {
+      el.welcomeOpenWalletBtn.addEventListener("click", function () {
+        navigateToMode("wallet");
+      });
+    }
+    if (el.welcomeDiscoverBtn) {
+      el.welcomeDiscoverBtn.addEventListener("click", function () {
+        navigateToMode("map");
+      });
+    }
   }
 
   function resetPassCardMotion(node) {
