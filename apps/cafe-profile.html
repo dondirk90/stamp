@@ -203,6 +203,37 @@
         -webkit-appearance: none;
       }
 
+      .pageMeta,
+      .pageMeta *,
+      .card,
+      .card h1,
+      .card h2,
+      .card h3,
+      .card p,
+      .card label,
+      .card strong,
+      .card b,
+      .viewSection,
+      .viewSection *,
+      .heroCard,
+      .heroCard * {
+        color: var(--text);
+      }
+
+      .pageMetaSub,
+      .pageIntro,
+      .card .muted,
+      .viewSection .muted,
+      .heroCard .muted {
+        color: var(--text-muted) !important;
+      }
+
+      input,
+      textarea,
+      select {
+        color: var(--text) !important;
+      }
+
       .bottomTabs {
         position: fixed;
         left: calc(10px + var(--safe-left, 0px));
@@ -537,6 +568,13 @@
               Standort und Zusatzinhalte.
             </p>
           </div>
+        </div>
+        <div
+          id="modeBadge"
+          class="badge"
+          style="display: inline-flex; margin: 0 0 var(--space-2) 0"
+        >
+          Kartenlogik und Reward
         </div>
         <h2 style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
           Café Profil
@@ -906,6 +944,7 @@
         const titleEl = document.getElementById("profileTitle");
         const introEl = document.getElementById("profileIntro");
         const heroEl = document.getElementById("setupHero");
+        const modeBadgeEl = document.getElementById("modeBadge");
         const switchHintEl = document.getElementById("switchHint");
         const navCardSetup = document.getElementById("navCardSetup");
         const navAdvanced = document.getElementById("navAdvanced");
@@ -918,6 +957,11 @@
 
         if (titleEl) {
           titleEl.textContent = isAdvanced ? "Verwaltung" : "Stempelkarte";
+        }
+        if (modeBadgeEl) {
+          modeBadgeEl.textContent = isAdvanced
+            ? "Standort, Links und Zusatzpflege"
+            : "Kartenlogik und Reward";
         }
         if (introEl) {
           introEl.innerHTML = isAdvanced

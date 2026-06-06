@@ -355,6 +355,40 @@
         background: rgba(107, 69, 44, 0.08) !important;
       }
 
+      .pageMeta,
+      .pageMeta *,
+      .card,
+      .card h1,
+      .card h2,
+      .card h3,
+      .card p,
+      .card label,
+      .card strong,
+      .card b,
+      .heroCard,
+      .heroCard *,
+      .menuInfo,
+      .menuInfo *,
+      .hintBox,
+      .hintBox * {
+        color: var(--text);
+      }
+
+      .pageMetaSub,
+      .subtitle,
+      .card .muted,
+      .heroCard .muted,
+      .menuInfo .muted,
+      .hintBox .muted {
+        color: var(--text-muted) !important;
+      }
+
+      input,
+      textarea,
+      select {
+        color: var(--text) !important;
+      }
+
       .topMenu {
         display: flex;
         flex-direction: column;
@@ -1930,16 +1964,6 @@
         badge.innerHTML = `
           <div class="brand">
             <div class="brandHead">
-              <button
-                class="menuToggle"
-                id="menuToggle"
-                type="button"
-                aria-label="Navigation öffnen"
-                aria-expanded="false"
-                aria-controls="menuDrawer"
-              >
-                <span class="menuToggleLines"><span></span></span>
-              </button>
               <a class="kk-brand" href="/cafe-scanner">
                 <span class="kk-brandMark" aria-hidden="true">
                   <img src="/assets/stamp-bean.png?v=1" alt="" />
@@ -1967,48 +1991,6 @@
               <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
               <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
               <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
-            </div>
-            <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
-            <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
-              <div class="menuDrawerHead">
-                <div>
-                  <div class="menuDrawerTitle">Kaffekarte</div>
-                  <div class="menuDrawerMeta" id="cafeName">Barista App</div>
-                  <div class="menuDrawerMeta">scanner-new · ui-20260603c</div>
-                </div>
-              </div>
-              <div class="topMenu" aria-label="Navigation">
-                <button class="topMenuBtn ghost active" id="navWelcome" type="button">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">H</span>
-                    <span class="lbl">Start</span>
-                  </span>
-                </button>
-                <a class="topMenuBtn ghost" href="/cafe-profile">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">K</span>
-                    <span class="lbl">Stempelkarte</span>
-                  </span>
-                </a>
-                <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">V</span>
-                    <span class="lbl">Verwaltung</span>
-                  </span>
-                </a>
-                <a class="topMenuBtn ghost" href="/cafe-dashboard">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">D</span>
-                    <span class="lbl">Dashboard</span>
-                  </span>
-                </a>
-                <button class="topMenuBtn ghost" id="navLogout" type="button">
-                  <span class="topMenuBtnContent">
-                    <span class="ico" aria-hidden="true">A</span>
-                    <span class="lbl">Abmelden</span>
-                  </span>
-                </button>
-              </div>
             </div>
           `,
         );
@@ -2053,9 +2035,7 @@
       const forgotScopeThis = document.getElementById("forgotScopeThis");
       const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
-      const navWelcome = document.getElementById("navWelcome");
       const navScanner = document.getElementById("navScanner");
-      const navLogout = document.getElementById("navLogout");
       const openScanBtn = document.getElementById("openScanBtn");
       const cameraStartBtn = document.getElementById("cameraStartBtn");
       const cameraStopBtn = document.getElementById("cameraStopBtn");
@@ -2077,9 +2057,6 @@
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
       const toast = document.getElementById("toast");
-      const menuToggle = document.getElementById("menuToggle");
-      const menuBackdrop = document.getElementById("menuBackdrop");
-      const menuDrawer = document.getElementById("menuDrawer");
       const topUtilityBtn = document.getElementById("topUtilityBtn");
       const utilityMenu = document.getElementById("utilityMenu");
       const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
@@ -2236,7 +2213,6 @@
 
       function setActiveNav(view) {
         currentView = view === "scan" ? "scan" : "home";
-        if (navWelcome) navWelcome.classList.toggle("active", currentView === "home");
         if (navScanner) navScanner.classList.toggle("active", currentView === "scan");
         if (bottomModeScanner)
           bottomModeScanner.classList.toggle("active", currentView === "scan");
@@ -2244,10 +2220,6 @@
 
       function setDrawerOpen(open) {
         shellState.drawerOpen = !!open;
-        if (menuDrawer) menuDrawer.classList.toggle("open", shellState.drawerOpen);
-        if (menuBackdrop) menuBackdrop.classList.toggle("open", shellState.drawerOpen);
-        if (menuToggle) menuToggle.setAttribute("aria-expanded", shellState.drawerOpen ? "true" : "false");
-        document.body.classList.toggle("menuOpen", shellState.drawerOpen);
       }
 
       function setUtilityMenuOpen(open) {
@@ -2288,16 +2260,6 @@
       }
 
       function wireShellChrome() {
-        if (menuToggle) {
-          menuToggle.addEventListener("click", () => {
-            setDrawerOpen(!shellState.drawerOpen);
-          });
-        }
-        if (menuBackdrop) {
-          menuBackdrop.addEventListener("click", () => {
-            setDrawerOpen(false);
-          });
-        }
         if (topUtilityBtn) {
           topUtilityBtn.addEventListener("click", () => {
             setUtilityMenuOpen(!shellState.utilityOpen);
@@ -2318,7 +2280,6 @@
             location.href = "/cafe-dashboard";
           });
         if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
-        if (navWelcome) navWelcome.addEventListener("click", goToWelcome);
         if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
         document.addEventListener("click", (ev) => {
           const t = ev && ev.target ? ev.target : null;
@@ -2873,7 +2834,6 @@
           window.location.href = "/cafe-onboarding";
         }
       }
-      if (navLogout) navLogout.onclick = doLogout;
       if (openScanBtn)
         openScanBtn.onclick = () => {
           showView("scan");
