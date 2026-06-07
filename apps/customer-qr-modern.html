@@ -719,7 +719,7 @@
           width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px);
           margin: auto;
-          padding: 82px 16px 28px;
+          padding: 96px 16px 28px;
           border-radius: 30px;
           background: rgba(251, 246, 240, 0.52);
           border: 1px solid rgba(17, 17, 17, 0.05);
@@ -1675,18 +1675,21 @@
         width: min(460px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
         margin: auto;
         display: grid;
-        gap: 16px;
-        padding: 74px 22px 40px;
+        gap: 18px;
+        padding: 94px 24px 48px;
         min-height: 0;
         background: transparent;
         border: none;
         box-shadow: none;
         backdrop-filter: none;
+        align-content: center;
+        justify-items: start;
       }
 
       .welcomeIntro {
         display: grid;
-        gap: 10px;
+        gap: 12px;
+        max-width: 34ch;
       }
 
       .welcomeKicker {
@@ -1699,19 +1702,48 @@
 
       .welcomeLeadText {
         color: rgba(59, 42, 31, 0.8);
-        line-height: 1.6;
+        line-height: 1.64;
+      }
+
+      .welcomeSummary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        width: 100%;
+        max-width: 360px;
+      }
+
+      .welcomeStat {
+        display: grid;
+        gap: 4px;
+        padding: 14px 0 0;
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .welcomeStatValue {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: -0.04em;
+        color: var(--text);
+      }
+
+      .welcomeStatLabel {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.56);
       }
 
       .welcomeFacts {
         display: grid;
-        gap: 10px;
+        gap: 12px;
+        max-width: 34ch;
       }
 
       .welcomeFact {
-        padding: 14px 16px;
-        border-radius: 18px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 255, 255, 0.48);
+        padding: 14px 0 0;
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
         color: rgba(59, 42, 31, 0.82);
         line-height: 1.5;
       }
@@ -1722,6 +1754,13 @@
 
       .welcomeActions {
         display: none;
+      }
+
+      .welcomeNextHint {
+        max-width: 30ch;
+        font-size: 13px;
+        line-height: 1.58;
+        color: rgba(59, 42, 31, 0.62);
       }
 
       .mapHero {
@@ -4110,29 +4149,31 @@
                   <h3 id="welcomeTitle">Hallo</h3>
                 </div>
                 <div class="welcomeLeadText" id="welcomeLead">
-                  Deine Stempelkarten wohnen hier an einem Ort. Öffne direkt deine Wallet
-                  oder suche ein neues Café in deiner Nähe.
+                  Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel.
+                </div>
+              </div>
+              <div class="welcomeSummary" aria-label="Startstatus">
+                <div class="welcomeStat">
+                  <div class="welcomeStatValue" id="welcomeCardCount">0</div>
+                  <div class="welcomeStatLabel">Karten in deiner Wallet</div>
+                </div>
+                <div class="welcomeStat">
+                  <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
+                  <div class="welcomeStatLabel">am Tresen und unterwegs</div>
                 </div>
               </div>
               <div class="welcomeFacts">
                 <div class="welcomeFact">
-                  <strong>Alle Karten an einem Ort:</strong> lokale Treuekarten, klar
-                  gesammelt statt lose im Geldbeutel.
+                  <strong>Alles an einem Ort:</strong> deine Karten bleiben gesammelt
+                  statt lose im Geldbeutel.
                 </div>
                 <div class="welcomeFact">
-                  <strong>Schnell am Tresen:</strong> Karte öffnen, QR zeigen, weiter Kaffee genießen.
-                </div>
-                <div class="welcomeFact">
-                  <strong>Lokal statt laut:</strong> Lieblingscafés entdecken, wiederkommen und Belohnungen im Blick behalten.
+                  <strong>Schnell am Tresen:</strong> Wallet öffnen, QR zeigen,
+                  weiter Kaffee genießen.
                 </div>
               </div>
-              <div class="welcomeActions">
-                <button class="btn primary" id="welcomeOpenWalletBtn" type="button">
-                  Wallet öffnen
-                </button>
-                <button class="btn secondary" id="welcomeDiscoverBtn" type="button">
-                  Cafés entdecken
-                </button>
+              <div class="welcomeNextHint" id="welcomeNextHint">
+                Wenn du eine neue Karte suchst, findest du Cafés im Menü oben rechts.
               </div>
             </div>
             </div>

@@ -68,25 +68,21 @@
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
-        gap: 18px;
-        align-items: stretch;
-        margin-bottom: var(--space-6);
+        gap: 42px;
+        align-items: center;
+        margin-bottom: calc(var(--space-7) + 10px);
       }
 
       .heroCard,
       .journeyPanel,
       .audienceCard {
-        border-radius: 34px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background:
-          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.96));
-        box-shadow:
-          0 22px 48px rgba(68, 41, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+        border: none;
+        background: transparent;
+        box-shadow: none;
       }
 
       .heroCard {
-        padding: clamp(28px, 4vw, 48px);
+        padding: clamp(10px, 2vw, 18px) 4px 4px 0;
       }
 
       .eyebrow {
@@ -112,8 +108,8 @@
       }
 
       .heroLead {
-        max-width: 58ch;
-        margin: 0 0 18px;
+        max-width: 30ch;
+        margin: 0 0 14px;
         font-size: 18px;
         line-height: 1.58;
         color: var(--text-muted);
@@ -159,13 +155,15 @@
 
       .phoneStage {
         position: relative;
-        min-height: 640px;
+        min-height: 620px;
         border-radius: 34px;
         overflow: hidden;
         padding: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
         background:
           radial-gradient(circle at top right, rgba(255, 245, 234, 0.12), rgba(255, 245, 234, 0) 36%),
           linear-gradient(180deg, #161210 0%, #2d221b 42%, #4b3427 100%);
+        box-shadow: 0 24px 54px rgba(68, 41, 22, 0.14);
       }
 
       .phoneShell {
@@ -239,7 +237,7 @@
       }
 
       .phoneBody {
-        padding: 18px 24px 118px;
+        padding: 24px 24px 118px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -352,7 +350,7 @@
         right: 16px;
         bottom: 16px;
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: 1fr 1.2fr 1fr;
         align-items: end;
         gap: 10px;
         padding: 10px;
@@ -377,9 +375,9 @@
       }
 
       .phoneTab.hero {
-        min-width: 152px;
+        width: 100%;
         justify-self: center;
-        padding: 0 24px;
+        padding: 0 22px;
         border-radius: 18px;
         color: #fffaf5;
         background:
@@ -394,7 +392,7 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0;
-        padding: 20px 0;
+        padding: 24px 0 22px;
         margin-bottom: var(--space-6);
         border-top: 1px solid rgba(17, 17, 17, 0.08);
         border-bottom: 1px solid rgba(17, 17, 17, 0.08);
@@ -439,10 +437,9 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 24px;
-        padding: 22px 0;
+        padding: 28px 0 20px;
         margin-bottom: var(--space-6);
         border-top: 1px solid rgba(17, 17, 17, 0.08);
-        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
       }
 
       .storyBlock {
@@ -457,12 +454,14 @@
       .contentFlow {
         display: grid;
         grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-        gap: 18px;
+        gap: 34px;
+        padding-top: 28px;
         margin-bottom: var(--space-6);
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
       .audienceCard {
-        padding: 24px;
+        padding: 0;
       }
 
       .list {
@@ -481,8 +480,18 @@
       }
 
       .journeyPanel {
-        padding: 24px;
+        padding: 28px 0 0;
         margin-bottom: var(--space-6);
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .sectionKicker {
+        margin-bottom: 10px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(36, 23, 16, 0.58);
       }
 
       .journeyList {
@@ -625,8 +634,8 @@
           </span>
         </a>
         <nav class="headerNav" aria-label="Produktnavigation">
-          <a href="#gaeste">Für Gäste</a>
-          <a href="#cafes">Für Cafés</a>
+          <a href="#gaeste">Gäste</a>
+          <a href="#cafes">Cafés</a>
           <a href="#ablauf">Ablauf</a>
           <a href="#cta">Starten</a>
         </nav>
@@ -635,11 +644,11 @@
       <section class="hero">
         <div class="heroCard">
           <div class="eyebrow">Lokal. Schnell. Unkompliziert.</div>
-          <h1 class="heroTitle">Die Stempelkarte, die ins Viertel passt.</h1>
+          <h1 class="heroTitle">Die Stempelkarte fürs Viertel.</h1>
           <p class="heroLead">
-            Kaffekarte bringt lokale Treuekarten in eine ruhige Wallet für Gäste
-            und eine schnelle Scanner-App für Cafés. Keine Zettelwirtschaft, kein
-            langes Erklären am Tresen, kein App-Chaos.
+            Kaffekarte bringt lokale Treuekarten in eine ruhige Wallet für
+            Gäste und eine schnelle Scanner-App für Cafés. Kein Papierchaos,
+            keine schwere Loyalty-Plattform, kein langes Erklären am Tresen.
           </p>
 
           <div class="ctaRow" id="cta">
@@ -731,37 +740,41 @@
 
       <section class="plainStory">
         <div class="storyBlock">
+          <div class="sectionKicker">Warum Kaffekarte</div>
           <h3>Warum Kaffekarte?</h3>
           <p>
-            Weil kleine Cafés keine schwere Loyalty-Plattform brauchen, sondern
+            Kleine Cafés brauchen keine schwere Loyalty-Plattform, sondern
             ein Werkzeug, das menschlich, lokal und schnell funktioniert.
           </p>
         </div>
         <div class="storyBlock">
-          <h3>Für echte Wiederkehr</h3>
+          <div class="sectionKicker">Für echte Wiederkehr</div>
+          <h3>Für Lieblingsorte gebaut.</h3>
           <p>
-            Kaffekarte ist nicht auf Masse ausgelegt, sondern auf Lieblingsorte:
-            bekannte Cafés, schnelle Abläufe und eine Treuekarte, die man wirklich wieder benutzt.
+            Kurze Wege am Tresen, bekannte Cafés im Viertel und eine Treuekarte,
+            die man wirklich wieder benutzt.
           </p>
         </div>
       </section>
 
       <section class="contentFlow">
         <article class="audienceCard" id="gaeste">
-          <h3>Für Gäste</h3>
+          <div class="sectionKicker">Für Gäste</div>
+          <h3>Die Wallet ist dein ruhiger Startpunkt.</h3>
           <p class="sectionLead">
-            Die Wallet ist dein ruhiger Startpunkt: Karte öffnen, Lieblingscafé sehen,
-            QR zeigen und Belohnung im Blick behalten.
+            Karte öffnen, QR zeigen, weiter Kaffee genießen. Die Map kommt erst
+            dann ins Spiel, wenn du wirklich ein neues Café suchst.
           </p>
           <div class="list">
-            <div><strong>Wallet-first:</strong> deine aktive Stempelkarte steht im Vordergrund.</div>
+            <div><strong>Eine aktive Karte:</strong> die wichtigste Stempelkarte steht sofort im Fokus.</div>
             <div><strong>Map nur wenn nötig:</strong> Cafés entdecken, sobald du eine neue Karte suchst.</div>
             <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Erklären am Tresen.</div>
           </div>
         </article>
 
         <article class="audienceCard" id="cafes">
-          <h3>Für Cafés</h3>
+          <div class="sectionKicker">Für Cafés</div>
+          <h3>Ein Werkzeug für den Tresen.</h3>
           <p class="sectionLead">
             Die Café-PWA bündelt Scanner, Stempelkarte, Verwaltung und Dashboard
             in einer einzigen ruhigen Oberfläche.
@@ -776,6 +789,7 @@
       </section>
 
       <section class="journeyPanel" id="ablauf">
+        <div class="sectionKicker">So funktioniert es</div>
         <h3>So funktioniert es</h3>
         <p class="sectionLead">
           Ein klarer Flow für beide Seiten: entdecken, stempeln, wiederkommen.

@@ -80,8 +80,9 @@
     welcomePanel: document.getElementById("welcomePanel"),
     welcomeTitle: document.getElementById("welcomeTitle"),
     welcomeLead: document.getElementById("welcomeLead"),
-    welcomeOpenWalletBtn: document.getElementById("welcomeOpenWalletBtn"),
-    welcomeDiscoverBtn: document.getElementById("welcomeDiscoverBtn"),
+    welcomeCardCount: document.getElementById("welcomeCardCount"),
+    welcomeStateTitle: document.getElementById("welcomeStateTitle"),
+    welcomeNextHint: document.getElementById("welcomeNextHint"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -463,13 +464,36 @@
     } catch (e) {
       uname = "";
     }
+    var favCount = 0;
+    try {
+      favCount = getFavorites().length;
+    } catch (eFav) {
+      favCount = 0;
+    }
     if (el.welcomeTitle) {
       el.welcomeTitle.textContent = uname ? "Hallo, " + uname : "Hallo";
     }
     if (el.welcomeLead) {
-      el.welcomeLead.textContent = uname
-        ? "Schön, dass du wieder da bist. Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
-        : "Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel.";
+      el.welcomeLead.textContent =
+        favCount > 0
+          ? uname
+            ? "Schön, dass du wieder da bist. Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
+            : "Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
+          : uname
+            ? "Schön, dass du da bist. Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit."
+            : "Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit.";
+    }
+    if (el.welcomeCardCount) {
+      el.welcomeCardCount.textContent = String(favCount || 0);
+    }
+    if (el.welcomeStateTitle) {
+      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Neu hier";
+    }
+    if (el.welcomeNextHint) {
+      el.welcomeNextHint.textContent =
+        favCount > 0
+          ? "Deine aktive Karte wartet in der Wallet. Neue Cafés findest du jederzeit im Menü oben rechts."
+          : "Noch keine Karte in deiner Wallet. Öffne Cafés im Menü oben rechts und hol dir deine erste Karte.";
     }
   }
 
@@ -3894,16 +3918,6 @@
     }
 
     bindModeButton(el.bottomModeWallet, "wallet");
-    if (el.welcomeOpenWalletBtn) {
-      el.welcomeOpenWalletBtn.addEventListener("click", function () {
-        navigateToMode("wallet");
-      });
-    }
-    if (el.welcomeDiscoverBtn) {
-      el.welcomeDiscoverBtn.addEventListener("click", function () {
-        navigateToMode("map");
-      });
-    }
   }
 
   function resetPassCardMotion(node) {
