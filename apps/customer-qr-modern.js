@@ -2172,6 +2172,15 @@
     return "JEDER " + String(threshold) + ". KAFFEE GRATIS";
   }
 
+
+  function getCardFrontNote(card, about) {
+    var note = card && card.cardBackText ? String(card.cardBackText || "").trim() : "";
+    if (note) return note;
+    var fallback = String(about || "").trim();
+    if (!fallback) return "";
+    return fallback.length > 120 ? fallback.slice(0, 117).trim() + "..." : fallback;
+  }
+
   function getCardStampStyle(card) {
     try {
       var program = getCardProgram(card);
@@ -3003,10 +3012,11 @@
     var flip = document.createElement("div");
     flip.className = "passFlip";
 
-    var mainBtn = document.createElement("button");
-    mainBtn.type = "button";
+    var mainBtn = document.createElement("div");
     mainBtn.className = "passMain";
-    mainBtn.setAttribute("aria-label", "Karte öffnen");
+    mainBtn.setAttribute("role", "button");
+    mainBtn.setAttribute("tabindex", "0");
+    mainBtn.setAttribute("aria-label", "Karte oeffnen");
 
     var head = document.createElement("div");
     head.className = "passHead";
@@ -3082,6 +3092,57 @@
     rewardNote.textContent = rewardSideNote;
     stampField.appendChild(rewardNote);
 
+    var infoBlock = document.createElement("div");
+    infoBlock.className = "passInfoBlock";
+
+    var frontNote = getCardFrontNote(card, about);
+    if (frontNote) {
+      var noteEl = document.createElement("div");
+      noteEl.className = "passCardNote";
+      noteEl.textContent = frontNote;
+      infoBlock.appendChild(noteEl);
+    }
+
+    var frontWebsiteUrl = normalizeExternalUrl(
+      card && card.websiteUrl ? String(card.websiteUrl).trim() : "",
+    );
+    var frontInstagramUrl = normalizeInstagramUrl(
+      card && card.instagramUrl ? String(card.instagramUrl).trim() : "",
+    );
+    if (frontWebsiteUrl || frontInstagramUrl) {
+      var linkRow = document.createElement("div");
+      linkRow.className = "passLinkRow";
+      if (frontWebsiteUrl) {
+        var websiteLink = document.createElement("a");
+        websiteLink.className = "passInfoLink";
+        websiteLink.href = frontWebsiteUrl;
+        websiteLink.target = "_blank";
+        websiteLink.rel = "noopener noreferrer";
+        websiteLink.textContent = "Website";
+        websiteLink.addEventListener("click", function (ev) {
+          try {
+            ev.stopPropagation();
+          } catch (e) {}
+        });
+        linkRow.appendChild(websiteLink);
+      }
+      if (frontInstagramUrl) {
+        var instagramLink = document.createElement("a");
+        instagramLink.className = "passInfoLink";
+        instagramLink.href = frontInstagramUrl;
+        instagramLink.target = "_blank";
+        instagramLink.rel = "noopener noreferrer";
+        instagramLink.textContent = "Instagram";
+        instagramLink.addEventListener("click", function (ev) {
+          try {
+            ev.stopPropagation();
+          } catch (e) {}
+        });
+        linkRow.appendChild(instagramLink);
+      }
+      infoBlock.appendChild(linkRow);
+    }
+
     var metaRow = document.createElement("div");
     metaRow.className = "passMetaRow";
 
@@ -3143,6 +3204,7 @@
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
+    if (infoBlock.childNodes.length) mainBtn.appendChild(infoBlock);
     mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
@@ -3221,6 +3283,14 @@
       } catch (e0) {
         focusPass(passCard);
       }
+    });
+    mainBtn.addEventListener("keydown", function (ev) {
+      var key = ev && ev.key ? String(ev.key) : "";
+      if (key !== "Enter" && key !== " ") return;
+      try {
+        ev.preventDefault();
+      } catch (e) {}
+      mainBtn.click();
     });
 
     // On phones (stack mode), the wallet swipe handler listens on the scroller and
