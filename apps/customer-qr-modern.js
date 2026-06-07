@@ -1940,6 +1940,18 @@
     var zoom = getPreferredMapZoom();
 
     try {
+      if (!el.cafeMap.dataset.gestureGuardBound) {
+        var stopMapBubble = function (ev) {
+          try {
+            ev.stopPropagation();
+          } catch (e) {}
+        };
+        el.cafeMap.addEventListener("pointerdown", stopMapBubble, { passive: true });
+        el.cafeMap.addEventListener("touchstart", stopMapBubble, { passive: true });
+        el.cafeMap.addEventListener("touchmove", stopMapBubble, { passive: true });
+        el.cafeMap.dataset.gestureGuardBound = "1";
+      }
+
       leafletMap = window.L.map(el.cafeMap, {
         zoomControl: false,
         attributionControl: false,
