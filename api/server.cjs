@@ -184,6 +184,19 @@ function randomAddress() {
   return "0x" + crypto.randomBytes(20).toString("hex");
 }
 
+function normalizeExternalUrl(raw) {
+  const trimmed = String(raw == null ? "" : raw).trim();
+  if (!trimmed) return null;
+  if (/^mailto:/i.test(trimmed)) return trimmed.slice(0, 240);
+  if (/^(https?:)?\/\//i.test(trimmed)) {
+    return (/^\/\//.test(trimmed) ? `https:${trimmed}` : trimmed).slice(0, 240);
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(trimmed)) {
+    return `mailto:${trimmed}`.slice(0, 240);
+  }
+  return `https://${trimmed.replace(/^\/+/, "")}`.slice(0, 240);
+}
+
 function ensureCafeAddress(row) {
   if (!row) return null;
   if (row.address && /^0x[0-9a-fA-F]{40}$/.test(row.address)) {
@@ -2285,16 +2298,12 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
 
     let websiteUrl = current.website_url || null;
     if (Object.prototype.hasOwnProperty.call(body, "websiteUrl")) {
-      const raw = body.websiteUrl == null ? "" : String(body.websiteUrl);
-      const trimmed = raw.trim();
-      websiteUrl = trimmed ? trimmed.slice(0, 240) : null;
+      websiteUrl = normalizeExternalUrl(body.websiteUrl);
     }
 
     let instagramUrl = current.instagram_url || null;
     if (Object.prototype.hasOwnProperty.call(body, "instagramUrl")) {
-      const raw = body.instagramUrl == null ? "" : String(body.instagramUrl);
-      const trimmed = raw.trim();
-      instagramUrl = trimmed ? trimmed.slice(0, 240) : null;
+      instagramUrl = normalizeExternalUrl(body.instagramUrl);
     }
 
     let logoMime = current.logo_mime || null;

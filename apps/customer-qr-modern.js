@@ -782,6 +782,18 @@
     return null;
   }
 
+  function normalizeExternalUrl(raw) {
+    var value = String(raw || "").trim();
+    if (!value) return "";
+    if (/^(https?:)?\/\//i.test(value)) {
+      return /^\/\//.test(value) ? "https:" + value : value;
+    }
+    if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)) {
+      return "mailto:" + value;
+    }
+    return "https://" + value.replace(/^\/+/, "");
+  }
+
   var cafeModalState = {
     open: false,
     cafeId: null,
@@ -904,10 +916,12 @@
       program && program.rewardDescription
         ? String(program.rewardDescription).trim()
         : "";
-    var websiteUrl =
-      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "";
-    var instagramUrl =
-      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "";
+    var websiteUrl = normalizeExternalUrl(
+      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "",
+    );
+    var instagramUrl = normalizeExternalUrl(
+      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "",
+    );
     var cafeAddr = normalizeAddr(
       (cafe && (cafe.cafeAddress || cafe.address)) || "",
     );
