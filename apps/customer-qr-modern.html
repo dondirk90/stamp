@@ -86,6 +86,122 @@
         opacity: 0.92;
       }
 
+      body.installHintOpen {
+        overflow: hidden;
+      }
+
+      .installHintBackdrop {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: calc(var(--space-4) + var(--safe-top, 0px))
+          calc(var(--space-4) + var(--safe-right, 0px))
+          calc(var(--space-4) + var(--safe-bottom, 0px))
+          calc(var(--space-4) + var(--safe-left, 0px));
+        background: rgba(32, 20, 11, 0.18);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        z-index: 90;
+      }
+
+      .installHintBackdrop[hidden] {
+        display: none;
+      }
+
+      .installHintBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .installHintCard {
+        width: min(520px, 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(245, 237, 227, 0.96));
+        box-shadow:
+          0 24px 70px rgba(59, 36, 18, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
+        padding: 22px 22px 18px;
+        transform: translateY(18px);
+        transition: transform 220ms ease;
+      }
+
+      .installHintBackdrop.open .installHintCard {
+        transform: translateY(0);
+      }
+
+      .installHintEyebrow {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 10px;
+      }
+
+      .installHintTitle {
+        font-size: clamp(24px, 6vw, 30px);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin: 0 0 10px;
+      }
+
+      .installHintLead {
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        margin: 0 0 16px;
+      }
+
+      .installHintSteps {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .installHintStep {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .installHintStepNo {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(107, 69, 44, 0.12);
+        color: var(--brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .installHintStepText {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .installHintStepText strong {
+        color: var(--text);
+      }
+
+      .installHintActions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
       /* Phones (portrait): reduce outer padding so the pass fits on screen */
       @media (max-width: 520px) and (orientation: portrait) {
         body {
@@ -4357,6 +4473,41 @@
     </div>
 
     <div
+      id="installHintBackdrop"
+      class="installHintBackdrop"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kaffekarte installieren"
+    >
+      <div class="installHintCard">
+        <div class="installHintEyebrow">Beim nächsten Mal schneller da</div>
+        <h3 class="installHintTitle">Kaffekarte aufs Handy legen</h3>
+        <p class="installHintLead">
+          Wenn du Kaffekarte auf deinem Homescreen ablegst, öffnet sie sich
+          beim nächsten Kaffee direkter und fühlt sich mehr nach App als nach Browser an.
+        </p>
+        <div class="installHintSteps" id="installHintSteps"></div>
+        <div class="installHintActions">
+          <button class="btn secondary" id="installHintLater" type="button">
+            Nicht jetzt
+          </button>
+          <button
+            class="btn primary"
+            id="installHintInstall"
+            type="button"
+            style="display: none; width: auto"
+          >
+            App installieren
+          </button>
+          <button class="btn primary" id="installHintDone" type="button" style="width: auto">
+            Verstanden
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="cafeModalBackdrop"
       class="modalBackdrop"
       role="dialog"
@@ -4643,6 +4794,143 @@
       crossorigin=""
       defer
     ></script>
+    <script>
+      (function () {
+        var STORAGE_KEY = "kk_install_hint_wallet_v1";
+        var deferredInstallPrompt = null;
+
+        function isStandalone() {
+          try {
+            return (
+              (window.matchMedia &&
+                window.matchMedia("(display-mode: standalone)").matches) ||
+              window.navigator.standalone === true
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isMobileBrowser() {
+          try {
+            var ua = String(navigator.userAgent || "");
+            if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+            return (
+              window.matchMedia &&
+              window.matchMedia("(max-width: 900px)").matches &&
+              (navigator.maxTouchPoints > 0 || "ontouchstart" in window)
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isIos() {
+          try {
+            return /iPhone|iPad|iPod/i.test(String(navigator.userAgent || ""));
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function wasSeen() {
+          try {
+            return localStorage.getItem(STORAGE_KEY) === "1";
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function markSeen() {
+          try {
+            localStorage.setItem(STORAGE_KEY, "1");
+          } catch (e) {}
+        }
+
+        function buildStepsHtml() {
+          if (isIos()) {
+            return (
+              '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Teilen</strong> im Browser antippen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>Zum Home-Bildschirm</strong> auswählen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Hinzufügen</strong> bestätigen und Kaffekarte wie eine App öffnen.</div></div>'
+            );
+          }
+          return (
+            '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Browser-Menü</strong> öffnen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong> wählen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Bestätigen</strong> und Kaffekarte künftig direkt vom Homescreen starten.</div></div>'
+          );
+        }
+
+        function syncInstallButton() {
+          var btn = document.getElementById("installHintInstall");
+          if (!btn) return;
+          btn.style.display = deferredInstallPrompt ? "" : "none";
+        }
+
+        function closeInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          if (!backdrop) return;
+          markSeen();
+          backdrop.classList.remove("open");
+          document.body.classList.remove("installHintOpen");
+          window.setTimeout(function () {
+            backdrop.hidden = true;
+          }, 180);
+        }
+
+        function openInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          var steps = document.getElementById("installHintSteps");
+          if (!backdrop || !steps) return;
+          steps.innerHTML = buildStepsHtml();
+          syncInstallButton();
+          backdrop.hidden = false;
+          document.body.classList.add("installHintOpen");
+          window.requestAnimationFrame(function () {
+            backdrop.classList.add("open");
+          });
+        }
+
+        window.addEventListener("beforeinstallprompt", function (event) {
+          try {
+            event.preventDefault();
+          } catch (e) {}
+          deferredInstallPrompt = event;
+          syncInstallButton();
+        });
+
+        window.addEventListener("load", function () {
+          var laterBtn = document.getElementById("installHintLater");
+          var doneBtn = document.getElementById("installHintDone");
+          var installBtn = document.getElementById("installHintInstall");
+
+          if (laterBtn) laterBtn.addEventListener("click", closeInstallHint);
+          if (doneBtn) doneBtn.addEventListener("click", closeInstallHint);
+          if (installBtn) {
+            installBtn.addEventListener("click", async function () {
+              if (!deferredInstallPrompt) {
+                closeInstallHint();
+                return;
+              }
+              try {
+                deferredInstallPrompt.prompt();
+                await deferredInstallPrompt.userChoice;
+              } catch (e) {}
+              deferredInstallPrompt = null;
+              closeInstallHint();
+            });
+          }
+
+          window.setTimeout(function () {
+            if (!isMobileBrowser()) return;
+            if (isStandalone()) return;
+            if (wasSeen()) return;
+            openInstallHint();
+          }, 900);
+        });
+      })();
+    </script>
     <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
