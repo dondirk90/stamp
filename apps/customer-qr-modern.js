@@ -477,8 +477,8 @@
       el.welcomeLead.textContent =
         favCount > 0
           ? uname
-            ? "Schön, dass du wieder da bist. Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
-            : "Deine Karten liegen ruhig bereit für den nächsten Kaffee im Veedel."
+            ? "Schön, dass du wieder da bist. Deine Karten sind bereit für den nächsten Kaffee im Veedel."
+            : "Deine Karten sind bereit für den nächsten Kaffee im Veedel."
           : uname
             ? "Schön, dass du da bist. Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit."
             : "Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit.";
@@ -2760,8 +2760,8 @@
         var stamps = getPassStampCount(passEl);
         var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
         el.qrSheetHint.textContent = full
-          ? "Am Tresen scannen lassen, um die Belohnung einzulösen."
-          : "Am Tresen scannen lassen, dann ist der nächste Stempel nur noch Formsache.";
+          ? "Im Café scannen lassen, um die Belohnung einzulösen."
+          : "Im Café scannen lassen, dann ist der nächste Stempel nur noch Formsache.";
       }
       if (el.qrSheetBox) {
         el.qrSheetBox.textContent = "QR wird geladen…";
@@ -3263,8 +3263,8 @@
     var qrCaption = document.createElement("div");
     qrCaption.className = "passQrCaption";
     qrCaption.textContent = isFull
-      ? "Am Tresen scannen lassen, um die Belohnung einzuloesen."
-      : "Am Tresen scannen lassen, damit dein naechster Stempel dazukommt.";
+      ? "Im Café scannen lassen, um die Belohnung einzuloesen."
+      : "Im Café scannen lassen, damit dein naechster Stempel dazukommt.";
     qr.appendChild(qrCaption);
 
     var backNote = document.createElement("div");
@@ -4767,7 +4767,7 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR am Tresen zeigen willst.";
+          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im Café zeigen willst.";
       }
       if (el.utilityMapBtn) {
         el.utilityMapBtn.textContent = "Cafés";
@@ -4780,7 +4780,7 @@
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
           authHint.textContent =
-            "Keine Wallet-Adresse und kein Schluessel noetig. Stamp legt die technische Kunden-Adresse automatisch fuer dich an.";
+            "Kein Schlüssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch für dich an.";
         }
       }
     } catch (eText) {}

@@ -9,7 +9,7 @@
     <title>Barista App - Kaffekarte</title>
     <meta
       name="description"
-      content="Barista App der Kaffekarte zum ruhigen Scannen, Stempeln und Einloesen direkt am Tresen."
+      content="Barista App der Kaffekarte zum schnellen Scannen, Stempeln und Einloesen im Caféalltag."
     />
     <meta name="theme-color" content="#6b452c" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -1546,10 +1546,10 @@
       <div class="card" id="loginCard">
         <!-- Login Screen -->
         <div id="loginScreen">
-          <div class="introBadge">Kaffekarte fuer den Tresen</div>
-          <h2>Willkommen am Tresen</h2>
+          <div class="introBadge">Kaffekarte fuer Cafés</div>
+          <h2>Willkommen im Caféalltag</h2>
           <p class="subtitle">
-            Melde dich kurz an und arbeite in derselben ruhigen App-Welt wie
+            Melde dich kurz an und arbeite in derselben klaren App-Welt wie
             deine Kunden. Stempel, Rewards und Tagesbetrieb bleiben klar,
             schnell und frei von digitalem Theater.
           </p>
@@ -1561,7 +1561,7 @@
             </div>
             <div class="featureCard">
               <strong>Freundlich fuers Team</strong>
-              <span>Eine ruhige Oberflaeche fuer Bar, Theke und Service, ohne unnoetigen Pflege-Druck beim Einstieg.</span>
+              <span>Eine klare Oberfläche für Bar, Service und laufenden Betrieb, ohne unnötigen Pflege-Druck beim Einstieg.</span>
             </div>
             <div class="featureCard">
               <strong>Mehr als nur Punkte</strong>
@@ -1593,7 +1593,7 @@
               </div>
               <div class="softSectionText">
                 Kunden empfangen, Stempel vergeben, Rewards einloesen und den
-                Tagesbetrieb am Tresen begleiten. Die Pflege der Karte bleibt
+                Tagesbetrieb im Café begleiten. Die Pflege der Karte bleibt
                 bewusst im Hintergrund, damit hier vorne niemand nach Menues fischen muss.
               </div>
             </div>
@@ -1793,7 +1793,7 @@
         <main class="mainPanel">
           <!-- Welcome / Home -->
           <div id="homeScreen" style="display: none">
-            <div class="panelTitle">Dein Tresen-Start</div>
+            <div class="panelTitle">Dein Start in den Tag</div>
             <p class="subtitle" style="text-align: left">
               Hier landet dein Team nach dem Login. Kunden-Links öffnen
               automatisch die passende Stempelansicht, waehrend Einrichtung und
@@ -1803,7 +1803,7 @@
             <div class="homeGrid">
               <div class="homeCard">
                 <strong>Heute am wichtigsten</strong>
-                <span>QR oeffnen, Kunde sehen, Stempel oder Reward direkt bestaetigen. Alles ist auf Tempo am Tresen optimiert.</span>
+                <span>QR öffnen, Kunde sehen, Stempel oder Reward direkt bestätigen. Alles ist auf Tempo im laufenden Betrieb optimiert.</span>
               </div>
               <div class="homeCard">
                 <strong>Pflege spaeter im Menue</strong>
@@ -1928,8 +1928,8 @@
                     <div class="scan-overlay" aria-hidden="true"></div>
                   </div>
                   <div id="scannerStatus" class="scannerStatus">
-                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am
-                    Tresen scannen willst.
+                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
+                    scannen willst.
                   </div>
                 </div>
               </div>
@@ -2516,7 +2516,7 @@
         if (!opts.forcePrompt) {
           const permission = await getCameraPermissionState();
           if (permission !== "granted") {
-            setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.');
+            setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.');
             updateScannerHint(
               "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
             );
@@ -2553,7 +2553,7 @@
           cameraPermissionState = "denied";
           setScannerStatus("Die Kamera konnte nicht gestartet werden. Bitte den Zugriff erlauben.");
           updateScannerHint(
-            "Die Kamera ist noch nicht aktiv. Erlaube den Zugriff im Browser oder in der App, damit du direkt am Tresen scannen kannst.",
+            "Die Kamera ist noch nicht aktiv. Erlaube den Zugriff im Browser oder in der App, damit du direkt scannen kannst.",
           );
           syncCameraButtons();
           dwarn("Camera start failed", e);
@@ -2583,7 +2583,7 @@
         setScannerStatus(
           getScannerAutoStartPreference()
             ? 'Kamera bereit. iOS fragt nach einem kompletten Schließen der App eventuell erneut nach der Freigabe. Tippe auf "Kamera starten", um weiterzumachen.'
-            : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt am Tresen scannen willst.',
+            : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.',
         );
         updateScannerHint(
           "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
@@ -2600,9 +2600,9 @@
         syncScannerUrl(targetView);
         if (targetView === "home") {
           stopScannerCamera();
-          setScannerStatus("Scanner bereit. Öffne ihn unten, wenn du direkt am Tresen scannen willst.");
+          setScannerStatus("Scanner bereit. Öffne ihn unten, wenn du direkt scannen willst.");
           updateScannerHint(
-            "Dein Team startet hier ruhig und wechselt erst beim Scan in die Kamerabühne.",
+            "Dein Team startet hier klar und wechselt erst beim Scan in die Kamerabühne.",
           );
           return;
         }
