@@ -975,8 +975,8 @@
         }
         if (introEl) {
           introEl.innerHTML = isAdvanced
-            ? "Hier liegen die erweiterten Einstellungen wie Standort, Popup-Kampagnen und Bilder. Die eigentliche Kundenkarte bleibt bewusst in einem eigenen, ruhigeren Setup."
-            : "Richte zuerst nur die Kundenkarte und die Belohnung ein. Alles Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt unter <strong>Verwaltung</strong>.";
+            ? "Hier liegen die erweiterten Einstellungen wie Standort, Popup-Kampagnen und Bilder. Die eigentliche Kundenkarte bleibt bewusst in einem eigenen, klaren Bereich."
+            : "Richte zuerst die Kundenkarte und die Belohnung ein. Alles Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt unter <strong>Verwaltung</strong>.";
         }
         if (heroEl) heroEl.hidden = isAdvanced;
         if (switchHintEl) switchHintEl.hidden = isAdvanced;
@@ -992,8 +992,8 @@
         }
         if (programSectionIntro) {
           programSectionIntro.textContent = isAdvanced
-            ? "Hier pflegst du die Grundlogik der Karte und optional die Wallet-Hinweise fuer Rueckkehr und Fast-geschafft-Momente."
-            : "Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist und wie diese auf der Kundenkarte benannt wird.";
+            ? "Hier pflegst du die Grundlogik der Karte und optional die Hinweise fuer Rueckkehr und Fast-geschafft-Momente."
+            : "Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist und wie sie auf der Kundenkarte benannt wird.";
         }
         if (navCardSetup) {
           navCardSetup.classList.toggle("active", !isAdvanced);
