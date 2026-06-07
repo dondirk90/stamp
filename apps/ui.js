@@ -121,6 +121,12 @@
     if (raw.indexOf("email_already_registered") >= 0) {
       return "Zu dieser E-Mail gibt es bereits ein Konto. Bitte einloggen oder Passwort zurücksetzen.";
     }
+    if (raw.indexOf("email_verification_pending") >= 0) {
+      return "Fast geschafft. Wir haben dir gerade einen Bestaetigungslink per E-Mail geschickt.";
+    }
+    if (raw.indexOf("email_not_verified") >= 0) {
+      return "Bitte bestaetige zuerst deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.";
+    }
     if (raw.indexOf("password_not_set") >= 0) {
       return "Fuer dieses Konto ist noch kein Passwort gesetzt.";
     }

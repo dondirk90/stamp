@@ -501,6 +501,52 @@ Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.
   return info;
 }
 
+async function sendCustomerVerificationEmail({
+  email,
+  username,
+  verifyUrl,
+}) {
+  const displayName = String(username || "").trim() || "Kaffeekarte Gast";
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Bitte bestaetige deine E-Mail, ${displayName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Fast geschafft, ${displayName}.</h1>
+              <p style="margin: 0; color: #5f544a;">Bitte bestaetige kurz deine E-Mail-Adresse. Danach ist dein Konto startklar.</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              <p style="margin: 0 0 18px; color: #4d443c;">Ein Klick reicht:</p>
+              <div style="margin-top: 8px;">
+                <a href="${verifyUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">E-Mail bestaetigen</a>
+              </div>
+              <p style="margin: 18px 0 0; color: #6b625a; font-size: 13px;">Falls der Button hakt, funktioniert auch dieser Link: <a href="${verifyUrl}" style="color: #1c1917;">${verifyUrl}</a></p>
+              <p style="margin: 24px 0 0; color: #8a7d70; font-size: 12px;">Wenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Bitte bestaetige deine E-Mail-Adresse.\n\n${verifyUrl}\n\nWenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.`,
+  };
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️  Email credentials not configured. Email content:");
+    console.log("To:", email);
+    console.log("Subject:", mailOptions.subject);
+    console.log("Text:", mailOptions.text);
+    return;
+  }
+
+  return emailTransporter.sendMail(mailOptions);
+}
+
 async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
   const links =
     Array.isArray(resetLinks) && resetLinks.length
@@ -556,6 +602,43 @@ async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
 
   const info = await emailTransporter.sendMail(mailOptions);
   return info;
+}
+
+async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
+  const displayName = String(cafeName || "").trim() || "dein Café";
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Bitte bestaetige die E-Mail fuer ${displayName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px;">
+            <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
+            <h2 style="margin: 10px 0 12px 0;">Noch ein Klick, dann kann es losgehen.</h2>
+            <p>Bitte bestaetige kurz die E-Mail-Adresse fuer <strong>${displayName}</strong>. Danach ist der Zugang freigeschaltet.</p>
+            <p style="margin: 18px 0;">
+              <a href="${verifyUrl}" style="display:inline-block;padding:12px 16px;background:#1c1917;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;">E-Mail bestaetigen</a>
+            </p>
+            <p style="color:#666;font-size:13px;">Falls der Button hakt, funktioniert auch dieser Link: <a href="${verifyUrl}">${verifyUrl}</a></p>
+            <p style="color:#666;font-size:12px;">Wenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.</p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Bitte bestaetige die E-Mail fuer ${displayName}.\n\n${verifyUrl}\n\nWenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.`,
+  };
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️  Email credentials not configured. Email content:");
+    console.log("To:", email);
+    console.log("Subject:", mailOptions.subject);
+    console.log("Text:", mailOptions.text);
+    return;
+  }
+
+  return emailTransporter.sendMail(mailOptions);
 }
 
 // === Database (SQLite for local dev; Postgres in cloud via DATABASE_URL) ===
@@ -698,11 +781,36 @@ CREATE TABLE IF NOT EXISTS cafe_password_resets (
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS customer_email_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS cafe_email_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cafe_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_customer_password_resets_hash ON customer_password_resets(token_hash);
 CREATE INDEX IF NOT EXISTS idx_customer_password_resets_customer ON customer_password_resets(customer_id);
 
 CREATE INDEX IF NOT EXISTS idx_cafe_password_resets_hash ON cafe_password_resets(token_hash);
 CREATE INDEX IF NOT EXISTS idx_cafe_password_resets_cafe ON cafe_password_resets(cafe_id);
+
+CREATE INDEX IF NOT EXISTS idx_customer_email_verifications_hash ON customer_email_verifications(token_hash);
+CREATE INDEX IF NOT EXISTS idx_customer_email_verifications_customer ON customer_email_verifications(customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_hash ON cafe_email_verifications(token_hash);
+CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_cafe ON cafe_email_verifications(cafe_id);
 
 CREATE TABLE IF NOT EXISTS sync_state (
   key TEXT PRIMARY KEY,
@@ -871,6 +979,10 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN terms_version TEXT",
   "Failed to add cafes.terms_version column:",
 );
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN email_verified_at INTEGER",
+  "Failed to add cafes.email_verified_at column:",
+);
 
 // Ensure legacy databases pick up newer customer columns
 runSqliteOnlyAlter(
@@ -900,6 +1012,10 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE customers ADD COLUMN terms_version TEXT",
   "Failed to add customers.terms_version column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN email_verified_at INTEGER",
+  "Failed to add customers.email_verified_at column:",
 );
 
 // Ensure legacy databases pick up the additional columns for event tracking
@@ -1027,8 +1143,8 @@ const markRedeemTokenUsed = db.prepare(
 // Cafes prepared statements
 const insertCafe = db.prepare(
   db.client === "postgres"
-    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @updated_at, @created_at) RETURNING id"
-    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @updated_at, @created_at)",
+    ? "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, email_verified_at, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @email_verified_at, @updated_at, @created_at) RETURNING id"
+    : "INSERT INTO cafes (name, email, address, location_address, street, house_number, postal_code, city, country, lat, lng, website_url, instagram_url, password_hash, about_text, redeem_message, logo_mime, logo_data, stamp_style, stamps_for_reward, reward_description, popup_inactive_enabled, popup_inactive_days, popup_inactive_message, popup_almost_reward_enabled, popup_almost_reward_remaining, popup_almost_reward_message, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, email_verified_at, updated_at, created_at) VALUES (@name, @email, @address, @location_address, @street, @house_number, @postal_code, @city, @country, @lat, @lng, @website_url, @instagram_url, @password_hash, @about_text, @redeem_message, @logo_mime, @logo_data, @stamp_style, @stamps_for_reward, @reward_description, @popup_inactive_enabled, @popup_inactive_days, @popup_inactive_message, @popup_almost_reward_enabled, @popup_almost_reward_remaining, @popup_almost_reward_message, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @email_verified_at, @updated_at, @created_at)",
 );
 const getCafeById = db.prepare("SELECT * FROM cafes WHERE id = ?");
 const getCafeByName = db.prepare(
@@ -1058,9 +1174,24 @@ const deleteCafeSessionByHash = db.prepare(
 const setCafePasswordHashById = db.prepare(
   "UPDATE cafes SET password_hash = ? WHERE id = ?",
 );
+const setCafeEmailVerifiedAtById = db.prepare(
+  "UPDATE cafes SET email_verified_at = ? WHERE id = ?",
+);
 
 const insertCafePasswordReset = db.prepare(
   "INSERT INTO cafe_password_resets (cafe_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+);
+const insertCafeEmailVerification = db.prepare(
+  "INSERT INTO cafe_email_verifications (cafe_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+);
+const deleteUnusedCafeEmailVerificationsByCafeId = db.prepare(
+  "DELETE FROM cafe_email_verifications WHERE cafe_id = ? AND used_at IS NULL",
+);
+const getCafeEmailVerificationByHash = db.prepare(
+  "SELECT * FROM cafe_email_verifications WHERE token_hash = ? LIMIT 1",
+);
+const markCafeEmailVerificationUsedById = db.prepare(
+  "UPDATE cafe_email_verifications SET used_at = ? WHERE id = ? AND used_at IS NULL",
 );
 const deleteUnusedCafePasswordResetsByCafeId = db.prepare(
   "DELETE FROM cafe_password_resets WHERE cafe_id = ? AND used_at IS NULL",
@@ -1093,21 +1224,36 @@ const deleteCafeImageByIdForCafe = db.prepare(
 
 // Customers prepared statements
 const insertCustomer = db.prepare(
-  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @created_at)",
+  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, email_verified_at, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @email_verified_at, @created_at)",
 );
 const listCustomers = db.prepare("SELECT * FROM customers ORDER BY id DESC");
 const getCustomerByEmail = db.prepare(
   "SELECT id, customer_id, username, email, address, encrypted_key, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
 );
 const getCustomerAuthByEmail = db.prepare(
-  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
 );
 const setCustomerPasswordHashById = db.prepare(
   "UPDATE customers SET password_hash = ? WHERE id = ?",
 );
+const setCustomerEmailVerifiedAtById = db.prepare(
+  "UPDATE customers SET email_verified_at = ? WHERE id = ?",
+);
 
 const insertCustomerPasswordReset = db.prepare(
   "INSERT INTO customer_password_resets (customer_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+);
+const insertCustomerEmailVerification = db.prepare(
+  "INSERT INTO customer_email_verifications (customer_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+);
+const deleteUnusedCustomerEmailVerificationsByCustomerId = db.prepare(
+  "DELETE FROM customer_email_verifications WHERE customer_id = ? AND used_at IS NULL",
+);
+const getCustomerEmailVerificationByHash = db.prepare(
+  "SELECT * FROM customer_email_verifications WHERE token_hash = ? LIMIT 1",
+);
+const markCustomerEmailVerificationUsedById = db.prepare(
+  "UPDATE customer_email_verifications SET used_at = ? WHERE id = ? AND used_at IS NULL",
 );
 const deleteUnusedCustomerPasswordResetsByCustomerId = db.prepare(
   "DELETE FROM customer_password_resets WHERE customer_id = ? AND used_at IS NULL",
@@ -3326,6 +3472,9 @@ app.post("/cafes/login", async (req, res) => {
     if (!cafe || !cafe.password_hash) {
       return res.status(401).json({ ok: false, error: "invalid_credentials" });
     }
+    if (!cafe.email_verified_at) {
+      return res.status(403).json({ ok: false, error: "email_not_verified" });
+    }
 
     const passwordValid = await bcrypt.compare(password, cafe.password_hash);
     if (!passwordValid) {
@@ -3355,6 +3504,31 @@ app.post("/cafes/login", async (req, res) => {
   } catch (err) {
     console.error("Error in /cafes/login:", err);
     res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.post("/cafes/verify-email", async (req, res) => {
+  try {
+    const token = req.body?.token != null ? String(req.body.token).trim() : "";
+    if (!token) {
+      return res.status(400).json({ ok: false, error: "invalid_token" });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const row = await getCafeEmailVerificationByHash.get(tokenHash);
+    const now = Date.now();
+    if (!row || row.used_at || !row.expires_at || now > Number(row.expires_at)) {
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    }
+
+    await setCafeEmailVerifiedAtById.run(now, row.cafe_id);
+    await markCafeEmailVerificationUsedById.run(now, row.id);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 
@@ -3603,6 +3777,31 @@ app.post("/cafes/register-with-email", async (req, res) => {
 
     const existing = await getCafeAuthByEmail.get(normalizedEmail);
     if (existing) {
+      if (!existing.email_verified_at) {
+        const now = Date.now();
+        const expiresAt = now + 1000 * 60 * 60 * 24 * 3;
+        const token = crypto.randomBytes(24).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+        const verifyUrl = `${appsBaseUrl}/cafe-onboarding?verifyToken=${encodeURIComponent(token)}`;
+        try {
+          await deleteUnusedCafeEmailVerificationsByCafeId.run(existing.id);
+          await insertCafeEmailVerification.run(existing.id, tokenHash, now, expiresAt);
+          await sendCafeVerificationEmail({
+            email: normalizedEmail,
+            cafeName: existing.name || String(name).trim(),
+            verifyUrl,
+          });
+        } catch (verifyErr) {
+          console.warn(
+            "Failed to resend cafe verification email:",
+            verifyErr && verifyErr.message ? verifyErr.message : verifyErr,
+          );
+        }
+        return res
+          .status(409)
+          .json({ ok: false, error: "email_verification_pending" });
+      }
       return res
         .status(409)
         .json({ ok: false, error: "email_already_registered" });
@@ -3674,6 +3873,7 @@ app.post("/cafes/register-with-email", async (req, res) => {
       accepted_terms_at: Date.now(),
       privacy_version: LEGAL_VERSION,
       terms_version: LEGAL_VERSION,
+      email_verified_at: null,
       updated_at: Date.now(),
       created_at: Date.now(),
     };
@@ -3691,32 +3891,42 @@ app.post("/cafes/register-with-email", async (req, res) => {
       console.log(`🗺️ Location: ${info.location_address}`);
     }
 
-    // Send email with credentials
+    const now = Date.now();
+    const verificationToken = crypto.randomBytes(24).toString("hex");
+    const verificationTokenHash = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+    const verificationExpiresAt = now + 1000 * 60 * 60 * 24 * 3;
+    await insertCafeEmailVerification.run(
+      id,
+      verificationTokenHash,
+      now,
+      verificationExpiresAt,
+    );
+
+    const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+    const verifyUrl = `${appsBaseUrl}/cafe-onboarding?verifyToken=${encodeURIComponent(
+      verificationToken,
+    )}`;
+
     try {
-      await sendCafeCredentialsEmail({
+      await sendCafeVerificationEmail({
         email: normalizedEmail,
         cafeName: name,
-        locationAddress: info.location_address,
-        config,
+        verifyUrl,
       });
-      console.log(`✅ Email sent to: ${normalizedEmail}\n`);
+      console.log(`Verification email sent to: ${normalizedEmail}`);
     } catch (emailErr) {
       console.error(
-        `❌ Failed to send email to ${normalizedEmail}:`,
+        `Failed to send verification email to ${normalizedEmail}:`,
         emailErr.message,
       );
-      // Don't fail the registration if email fails
     }
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const tokenHash = sha256Hex(token);
-    const now = Date.now();
-    const expiresAt = now + 1000 * 60 * 60 * 24 * 30; // 30 days
-    await insertCafeSession.run(id, tokenHash, now, expiresAt);
 
     res.json({
       ok: true,
-      token,
+      verificationRequired: true,
       cafe: {
         id,
         name: info.name,
@@ -4041,29 +4251,32 @@ app.post("/customers/register", async (req, res) => {
       return res.status(400).json({ error: "terms_consent_required" });
     }
 
-    // If email already exists, surface that clearly in register mode.
     const existing = await getCustomerAuthByEmail.get(em);
     if (existing && existing.address) {
-      if (existing.password_hash) {
-        const okPw = await bcrypt.compare(pw, existing.password_hash);
-        if (!okPw) {
-          return res.status(409).json({ error: "email_already_registered" });
+      if (!existing.email_verified_at) {
+        const now = Date.now();
+        const expiresAt = now + 1000 * 60 * 60 * 24 * 3;
+        const token = crypto.randomBytes(24).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+        const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(token)}`;
+        try {
+          await deleteUnusedCustomerEmailVerificationsByCustomerId.run(existing.id);
+          await insertCustomerEmailVerification.run(existing.id, tokenHash, now, expiresAt);
+          await sendCustomerVerificationEmail({
+            email: em,
+            username: existing.username || uname,
+            verifyUrl,
+          });
+        } catch (verifyErr) {
+          console.warn(
+            "Failed to resend customer verification email:",
+            verifyErr && verifyErr.message ? verifyErr.message : verifyErr,
+          );
         }
-      } else {
-        // Legacy account: allow first-time password set
-        const newHash = await bcrypt.hash(pw, 10);
-        await setCustomerPasswordHashById.run(newHash, existing.id);
+        return res.status(409).json({ error: "email_verification_pending" });
       }
-
-      return res.json({
-        ok: true,
-        existed: true,
-        customer_id: existing.customer_id,
-        username: existing.username || uname,
-        email: existing.email || em,
-        address: existing.address,
-        createdAt: existing.created_at || null,
-      });
+      return res.status(409).json({ error: "email_already_registered" });
     }
 
     const customer_id = randomHex(8).slice(2);
@@ -4083,26 +4296,50 @@ app.post("/customers/register", async (req, res) => {
       accepted_terms_at: Date.now(),
       privacy_version: LEGAL_VERSION,
       terms_version: LEGAL_VERSION,
+      email_verified_at: null,
       created_at: Date.now(),
     };
     await insertCustomer.run(info);
 
+    const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+    const now = Date.now();
+    const verificationToken = crypto.randomBytes(24).toString("hex");
+    const verificationTokenHash = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+    const verificationExpiresAt = now + 1000 * 60 * 60 * 24 * 3;
+    const insertedCustomer = await getCustomerAuthByEmail.get(em);
+    if (insertedCustomer && insertedCustomer.id) {
+      await insertCustomerEmailVerification.run(
+        insertedCustomer.id,
+        verificationTokenHash,
+        now,
+        verificationExpiresAt,
+      );
+    }
+
+    const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(
+      verificationToken,
+    )}`;
+
     try {
-      await sendCustomerWelcomeEmail({
+      await sendCustomerVerificationEmail({
         email: em,
         username: uname,
-        appsBaseUrl: getAppsBaseUrlFromRequest(req),
+        verifyUrl,
       });
-      console.log(`✅ Customer welcome email sent to: ${em}`);
+      console.log(`Customer verification email sent to: ${em}`);
     } catch (emailErr) {
       console.warn(
-        "Failed to send customer welcome email:",
+        "Failed to send customer verification email:",
         emailErr && emailErr.message ? emailErr.message : emailErr,
       );
     }
 
     res.json({
       ok: true,
+      verificationRequired: true,
       customer_id,
       address,
       username: uname,
@@ -4138,6 +4375,9 @@ app.post("/customers/login", async (req, res) => {
     if (!row.password_hash) {
       return res.status(401).json({ error: "password_not_set" });
     }
+    if (!row.email_verified_at) {
+      return res.status(403).json({ error: "email_not_verified" });
+    }
 
     const okPw = await bcrypt.compare(pw, row.password_hash);
     if (!okPw) return res.status(401).json({ error: "wrong_password" });
@@ -4154,6 +4394,31 @@ app.post("/customers/login", async (req, res) => {
     return res
       .status(500)
       .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/verify-email", async (req, res) => {
+  try {
+    const token = req.body?.token != null ? String(req.body.token).trim() : "";
+    if (!token) {
+      return res.status(400).json({ ok: false, error: "invalid_token" });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const row = await getCustomerEmailVerificationByHash.get(tokenHash);
+    const now = Date.now();
+    if (!row || row.used_at || !row.expires_at || now > Number(row.expires_at)) {
+      return res.status(400).json({ ok: false, error: "invalid_or_expired" });
+    }
+
+    await setCustomerEmailVerifiedAtById.run(now, row.customer_id);
+    await markCustomerEmailVerificationUsedById.run(now, row.id);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 

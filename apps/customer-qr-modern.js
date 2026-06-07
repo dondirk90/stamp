@@ -728,6 +728,57 @@
     return "/customer-map?view=map";
   }
 
+  function getCustomerVerifyTokenFromUrl() {
+    try {
+      var u = new URL(location.href);
+      return u.searchParams.get("verifyToken") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function clearCustomerVerifyTokenFromUrl() {
+    try {
+      var u = new URL(location.href);
+      if (!u.searchParams.has("verifyToken")) return;
+      u.searchParams.delete("verifyToken");
+      history.replaceState(
+        history && history.state ? history.state : null,
+        "",
+        u.pathname + (u.search ? u.search : "") + (u.hash || ""),
+      );
+    } catch (e) {}
+  }
+
+  function processCustomerVerifyToken() {
+    var token = getCustomerVerifyTokenFromUrl();
+    if (!token) return Promise.resolve(false);
+    return apiFetch("/customers/verify-email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: token }),
+    })
+      .then(function () {
+        clearCustomerVerifyTokenFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg(
+          "success",
+          "Deine E-Mail-Adresse ist jetzt bestaetigt. Du kannst dich direkt anmelden.",
+        );
+        return true;
+      })
+      .catch(function (e) {
+        clearCustomerVerifyTokenFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg("danger", "Der Bestaetigungslink ist ungueltig oder abgelaufen.");
+        return false;
+      });
+  }
+
   function getAdjacentMode(mode, direction) {
     var order = ["welcome", "map", "wallet", "history"];
     var current = String(mode || "welcome");
@@ -4468,16 +4519,19 @@
         }),
       })
         .then(function (data) {
-          if (!data || !data.address) throw new Error("Ungültige Antwort");
-          saveSession({
-            address: data.address,
-            email: email,
-            username: username,
-            customer_id: data.customer_id || null,
-          });
+          if (!data || !data.verificationRequired) {
+            throw new Error("Ungueltige Antwort");
+          }
+          if (el.email) el.email.value = email;
+          if (el.password) el.password.value = "";
+          if (el.confirmPassword) el.confirmPassword.value = "";
+          clearSession();
           setAuthedUI();
-          bootAuthed();
-          applyPageMode(getPageMode());
+          setAuthMode("login");
+          showMsg(
+            "success",
+            "Fast geschafft. Bitte bestaetige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
+          );
         })
         .catch(function (e) {
           var msg = window.stampUI
@@ -4876,6 +4930,7 @@
     setAuthedUI();
     setAuthMode("login");
     applyPageMode(getPageMode());
+    processCustomerVerifyToken();
 
     if (session && session.address) {
       bootAuthed();
@@ -4919,3 +4974,4 @@
     } catch (e5) {}
   }
 })();
+

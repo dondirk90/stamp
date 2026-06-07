@@ -921,7 +921,7 @@
         <h2
           style="text-align: center; color: var(--success); margin-bottom: 15px"
         >
-          Registrierung erfolgreich.
+          Fast geschafft.
         </h2>
         <p
           style="
@@ -930,8 +930,9 @@
             margin-bottom: 30px;
           "
         >
-          Dein Café wurde erfolgreich eingerichtet. Die Zugangsdaten wurden an
-          <strong id="successEmail"></strong> gesendet.
+          Dein Café ist angelegt. Bitte bestätige jetzt die E-Mail-Adresse
+          <strong id="successEmail"></strong>. Danach kannst du dich direkt
+          anmelden und loslegen.
         </p>
 
         <div class="credentials-box" id="credentialsBox">
@@ -948,9 +949,9 @@
         <div class="button-group">
           <button
             class="btn btn-primary"
-            onclick="window.location.href = '/cafe-scanner'"
+            onclick="finishCafeVerificationStep()"
           >
-            Zum Scanner →
+            Zum Login →
           </button>
         </div>
       </div>
@@ -1076,6 +1077,64 @@
           return u.searchParams.get("resetToken") || "";
         } catch (e) {
           return "";
+        }
+      }
+
+      function getCafeVerifyTokenFromUrl() {
+        try {
+          const u = new URL(location.href);
+          return u.searchParams.get("verifyToken") || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function clearCafeQueryToken(paramName) {
+        try {
+          const u = new URL(location.href);
+          if (!u.searchParams.has(paramName)) return;
+          u.searchParams.delete(paramName);
+          history.replaceState(null, "", u.pathname + u.search + u.hash);
+        } catch (e) {}
+      }
+
+      async function processCafeVerifyToken() {
+        const verifyToken = getCafeVerifyTokenFromUrl();
+        if (!verifyToken) return false;
+        try {
+          const res = await fetch(`${apiBase}/cafes/verify-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: verifyToken }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            const err = new Error("api_error");
+            err.status = res.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
+          }
+          clearCafeQueryToken("verifyToken");
+          goToStep1();
+          setMode("login");
+          showSuccess(
+            "Deine E-Mail-Adresse ist bestaetigt. Du kannst dich jetzt direkt anmelden.",
+          );
+          return true;
+        } catch (e) {
+          clearCafeQueryToken("verifyToken");
+          goToStep1();
+          setMode("login");
+          showError("Der Bestaetigungslink ist ungueltig oder abgelaufen.");
+          return false;
         }
       }
 
@@ -1286,8 +1345,31 @@
       function showError(message) {
         const errorEl = document.getElementById("errorMessage");
         errorEl.textContent = message;
+        errorEl.style.background = "";
+        errorEl.style.color = "";
+        errorEl.style.borderColor = "";
         errorEl.classList.add("show");
         setTimeout(() => errorEl.classList.remove("show"), 5000);
+      }
+
+      function showSuccess(message) {
+        const errorEl = document.getElementById("errorMessage");
+        errorEl.textContent = message;
+        errorEl.classList.add("show");
+        errorEl.style.background = "rgba(142, 107, 74, 0.16)";
+        errorEl.style.color = "var(--text)";
+        errorEl.style.borderColor = "rgba(142, 107, 74, 0.35)";
+        setTimeout(() => {
+          errorEl.classList.remove("show");
+          errorEl.style.background = "";
+          errorEl.style.color = "";
+          errorEl.style.borderColor = "";
+        }, 6000);
+      }
+
+      function finishCafeVerificationStep() {
+        goToStep1();
+        setMode("login");
       }
 
       function updateStepIndicators(step) {
@@ -1313,6 +1395,7 @@
 
       function goToStep1() {
         document.getElementById("step2").classList.remove("active");
+        document.getElementById("step3").classList.remove("active");
         document.getElementById("step1").classList.add("active");
         currentStep = 1;
         updateStepIndicators(1);
@@ -1470,19 +1553,9 @@
             throw err;
           }
 
-          // Store session (bearer token)
-          try {
-            const cafeSession = {
-              token: data.token,
-              cafeId: data.cafe?.id,
-              cafeAddress: data.cafe?.cafeAddress || null,
-              name: data.cafe?.name || null,
-            };
-            localStorage.setItem("cafe_session", JSON.stringify(cafeSession));
-          } catch (e) {}
-
           // Show success screen
           document.getElementById("loading").classList.remove("show");
+          document.getElementById("step2").classList.remove("active");
           document.getElementById("step3").classList.add("active");
           currentStep = 3;
           updateStepIndicators(3);
@@ -1507,8 +1580,14 @@
       }
 
       // Default state
-      (function initMode() {
+      (async function initMode() {
         try {
+          const verifyToken = getCafeVerifyTokenFromUrl();
+          if (verifyToken) {
+            await processCafeVerifyToken();
+            return;
+          }
+
           const resetToken = getCafeResetTokenFromUrl();
           if (resetToken) {
             setMode("login");
@@ -1568,3 +1647,4 @@
     </script>
   </body>
 </html>
+
