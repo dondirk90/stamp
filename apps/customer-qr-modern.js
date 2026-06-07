@@ -1118,7 +1118,9 @@
     if (!list.length) {
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
-      empty.textContent = q ? "Keine Treffer." : "Noch keine Cafés.";
+      empty.textContent = q
+        ? "Keine Treffer. Vielleicht übt sich das richtige Café gerade noch in Understatement."
+        : "Noch keine Cafés.";
       el.cafeResults.appendChild(empty);
       return;
     }
@@ -1969,7 +1971,7 @@
         }
         if (body) {
           body.textContent =
-            "Entdecke zuerst ein Café auf der Karte und hole dir dort deine erste digitale Stempelkarte.";
+            "Entdecke zuerst ein Café auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
         }
         if (cta) {
           cta.textContent = "Cafés entdecken";
@@ -2707,7 +2709,7 @@
         var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
         el.qrSheetHint.textContent = full
           ? "Am Tresen scannen lassen, um die Belohnung einzulösen."
-          : "Am Tresen scannen lassen, damit dein nächster Stempel dazukommt.";
+          : "Am Tresen scannen lassen, dann ist der nächste Stempel nur noch Formsache.";
       }
       if (el.qrSheetBox) {
         el.qrSheetBox.textContent = "QR wird geladen…";
@@ -3064,8 +3066,8 @@
     var progressSub = document.createElement("span");
     progressSub.className = "passProgressSub";
     progressSub.textContent = isFull
-      ? "Diese Karte ist bereit zum Einloesen."
-      : "Dann erreichst du deine naechste Belohnung.";
+      ? "Diese Karte ist bereit zum Einlösen."
+      : "Dann ist deine nächste Belohnung in erfreulicher Reichweite.";
     progressText.appendChild(progressHeadline);
     progressText.appendChild(progressSub);
 
