@@ -794,6 +794,23 @@
     return "https://" + value.replace(/^\/+/, "");
   }
 
+  function normalizeInstagramUrl(raw) {
+    var value = String(raw || "").trim();
+    if (!value) return "";
+    if (/^(https?:)?\/\//i.test(value)) {
+      return /^\/\//.test(value) ? "https:" + value : value;
+    }
+    if (value.charAt(0) === "@") value = value.slice(1).trim();
+    if (!value) return "";
+    if (/^instagram\.com\//i.test(value)) {
+      return "https://" + value;
+    }
+    if (/^[a-z0-9._]+$/i.test(value)) {
+      return "https://instagram.com/" + value;
+    }
+    return normalizeExternalUrl(value);
+  }
+
   var cafeModalState = {
     open: false,
     cafeId: null,
@@ -919,7 +936,7 @@
     var websiteUrl = normalizeExternalUrl(
       cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "",
     );
-    var instagramUrl = normalizeExternalUrl(
+    var instagramUrl = normalizeInstagramUrl(
       cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "",
     );
     var cafeAddr = normalizeAddr(

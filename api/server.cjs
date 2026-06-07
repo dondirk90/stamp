@@ -197,6 +197,23 @@ function normalizeExternalUrl(raw) {
   return `https://${trimmed.replace(/^\/+/, "")}`.slice(0, 240);
 }
 
+function normalizeInstagramUrl(raw) {
+  const trimmed = String(raw == null ? "" : raw).trim();
+  if (!trimmed) return null;
+  if (/^(https?:)?\/\//i.test(trimmed)) {
+    return (/^\/\//.test(trimmed) ? `https:${trimmed}` : trimmed).slice(0, 240);
+  }
+  const withoutAt = trimmed.startsWith("@") ? trimmed.slice(1).trim() : trimmed;
+  if (!withoutAt) return null;
+  if (/^instagram\.com\//i.test(withoutAt)) {
+    return `https://${withoutAt}`.slice(0, 240);
+  }
+  if (/^[a-z0-9._]+$/i.test(withoutAt)) {
+    return `https://instagram.com/${withoutAt}`.slice(0, 240);
+  }
+  return normalizeExternalUrl(withoutAt);
+}
+
 function ensureCafeAddress(row) {
   if (!row) return null;
   if (row.address && /^0x[0-9a-fA-F]{40}$/.test(row.address)) {
@@ -2303,7 +2320,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
 
     let instagramUrl = current.instagram_url || null;
     if (Object.prototype.hasOwnProperty.call(body, "instagramUrl")) {
-      instagramUrl = normalizeExternalUrl(body.instagramUrl);
+      instagramUrl = normalizeInstagramUrl(body.instagramUrl);
     }
 
     let logoMime = current.logo_mime || null;
