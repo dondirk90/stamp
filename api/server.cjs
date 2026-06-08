@@ -3802,6 +3802,9 @@ app.post("/cafes/register-with-email", async (req, res) => {
             "Failed to resend cafe verification email:",
             verifyErr && verifyErr.message ? verifyErr.message : verifyErr,
           );
+          return res
+            .status(502)
+            .json({ ok: false, error: "verification_email_failed" });
         }
         return res
           .status(409)
@@ -3927,6 +3930,9 @@ app.post("/cafes/register-with-email", async (req, res) => {
         `Failed to send verification email to ${normalizedEmail}:`,
         emailErr.message,
       );
+      return res
+        .status(502)
+        .json({ ok: false, error: "verification_email_failed" });
     }
 
     res.json({
@@ -4278,6 +4284,7 @@ app.post("/customers/register", async (req, res) => {
             "Failed to resend customer verification email:",
             verifyErr && verifyErr.message ? verifyErr.message : verifyErr,
           );
+          return res.status(502).json({ error: "verification_email_failed" });
         }
         return res.status(409).json({ error: "email_verification_pending" });
       }
@@ -4340,6 +4347,7 @@ app.post("/customers/register", async (req, res) => {
         "Failed to send customer verification email:",
         emailErr && emailErr.message ? emailErr.message : emailErr,
       );
+      return res.status(502).json({ error: "verification_email_failed" });
     }
 
     res.json({

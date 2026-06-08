@@ -124,6 +124,9 @@
     if (raw.indexOf("email_verification_pending") >= 0) {
       return "Fast geschafft. Wir haben dir gerade einen Bestaetigungslink per E-Mail geschickt.";
     }
+    if (raw.indexOf("verification_email_failed") >= 0) {
+      return "Die Bestaetigungs-Mail konnte gerade nicht verschickt werden. Bitte gleich noch einmal versuchen.";
+    }
     if (raw.indexOf("email_not_verified") >= 0) {
       return "Bitte bestaetige zuerst deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.";
     }
