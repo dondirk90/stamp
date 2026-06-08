@@ -3891,16 +3891,23 @@ app.post("/cafes/register-with-email", async (req, res) => {
     )}`;
 
     try {
-      await sendCafeVerificationEmail({
+      const mailInfo = await sendCafeVerificationEmail({
         email: normalizedEmail,
         cafeName: name,
         verifyUrl,
       });
-      console.log(`Verification email sent to: ${normalizedEmail}`);
+      console.log(
+        "Cafe verification email accepted by transporter:",
+        JSON.stringify({
+          email: normalizedEmail,
+          messageId: mailInfo && mailInfo.messageId ? mailInfo.messageId : null,
+          response: mailInfo && mailInfo.response ? mailInfo.response : null,
+        }),
+      );
     } catch (emailErr) {
       console.error(
         `Failed to send verification email to ${normalizedEmail}:`,
-        emailErr.message,
+        emailErr && emailErr.stack ? emailErr.stack : emailErr,
       );
       return res
         .status(502)
@@ -4308,16 +4315,23 @@ app.post("/customers/register", async (req, res) => {
     )}`;
 
     try {
-      await sendCustomerVerificationEmail({
+      const mailInfo = await sendCustomerVerificationEmail({
         email: em,
         username: uname,
         verifyUrl,
       });
-      console.log(`Customer verification email sent to: ${em}`);
+      console.log(
+        "Customer verification email accepted by transporter:",
+        JSON.stringify({
+          email: em,
+          messageId: mailInfo && mailInfo.messageId ? mailInfo.messageId : null,
+          response: mailInfo && mailInfo.response ? mailInfo.response : null,
+        }),
+      );
     } catch (emailErr) {
       console.warn(
         "Failed to send customer verification email:",
-        emailErr && emailErr.message ? emailErr.message : emailErr,
+        emailErr && emailErr.stack ? emailErr.stack : emailErr,
       );
       return res.status(502).json({ error: "verification_email_failed" });
     }
