@@ -262,6 +262,14 @@ const emailTransporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
+function ensureEmailConfigured() {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const err = new Error("email_not_configured");
+    err.code = "email_not_configured";
+    throw err;
+  }
+}
 // (moved) Café statistics route is registered after Express setup below
 
 async function sendCafeCredentialsEmail({
@@ -390,13 +398,7 @@ Viel Erfolg mit deinem Stampcard-System!
   };
 
   // Only send if email credentials are configured
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   const info = await emailTransporter.sendMail(mailOptions);
   return info;
@@ -426,13 +428,7 @@ async function sendCustomerPasswordResetEmail({ email, resetUrl }) {
     text: `Passwort zurücksetzen\n\nÖffne diesen Link: ${resetUrl}\n\nWenn du das nicht warst, ignoriere diese E-Mail.`,
   };
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   const info = await emailTransporter.sendMail(mailOptions);
   return info;
@@ -489,13 +485,7 @@ Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.
     `.trim(),
   };
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   const info = await emailTransporter.sendMail(mailOptions);
   return info;
@@ -536,13 +526,7 @@ async function sendCustomerVerificationEmail({
     text: `Fast geschafft, ${displayName}.\n\nBestaetige bitte kurz deine E-Mail-Adresse:\n${verifyUrl}\n\nDanach ist dein Konto bereit.\n\nWenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.`,
   };
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   return emailTransporter.sendMail(mailOptions);
 }
@@ -592,13 +576,7 @@ async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
     text: `Café Passwort zurücksetzen\n\n${linksText}\n\nWenn du das nicht warst, ignoriere diese E-Mail.`,
   };
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   const info = await emailTransporter.sendMail(mailOptions);
   return info;
@@ -635,13 +613,7 @@ async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
     text: `Noch ein Klick, dann kann es losgehen.\n\nBitte bestaetige die E-Mail-Adresse fuer ${displayName}:\n${verifyUrl}\n\nDanach ist der Zugang freigeschaltet.\n\nWenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.`,
   };
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️  Email credentials not configured. Email content:");
-    console.log("To:", email);
-    console.log("Subject:", mailOptions.subject);
-    console.log("Text:", mailOptions.text);
-    return;
-  }
+  ensureEmailConfigured();
 
   return emailTransporter.sendMail(mailOptions);
 }
@@ -4720,3 +4692,4 @@ function shutdown(signal) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
