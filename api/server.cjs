@@ -510,7 +510,7 @@ async function sendCustomerVerificationEmail({
   const mailOptions = {
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to: email,
-    subject: `Bitte bestaetige deine E-Mail, ${displayName}`,
+    subject: `Bitte bestaetige deine E-Mail fuer Kaffekarte`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -519,21 +519,21 @@ async function sendCustomerVerificationEmail({
             <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
               <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
               <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Fast geschafft, ${displayName}.</h1>
-              <p style="margin: 0; color: #5f544a;">Bitte bestaetige kurz deine E-Mail-Adresse. Danach ist dein Konto startklar.</p>
+              <p style="margin: 0; color: #5f544a;">Ein kurzer Klick noch, dann ist dein Konto bereit. Danach kannst du Stempelkarten sammeln, neue Orte entdecken und direkt loslegen.</p>
             </div>
             <div style="padding: 24px 28px 30px;">
-              <p style="margin: 0 0 18px; color: #4d443c;">Ein Klick reicht:</p>
+              <p style="margin: 0 0 18px; color: #4d443c;">Hier geht es weiter:</p>
               <div style="margin-top: 8px;">
                 <a href="${verifyUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">E-Mail bestaetigen</a>
               </div>
-              <p style="margin: 18px 0 0; color: #6b625a; font-size: 13px;">Falls der Button hakt, funktioniert auch dieser Link: <a href="${verifyUrl}" style="color: #1c1917;">${verifyUrl}</a></p>
+              <p style="margin: 18px 0 0; color: #6b625a; font-size: 13px;">Falls der Button gerade keine Lust hat, funktioniert auch dieser Link: <a href="${verifyUrl}" style="color: #1c1917;">${verifyUrl}</a></p>
               <p style="margin: 24px 0 0; color: #8a7d70; font-size: 12px;">Wenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.</p>
             </div>
           </div>
         </body>
       </html>
     `,
-    text: `Bitte bestaetige deine E-Mail-Adresse.\n\n${verifyUrl}\n\nWenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.`,
+    text: `Fast geschafft, ${displayName}.\n\nBestaetige bitte kurz deine E-Mail-Adresse:\n${verifyUrl}\n\nDanach ist dein Konto bereit.\n\nWenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.`,
   };
 
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -613,21 +613,26 @@ async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
     html: `
       <!DOCTYPE html>
       <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px;">
-            <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
-            <h2 style="margin: 10px 0 12px 0;">Noch ein Klick, dann kann es losgehen.</h2>
-            <p>Bitte bestaetige kurz die E-Mail-Adresse fuer <strong>${displayName}</strong>. Danach ist der Zugang freigeschaltet.</p>
-            <p style="margin: 18px 0;">
-              <a href="${verifyUrl}" style="display:inline-block;padding:12px 16px;background:#1c1917;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;">E-Mail bestaetigen</a>
-            </p>
-            <p style="color:#666;font-size:13px;">Falls der Button hakt, funktioniert auch dieser Link: <a href="${verifyUrl}">${verifyUrl}</a></p>
-            <p style="color:#666;font-size:12px;">Wenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.</p>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Noch ein Klick, dann kann es losgehen.</h1>
+              <p style="margin: 0; color: #5f544a;">Bitte bestaetige kurz die E-Mail-Adresse fuer <strong>${displayName}</strong>. Danach ist der Zugang freigeschaltet und dein Café kann direkt starten.</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              <p style="margin: 0 0 18px; color: #4d443c;">Hier geht es weiter:</p>
+              <div style="margin-top: 8px;">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 18px;background:#1c1917;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;">E-Mail bestaetigen</a>
+              </div>
+              <p style="margin: 18px 0 0; color:#6b625a;font-size:13px;">Falls der Button gerade keine Lust hat, funktioniert auch dieser Link: <a href="${verifyUrl}" style="color:#1c1917;">${verifyUrl}</a></p>
+              <p style="margin: 24px 0 0; color:#8a7d70;font-size:12px;">Wenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.</p>
+            </div>
           </div>
         </body>
       </html>
     `,
-    text: `Bitte bestaetige die E-Mail fuer ${displayName}.\n\n${verifyUrl}\n\nWenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.`,
+    text: `Noch ein Klick, dann kann es losgehen.\n\nBitte bestaetige die E-Mail-Adresse fuer ${displayName}:\n${verifyUrl}\n\nDanach ist der Zugang freigeschaltet.\n\nWenn du die Registrierung nicht angestoßen hast, kannst du diese E-Mail ignorieren.`,
   };
 
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
