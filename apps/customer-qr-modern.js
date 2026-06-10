@@ -1344,6 +1344,20 @@
       requestCurrentMapLocation();
       try {
         if (leafletMap) {
+          try {
+            if (leafletMap.dragging && leafletMap.dragging.enable)
+              leafletMap.dragging.enable();
+            if (leafletMap.touchZoom && leafletMap.touchZoom.enable)
+              leafletMap.touchZoom.enable();
+            if (leafletMap.doubleClickZoom && leafletMap.doubleClickZoom.enable)
+              leafletMap.doubleClickZoom.enable();
+            if (leafletMap.scrollWheelZoom && leafletMap.scrollWheelZoom.enable)
+              leafletMap.scrollWheelZoom.enable();
+            if (leafletMap.boxZoom && leafletMap.boxZoom.enable)
+              leafletMap.boxZoom.enable();
+            if (leafletMap.tap && leafletMap.tap.enable)
+              leafletMap.tap.enable();
+          } catch (eEnable0) {}
           window.setTimeout(function () {
             try {
               if (leafletMap) leafletMap.invalidateSize();
@@ -2033,18 +2047,6 @@
     var zoom = getPreferredMapZoom();
 
     try {
-      if (!el.cafeMap.dataset.gestureGuardBound) {
-        var stopMapBubble = function (ev) {
-          try {
-            ev.stopPropagation();
-          } catch (e) {}
-        };
-        el.cafeMap.addEventListener("pointerdown", stopMapBubble, { passive: true });
-        el.cafeMap.addEventListener("touchstart", stopMapBubble, { passive: true });
-        el.cafeMap.addEventListener("touchmove", stopMapBubble, { passive: true });
-        el.cafeMap.dataset.gestureGuardBound = "1";
-      }
-
       leafletMap = window.L.map(el.cafeMap, {
         zoomControl: false,
         attributionControl: false,
