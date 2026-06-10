@@ -76,6 +76,7 @@
     utilityMapBtn: document.getElementById("utilityMapBtn"),
     utilityHistoryBtn: document.getElementById("utilityHistoryBtn"),
     utilityAccountBtn: document.getElementById("utilityAccountBtn"),
+    utilityLogoutBtn: document.getElementById("utilityLogoutBtn"),
 
     welcomePanel: document.getElementById("welcomePanel"),
     welcomeTitle: document.getElementById("welcomeTitle"),
@@ -618,6 +619,34 @@
       el.utilityAccountBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
         location.href = "/customer-profile";
+      });
+    }
+    if (el.utilityLogoutBtn) {
+      el.utilityLogoutBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        clearSession();
+        disconnectEventsStream();
+        if (el.walletList) el.walletList.innerHTML = "";
+        setWalletEmptyVisible(true);
+
+        try {
+          walletState.lastFavKey = "";
+          walletState.lastCardCount = 0;
+          walletState.lastCafesVersion = 0;
+          walletState.lastStampIconOk = false;
+          walletState.lastServerCardsDigest = "";
+        } catch (e0) {}
+        try {
+          if (walletState.stampsRefreshTimer)
+            window.clearTimeout(walletState.stampsRefreshTimer);
+        } catch (e1) {}
+        setAuthedUI();
+        setAuthMode("login");
+        try {
+          history.replaceState({ mode: "welcome" }, "", "/wallet");
+        } catch (e2) {}
+        currentPageMode = null;
+        applyPageMode("welcome");
       });
     }
     if (el.qrSheetBackdrop) {
