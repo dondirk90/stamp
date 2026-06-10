@@ -3729,6 +3729,7 @@
       .walletOverlayBackdrop {
         position: fixed;
         inset: 0;
+        display: none;
         background: rgba(21, 14, 10, 0.18);
         opacity: 0;
         pointer-events: none;
@@ -3737,18 +3738,19 @@
       }
 
       .walletOverlayBackdrop.open {
+        display: block;
         opacity: 1;
         pointer-events: auto;
       }
 
       .walletOverlay {
         position: fixed;
+        display: none;
         inset:
           calc(26px + var(--safe-top, 0px))
           calc(18px + var(--safe-right, 0px))
           calc(108px + var(--safe-bottom, 0px))
           calc(18px + var(--safe-left, 0px));
-        display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
@@ -3761,6 +3763,7 @@
       }
 
       .walletOverlay.open {
+        display: flex;
         opacity: 1;
         pointer-events: auto;
         transform: translateY(0) scale(1);
