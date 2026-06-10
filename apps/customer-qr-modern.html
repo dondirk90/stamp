@@ -835,7 +835,8 @@
 
         #welcomePanel,
         .mapHero,
-        #historyPanel {
+        #historyPanel,
+        #authPanel {
           width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px);
           margin: auto;
@@ -854,6 +855,23 @@
           border: none;
           box-shadow: none;
           backdrop-filter: none;
+        }
+
+        #authPanel .panelHeader,
+        #authPanel .panelBody,
+        #historyPanel .panelHeader,
+        #historySubtitle,
+        #historyEmpty,
+        #historyList {
+          max-width: 332px;
+          margin-left: auto;
+          margin-right: auto;
+          width: 100%;
+        }
+
+        #authPanel .panelHeader {
+          position: relative;
+          z-index: 2;
         }
 
         .mapHero {
@@ -889,16 +907,6 @@
         #historyPanel {
           justify-content: flex-start;
           align-items: stretch;
-        }
-
-        #historyPanel .panelHeader,
-        #historySubtitle,
-        #historyEmpty,
-        #historyList {
-          max-width: 332px;
-          margin-left: auto;
-          margin-right: auto;
-          width: 100%;
         }
 
         .walletOverlay {
