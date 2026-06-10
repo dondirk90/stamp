@@ -344,6 +344,7 @@
     const resetToken = getResetTokenFromUrl();
     if (resetToken && el.resetPanel) {
       el.resetPanel.style.display = "block";
+      if (el.forgotPanel) el.forgotPanel.style.display = "none";
       void previewResetToken(resetToken);
     }
 

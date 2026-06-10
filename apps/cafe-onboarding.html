@@ -1516,6 +1516,10 @@
             setMode("login");
             const rp = document.getElementById("cafeResetPanel");
             if (rp) rp.style.display = "block";
+            const forgotBox = document.getElementById("cafeForgotBox");
+            if (forgotBox) forgotBox.style.display = "none";
+            const forgotBtn = document.querySelector('button[onclick="toggleCafeForgotPassword(true)"]');
+            if (forgotBtn) forgotBtn.style.display = "none";
             // Prefill email in reset request box for convenience
             try {
               toggleCafeForgotPassword(false);
