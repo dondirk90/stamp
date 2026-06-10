@@ -1985,7 +1985,16 @@
           icon ? { icon: icon } : undefined,
         );
         marker.addTo(leafletMap);
-        marker.on("click", function () {
+        marker.on("click", function (ev) {
+          try {
+            if (ev && ev.originalEvent) {
+              if (ev.originalEvent.preventDefault)
+                ev.originalEvent.preventDefault();
+              if (ev.originalEvent.stopPropagation)
+                ev.originalEvent.stopPropagation();
+            }
+          } catch (eStop0) {}
+          walletState.ignoreClickUntil = nowMs() + 420;
           openCafeModal(cafe2);
         });
         leafletMarkers.push(marker);
@@ -2056,8 +2065,29 @@
         maxZoom: 19,
       }).addTo(leafletMap);
 
-      leafletMap.on("click", function () {
+      leafletMap.on("click", function (ev) {
+        try {
+          if (ev && ev.originalEvent) {
+            if (ev.originalEvent.preventDefault)
+              ev.originalEvent.preventDefault();
+            if (ev.originalEvent.stopPropagation)
+              ev.originalEvent.stopPropagation();
+          }
+        } catch (eStop1) {}
+        walletState.ignoreClickUntil = nowMs() + 280;
         hideDiscoverPick();
+      });
+      leafletMap.on("movestart", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("moveend", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("dragstart", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("dragend", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
       });
       syncMapMarkers();
 
