@@ -421,6 +421,18 @@
       el.authSubmit.textContent =
         authMode === "register" ? "Account erstellen" : "Einloggen";
 
+    if (el.authForgotToggle)
+      el.authForgotToggle.style.display =
+        authMode === "login" ? "inline-flex" : "none";
+    if (authMode !== "login") {
+      if (el.authForgotPanel) el.authForgotPanel.style.display = "none";
+      if (el.authForgotMsg) {
+        el.authForgotMsg.style.display = "none";
+        el.authForgotMsg.textContent = "";
+        el.authForgotMsg.className = "notice";
+      }
+    }
+
     if (el.password) {
       el.password.autocomplete =
         authMode === "register" ? "new-password" : "current-password";
@@ -4729,7 +4741,7 @@
     function setForgotOpen(open) {
       el.authForgotPanel.style.display = open ? "flex" : "none";
       el.authForgotToggle.textContent = open
-        ? "Reset wieder schließen"
+        ? "Schliessen"
         : "Passwort vergessen?";
       if (!open) resetForgotNotice();
     }
@@ -4779,7 +4791,7 @@
           })
           .finally(function () {
             el.authForgotSubmit.disabled = false;
-            el.authForgotSubmit.textContent = "Reset-Link senden";
+            el.authForgotSubmit.textContent = "OK";
           });
       });
     }
@@ -5004,4 +5016,5 @@
     } catch (e5) {}
   }
 })();
+
 
