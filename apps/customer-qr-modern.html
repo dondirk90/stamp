@@ -2477,7 +2477,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: 22px 24px 18px;
+        padding: 22px 24px 24px;
         min-height: 44px;
         cursor: pointer;
         touch-action: pan-x;
@@ -2755,7 +2755,8 @@
 
       .passFooter {
         margin-top: auto;
-        padding-top: 10px;
+        padding-top: 12px;
+        padding-bottom: 2px;
         border-top: 1px solid
           color-mix(in srgb, var(--pass-rule, var(--pass-border, var(--border))) 90%, rgba(255, 255, 255, 0.1) 10%);
         display: flex;
@@ -3068,12 +3069,12 @@
         }
 
         .passCard {
-          --pass-card-ratio: 1.06;
+          --pass-card-ratio: 1.14;
         }
 
         .passMain,
         .passQr {
-          padding: 14px 14px 12px;
+          padding: 15px 15px 16px;
         }
 
         .passTitle {
@@ -3132,7 +3133,8 @@
 
         .passFooter {
           gap: 6px;
-          padding-top: 7px;
+          padding-top: 9px;
+          padding-bottom: 2px;
           font-size: 8px;
           letter-spacing: 0.09em;
         }
@@ -3156,6 +3158,10 @@
 
         .walletCarousel.isStack {
           --cardW: min(320px, calc(100% - 22px));
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.12;
         }
 
         .walletCarousel.isCarousel {
