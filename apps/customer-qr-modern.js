@@ -624,6 +624,7 @@
     if (el.utilityLogoutBtn) {
       el.utilityLogoutBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
+        if (!window.confirm("Moechtest du dich wirklich ausloggen?")) return;
         clearSession();
         disconnectEventsStream();
         if (el.walletList) el.walletList.innerHTML = "";
