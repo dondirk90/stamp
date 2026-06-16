@@ -4087,6 +4087,80 @@
         transform: translateX(-50%);
       }
 
+      .rewardBean,
+      .rewardSpark {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .rewardBean {
+        width: 18px;
+        height: 26px;
+        border-radius: 50%;
+        background: #6b452c;
+        box-shadow:
+          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
+        animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
+      }
+
+      .rewardBean::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        border-radius: 999px;
+        background: rgba(242, 230, 215, 0.78);
+        transform: translateX(-50%) rotate(12deg);
+      }
+
+      .rewardSpark {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 246, 187, 1) 0%, rgba(255, 215, 125, 0.95) 38%, rgba(255, 215, 125, 0) 72%);
+        animation: rewardSparkBurst 1.8s ease-out forwards;
+      }
+
+      @keyframes rewardBeanBurst {
+        0% {
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.3);
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--burst-x, 0px), var(--burst-y, -180px), 0)
+            rotate(var(--burst-rot, 0deg))
+            scale(var(--burst-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardSparkBurst {
+        0% {
+          transform: translate3d(0, 0, 0) scale(0.2);
+          opacity: 0;
+        }
+        18% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(calc(var(--burst-x, 0px) * 0.8), calc(var(--burst-y, -160px) * 0.82), 0)
+            scale(calc(var(--burst-scale, 1) * 1.15));
+          opacity: 0;
+        }
+      }
+
       @keyframes rewardBalloonFloat {
         0% {
           transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
@@ -4743,7 +4817,7 @@
 
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js"></script>
-    <script src="/customer-qr-modern.js?v=20260616c"></script>
+    <script src="/customer-qr-modern.js?v=20260616d"></script>
 
     <script>
       (function () {

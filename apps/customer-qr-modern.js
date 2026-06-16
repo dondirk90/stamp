@@ -274,6 +274,53 @@
     }, 6200);
   }
 
+  function launchRedeemCelebration() {
+    if (rewardCelebrationState.prefersReducedMotion) return;
+    var host = ensureRewardCelebrationHost();
+    if (!host) return;
+
+    try {
+      host.innerHTML = "";
+      host.classList.add("active", "isRedeem");
+    } catch (e0) {}
+
+    for (var i = 0; i < 20; i++) {
+      var burst = document.createElement("span");
+      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardBean";
+      burst.style.left = 16 + Math.random() * 68 + "%";
+      burst.style.top = 26 + Math.random() * 24 + "%";
+      burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
+      burst.style.animationDuration = (1.6 + Math.random() * 0.9).toFixed(2) + "s";
+      burst.style.setProperty(
+        "--burst-x",
+        (Math.random() * 320 - 160).toFixed(0) + "px",
+      );
+      burst.style.setProperty(
+        "--burst-y",
+        (-140 - Math.random() * 180).toFixed(0) + "px",
+      );
+      burst.style.setProperty(
+        "--burst-rot",
+        (Math.random() * 420 - 210).toFixed(0) + "deg",
+      );
+      burst.style.setProperty(
+        "--burst-scale",
+        (0.8 + Math.random() * 0.7).toFixed(2),
+      );
+      host.appendChild(burst);
+    }
+
+    try {
+      window.clearTimeout(rewardCelebrationState.timer);
+    } catch (e1) {}
+    rewardCelebrationState.timer = window.setTimeout(function () {
+      try {
+        host.classList.remove("active", "isRedeem");
+        host.innerHTML = "";
+      } catch (e2) {}
+    }, 3200);
+  }
+
   function isIOS() {
     try {
       var ua = navigator.userAgent || "";
@@ -4567,6 +4614,7 @@
               } catch (eOpt) {}
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
+              launchRedeemCelebration();
               showToast(
                 "Einlösen bestätigt" + (cafeLabel ? " · " + cafeLabel : ""),
                 null,
