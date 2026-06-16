@@ -222,7 +222,7 @@
       }
 
       .shell {
-        max-width: 980px;
+        max-width: 1180px;
         margin: 0 auto;
         position: relative;
       }
@@ -3916,6 +3916,45 @@
         margin-left: -44px;
       }
 
+      @media (min-width: 860px) {
+        .walletOverlay {
+          inset:
+            calc(30px + var(--safe-top, 0px))
+            calc(28px + var(--safe-right, 0px))
+            calc(42px + var(--safe-bottom, 0px))
+            calc(28px + var(--safe-left, 0px));
+        }
+
+        .walletOverlayInner {
+          width: min(980px, calc(100vw - 96px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+          max-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 92px));
+          min-height: min(620px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px));
+        }
+
+        .walletOverlay .walletDock {
+          padding: 74px 28px 28px;
+        }
+
+        .walletOverlay .walletDockHead {
+          align-items: flex-end;
+        }
+
+        .walletOverlay .walletDockHead .hint,
+        .walletOverlay #walletEmpty {
+          max-width: 520px;
+        }
+
+        .walletOverlay .walletCarousel {
+          --cardW: min(420px, 42vw, 460px);
+          padding: 18px 22px 22px;
+          gap: 16px;
+        }
+
+        .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -52px;
+        }
+      }
+
       .walletOverlay .passCard {
         box-shadow:
           0 24px 40px rgba(41, 29, 21, 0.16),
@@ -4628,7 +4667,7 @@
 
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js"></script>
-    <script src="/customer-qr-modern.js?v=20260607a"></script>
+    <script src="/customer-qr-modern.js?v=20260616b"></script>
 
     <script>
       (function () {

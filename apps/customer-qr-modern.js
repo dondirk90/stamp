@@ -9,11 +9,9 @@
   var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
 
   var REWARD_THRESHOLD = 10;
-  var WALLET_MODE =
-    window.matchMedia &&
-    window.matchMedia("(hover: none) and (pointer: coarse)").matches
-      ? "carousel"
-      : "stack";
+  // Keep the wallet interaction model consistent across phone, tablet and notebook:
+  // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
+  var WALLET_MODE = "carousel";
   var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
