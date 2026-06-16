@@ -200,6 +200,16 @@
     overlayOpen: false,
   };
 
+  var rewardCelebrationState = {
+    host: null,
+    timer: 0,
+    prefersReducedMotion:
+      !!(
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ),
+  };
+
   function nowMs() {
     return Date.now ? Date.now() : new Date().getTime();
   }
@@ -208,6 +218,60 @@
     var n = Number(v);
     if (!isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
+  }
+
+  function ensureRewardCelebrationHost() {
+    if (rewardCelebrationState.host) return rewardCelebrationState.host;
+    try {
+      var host = document.createElement("div");
+      host.className = "rewardBalloons";
+      host.setAttribute("aria-hidden", "true");
+      document.body.appendChild(host);
+      rewardCelebrationState.host = host;
+    } catch (e) {
+      rewardCelebrationState.host = null;
+    }
+    return rewardCelebrationState.host;
+  }
+
+  function launchRewardCelebration() {
+    if (rewardCelebrationState.prefersReducedMotion) return;
+    var host = ensureRewardCelebrationHost();
+    if (!host) return;
+
+    try {
+      host.innerHTML = "";
+      host.classList.add("active");
+    } catch (e0) {}
+
+    var colors = ["#f2c94c", "#e58f65", "#d66853", "#6b452c", "#8fb996", "#d7b98e"];
+    for (var i = 0; i < 14; i++) {
+      var balloon = document.createElement("span");
+      balloon.className = "rewardBalloon";
+      balloon.style.left = 4 + i * 7 + Math.random() * 6 + "%";
+      balloon.style.animationDelay = (Math.random() * 0.45).toFixed(2) + "s";
+      balloon.style.animationDuration = (4.6 + Math.random() * 1.4).toFixed(2) + "s";
+      balloon.style.setProperty("--balloon-color", colors[i % colors.length]);
+      balloon.style.setProperty(
+        "--balloon-drift",
+        (Math.random() * 90 - 45).toFixed(0) + "px",
+      );
+      balloon.style.setProperty(
+        "--balloon-scale",
+        (0.86 + Math.random() * 0.42).toFixed(2),
+      );
+      host.appendChild(balloon);
+    }
+
+    try {
+      window.clearTimeout(rewardCelebrationState.timer);
+    } catch (e1) {}
+    rewardCelebrationState.timer = window.setTimeout(function () {
+      try {
+        host.classList.remove("active");
+        host.innerHTML = "";
+      } catch (e2) {}
+    }, 6200);
   }
 
   function isIOS() {
@@ -4354,6 +4418,14 @@
     var grid = passCardEl.querySelector(".stampGrid");
     if (grid) {
       renderStampGrid(grid, stampCount, prevCount);
+    }
+
+    if (
+      prevCount != null &&
+      Number(prevCount) < rewardThreshold &&
+      stampCount >= rewardThreshold
+    ) {
+      launchRewardCelebration();
     }
   }
 
