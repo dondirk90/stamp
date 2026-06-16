@@ -798,12 +798,27 @@
     } catch (e4) {}
     try {
       document.addEventListener("click", function (ev) {
-        if (!shellMenuState.open) return;
         var t = ev && ev.target ? ev.target : null;
         if (!t) return;
-        if (el.utilityMenu && el.utilityMenu.contains(t)) return;
-        if (el.topUtilityBtn && el.topUtilityBtn.contains(t)) return;
-        setShellMenuOpen(false);
+
+        if (shellMenuState.open) {
+          if (el.utilityMenu && el.utilityMenu.contains(t)) return;
+          if (el.topUtilityBtn && el.topUtilityBtn.contains(t)) return;
+          setShellMenuOpen(false);
+        }
+
+        if (!walletState.overlayOpen || !el.walletList) return;
+        if (qrSheetState.open) return;
+
+        try {
+          var openPass = el.walletList.querySelector(
+            ".passCard.open, .passCard.isFocused",
+          );
+          if (!openPass) return;
+          if (openPass.contains(t)) return;
+          if (t.closest && t.closest(".passInfoLink, .passQr, .passQrBox")) return;
+          closeAllPasses();
+        } catch (eWalletClose) {}
       });
     } catch (e5) {}
   }
