@@ -4616,7 +4616,8 @@
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
               launchRedeemCelebration();
               showToast(
-                "Einlösen bestätigt" + (cafeLabel ? " · " + cafeLabel : ""),
+                "Belohnung eingelöst. Lass dir dein Getränk schmecken." +
+                  (cafeLabel ? " · " + cafeLabel : ""),
                 null,
               );
             } else if (type === "card_start") {
