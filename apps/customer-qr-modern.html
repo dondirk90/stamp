@@ -3918,6 +3918,8 @@
 
       @media (min-width: 860px) {
         .walletOverlay {
+          align-items: flex-start;
+          overflow-y: auto;
           inset:
             calc(30px + var(--safe-top, 0px))
             calc(28px + var(--safe-right, 0px))
@@ -3929,6 +3931,8 @@
           width: min(980px, calc(100vw - 96px - var(--safe-left, 0px) - var(--safe-right, 0px)));
           max-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 92px));
           min-height: min(620px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px));
+          margin: 0 auto;
+          padding-top: 12px;
         }
 
         .walletOverlay .walletDock {
@@ -3953,6 +3957,10 @@
 
         .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
           margin-left: -52px;
+        }
+
+        .walletOverlay .passCard.isFocused {
+          transform: scale(1.02);
         }
       }
 
