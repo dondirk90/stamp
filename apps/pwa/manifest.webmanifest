@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Cafe Stamp",
-  "short_name": "Stamp",
-  "description": "Digitale Stempelkarten fuer Cafes mit Wallet fuer Gaeste und Scanner fuer das Team.",
+  "name": "Kaffekarte",
+  "short_name": "Kaffekarte",
+  "description": "Digitale Stempelkarten fuer Cafes und Gaeste im Veedel.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "/wallet",
