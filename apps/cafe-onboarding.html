@@ -355,12 +355,16 @@
         background: var(--brand-700);
       }
       .btn-secondary {
-        background: rgba(255, 248, 241, 0.04);
-        color: var(--text);
-        border: 1px solid var(--border);
+        background: var(--coffee-paper);
+        color: #2b1c14;
+        border: 1px solid var(--coffee-line);
+        box-shadow:
+          0 12px 28px rgba(0, 0, 0, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.4) inset;
       }
       .btn-secondary:hover {
-        background: rgba(255, 248, 241, 0.08);
+        background: var(--coffee-paper-deep);
+        color: #2b1c14;
       }
 
       /* Success screen */
@@ -417,10 +421,14 @@
       }
 
       .error-message {
-        background: var(--danger-bg);
+        background: rgba(254, 243, 242, 0.98);
         color: var(--danger);
-        padding: 12px;
-        border-radius: 0;
+        border: 1px solid rgba(180, 35, 24, 0.18);
+        box-shadow:
+          0 16px 34px rgba(0, 0, 0, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.56) inset;
+        padding: 14px 16px;
+        border-radius: 18px;
         margin-bottom: 15px;
         display: none;
       }
@@ -1636,8 +1644,3 @@
     </script>
   </body>
 </html>
-
-
-
-
-

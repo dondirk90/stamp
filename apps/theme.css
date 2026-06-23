@@ -63,6 +63,11 @@
   --coffee-paper: #f2e6d7;
   --coffee-paper-deep: #e9d8c3;
   --coffee-line: rgba(107, 69, 44, 0.16);
+  --soft-button-bg: rgba(255, 255, 255, 0.56);
+  --soft-button-border: rgba(17, 17, 17, 0.1);
+  --soft-button-text: var(--text);
+  --soft-button-bg-hover: rgba(255, 255, 255, 0.72);
+  --notice-surface: rgba(255, 255, 255, 0.62);
 }
 
 /* Inverted (café) theme: same layout tokens, swapped canvas/ink */
@@ -81,6 +86,11 @@
   --brand-700: #fff8f0;
   --brand-50: rgba(255, 248, 241, 0.08);
   --on-brand: #241812;
+  --soft-button-bg: var(--coffee-paper);
+  --soft-button-border: var(--coffee-line);
+  --soft-button-text: #2b1c14;
+  --soft-button-bg-hover: var(--coffee-paper-deep);
+  --notice-surface: rgba(242, 230, 215, 0.94);
 }
 
 * {
@@ -341,9 +351,9 @@ button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
 
 button.secondary,
 button.ghost {
-  background: rgba(255, 255, 255, 0.56);
-  color: var(--text);
-  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border);
 }
 
 /* Modern utility + layout helpers */
@@ -412,9 +422,25 @@ button.ghost {
 }
 
 .btn.secondary {
-  background: rgba(255, 255, 255, 0.56) !important;
-  color: var(--text) !important;
-  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border);
+}
+
+.btn-secondary,
+button.btn-secondary {
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border) !important;
+}
+
+button.secondary:hover,
+button.ghost:hover,
+.btn.secondary:hover,
+.btn-secondary:hover,
+button.btn-secondary:hover {
+  background: var(--soft-button-bg-hover) !important;
+  color: var(--soft-button-text) !important;
 }
 
 /* Clean top navigation (Holm-like): text links on white */
@@ -557,7 +583,10 @@ button.topMenuBtn.ghost {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--notice-surface);
+  box-shadow:
+    0 12px 28px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.58) inset;
   color: var(--text);
 }
 
