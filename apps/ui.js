@@ -114,7 +114,8 @@
 
     if (
       raw.indexOf("wrong_password") >= 0 ||
-      raw.indexOf("invalid_email_or_password") >= 0
+      raw.indexOf("invalid_email_or_password") >= 0 ||
+      raw.indexOf("invalid_credentials") >= 0
     ) {
       return "E-Mail oder Passwort stimmt nicht.";
     }
@@ -145,8 +146,6 @@
 
     // Session/auth
     if (
-      status === 401 ||
-      status === 403 ||
       raw.indexOf("unauthorized") >= 0 ||
       raw.indexOf("forbidden") >= 0 ||
       raw.indexOf("invalid_token") >= 0 ||
