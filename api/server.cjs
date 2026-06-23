@@ -28,6 +28,8 @@ const os = require("os");
 
 const { z } = require("zod");
 
+const EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
 function sanitizeEnv(key) {
   const v = process.env[key];
   if (!v) return v;
@@ -3756,13 +3758,12 @@ app.post("/cafes/register-with-email", async (req, res) => {
     if (existing) {
       if (!existing.email_verified_at) {
         const now = Date.now();
-        const expiresAt = now + 1000 * 60 * 60 * 24 * 3;
+        const expiresAt = now + EMAIL_VERIFICATION_TTL_MS;
         const token = crypto.randomBytes(24).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         const appsBaseUrl = getAppsBaseUrlFromRequest(req);
         const verifyUrl = `${appsBaseUrl}/cafe-onboarding?verifyToken=${encodeURIComponent(token)}`;
         try {
-          await deleteUnusedCafeEmailVerificationsByCafeId.run(existing.id);
           await insertCafeEmailVerification.run(existing.id, tokenHash, now, expiresAt);
           await sendCafeVerificationEmail({
             email: normalizedEmail,
@@ -3877,7 +3878,7 @@ app.post("/cafes/register-with-email", async (req, res) => {
       .createHash("sha256")
       .update(verificationToken)
       .digest("hex");
-    const verificationExpiresAt = now + 1000 * 60 * 60 * 24 * 3;
+    const verificationExpiresAt = now + EMAIL_VERIFICATION_TTL_MS;
     await insertCafeEmailVerification.run(
       id,
       verificationTokenHash,
@@ -4245,13 +4246,12 @@ app.post("/customers/register", async (req, res) => {
     if (existing && existing.address) {
       if (!existing.email_verified_at) {
         const now = Date.now();
-        const expiresAt = now + 1000 * 60 * 60 * 24 * 3;
+        const expiresAt = now + EMAIL_VERIFICATION_TTL_MS;
         const token = crypto.randomBytes(24).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         const appsBaseUrl = getAppsBaseUrlFromRequest(req);
         const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(token)}`;
         try {
-          await deleteUnusedCustomerEmailVerificationsByCustomerId.run(existing.id);
           await insertCustomerEmailVerification.run(existing.id, tokenHash, now, expiresAt);
           await sendCustomerVerificationEmail({
             email: em,
@@ -4299,7 +4299,7 @@ app.post("/customers/register", async (req, res) => {
       .createHash("sha256")
       .update(verificationToken)
       .digest("hex");
-    const verificationExpiresAt = now + 1000 * 60 * 60 * 24 * 3;
+    const verificationExpiresAt = now + EMAIL_VERIFICATION_TTL_MS;
     const insertedCustomer = await getCustomerAuthByEmail.get(em);
     if (insertedCustomer && insertedCustomer.id) {
       await insertCustomerEmailVerification.run(
