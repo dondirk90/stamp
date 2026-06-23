@@ -62,6 +62,9 @@
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
+    authResendVerificationBtn: document.getElementById(
+      "authResendVerificationBtn",
+    ),
     authForgotPanel: document.getElementById("authForgotPanel"),
     authForgotSubmit: document.getElementById("authForgotSubmit"),
     authForgotMsg: document.getElementById("authForgotMsg"),
@@ -940,7 +943,10 @@
         clearSession();
         setAuthedUI();
         setAuthMode("login");
-        showMsg("danger", "Der Bestaetigungslink ist ungueltig oder abgelaufen.");
+        showMsg(
+          "danger",
+          "Der Bestaetigungslink ist ungueltig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
+        );
         return false;
       });
   }
@@ -4958,6 +4964,53 @@
           .finally(function () {
             el.authForgotSubmit.disabled = false;
             el.authForgotSubmit.textContent = "OK";
+          });
+      });
+    }
+
+    if (el.authResendVerificationBtn) {
+      el.authResendVerificationBtn.addEventListener("click", function () {
+        var email = el.email ? String(el.email.value || "").trim() : "";
+        clearMsg();
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showMsg("danger", "Bitte zuerst oben eine gueltige E-Mail eingeben.");
+          return;
+        }
+        el.authResendVerificationBtn.disabled = true;
+        el.authResendVerificationBtn.textContent = "Wird gesendet...";
+        apiFetch("/customers/resend-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        })
+          .then(function (data) {
+            if (data && data.alreadyVerified) {
+              showMsg(
+                "success",
+                "Diese E-Mail-Adresse ist bereits bestaetigt. Du kannst dich direkt anmelden.",
+              );
+              return;
+            }
+            showMsg(
+              "success",
+              "Wenn die Adresse zu einem unbestaetigten Konto gehoert, haben wir dir gerade einen neuen Bestaetigungslink geschickt.",
+            );
+          })
+          .catch(function (e) {
+            showMsg(
+              "danger",
+              window.stampUI
+                ? stampUI.userSafeErrorMessage(
+                    e,
+                    "Bestaetigungslink konnte nicht neu gesendet werden.",
+                  )
+                : "Bestaetigungslink konnte nicht neu gesendet werden.",
+            );
+          })
+          .then(function () {
+            el.authResendVerificationBtn.disabled = false;
+            el.authResendVerificationBtn.textContent =
+              "Bestaetigungslink erneut senden";
           });
       });
     }

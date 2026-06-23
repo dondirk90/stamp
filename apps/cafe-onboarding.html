@@ -592,6 +592,17 @@
             </button>
           </div>
 
+          <div style="margin-top: 10px">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="resendCafeVerification()"
+              style="width: 100%"
+            >
+              Bestaetigungslink erneut senden
+            </button>
+          </div>
+
           <div
             id="cafeForgotBox"
             class="warning-box"
@@ -1041,6 +1052,57 @@
           history.replaceState(null, "", u.pathname + u.search + u.hash);
         } catch (e) {}
       }
+      async function resendCafeVerification() {
+        const email = String(
+          (document.getElementById("loginEmail") || {}).value || "",
+        ).trim();
+
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showError("Bitte gib zuerst deine E-Mail-Adresse im Login-Feld ein.");
+          return;
+        }
+
+        try {
+          const resp = await fetch(`${apiBase}/cafes/resend-verification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.ok) {
+            const err = new Error("api_error");
+            err.status = resp.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
+          }
+
+          if (data && data.alreadyVerified) {
+            showSuccess(
+              "Diese E-Mail-Adresse ist bereits bestaetigt. Du kannst dich direkt anmelden.",
+            );
+            return;
+          }
+
+          showSuccess(
+            "Wenn die Adresse zu einem unbestaetigten Konto gehoert, haben wir dir gerade einen neuen Bestaetigungslink geschickt.",
+          );
+        } catch (e) {
+          showError(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Bestaetigungslink konnte nicht neu gesendet werden.",
+            ),
+          );
+        }
+      }
 
       async function processCafeVerifyToken() {
         const verifyToken = getCafeVerifyTokenFromUrl();
@@ -1077,7 +1139,7 @@
           clearCafeQueryToken("verifyToken");
           goToStep1();
           setMode("login");
-          showError("Der Bestaetigungslink ist ungueltig oder abgelaufen.");
+          showError("Der Bestaetigungslink ist ungueltig oder abgelaufen. Du kannst dir im Login direkt einen neuen senden lassen.");
           return false;
         }
       }
@@ -1574,6 +1636,8 @@
     </script>
   </body>
 </html>
+
+
 
 
 

@@ -3511,6 +3511,62 @@ app.post("/cafes/verify-email", async (req, res) => {
   }
 });
 
+app.post("/cafes/resend-verification", async (req, res) => {
+  try {
+    const emailRaw = req.body?.email != null ? String(req.body.email) : "";
+    const email = emailRaw.trim().slice(0, 254).toLowerCase();
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ ok: false, error: "invalid_email" });
+    }
+
+    const cafe = await getCafeAuthByEmail.get(email);
+    if (!cafe) {
+      return res.json({ ok: true, sent: false });
+    }
+    if (cafe.email_verified_at) {
+      return res.json({ ok: true, alreadyVerified: true });
+    }
+
+    const now = Date.now();
+    const expiresAt = now + EMAIL_VERIFICATION_TTL_MS;
+    const token = crypto.randomBytes(24).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+    const verifyUrl = `${appsBaseUrl}/cafe-onboarding?verifyToken=${encodeURIComponent(token)}`;
+
+    try {
+      await insertCafeEmailVerification.run(cafe.id, tokenHash, now, expiresAt);
+      const mailInfo = await sendCafeVerificationEmail({
+        email,
+        cafeName: cafe.name || "Kaffekarte Café",
+        verifyUrl,
+      });
+      console.log(
+        "Cafe verification resend accepted by transporter:",
+        JSON.stringify({
+          email,
+          messageId: mailInfo && mailInfo.messageId ? mailInfo.messageId : null,
+          response: mailInfo && mailInfo.response ? mailInfo.response : null,
+        }),
+      );
+    } catch (emailErr) {
+      console.error(
+        `Failed to resend verification email to ${email}:`,
+        emailErr && emailErr.stack ? emailErr.stack : emailErr,
+      );
+      return res
+        .status(502)
+        .json({ ok: false, error: "verification_email_failed" });
+    }
+
+    return res.json({ ok: true, sent: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/cafes/logout", requireCafeAuth, async (req, res) => {
   try {
     const tokenHash = req.cafeSession?.token_hash;
@@ -4414,6 +4470,65 @@ app.post("/customers/verify-email", async (req, res) => {
     await markCustomerEmailVerificationUsedById.run(now, row.id);
 
     return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/resend-verification", async (req, res) => {
+  try {
+    const emailRaw = req.body?.email != null ? String(req.body.email) : "";
+    const email = emailRaw.trim().slice(0, 254).toLowerCase();
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ ok: false, error: "invalid_email" });
+    }
+
+    const customer = await getCustomerAuthByEmail.get(email);
+    if (!customer) {
+      return res.json({ ok: true, sent: false });
+    }
+    if (customer.email_verified_at) {
+      return res.json({ ok: true, alreadyVerified: true });
+    }
+
+    const now = Date.now();
+    const expiresAt = now + EMAIL_VERIFICATION_TTL_MS;
+    const token = crypto.randomBytes(24).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+    const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(token)}`;
+
+    try {
+      await insertCustomerEmailVerification.run(
+        customer.id,
+        tokenHash,
+        now,
+        expiresAt,
+      );
+      const mailInfo = await sendCustomerVerificationEmail({
+        email,
+        username: customer.username || "Kaffekarte",
+        verifyUrl,
+      });
+      console.log(
+        "Customer verification resend accepted by transporter:",
+        JSON.stringify({
+          email,
+          messageId: mailInfo && mailInfo.messageId ? mailInfo.messageId : null,
+          response: mailInfo && mailInfo.response ? mailInfo.response : null,
+        }),
+      );
+    } catch (emailErr) {
+      console.error(
+        `Failed to resend customer verification email to ${email}:`,
+        emailErr && emailErr.stack ? emailErr.stack : emailErr,
+      );
+      return res.status(502).json({ ok: false, error: "verification_email_failed" });
+    }
+
+    return res.json({ ok: true, sent: true });
   } catch (e) {
     return res
       .status(500)

@@ -134,7 +134,7 @@
       return "Fuer dieses Konto ist noch kein Passwort gesetzt.";
     }
     if (raw.indexOf("invalid_or_expired") >= 0) {
-      return "Der Reset-Link ist ungueltig oder abgelaufen. Bitte fordere einen neuen an.";
+      return "Der Link ist ungueltig oder abgelaufen. Bitte fordere einen neuen Bestaetigungs- oder Reset-Link an.";
     }
     if (raw.indexOf("invalid_token") >= 0) {
       return "Der Reset-Link ist ungueltig.";
