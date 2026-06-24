@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v6-20260616-logo";
+const CACHE_VERSION = "stamp-shell-v7-20260624-split-manifests";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -9,6 +9,8 @@ const APP_SHELL_URLS = [
   "/cafe-dashboard",
   "/theme.css",
   "/pwa/manifest.webmanifest",
+  "/pwa/manifest-customer.webmanifest",
+  "/pwa/manifest-cafe.webmanifest",
   "/pwa/icons/icon-192.png",
   "/pwa/icons/icon-512.png",
   "/pwa/icons/apple-touch-icon.png",
