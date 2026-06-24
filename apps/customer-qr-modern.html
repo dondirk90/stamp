@@ -1820,6 +1820,10 @@
         max-width: 34ch;
       }
 
+      .welcomePrimaryAction {
+        margin-top: 6px;
+      }
+
       .welcomeKicker {
         font-size: 11px;
         font-weight: 900;
@@ -3730,7 +3734,7 @@
         position: fixed;
         inset: 0;
         display: none;
-        background: rgba(21, 14, 10, 0.18);
+        background: rgba(21, 14, 10, 0.42);
         opacity: 0;
         pointer-events: none;
         transition: opacity 220ms ease;
@@ -3848,6 +3852,25 @@
         margin-bottom: 2px;
       }
 
+      .walletOverlayClose {
+        position: absolute;
+        top: -46px;
+        right: 0;
+        border: 1px solid rgba(81, 58, 40, 0.14);
+        background: rgba(255, 252, 247, 0.94);
+        color: #3d2a1d;
+        border-radius: 999px;
+        min-height: 38px;
+        padding: 0 14px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        box-shadow: 0 10px 22px rgba(41, 29, 21, 0.14);
+        cursor: pointer;
+        z-index: 3;
+      }
+
       .walletOverlay .walletDockHead::before {
         content: "Wallet";
         display: block;
@@ -3916,6 +3939,21 @@
         margin-left: -44px;
       }
 
+      html.walletMode #screenPager {
+        opacity: 0.08;
+        pointer-events: none;
+        filter: blur(6px);
+        transform: scale(0.992);
+        transition:
+          opacity 180ms ease,
+          filter 220ms ease,
+          transform 220ms ease;
+      }
+
+      html.walletMode #mainPanel {
+        overflow: hidden;
+      }
+
       @media (min-width: 860px) {
         .walletOverlay {
           align-items: flex-start;
@@ -3936,12 +3974,18 @@
         }
 
         .walletOverlay .walletDock {
-          padding: 92px 28px 28px;
+          padding: 108px 28px 28px;
           overflow: visible;
         }
 
         .walletOverlay .walletDockHead {
           align-items: flex-end;
+          margin-bottom: 10px;
+        }
+
+        .walletOverlayClose {
+          top: -58px;
+          right: 6px;
         }
 
         .walletOverlay .walletDockHead .hint,
@@ -4573,6 +4617,11 @@
               <div class="welcomeNextHint" id="welcomeNextHint">
                 Wenn du Lust auf ein neues Cafe hast, findest du es im Menue oben rechts.
               </div>
+              <div class="actions welcomePrimaryAction">
+                <button class="btn primary" id="welcomeWalletBtn" type="button">
+                  Wallet oeffnen
+                </button>
+              </div>
             </div>
             </div>
 
@@ -4658,6 +4707,7 @@
             <div class="walletOverlayInner">
               <div class="card panel walletDock" id="walletPanel">
                 <div class="walletDockHead">
+                  <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schliessen">Schliessen</button>
                   <h3 style="margin: 0">Wallet</h3>
                   <div class="hint" id="walletSubtitle">
                     Öffne deine Karten hier zentral. Tippe eine Karte, wenn du den QR zeigen willst.

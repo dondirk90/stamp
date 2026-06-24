@@ -72,6 +72,10 @@
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
+    mainModeMap: document.getElementById("mainModeMap"),
+    mainModeWallet: document.getElementById("mainModeWallet"),
+    mainModeHistory: document.getElementById("mainModeHistory"),
+    mainModeAccount: document.getElementById("mainModeAccount"),
     topUtilityBtn: document.getElementById("topUtilityBtn"),
     utilityMenu: document.getElementById("utilityMenu"),
     utilityMapBtn: document.getElementById("utilityMapBtn"),
@@ -85,6 +89,7 @@
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
+    welcomeWalletBtn: document.getElementById("welcomeWalletBtn"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -580,6 +585,11 @@
     var w = which || "map";
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
+    if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
+    if (el.mainModeWallet)
+      el.mainModeWallet.classList.toggle("active", w === "wallet");
+    if (el.mainModeHistory)
+      el.mainModeHistory.classList.toggle("active", w === "history");
   }
 
   function updateWelcomeUI() {
@@ -4288,6 +4298,14 @@
     }
 
     bindModeButton(el.bottomModeWallet, "wallet");
+    bindModeButton(el.mainModeMap, "map");
+    bindModeButton(el.mainModeWallet, "wallet");
+    bindModeButton(el.mainModeHistory, "history");
+    if (el.mainModeAccount) {
+      el.mainModeAccount.addEventListener("click", function () {
+        location.href = "/customer-profile";
+      });
+    }
   }
 
   function resetPassCardMotion(node) {
@@ -5168,6 +5186,21 @@
       el.walletEmptyMapBtn.addEventListener("click", function () {
         closeWalletOverlay({ silent: true });
         navigateToMode("map");
+      });
+    }
+    if (el.welcomeWalletBtn) {
+      el.welcomeWalletBtn.addEventListener("click", function () {
+        navigateToMode("wallet");
+      });
+    }
+    if (el.walletOverlayBackdrop) {
+      el.walletOverlayBackdrop.addEventListener("click", function () {
+        closeWalletOverlay();
+      });
+    }
+    if (el.walletOverlayClose) {
+      el.walletOverlayClose.addEventListener("click", function () {
+        closeWalletOverlay();
       });
     }
 
