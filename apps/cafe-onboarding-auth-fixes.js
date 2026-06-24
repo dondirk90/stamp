@@ -129,12 +129,25 @@
       if (cafe && cafe.locationAddress) parts.push(String(cafe.locationAddress));
       else if (cafe && cafe.address) parts.push(String(cafe.address));
       if (!parts.length) return false;
-      preview.textContent = "Konto: " + parts.join(" · ");
+      preview.textContent = "Konto: " + parts.join(" - ");
       preview.style.display = "block";
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  function wireActionButton(sel, handler) {
+    var btn = qs(sel);
+    if (!btn || btn.dataset.authFixBound === "1") return;
+    btn.dataset.authFixBound = "1";
+    btn.addEventListener("click", function (ev) {
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      handler();
+    });
   }
 
   async function enhancedResendVerification() {
@@ -271,6 +284,7 @@
   function bootstrap() {
     window.resendCafeVerification = enhancedResendVerification;
     window.submitCafeResetPassword = enhancedSubmitResetPassword;
+    window.loadCafeResetPreview = previewResetToken;
 
     var oldFinish = window.finishCafeVerificationStep;
     window.finishCafeVerificationStep = function () {
@@ -278,7 +292,12 @@
       setResetMode(false);
     };
 
+    wireActionButton('button[onclick="resendCafeVerification()"]', enhancedResendVerification);
+    wireActionButton('button[onclick="submitCafeResetPassword()"]', enhancedSubmitResetPassword);
     syncInitialState();
+    setTimeout(syncInitialState, 0);
+    setTimeout(syncInitialState, 150);
+    window.addEventListener("pageshow", syncInitialState);
   }
 
   if (document.readyState === "loading") {
