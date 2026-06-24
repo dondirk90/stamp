@@ -337,6 +337,20 @@
         padding: 6mm;
       }
 
+      .qrFrame img,
+      .qrFrame canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .qrFallback {
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+
       .qrUrl {
         font-size: 12px;
         color: var(--ink-soft);
@@ -421,10 +435,10 @@
               </div>
 
               <div>
-                <div class="eyebrow">Die Stempelkarte fürs Veedel</div>
+                <div class="eyebrow">Die Stempelkarte fuers Veedel</div>
                 <h1>Hier Stempelkarte holen</h1>
                 <p class="lead">
-                  Einmal scannen, direkt aufs Handy holen und beim nächsten Kaffee schon wieder einen Stempel
+                  Einmal scannen, direkt aufs Handy holen und beim naechsten Kaffee schon wieder einen Stempel
                   mitnehmen.
                 </p>
               </div>
@@ -448,7 +462,7 @@
                   <div class="stepNum">3</div>
                   <div class="stepText">
                     <strong>Beim naechsten Besuch wieder zeigen</strong>
-                    Im Café kurz den QR zeigen und Stempel sammeln.
+                    Im Cafe kurz den QR zeigen und Stempel sammeln.
                   </div>
                 </div>
               </div>
@@ -483,10 +497,10 @@
               </div>
 
               <div>
-                <div class="eyebrow">Die Stempelkarte fürs Veedel</div>
+                <div class="eyebrow">Die Stempelkarte fuers Veedel</div>
                 <h1>Hier Stempelkarte holen</h1>
                 <p class="lead">
-                  Einmal scannen, direkt aufs Handy holen und beim nächsten Kaffee schon wieder einen Stempel
+                  Einmal scannen, direkt aufs Handy holen und beim naechsten Kaffee schon wieder einen Stempel
                   mitnehmen.
                 </p>
               </div>
@@ -510,7 +524,7 @@
                   <div class="stepNum">3</div>
                   <div class="stepText">
                     <strong>Beim naechsten Besuch wieder zeigen</strong>
-                    Im Café kurz den QR zeigen und Stempel sammeln.
+                    Im Cafe kurz den QR zeigen und Stempel sammeln.
                   </div>
                 </div>
               </div>
@@ -538,7 +552,8 @@
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
-        var defaultUrl = window.location.origin + "/wallet";
+        var runtimeOrigin = /^https?:/i.test(window.location.protocol) ? window.location.origin : "https://staging.kaffeekarte.app";
+        var defaultUrl = runtimeOrigin + "/wallet";
         var urlInput = document.getElementById("urlInput");
         var cafeInput = document.getElementById("cafeInput");
         var updateBtn = document.getElementById("updateBtn");
@@ -556,6 +571,7 @@
         }
 
         function updateHistory(url, cafe) {
+          if (!/^https?:/i.test(window.location.protocol)) return;
           var next = new URL(window.location.href);
           next.searchParams.set("url", url);
           if (cafe) next.searchParams.set("cafe", cafe);
@@ -565,30 +581,43 @@
 
         function renderQr(target, url) {
           target.innerHTML = "";
-          new QRCode(target, {
-            text: url,
-            width: 180,
-            height: 180,
-            colorDark: "#2e1d14",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.M
-          });
+          if (window.QRCode && window.QRCode.CorrectLevel) {
+            new QRCode(target, {
+              text: url,
+              width: 180,
+              height: 180,
+              colorDark: "#2e1d14",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+            return;
+          }
+
+          var img = document.createElement("img");
+          img.alt = "QR-Code fuer die Gast-App";
+          img.src = "https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=" + encodeURIComponent(url);
+          img.loading = "eager";
+          target.appendChild(img);
         }
 
         function render() {
           var finalUrl = normalizeUrl(urlInput.value);
           var cafeName = String(cafeInput.value || "").trim();
 
-          qrTargets.forEach(function (target) {
-            renderQr(target, finalUrl);
+          cafeLabels.forEach(function (label) {
+            label.textContent = cafeName || "Fuer Gaeste";
           });
 
           urlLabels.forEach(function (label) {
             label.textContent = finalUrl.replace(/^https?:\/\//i, "");
           });
 
-          cafeLabels.forEach(function (label) {
-            label.textContent = cafeName || "Gast-App";
+          qrTargets.forEach(function (target) {
+            try {
+              renderQr(target, finalUrl);
+            } catch (error) {
+              target.innerHTML = '<div class="qrFallback">QR-Code konnte gerade nicht erzeugt werden.<br />Bitte Seite neu laden.</div>';
+            }
           });
 
           updateHistory(finalUrl, cafeName);
