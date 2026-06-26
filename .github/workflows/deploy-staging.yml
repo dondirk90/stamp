@@ -26,12 +26,18 @@ jobs:
           STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
           STAGING_APPS_BASE_URL: ${{ secrets.STAGING_APPS_BASE_URL }}
           STAGING_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
+          ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
         run: |
           test -n "$STAMP_SSH_HOST"
           test -n "$STAMP_SSH_USER"
           test -n "$STAMP_SSH_KEY"
           test -n "$STAGING_APPS_BASE_URL"
           test -n "$STAGING_DOMAIN"
+          test -n "$ADMIN_TOKEN"
+          test -n "$ADMIN_BASIC_USER"
+          test -n "$ADMIN_BASIC_HASH"
 
       - name: Create deployment archive
         run: |
@@ -91,6 +97,9 @@ jobs:
             EMAIL_USER=${{ secrets.EMAIL_USER }}
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
+            ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
+            ADMIN_BASIC_HASH=${{ secrets.ADMIN_BASIC_HASH }}
             EOF
 
             cd "$APP_DIR"

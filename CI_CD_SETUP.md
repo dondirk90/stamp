@@ -39,6 +39,9 @@ Staging:
 - `STAGING_APPS_PORT`
 - `STAGING_APPS_BASE_URL`
 - `STAGING_DOMAIN`
+- `ADMIN_TOKEN`
+- `ADMIN_BASIC_USER`
+- `ADMIN_BASIC_HASH`
 - `EMAIL_HOST`
 - `EMAIL_PORT`
 - `EMAIL_SECURE`
@@ -64,6 +67,7 @@ Staging:
 - `STAGING_APPS_PORT=8081`
 - `STAGING_APPS_BASE_URL=https://staging.kaffeekarte.app`
 - `STAGING_DOMAIN=staging.kaffeekarte.app`
+- `ADMIN_BASIC_USER=admin`
 
 ## SSH key setup
 
@@ -105,3 +109,7 @@ Production:
 - The workflows upload the repo archive from GitHub Actions to the server.
 - This avoids the server needing GitHub clone credentials for a private repo.
 - Existing `.env.staging` and `.env.prod` files are preserved and then rewritten from GitHub secrets during deploy.
+- For the admin dashboard, generate the Caddy hash with:
+  - `docker run --rm caddy:2 caddy hash-password --plaintext 'DEIN_PASSWORT'`
+- In GitHub Secrets, store the hash exactly as generated.
+- In `.env.staging` files, dollar signs must be escaped as `$$`, but GitHub Secrets keep the normal `$` form.
