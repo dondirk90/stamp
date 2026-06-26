@@ -397,22 +397,12 @@
     <script>
       const STORAGE_KEY = "stamp_admin_dashboard_v1";
       const DEFAULT_API_BASE = (() => {
-        const { protocol, hostname } = window.location;
-        const port = protocol === "https:" ? 443 : 3000;
-        if (window.location.protocol === "file:")
+        if (window.location.protocol === "file:") {
           return "http://127.0.0.1:3000";
-
-        // When served by the apps server (typically :8080), prefer the same-origin /api proxy.
-        if (window.location.port === "8080")
-          return `${window.location.origin}/api`;
-
-        if (hostname && hostname !== "") {
-          if (hostname.includes(":")) {
-            return `${protocol}//${hostname.split(":")[0]}:${port}`;
-          }
-          return `${protocol}//${hostname}:${port}`;
         }
-        return "http://127.0.0.1:3000";
+
+        // Prefer the same-origin /api proxy in browser-served environments.
+        return `${window.location.origin}/api`;
       })();
 
       const refs = {
@@ -528,6 +518,19 @@
         }
       }
 
+      function buildApiUrl(apiBase, path) {
+        const base = new URL(apiBase, window.location.href);
+        const basePath = String(base.pathname || "").replace(/\/+$/, "");
+        const nextPath = String(path || "").startsWith("/")
+          ? String(path)
+          : `/${String(path || "")}`;
+
+        base.pathname = `${basePath}${nextPath}`;
+        base.search = "";
+        base.hash = "";
+        return base;
+      }
+
       async function fetchActivity(showConfigOnError = false) {
         if (!state.config) return;
         clearError();
@@ -535,7 +538,10 @@
         refs.refreshBtn.disabled = true;
         refs.dashboard.classList.add("hidden");
 
-        const url = new URL("/admin/cafes/activity", state.config.apiBase);
+        const url = buildApiUrl(
+          state.config.apiBase,
+          "/admin/cafes/activity",
+        );
         url.searchParams.set(
           "eventsPerCafe",
           String(state.config.eventsPerCafe),
