@@ -506,6 +506,15 @@
         refs.errorBox.style.display = "none";
       }
 
+      function setConfigVisibility(visible) {
+        refs.configSection.classList.toggle("hidden", !visible);
+      }
+
+      function setDashboardControlsVisible(visible) {
+        refs.refreshBtn.classList.toggle("hidden", !visible);
+        refs.logoutBtn.classList.toggle("hidden", !visible);
+      }
+
       function setAdvancedOptionsVisible(visible) {
         refs.configSection.classList.toggle("configSectionAdvanced", !!visible);
         if (refs.advancedToggleBtn) {
@@ -519,7 +528,7 @@
         }
       }
 
-      async function fetchActivity() {
+      async function fetchActivity(showConfigOnError = false) {
         if (!state.config) return;
         clearError();
         refs.loading.classList.remove("hidden");
@@ -562,6 +571,7 @@
           state.data = data;
           renderDashboard();
           refs.dashboard.classList.remove("hidden");
+          return true;
         } catch (err) {
           showError(
             stampUI.userSafeErrorMessage(
@@ -570,6 +580,11 @@
             ),
           );
           refs.dashboard.classList.add("hidden");
+          if (showConfigOnError) {
+            setConfigVisibility(true);
+            setDashboardControlsVisible(false);
+          }
+          return false;
         } finally {
           refs.loading.classList.add("hidden");
           refs.refreshBtn.disabled = false;
@@ -902,9 +917,8 @@
         };
 
         saveConfig(config);
-        refs.configSection.classList.add("hidden");
-        refs.refreshBtn.classList.remove("hidden");
-        refs.logoutBtn.classList.remove("hidden");
+        setConfigVisibility(false);
+        setDashboardControlsVisible(true);
         fetchActivity();
       }
 
@@ -921,9 +935,8 @@
         clearConfig();
         state.data = null;
         refs.dashboard.classList.add("hidden");
-        refs.refreshBtn.classList.add("hidden");
-        refs.logoutBtn.classList.add("hidden");
-        refs.configSection.classList.remove("hidden");
+        setDashboardControlsVisible(false);
+        setConfigVisibility(true);
         refs.apiBaseInput.value = DEFAULT_API_BASE;
         refs.adminKeyInput.value = "";
         refs.eventsLimitInput.value = "50";
@@ -941,11 +954,23 @@
           refs.adminKeyInput.value = stored.adminKey || "";
           refs.eventsLimitInput.value = String(stored.eventsPerCafe || 50);
           refs.customerLimitInput.value = String(stored.customerLimit || 25);
-          refs.configSection.classList.add("hidden");
-          refs.refreshBtn.classList.remove("hidden");
-          refs.logoutBtn.classList.remove("hidden");
-          fetchActivity();
+          setConfigVisibility(false);
+          setDashboardControlsVisible(true);
+          fetchActivity(true);
+          return;
         }
+
+        state.config = {
+          apiBase: DEFAULT_API_BASE,
+          adminKey: "",
+          eventsPerCafe: 50,
+          customerLimit: 25,
+        };
+        refs.eventsLimitInput.value = "50";
+        refs.customerLimitInput.value = "25";
+        setConfigVisibility(false);
+        setDashboardControlsVisible(true);
+        fetchActivity(true);
       }
 
       refs.configForm.addEventListener("submit", handleSubmit);
