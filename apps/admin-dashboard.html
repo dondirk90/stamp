@@ -79,8 +79,33 @@
       }
       .config-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: minmax(280px, 420px);
         gap: 16px;
+      }
+      .configIntro {
+        max-width: 58ch;
+        margin-bottom: 18px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .configSectionAdvanced .config-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .advancedToggle {
+        margin-top: 14px;
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .advancedOnly {
+        display: none;
+      }
+      .configSectionAdvanced .advancedOnly {
+        display: block;
       }
       label {
         font-size: 13px;
@@ -283,8 +308,11 @@
 
       <div id="configSection" class="card">
         <form id="configForm">
+          <div class="configIntro">
+            Gib einfach das Admin-Passwort ein, dann laden wir direkt die Übersicht. API-URL und Limits brauchst du nur in Ausnahmefällen.
+          </div>
           <div class="config-grid">
-            <div>
+            <div class="advancedOnly">
               <label for="apiBaseInput"
                 >API-URL (z.B. http://127.0.0.1:3000)</label
               >
@@ -296,7 +324,7 @@
               />
             </div>
             <div>
-              <label for="adminKeyInput">Admin-Key (x-admin-key)</label>
+              <label for="adminKeyInput">Admin-Passwort</label>
               <input
                 id="adminKeyInput"
                 type="password"
@@ -305,7 +333,7 @@
                 autocomplete="off"
               />
             </div>
-            <div>
+            <div class="advancedOnly">
               <label for="eventsLimitInput">Events pro Café</label>
               <input
                 id="eventsLimitInput"
@@ -316,7 +344,7 @@
                 value="50"
               />
             </div>
-            <div>
+            <div class="advancedOnly">
               <label for="customerLimitInput">Kunden pro Café</label>
               <input
                 id="customerLimitInput"
@@ -328,6 +356,14 @@
               />
             </div>
           </div>
+          <button
+            type="button"
+            class="advancedToggle"
+            id="advancedToggleBtn"
+            aria-expanded="false"
+          >
+            Erweiterte Optionen
+          </button>
           <div
             style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap"
           >
@@ -386,6 +422,7 @@
         adminKeyInput: document.getElementById("adminKeyInput"),
         eventsLimitInput: document.getElementById("eventsLimitInput"),
         customerLimitInput: document.getElementById("customerLimitInput"),
+        advancedToggleBtn: document.getElementById("advancedToggleBtn"),
         resetBtn: document.getElementById("resetBtn"),
         refreshBtn: document.getElementById("refreshBtn"),
         logoutBtn: document.getElementById("logoutBtn"),
@@ -467,6 +504,19 @@
       function clearError() {
         refs.errorBox.textContent = "";
         refs.errorBox.style.display = "none";
+      }
+
+      function setAdvancedOptionsVisible(visible) {
+        refs.configSection.classList.toggle("configSectionAdvanced", !!visible);
+        if (refs.advancedToggleBtn) {
+          refs.advancedToggleBtn.setAttribute(
+            "aria-expanded",
+            visible ? "true" : "false",
+          );
+          refs.advancedToggleBtn.textContent = visible
+            ? "Erweiterte Optionen ausblenden"
+            : "Erweiterte Optionen";
+        }
       }
 
       async function fetchActivity() {
@@ -866,6 +916,7 @@
         refs.adminKeyInput.value = "";
         refs.eventsLimitInput.value = "50";
         refs.customerLimitInput.value = "25";
+        setAdvancedOptionsVisible(false);
       }
 
       function handleLogout() {
@@ -879,10 +930,12 @@
         refs.adminKeyInput.value = "";
         refs.eventsLimitInput.value = "50";
         refs.customerLimitInput.value = "25";
+        setAdvancedOptionsVisible(false);
       }
 
       function bootstrap() {
         refs.apiBaseInput.value = DEFAULT_API_BASE;
+        setAdvancedOptionsVisible(false);
         const stored = loadConfig();
         if (stored) {
           state.config = stored;
@@ -898,6 +951,12 @@
       }
 
       refs.configForm.addEventListener("submit", handleSubmit);
+      refs.advancedToggleBtn.addEventListener("click", function () {
+        const next = !refs.configSection.classList.contains(
+          "configSectionAdvanced",
+        );
+        setAdvancedOptionsVisible(next);
+      });
       refs.resetBtn.addEventListener("click", handleReset);
       refs.refreshBtn.addEventListener("click", fetchActivity);
       refs.logoutBtn.addEventListener("click", handleLogout);
