@@ -227,6 +227,15 @@
         margin-bottom: 8px;
         color: var(--text);
       }
+      .section-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+      .overview-email {
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
       .meta-info {
         font-size: 13px;
         color: var(--text-muted);
@@ -337,6 +346,13 @@
       <section id="dashboard" class="hidden">
         <div id="metaInfo" class="meta-info"></div>
         <div class="summary-grid" id="summaryGrid"></div>
+        <div class="card">
+          <div class="section-title">Café-Übersicht</div>
+          <div class="section-subtitle">
+            Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick.
+          </div>
+          <div id="overviewContainer"></div>
+        </div>
         <div id="cafesContainer"></div>
       </section>
     </div>
@@ -376,6 +392,7 @@
         loading: document.getElementById("loading"),
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
+        overviewContainer: document.getElementById("overviewContainer"),
         cafesContainer: document.getElementById("cafesContainer"),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
@@ -527,6 +544,10 @@
           (sum, c) => sum + (c.stats?.redemptions || 0),
           0,
         );
+        const totalCustomers = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.uniqueCustomers || 0),
+          0,
+        );
 
         refs.summaryGrid.innerHTML = `
           <div class="summary-card">
@@ -549,6 +570,10 @@
             <div class="summary-label">Events gesamt</div>
             <div class="summary-value">${formatNumber(totalEvents)}</div>
           </div>
+          <div class="summary-card">
+            <div class="summary-label">Aktive Kunden gesamt</div>
+            <div class="summary-value">${formatNumber(totalCustomers)}</div>
+          </div>
         `;
 
         const generatedAt = data.meta?.generatedAt
@@ -560,6 +585,67 @@
           data.meta?.customerLimit || state.config.customerLimit;
 
         refs.metaInfo.textContent = `Datenstand: ${generatedAt} • Events pro Café: ${eventsPerCafe} • Kundenlimit: ${customerLimit}`;
+
+        const overviewRows =
+          data.cafes
+            .map((cafe) => {
+              const stats = cafe.stats || {};
+              const cafeName = escapeHtml(cafe.name || "Unbenanntes CafÃ©");
+              const email = cafe.email
+                ? `<a class="overview-email" href="mailto:${encodeURIComponent(
+                    cafe.email,
+                  )}">${escapeHtml(cafe.email)}</a>`
+                : "â€”";
+              const location = cafe.locationAddress
+                ? escapeHtml(cafe.locationAddress)
+                : cafe.address
+                  ? `<span class="address" title="${escapeHtml(
+                      cafe.address,
+                    )}">${escapeHtml(shortenAddress(cafe.address, 6))}</span>`
+                  : "â€”";
+              return `
+                <tr>
+                  <td>${cafeName}</td>
+                  <td>${email}</td>
+                  <td>${location}</td>
+                  <td>${formatNumber(stats.uniqueCustomers)}</td>
+                  <td>${formatNumber(stats.stampsAwarded)}</td>
+                  <td>${formatNumber(stats.stampsRedeemed)}</td>
+                  <td>${formatNumber(stats.netStamps)}</td>
+                  <td>${formatDate(stats.lastActivityTs)}</td>
+                </tr>
+              `;
+            })
+            .join("") ||
+          `
+            <tr>
+              <td colspan="8" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                Keine Cafés gefunden
+              </td>
+            </tr>
+          `;
+
+        refs.overviewContainer.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Café</th>
+                  <th>E-Mail</th>
+                  <th>Standort</th>
+                  <th>Kunden</th>
+                  <th>Vergeben</th>
+                  <th>Eingelöst</th>
+                  <th>Saldo</th>
+                  <th>Zuletzt aktiv</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${overviewRows}
+              </tbody>
+            </table>
+          </div>
+        `;
 
         refs.cafesContainer.innerHTML = data.cafes
           .map((cafe) => {
@@ -575,6 +661,14 @@
                   cafe.address,
                 )}">${escapeHtml(shortenAddress(cafe.address))}</span>`
               : '<span class="address">—</span>';
+            const email = cafe.email
+              ? `<a class="overview-email" href="mailto:${encodeURIComponent(
+                  cafe.email,
+                )}">${escapeHtml(cafe.email)}</a>`
+              : "—";
+            const locationAddress = cafe.locationAddress
+              ? escapeHtml(cafe.locationAddress)
+              : "—";
             const created = cafe.createdAt ? formatDate(cafe.createdAt) : "—";
 
             const eventsRows =
@@ -659,7 +753,7 @@
                     ${badge}
                   </div>
                   <div style="font-size: 13px; color: var(--text-muted);">
-                    Wallet: ${address} • Erstellt: ${created}
+                    E-Mail: ${email} • Standort: ${locationAddress} • Wallet: ${address} • Erstellt: ${created}
                   </div>
                 </div>
 

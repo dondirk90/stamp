@@ -2903,20 +2903,20 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
     if (db.client === "postgres") {
       cafeRows = await db
         .prepare(
-          "SELECT id, name, address, created_at FROM cafes ORDER BY LOWER(name)",
+          "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY LOWER(name)",
         )
         .all();
     } else {
       try {
         cafeRows = db
           .prepare(
-            "SELECT id, name, address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
+            "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
           )
           .all();
       } catch (selectErr) {
         cafeRows = db
           .prepare(
-            "SELECT id, name, created_at FROM cafes ORDER BY name COLLATE NOCASE",
+            "SELECT id, name, email, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
           )
           .all()
           .map((row) => ({ ...row, address: null }));
@@ -2943,8 +2943,10 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
 
       const entry = {
         id: row.id,
+        email: row.email || null,
         name: row.name || `Café ${row.id}`,
         address: resolvedAddress,
+        locationAddress: row.location_address || null,
         createdAt: row.created_at || null,
         stats: createStats(),
         customers: [],
@@ -2965,8 +2967,10 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         }
         const entry = {
           id: null,
+          email: null,
           name: "Unbekanntes Café",
           address: addr,
+          locationAddress: null,
           createdAt: null,
           stats: createStats(),
           customers: [],
@@ -2982,8 +2986,10 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       if (fallback) return fallback;
       const entry = {
         id: null,
+        email: null,
         name: "Unbekanntes Café",
         address: null,
+        locationAddress: null,
         createdAt: null,
         stats: createStats(),
         customers: [],
@@ -3116,7 +3122,9 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       cafes: results.map((entry) => ({
         id: entry.id,
         name: entry.name,
+        email: entry.email,
         address: entry.address,
+        locationAddress: entry.locationAddress,
         createdAt: entry.createdAt,
         stats: entry.stats,
         customers: entry.customers,
