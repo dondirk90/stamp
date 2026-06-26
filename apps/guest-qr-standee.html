@@ -142,25 +142,25 @@
 
       .faceWrap {
         height: 148.5mm;
-        padding: 16mm 16mm 12mm;
+        padding: 14mm 14mm 11mm;
       }
 
       .faceWrap.bottom {
-        padding-top: 12mm;
+        padding-top: 11mm;
       }
 
       .face {
         height: 100%;
         border: 1px solid var(--line);
         border-radius: 28px;
-        padding: 13mm 12mm;
+        padding: 11mm 10mm;
         background:
           radial-gradient(circle at top right, rgba(160, 115, 80, 0.12), transparent 28%),
           linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.24)),
           linear-gradient(180deg, #fbf6f0 0%, #f1e4d2 100%);
         display: grid;
         grid-template-columns: 1.15fr 0.92fr;
-        gap: 10mm;
+        gap: 7mm;
         align-items: center;
         position: relative;
         overflow: hidden;
@@ -211,11 +211,16 @@
         color: var(--ink);
       }
 
-      .brand img {
+      .brandMark {
         width: 42px;
         height: 42px;
         border-radius: 14px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect x='10' y='10' width='76' height='76' rx='24' fill='%23F2E6D7'/%3E%3Cpath d='M48 22C32.6 22 20 34.6 20 50s12.6 28 28 28 28-12.6 28-28S63.4 22 48 22Z' fill='%236B452C'/%3E%3Cpath d='M39 24c9.7 6.1 14.3 13 16.4 20.7 1.8 6.6 2.3 13.8 7.8 25.3' fill='none' stroke='%23F2E6D7' stroke-linecap='round' stroke-width='10'/%3E%3Cpath d='M39 24c9.7 6.1 14.3 13 16.4 20.7 1.8 6.6 2.3 13.8 7.8 25.3' fill='none' stroke='%23E6D6C2' stroke-linecap='round' stroke-width='2.5' opacity='.65'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
         box-shadow: 0 8px 20px rgba(62, 40, 29, 0.12);
+        flex: 0 0 auto;
       }
 
       .eyebrow {
@@ -246,22 +251,22 @@
       h1 {
         margin: 0;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: 28px;
+        font-size: 25px;
         line-height: 1.02;
         letter-spacing: -0.03em;
       }
 
       .lead {
         margin: 0;
-        font-size: 16px;
-        line-height: 1.55;
+        font-size: 14px;
+        line-height: 1.45;
         color: var(--ink-soft);
         max-width: 42ch;
       }
 
       .steps {
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
       .step {
@@ -284,8 +289,8 @@
       }
 
       .stepText {
-        font-size: 14px;
-        line-height: 1.45;
+        font-size: 13px;
+        line-height: 1.38;
         color: var(--ink);
       }
 
@@ -295,8 +300,8 @@
       }
 
       .footerNote {
-        font-size: 12px;
-        line-height: 1.5;
+        font-size: 11px;
+        line-height: 1.4;
         color: var(--ink-soft);
       }
 
@@ -305,9 +310,9 @@
         z-index: 1;
         align-self: center;
         display: grid;
-        gap: 12px;
+        gap: 10px;
         justify-items: center;
-        padding: 10mm 7mm 7mm;
+        padding: 8mm 6mm 6mm;
         border-radius: 26px;
         background:
           linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.68)),
@@ -318,7 +323,7 @@
 
       .qrCafe {
         min-height: 20px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.16em;
         text-transform: uppercase;
@@ -327,8 +332,8 @@
       }
 
       .qrFrame {
-        width: 58mm;
-        height: 58mm;
+        width: 50mm;
+        height: 50mm;
         display: grid;
         place-items: center;
         background: white;
@@ -352,14 +357,15 @@
       }
 
       .qrUrl {
-        font-size: 12px;
+        font-size: 11px;
+        line-height: 1.35;
         color: var(--ink-soft);
         text-align: center;
         word-break: break-word;
       }
 
       .qrHint {
-        font-size: 13px;
+        font-size: 12px;
         text-align: center;
         color: var(--ink);
       }
@@ -429,7 +435,7 @@
             <div class="copy">
               <div>
                 <div class="brand">
-                  <img src="/assets/stamp-bean.png" alt="Kaffekarte Bohne" />
+                  <span class="brandMark" aria-hidden="true"></span>
                   <span>Kaffekarte</span>
                 </div>
               </div>
@@ -491,7 +497,7 @@
             <div class="copy">
               <div>
                 <div class="brand">
-                  <img src="/assets/stamp-bean.png" alt="Kaffekarte Bohne" />
+                  <span class="brandMark" aria-hidden="true"></span>
                   <span>Kaffekarte</span>
                 </div>
               </div>
