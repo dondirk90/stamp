@@ -309,7 +309,7 @@
       <div id="configSection" class="card">
         <form id="configForm">
           <div class="configIntro">
-            Gib einfach das Admin-Passwort ein, dann laden wir direkt die Übersicht. API-URL und Limits brauchst du nur in Ausnahmefällen.
+            Wenn vor der Seite ein Browser-Passwortschutz liegt, kann dieses Feld leer bleiben. API-URL und Limits brauchst du nur in Ausnahmefällen.
           </div>
           <div class="config-grid">
             <div class="advancedOnly">
@@ -324,7 +324,7 @@
               />
             </div>
             <div>
-              <label for="adminKeyInput">Admin-Passwort</label>
+              <label for="adminKeyInput">Admin-Key (optional bei Browser-Schutz)</label>
               <input
                 id="adminKeyInput"
                 type="password"
@@ -537,10 +537,13 @@
         );
 
         try {
+          const headers = {};
+          if (state.config.adminKey) {
+            headers["x-admin-key"] = state.config.adminKey;
+          }
+
           const res = await fetch(url.toString(), {
-            headers: {
-              "x-admin-key": state.config.adminKey,
-            },
+            headers,
           });
 
           if (!res.ok) {
@@ -890,11 +893,6 @@
         const adminKey = refs.adminKeyInput.value.trim();
         const eventsPerCafe = Number(refs.eventsLimitInput.value) || 50;
         const customerLimit = Number(refs.customerLimitInput.value) || 25;
-
-        if (!adminKey) {
-          showError("Der Admin-Key ist erforderlich.");
-          return;
-        }
 
         const config = {
           apiBase,
