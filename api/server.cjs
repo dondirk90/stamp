@@ -2903,20 +2903,20 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
     if (db.client === "postgres") {
       cafeRows = await db
         .prepare(
-          "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY LOWER(name)",
+          "SELECT id, name, email, email_verified_at, address, location_address, created_at FROM cafes ORDER BY LOWER(name)",
         )
         .all();
     } else {
       try {
         cafeRows = db
           .prepare(
-            "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
+            "SELECT id, name, email, email_verified_at, address, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
           )
           .all();
       } catch (selectErr) {
         cafeRows = db
           .prepare(
-            "SELECT id, name, email, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
+            "SELECT id, name, email, email_verified_at, location_address, created_at FROM cafes ORDER BY name COLLATE NOCASE",
           )
           .all()
           .map((row) => ({ ...row, address: null }));
@@ -2944,6 +2944,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       const entry = {
         id: row.id,
         email: row.email || null,
+        emailVerifiedAt: row.email_verified_at || null,
         name: row.name || `Café ${row.id}`,
         address: resolvedAddress,
         locationAddress: row.location_address || null,
@@ -2968,6 +2969,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         const entry = {
           id: null,
           email: null,
+          emailVerifiedAt: null,
           name: "Unbekanntes Café",
           address: addr,
           locationAddress: null,
@@ -2987,6 +2989,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       const entry = {
         id: null,
         email: null,
+        emailVerifiedAt: null,
         name: "Unbekanntes Café",
         address: null,
         locationAddress: null,
@@ -3096,6 +3099,9 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
 
     for (const entry of results) {
       entry.createdAt = entry.createdAt ? Number(entry.createdAt) : null;
+      entry.emailVerifiedAt = entry.emailVerifiedAt
+        ? Number(entry.emailVerifiedAt)
+        : null;
 
       entry.customers.sort(
         (a, b) => (b.lastActivityTs || 0) - (a.lastActivityTs || 0),
@@ -3117,12 +3123,31 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       return (a.name || "").localeCompare(b.name || "");
     });
 
+    const registeredCustomers = (await listCustomers.all())
+      .map((row) => ({
+        id: row.id != null ? Number(row.id) : null,
+        customerId: row.customer_id || null,
+        username: row.username || null,
+        email: row.email || null,
+        address: row.address || null,
+        createdAt: row.created_at != null ? Number(row.created_at) : null,
+        emailVerifiedAt:
+          row.email_verified_at != null ? Number(row.email_verified_at) : null,
+      }))
+      .sort((a, b) => {
+        const bCreated = b.createdAt || 0;
+        const aCreated = a.createdAt || 0;
+        if (bCreated !== aCreated) return bCreated - aCreated;
+        return String(a.username || "").localeCompare(String(b.username || ""));
+      });
+
     res.json({
       ok: true,
       cafes: results.map((entry) => ({
         id: entry.id,
         name: entry.name,
         email: entry.email,
+        emailVerifiedAt: entry.emailVerifiedAt,
         address: entry.address,
         locationAddress: entry.locationAddress,
         createdAt: entry.createdAt,
@@ -3131,6 +3156,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         events: entry.events,
         isUnknown: entry.isUnknown || false,
       })),
+      customers: registeredCustomers,
       meta: {
         eventsPerCafe,
         customerLimit,

@@ -389,6 +389,13 @@
           </div>
           <div id="overviewContainer"></div>
         </div>
+        <div class="card">
+          <div class="section-title">Kunden-Ãœbersicht</div>
+          <div class="section-subtitle">
+            Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus.
+          </div>
+          <div id="customersOverviewContainer"></div>
+        </div>
         <div id="cafesContainer"></div>
       </section>
     </div>
@@ -420,6 +427,9 @@
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
         overviewContainer: document.getElementById("overviewContainer"),
+        customersOverviewContainer: document.getElementById(
+          "customersOverviewContainer",
+        ),
         cafesContainer: document.getElementById("cafesContainer"),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
@@ -457,6 +467,14 @@
         } catch (err) {
           return "—";
         }
+      }
+
+      function renderVerificationStatus(value) {
+        return value
+          ? `<span class="badge badge-neutral" title="${escapeHtml(
+              formatDate(value),
+            )}">bestÃ¤tigt</span>`
+          : '<span class="badge badge-warning">offen</span>';
       }
 
       function shortenAddress(addr, keep = 4) {
@@ -622,6 +640,19 @@
           (sum, c) => sum + (c.stats?.uniqueCustomers || 0),
           0,
         );
+        const registeredCustomers = Array.isArray(data.customers)
+          ? data.customers.length
+          : 0;
+        const verifiedCafeCount = data.cafes.reduce(
+          (sum, c) => sum + (c.emailVerifiedAt ? 1 : 0),
+          0,
+        );
+        const verifiedCustomerCount = Array.isArray(data.customers)
+          ? data.customers.reduce(
+              (sum, customer) => sum + (customer.emailVerifiedAt ? 1 : 0),
+              0,
+            )
+          : 0;
 
         refs.summaryGrid.innerHTML = `
           <div class="summary-card">
@@ -647,6 +678,24 @@
           <div class="summary-card">
             <div class="summary-label">Aktive Kunden gesamt</div>
             <div class="summary-value">${formatNumber(totalCustomers)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Registrierte Kunden</div>
+            <div class="summary-value">${formatNumber(
+              registeredCustomers,
+            )}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">CafÃ©-Mails bestÃ¤tigt</div>
+            <div class="summary-value">${formatNumber(
+              verifiedCafeCount,
+            )}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Kunden-Mails bestÃ¤tigt</div>
+            <div class="summary-value">${formatNumber(
+              verifiedCustomerCount,
+            )}</div>
           </div>
         `;
 
@@ -681,6 +730,8 @@
                 <tr>
                   <td>${cafeName}</td>
                   <td>${email}</td>
+                  <td>${renderVerificationStatus(cafe.emailVerifiedAt)}</td>
+                  <td>${formatDate(cafe.createdAt)}</td>
                   <td>${location}</td>
                   <td>${formatNumber(stats.uniqueCustomers)}</td>
                   <td>${formatNumber(stats.stampsAwarded)}</td>
@@ -693,7 +744,7 @@
             .join("") ||
           `
             <tr>
-              <td colspan="8" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="10" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Cafés gefunden
               </td>
             </tr>
@@ -706,6 +757,8 @@
                 <tr>
                   <th>Café</th>
                   <th>E-Mail</th>
+                  <th>Mail</th>
+                  <th>Angelegt</th>
                   <th>Standort</th>
                   <th>Kunden</th>
                   <th>Vergeben</th>
@@ -716,6 +769,60 @@
               </thead>
               <tbody>
                 ${overviewRows}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        const customersOverviewRows =
+          (data.customers || [])
+            .map((customer) => {
+              const username = customer.username
+                ? escapeHtml(customer.username)
+                : "â€”";
+              const email = customer.email
+                ? `<a class="overview-email" href="mailto:${encodeURIComponent(
+                    customer.email,
+                  )}">${escapeHtml(customer.email)}</a>`
+                : "â€”";
+              const walletAddress = customer.address
+                ? `<span class="address" title="${escapeHtml(
+                    customer.address,
+                  )}">${escapeHtml(shortenAddress(customer.address))}</span>`
+                : "â€”";
+              return `
+                <tr>
+                  <td>${username}</td>
+                  <td>${email}</td>
+                  <td>${renderVerificationStatus(customer.emailVerifiedAt)}</td>
+                  <td>${formatDate(customer.createdAt)}</td>
+                  <td>${walletAddress}</td>
+                </tr>
+              `;
+            })
+            .join("") ||
+          `
+            <tr>
+              <td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                Keine Kunden gefunden
+              </td>
+            </tr>
+          `;
+
+        refs.customersOverviewContainer.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>E-Mail</th>
+                  <th>Mail</th>
+                  <th>Angelegt</th>
+                  <th>Wallet</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${customersOverviewRows}
               </tbody>
             </table>
           </div>
@@ -744,6 +851,7 @@
               ? escapeHtml(cafe.locationAddress)
               : "—";
             const created = cafe.createdAt ? formatDate(cafe.createdAt) : "—";
+            const verification = renderVerificationStatus(cafe.emailVerifiedAt);
 
             const eventsRows =
               events
@@ -827,7 +935,7 @@
                     ${badge}
                   </div>
                   <div style="font-size: 13px; color: var(--text-muted);">
-                    E-Mail: ${email} • Standort: ${locationAddress} • Wallet: ${address} • Erstellt: ${created}
+                    E-Mail: ${email} • Mail: ${verification} • Standort: ${locationAddress} • Wallet: ${address} • Erstellt: ${created}
                   </div>
                 </div>
 
