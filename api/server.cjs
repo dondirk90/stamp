@@ -502,14 +502,14 @@ async function sendCustomerVerificationEmail({
   const mailOptions = {
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to: email,
-    subject: `Bitte bestaetige deine E-Mail fuer Kaffekarte`,
+    subject: `Bitte bestaetige deine E-Mail fuer Kaffeekarte`,
     html: `
       <!DOCTYPE html>
       <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
           <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
             <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
-              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
               <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Fast geschafft, ${displayName}.</h1>
               <p style="margin: 0; color: #5f544a;">Ein kurzer Klick noch, dann ist dein Konto bereit. Danach kannst du Stempelkarten sammeln, neue Orte entdecken und direkt loslegen.</p>
             </div>
@@ -596,7 +596,7 @@ async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
           <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
             <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
-              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffekarte</div>
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
               <h1 style="margin: 10px 0 8px; font-size: 30px; line-height: 1.05; color: #181311;">Noch ein Klick, dann kann es losgehen.</h1>
               <p style="margin: 0; color: #5f544a;">Bitte bestaetige kurz die E-Mail-Adresse fuer <strong>${displayName}</strong>. Danach ist der Zugang freigeschaltet und dein Café kann direkt starten.</p>
             </div>
@@ -3572,7 +3572,7 @@ app.post("/cafes/resend-verification", async (req, res) => {
       await insertCafeEmailVerification.run(cafe.id, tokenHash, now, expiresAt);
       const mailInfo = await sendCafeVerificationEmail({
         email,
-        cafeName: cafe.name || "Kaffekarte Café",
+        cafeName: cafe.name || "Kaffeekarte Café",
         verifyUrl,
       });
       console.log(
@@ -4543,7 +4543,7 @@ app.post("/customers/resend-verification", async (req, res) => {
       );
       const mailInfo = await sendCustomerVerificationEmail({
         email,
-        username: customer.username || "Kaffekarte",
+        username: customer.username || "Kaffeekarte",
         verifyUrl,
       });
       console.log(

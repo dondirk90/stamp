@@ -1678,7 +1678,7 @@
       address = String(remembered.address || "").trim();
 
     return {
-      name: name || "Kaffekarte",
+      name: name || "Kaffeekarte",
       address: address || "",
       loading: !name && !cafesLoaded,
     };
@@ -3012,8 +3012,8 @@
       if (el.qrSheetTitle) {
         var titleEl = passEl.querySelector(".passTitle");
         el.qrSheetTitle.textContent = titleEl
-          ? String(titleEl.textContent || "Kaffekarte")
-          : "Kaffekarte";
+          ? String(titleEl.textContent || "Kaffeekarte")
+          : "Kaffeekarte";
       }
       if (el.qrSheetSub) {
         var countEl = passEl.querySelector(".passCountLine");
