@@ -89,7 +89,6 @@
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
-    welcomeWalletBtn: document.getElementById("welcomeWalletBtn"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -5186,11 +5185,6 @@
       el.walletEmptyMapBtn.addEventListener("click", function () {
         closeWalletOverlay({ silent: true });
         navigateToMode("map");
-      });
-    }
-    if (el.welcomeWalletBtn) {
-      el.welcomeWalletBtn.addEventListener("click", function () {
-        navigateToMode("wallet");
       });
     }
     if (el.walletOverlayBackdrop) {
