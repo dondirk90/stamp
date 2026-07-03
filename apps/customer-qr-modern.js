@@ -397,7 +397,7 @@
     var s = String(a || "");
     if (!s) return "";
     if (s.length <= 14) return s;
-    return s.slice(0, 6) + "Ã¢â‚¬Â¦" + s.slice(-4);
+    return s.slice(0, 6) + "?" + s.slice(-4);
   }
 
   function formatTs(ts) {
@@ -1162,7 +1162,7 @@
 
   function renderCafeModal(cafe, opts) {
     var o = opts || {};
-    var name = cafe && cafe.name ? String(cafe.name) : "CafÃƒÂ©";
+    var name = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
     var program = cafe && cafe.program ? cafe.program : {};
@@ -1393,8 +1393,8 @@
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
       empty.textContent = q
-        ? "Keine Treffer. Vielleicht ÃƒÂ¼bt sich das richtige CafÃƒÂ© gerade noch in Understatement."
-        : "Noch keine CafÃƒÂ©s.";
+        ? "Keine Treffer. Vielleicht \u00fcbt sich das richtige Caf\u00e9 gerade noch in Understatement."
+        : "Noch keine Caf\u00e9s.";
       el.cafeResults.appendChild(empty);
       return;
     }
@@ -1411,7 +1411,7 @@
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "CafÃƒÂ©";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -1422,7 +1422,7 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Ãƒâ€“ffnen";
+        hint.textContent = "\u00d6ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
@@ -1982,7 +1982,7 @@
     pickedCafe = cafe || null;
     if (el.discoverPickName)
       el.discoverPickName.textContent =
-        cafe && cafe.name ? String(cafe.name) : "CafÃƒÂ©";
+        cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     if (el.discoverPickAddr)
       el.discoverPickAddr.textContent =
         cafe && cafe.address ? String(cafe.address) : "";
@@ -2022,7 +2022,7 @@
       el.mapList.innerHTML = "";
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
-      empty.textContent = "Noch keine CafÃƒÂ©s.";
+      empty.textContent = "Noch keine Caf\u00e9s.";
       el.mapList.appendChild(empty);
       return;
     }
@@ -2041,7 +2041,7 @@
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "CafÃƒÂ©";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -2052,7 +2052,7 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Ãƒâ€“ffnen";
+        hint.textContent = "\u00d6ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
@@ -2094,7 +2094,7 @@
       } else {
         html =
           '<div class="cafePin"><div class="cafePinLetter">' +
-          cafeInitials(cafe && cafe.name ? cafe.name : "CafÃƒÂ©") +
+          cafeInitials(cafe && cafe.name ? cafe.name : "Caf\u00e9") +
           "</div></div>";
       }
 
@@ -2289,10 +2289,10 @@
         }
         if (body) {
           body.textContent =
-            "Entdecke zuerst ein CafÃƒÂ© auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
+            "Entdecke zuerst ein Caf\u00e9 auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
         }
         if (cta) {
-          cta.textContent = "CafÃƒÂ©s entdecken";
+          cta.textContent = "Caf\u00e9s entdecken";
         }
         var nodes = el.walletEmpty.childNodes || [];
         for (var i = nodes.length - 1; i >= 0; i--) {
@@ -3028,18 +3028,18 @@
       if (el.qrSheetSub) {
         var countEl = passEl.querySelector(".passCountLine");
         el.qrSheetSub.textContent = countEl
-          ? String(countEl.textContent || "QR wird geladenÃ¢â‚¬Â¦")
-          : "QR wird geladenÃ¢â‚¬Â¦";
+          ? String(countEl.textContent || "QR wird geladen\u2026")
+          : "QR wird geladen\u2026";
       }
       if (el.qrSheetHint) {
         var stamps = getPassStampCount(passEl);
         var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
         el.qrSheetHint.textContent = full
-          ? "Im CafÃƒÂ© scannen lassen, um die Belohnung einzulÃƒÂ¶sen."
-          : "Im CafÃƒÂ© scannen lassen, dann ist der nÃƒÂ¤chste Stempel nur noch Formsache.";
+          ? "Im Caf\u00e9 scannen lassen, um die Belohnung einzul\u00f6sen."
+          : "Im Caf\u00e9 scannen lassen, dann ist der n\u00e4chste Stempel nur noch Formsache.";
       }
       if (el.qrSheetBox) {
-        el.qrSheetBox.textContent = "QR wird geladenÃ¢â‚¬Â¦";
+        el.qrSheetBox.textContent = "QR wird geladen\u2026";
       }
     } catch (eMeta) {}
 
@@ -3113,7 +3113,7 @@
         // If the user opens instantly after boot, stamps might not be loaded yet.
         // Fetch once so we can show the correct QR (redeem vs stamp).
         try {
-          setQrPlaceholder(passEl, "Stempelstand wird geladenÃ¢â‚¬Â¦", "loading");
+          setQrPlaceholder(passEl, "Stempelstand wird geladen\u2026", "loading");
         } catch (e0) {}
         apiFetch(
           "/stamps/" +
@@ -3189,7 +3189,7 @@
       try {
         setQrPlaceholder(
           passEl,
-          full ? "EinlÃƒÂ¶sen-QR wird geladenÃ¢â‚¬Â¦" : "QR wird geladenÃ¢â‚¬Â¦",
+          full ? "Einl\u00f6sen-QR wird geladen\u2026" : "QR wird geladen\u2026",
           "loading",
         );
       } catch (eTxt) {}
@@ -3239,7 +3239,7 @@
 
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
-    var title = String(card.name || "CafÃƒÂ©");
+    var title = String(card.name || "Caf\u00e9");
     var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
@@ -3445,8 +3445,8 @@
     var progressSub = document.createElement("span");
     progressSub.className = "passProgressSub";
     progressSub.textContent = isFull
-      ? "Diese Karte ist bereit zum EinlÃƒÂ¶sen."
-      : "Dann ist deine nÃƒÂ¤chste Belohnung in erfreulicher Reichweite.";
+      ? "Diese Karte ist bereit zum Einl\u00f6sen."
+      : "Dann ist deine n\u00e4chste Belohnung in erfreulicher Reichweite.";
     progressText.appendChild(progressHeadline);
     progressText.appendChild(progressSub);
 
@@ -3459,7 +3459,7 @@
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = isFull ? "Tippe fÃƒÂ¼r EinlÃƒÂ¶sen-QR" : "Tippe fÃƒÂ¼r QR";
+    hint.textContent = isFull ? "Tippe f\u00fcr Einl\u00f6sen-QR" : "Tippe f\u00fcr QR";
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -3520,7 +3520,7 @@
         ? String(card.cardBackText)
         : about
           ? about
-          : "Tippe auf den QR-Code zum SchlieÃƒÅ¸en";
+          : "Tippe auf den QR-Code zum Schlie\u00dfen";
     try {
       passCard.setAttribute(
         "data-backtext-base",
@@ -3532,14 +3532,14 @@
     var qrBox = document.createElement("div");
     qrBox.className = "passQrBox";
     qrBox.setAttribute("role", "button");
-    qrBox.setAttribute("aria-label", "QR anzeigen / schlieÃƒÅ¸en");
+    qrBox.setAttribute("aria-label", "QR anzeigen / schlie\u00dfen");
     qr.appendChild(qrBox);
 
     var qrCaption = document.createElement("div");
     qrCaption.className = "passQrCaption";
     qrCaption.textContent = isFull
-      ? "Im CafÃƒÂ© scannen lassen, um die Belohnung einzuloesen."
-      : "Im CafÃƒÂ© scannen lassen, damit dein naechster Stempel dazukommt.";
+      ? "Im Caf\u00e9 scannen lassen, um die Belohnung einzul\u00f6sen."
+      : "Im Caf\u00e9 scannen lassen, damit dein n\u00e4chster Stempel dazukommt.";
     qr.appendChild(qrCaption);
 
     var backNote = document.createElement("div");
@@ -4120,7 +4120,7 @@
             cafe && cafe.cardBackText
               ? cafe.cardBackText
               : meta.loading
-                ? "CafÃƒÂ© wird geladenÃ¢â‚¬Â¦"
+                ? "Caf\u00e9 wird geladen\u2026"
                 : null,
         }),
       );
@@ -4414,7 +4414,7 @@
     );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
-      hint.textContent = isFull ? "Tippe fÃƒÂ¼r EinlÃƒÂ¶sen-QR" : "Tippe fÃƒÂ¼r QR";
+      hint.textContent = isFull ? "Tippe f\u00fcr Einl\u00f6sen-QR" : "Tippe f\u00fcr QR";
 
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
@@ -4435,7 +4435,7 @@
         // Best-effort bootstrap for older cards: strip any existing full-info header.
         base = existing;
         if (
-          base.indexOf("Ã°Å¸Å½Â Karte voll!") === 0 ||
+          base.indexOf("?? Karte voll!") === 0 ||
           base.indexOf("Karte voll!") === 0
         ) {
           var nl = base.indexOf("\n");
@@ -4457,7 +4457,7 @@
           cafeTitle = "";
         }
         var info =
-          "Karte voll! EinlÃƒÂ¶sen" +
+          "Karte voll! Einl\u00f6sen" +
           (cafeTitle ? " bei: " + cafeTitle : "") +
           ". Extra Stempel bleiben erhalten.";
 
@@ -4650,7 +4650,7 @@
               showToast(
                 "Stempel angekommen" +
                   (delta ? " (+" + delta + ")" : "") +
-                  (cafeLabel ? " Ã‚Â· " + cafeLabel : ""),
+                  (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
               try {
@@ -4665,13 +4665,13 @@
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
               launchRedeemCelebration();
               showToast(
-                "Belohnung eingelÃƒÂ¶st. Lass dir dein GetrÃƒÂ¤nk schmecken." +
-                  (cafeLabel ? " Ã‚Â· " + cafeLabel : ""),
+                "Belohnung eingel\u00f6st. Lass dir dein Getr\u00e4nk schmecken." +
+                  (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
             } else if (type === "card_start") {
               showToast(
-                "Neue Karte gestartet" + (cafeLabel ? " Ã‚Â· " + cafeLabel : ""),
+                "Neue Karte gestartet" + (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
             }
@@ -4726,22 +4726,22 @@
     var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
     if (!email || !password) {
-      showMsg("danger", "Bitte E-Mail und Passwort ausfÃƒÂ¼llen.");
+      showMsg("danger", "Bitte E-Mail und Passwort ausf\u00fcllen.");
       return;
     }
 
     if (authMode === "register") {
       if (!username) {
-        showMsg("danger", "Bitte Username ausfÃƒÂ¼llen.");
+        showMsg("danger", "Bitte Username ausf\u00fcllen.");
         return;
       }
       if (confirmPassword !== password) {
-        showMsg("danger", "PasswÃƒÂ¶rter stimmen nicht ÃƒÂ¼berein.");
+        showMsg("danger", "Passw\u00f6rter stimmen nicht \u00fcberein.");
         return;
       }
 
       if (!acceptPrivacy) {
-        showMsg("danger", "Bitte bestÃƒÆ’Ã‚Â¤tige die DatenschutzerklÃƒÆ’Ã‚Â¤rung.");
+        showMsg("danger", "Bitte best\u00e4tige die Datenschutzerkl\u00e4rung.");
         return;
       }
       if (!acceptTerms) {
@@ -4790,7 +4790,7 @@
       body: JSON.stringify({ email: email, password: password }),
     })
       .then(function (data2) {
-        if (!data2 || !data2.address) throw new Error("UngÃƒÂ¼ltige Antwort");
+        if (!data2 || !data2.address) throw new Error("Ung\u00fcltige Antwort");
         saveSession({
           address: data2.address,
           email: email,
@@ -4879,7 +4879,7 @@
           var cafeLabel = String(cafeName || "");
           if (/^0x[0-9a-f]{40}$/i.test(cafeLabel))
             cafeLabel = shortAddr(cafeLabel);
-          if (!cafeLabel) cafeLabel = "CafÃƒÂ©";
+          if (!cafeLabel) cafeLabel = "Caf\u00e9";
 
           var cafe = document.createElement("div");
           cafe.className = "historyCafe";
@@ -4891,13 +4891,13 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "Belohnung eingelÃƒÂ¶st"
+              ? "Belohnung eingel\u00f6st"
               : t === "card_start"
                 ? "Neue Karte"
                 : t === "stamp"
                   ? "Stempel"
                   : "Event";
-          meta.textContent = (when ? when + " Ã‚Â· " : "") + verb;
+          meta.textContent = (when ? when + " \u00b7 " : "") + verb;
 
           main.appendChild(cafe);
           main.appendChild(meta);
@@ -4941,7 +4941,7 @@
     function setForgotOpen(open) {
       el.authForgotPanel.style.display = open ? "flex" : "none";
       el.authForgotToggle.textContent = open
-        ? "Schliessen"
+        ? "Schlie\u00dfen"
         : "Passwort vergessen?";
       if (!open) resetForgotNotice();
     }
@@ -4964,7 +4964,7 @@
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
           el.authForgotMsg.className = "notice danger";
           el.authForgotMsg.textContent =
-            "Bitte zuerst eine gÃƒÂ¼ltige E-Mail eingeben.";
+            "Bitte zuerst eine g\u00fcltige E-Mail eingeben.";
           return;
         }
         el.authForgotSubmit.disabled = true;
@@ -5110,10 +5110,10 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im CafÃƒÂ© zeigen willst.";
+          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im Caf\u00e9 zeigen willst.";
       }
       if (el.utilityMapBtn) {
-        el.utilityMapBtn.textContent = "CafÃƒÂ©s";
+        el.utilityMapBtn.textContent = "Caf\u00e9s";
       }
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
@@ -5123,7 +5123,7 @@
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
           authHint.textContent =
-            "Kein SchlÃƒÂ¼ssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch fÃƒÂ¼r dich an.";
+            "Kein Schl\u00fcssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch f\u00fcr dich an.";
         }
       }
     } catch (eText) {}
