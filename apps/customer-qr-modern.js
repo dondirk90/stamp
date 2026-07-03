@@ -3344,9 +3344,6 @@
     if (card.logoDataUrl) {
       var logoWrap = document.createElement("div");
       logoWrap.className = "passLogoWrap";
-      logoWrap.setAttribute("role", "button");
-      logoWrap.setAttribute("tabindex", "-1");
-      logoWrap.setAttribute("aria-label", "Karte schlie\u00dfen");
       var img = document.createElement("img");
       img.className = "passLogo";
       img.alt = "Logo";
@@ -3364,9 +3361,6 @@
     } else {
       var fallbackLogoWrap = document.createElement("div");
       fallbackLogoWrap.className = "passLogoWrap";
-      fallbackLogoWrap.setAttribute("role", "button");
-      fallbackLogoWrap.setAttribute("tabindex", "-1");
-      fallbackLogoWrap.setAttribute("aria-label", "Karte schlie\u00dfen");
       fallbackLogoWrap.appendChild(buildPassLogoFallback(title));
       brandLockup.appendChild(fallbackLogoWrap);
     }
@@ -3544,6 +3538,12 @@
     backTitle.textContent = title;
     backMeta.appendChild(backTitle);
 
+    var backClose = document.createElement("button");
+    backClose.className = "passBackClose";
+    backClose.type = "button";
+    backClose.setAttribute("aria-label", "Karte schlie\u00dfen");
+    backMeta.appendChild(backClose);
+
     if (address) {
       var backAddr = document.createElement("div");
       backAddr.className = "passBackAddr";
@@ -3619,32 +3619,6 @@
       mainBtn.click();
     });
 
-    var closePill = brandLockup.querySelector(".passLogoWrap");
-    if (closePill) {
-      var closeFromPill = function (ev) {
-        try {
-          if (ev) {
-            if (ev.preventDefault) ev.preventDefault();
-            if (ev.stopPropagation) ev.stopPropagation();
-          }
-        } catch (e) {}
-        try {
-          if (
-            passCard.classList &&
-            (passCard.classList.contains("open") ||
-              passCard.classList.contains("isFocused"))
-          ) {
-            closePass(passCard);
-          }
-        } catch (eClosePill) {}
-      };
-      closePill.addEventListener("click", closeFromPill);
-      closePill.addEventListener("pointerup", closeFromPill);
-      closePill.addEventListener("touchend", closeFromPill, {
-        passive: false,
-      });
-    }
-
     // On phones (stack mode), the wallet swipe handler listens on the scroller and
     // can pointer-capture the top card; prevent it from hijacking taps meant to close.
     var stop = function (ev) {
@@ -3658,6 +3632,9 @@
     var close = function () {
       closePass(passCard);
     };
+    backClose.addEventListener("click", close);
+    backClose.addEventListener("pointerup", close);
+    backClose.addEventListener("touchend", close, { passive: true });
     // Click for desktop, pointerup/touchend for mobile reliability.
     qrBox.addEventListener("click", close);
     qrBox.addEventListener("pointerup", close);

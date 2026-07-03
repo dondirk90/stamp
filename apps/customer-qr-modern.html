@@ -2525,8 +2525,6 @@
       }
 
       .passLogoWrap {
-        position: relative;
-        overflow: hidden;
         width: 46px;
         height: 46px;
         border-radius: 999px;
@@ -2538,31 +2536,6 @@
         padding: 6px;
         flex: 0 0 auto;
         box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
-      }
-
-      .passCard.isFocused .passLogoWrap,
-      .passCard.open .passLogoWrap {
-        cursor: pointer;
-        background: rgba(44, 31, 22, 0.96);
-        border-color: rgba(44, 31, 22, 0.96);
-        box-shadow:
-          0 10px 18px rgba(41, 29, 21, 0.14),
-          0 1px 0 rgba(255, 255, 255, 0.08) inset;
-      }
-
-      .passCard.isFocused .passLogoWrap::after,
-      .passCard.open .passLogoWrap::after {
-        content: "\00d7";
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #f7efe6;
-        font-size: 34px;
-        font-weight: 400;
-        line-height: 1;
-        transform: translateY(-1px);
       }
 
       .passLogo {
@@ -2589,11 +2562,39 @@
         line-height: 1;
       }
 
-      .passCard.isFocused .passLogo,
-      .passCard.open .passLogo,
-      .passCard.isFocused .passLogoInitial,
-      .passCard.open .passLogoInitial {
-        opacity: 0;
+      .passBackMeta {
+        position: relative;
+        margin-bottom: 0;
+        min-width: 0;
+        padding-right: 52px;
+      }
+
+      .passBackClose {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(128, 98, 70, 0.16);
+        border-radius: 14px;
+        background: rgba(255, 251, 246, 0.94);
+        color: var(--pass-ink, var(--brand-700));
+        font-size: 0;
+        box-shadow:
+          0 8px 16px rgba(69, 45, 29, 0.06),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        cursor: pointer;
+      }
+
+      .passBackClose::before {
+        content: "\00d7";
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1;
+        transform: translateY(-1px);
       }
 
       .passTitle {
@@ -2914,11 +2915,6 @@
         align-items: start;
         gap: 10px;
         border-radius: inherit;
-      }
-
-      .passBackMeta {
-        margin-bottom: 0;
-        min-width: 0;
       }
 
       .passBackTitle {
