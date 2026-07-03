@@ -7,6 +7,7 @@
     logoutBtn: document.getElementById("logoutBtn"),
     topUtilityBtn: document.getElementById("topUtilityBtn"),
     utilityMenu: document.getElementById("utilityMenu"),
+    utilityLogoutBtn: document.getElementById("utilityLogoutBtn"),
 
     notLoggedIn: document.getElementById("notLoggedIn"),
     authedOnly: document.getElementById("authedOnly"),
@@ -129,6 +130,13 @@
     el.utilityMenu.querySelectorAll("a").forEach((node) => {
       node.addEventListener("click", () => setUtilityMenuOpen(false));
     });
+    if (el.utilityLogoutBtn) {
+      el.utilityLogoutBtn.addEventListener("click", () => {
+        setUtilityMenuOpen(false);
+        clearSession();
+        location.href = "/wallet";
+      });
+    }
   }
 
   function renderProfile(session) {

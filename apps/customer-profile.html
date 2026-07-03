@@ -160,6 +160,22 @@
         text-transform: uppercase;
       }
 
+      .utilityMenuButton {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 14px;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        appearance: none;
+        cursor: pointer;
+      }
+
       .utilityMenuLink:hover {
         background: rgba(107, 69, 44, 0.08);
       }
@@ -327,8 +343,12 @@
       </div>
 
       <div class="utilityMenu" id="utilityMenu" aria-label="Menue">
-        <a class="utilityMenuLink" href="/wallet">Start</a>
+        <a class="utilityMenuLink" href="/customer-map">Cafes</a>
         <a class="utilityMenuLink" href="/customer-history">Verlauf</a>
+        <a class="utilityMenuLink" href="/customer-profile">Konto</a>
+        <button class="utilityMenuLink utilityMenuButton" id="utilityLogoutBtn" type="button">
+          Logout
+        </button>
       </div>
 
       <div class="profileStage">
