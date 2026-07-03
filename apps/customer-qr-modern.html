@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Customer — Suelzer Kaffeekarte</title>
+    <title>Customer â€” Suelzer Kaffeekarte</title>
     <link rel="icon" href="data:," />
     <meta
       name="description"
@@ -770,21 +770,22 @@
           bottom: calc(10px + var(--safe-bottom, 0px));
           display: flex;
           align-items: stretch;
-          gap: 8px;
-          padding: 8px;
-          border-radius: 22px;
-          border: 1px solid rgba(17, 17, 17, 0.08);
-          background: rgba(255, 252, 248, 0.94);
-          backdrop-filter: blur(18px);
-          box-shadow:
-            0 22px 42px rgba(68, 41, 22, 0.16),
-            0 1px 0 rgba(255, 255, 255, 0.78) inset;
+          justify-content: center;
+          gap: 0;
+          padding: 0;
+          border-radius: 0;
+          border: none;
+          background: transparent;
+          backdrop-filter: none;
+          box-shadow: none;
           z-index: 28;
+          pointer-events: none;
         }
 
         .bottomTabBtn.walletHeroBtn {
           margin-top: -24px;
           min-height: 70px;
+          pointer-events: auto;
         }
 
         .topbar .kk-brandMark {
@@ -1024,8 +1025,8 @@
       }
 
       /* Only show the switch action (inactive tab):
-         - in Login mode: show “Neu”
-         - in Register mode: show “Login” */
+         - in Login mode: show â€œNeuâ€
+         - in Register mode: show â€œLoginâ€ */
       .seg button.active {
         display: none;
       }
@@ -1817,8 +1818,8 @@
 
       .welcomeIntro {
         display: grid;
-        gap: 12px;
-        max-width: 34ch;
+        gap: 14px;
+        max-width: 35ch;
       }
 
       .welcomePrimaryAction {
@@ -1836,6 +1837,8 @@
       .welcomeLeadText {
         color: rgba(59, 42, 31, 0.8);
         line-height: 1.64;
+        font-size: 18px;
+        letter-spacing: -0.01em;
       }
 
       .welcomeSummary {
@@ -1870,8 +1873,8 @@
 
       .welcomeFacts {
         display: grid;
-        gap: 12px;
-        max-width: 34ch;
+        gap: 14px;
+        max-width: 35ch;
       }
 
       .welcomeFact {
@@ -1890,10 +1893,10 @@
       }
 
       .welcomeNextHint {
-        max-width: 30ch;
-        font-size: 13px;
-        line-height: 1.58;
-        color: rgba(59, 42, 31, 0.62);
+        max-width: 33ch;
+        font-size: 14px;
+        line-height: 1.62;
+        color: rgba(59, 42, 31, 0.68);
       }
 
       .mapHero {
@@ -2055,7 +2058,7 @@
         scroll-padding-left: 50%;
         scroll-padding-right: 50%;
         max-width: 100%;
-        /* Safari: keep the scroller itself “flat”, use parent perspective */
+        /* Safari: keep the scroller itself â€œflatâ€, use parent perspective */
         perspective: none;
         -webkit-perspective: none;
         transform-style: preserve-3d;
@@ -2299,7 +2302,7 @@
         pointer-events: none;
       }
 
-      /* Built-in card templates (selected by cafés) */
+      /* Built-in card templates (selected by cafÃ©s) */
       .passCard[data-pass-theme="paper"] {
         --pass-bg: #fffdf8;
         --pass-ink: #171412;
@@ -2348,7 +2351,7 @@
         --pass-lo: rgba(0, 0, 0, 0.18);
       }
 
-      /* Extra themes (café selectable) */
+      /* Extra themes (cafÃ© selectable) */
       .passCard[data-pass-theme="brand"] {
         --pass-bg: var(--brand);
         --pass-ink: #ffffff;
@@ -3322,7 +3325,7 @@
         margin: auto;
       }
 
-      /* Café detail modal ("Fenster") */
+      /* CafÃ© detail modal ("Fenster") */
       .modalBackdrop {
         position: fixed;
         inset: 0;
@@ -4266,8 +4269,8 @@
   <body>
     <div id="bootOverlay" class="bootOverlay" role="status" aria-live="polite">
       <div class="bootCard">
-        <div class="bootTitle">Lade…</div>
-        <div class="bootSub" id="bootSub">Initialisiere App…</div>
+        <div class="bootTitle">Ladeâ€¦</div>
+        <div class="bootSub" id="bootSub">Initialisiere Appâ€¦</div>
         <pre class="bootDiag" id="bootDiag" style="display: none"></pre>
       </div>
     </div>
@@ -4287,15 +4290,15 @@
         <div class="qrSheetHead">
           <div class="qrSheetMeta">
             <div class="qrSheetTitle" id="qrSheetTitle">Karte</div>
-            <div class="qrSheetSub" id="qrSheetSub">QR wird geladen…</div>
+            <div class="qrSheetSub" id="qrSheetSub">QR wird geladenâ€¦</div>
           </div>
-          <button class="qrSheetClose" id="qrSheetClose" type="button" aria-label="Schließen">
-            ×
+          <button class="qrSheetClose" id="qrSheetClose" type="button" aria-label="SchlieÃŸen">
+            Ã—
           </button>
         </div>
         <div class="qrSheetBox" id="qrSheetBox"></div>
         <div class="qrSheetHint" id="qrSheetHint">
-          Im Café scannen lassen.
+          Im CafÃ© scannen lassen.
         </div>
       </div>
     </div>
@@ -4308,7 +4311,7 @@
               class="menuToggle"
               id="menuToggle"
               type="button"
-              aria-label="Menü öffnen"
+              aria-label="MenÃ¼ Ã¶ffnen"
               aria-expanded="false"
               aria-controls="menuDrawer"
             >
@@ -4442,7 +4445,7 @@
                 <div class="authPerk">
                   <div class="authPerkNo">3</div>
                   <div class="authPerkText">
-                    <strong>Schnell im Café:</strong> Karte oeffnen, QR zeigen, Kaffee geniessen.
+                    <strong>Schnell im Café:</strong> Wallet öffnen, QR zeigen, Kaffee genießen.
                   </div>
                 </div>
               </div>
@@ -4568,8 +4571,8 @@
             >
               Mit deinem Konto nutzt du Wallet, Kartenansicht und QR-Flow von Kaffeekarte.
               <span style="display: block; margin-top: 8px">
-                <a href="/impressum">Impressum</a> ·
-                <a href="/datenschutz">Datenschutz</a> ·
+                <a href="/impressum">Impressum</a> Â·
+                <a href="/datenschutz">Datenschutz</a> Â·
                 <a href="/agb">AGB</a>
               </span>
             </div>
@@ -4592,7 +4595,7 @@
                   <h3 id="welcomeTitle">Hallo</h3>
                 </div>
                 <div class="welcomeLeadText" id="welcomeLead">
-                  Deine Karten sind bereit fuer den naechsten Kaffee im Veedel.
+                  SchÃ¶n, dass du da bist. Hier beginnt deine ruhige, schnelle Kaffeekarte fÃ¼r den Alltag im Veedel.
                 </div>
               </div>
               <div class="welcomeSummary" aria-label="Startstatus">
@@ -4602,21 +4605,21 @@
                 </div>
                 <div class="welcomeStat">
                   <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
-                  <div class="welcomeStatLabel">bereit für den nächsten Kaffee</div>
+                  <div class="welcomeStatLabel">bereit fÃ¼r den nÃ¤chsten Kaffee</div>
                 </div>
               </div>
               <div class="welcomeFacts">
                 <div class="welcomeFact">
-                    <strong>Alles an einem Ort:</strong> mehrere Cafes, mehrere Karten,
-                  statt lose im Portemonnaie herumzuirren.
+                    <strong>Alles an einem Ort:</strong> deine Karten bleiben gesammelt,
+                  griffbereit und ohne Portemonnaie-Chaos.
                 </div>
                 <div class="welcomeFact">
-                  <strong>Schnell im Café:</strong> Karte oeffnen, QR zeigen,
-                  Kaffee geniessen.
+                  <strong>Schnell im Café:</strong> Wallet öffnen, QR zeigen,
+                  Kaffee genießen und den nächsten Stempel fast nebenbei mitnehmen.
                 </div>
               </div>
               <div class="welcomeNextHint" id="welcomeNextHint">
-                Wenn du Lust auf ein neues Cafe hast, findest du es im Menue oben rechts.
+                Wenn du Lust auf ein neues CafÃ© hast, findest du es jederzeit im MenÃ¼ oben rechts.
               </div>
             </div>
             </div>
@@ -4650,7 +4653,7 @@
               </div>
 
               <div class="mapStage">
-                <div id="cafeMap" class="mapBox" aria-label="Café Karte"></div>
+                <div id="cafeMap" class="mapBox" aria-label="CafÃ© Karte"></div>
 
                 <div
                   id="discoverPick"
@@ -4659,7 +4662,7 @@
                 >
                   <div class="row between">
                     <div class="stack" style="gap: 2px; min-width: 0">
-                      <div id="discoverPickName">Café</div>
+                      <div id="discoverPickName">CafÃ©</div>
                       <div id="discoverPickAddr" class="muted"></div>
                     </div>
                     <button
@@ -4683,7 +4686,7 @@
                 <h3>Stempel-Historie</h3>
               </div>
               <div class="hint" id="historySubtitle">
-                Letzte Bewegungen. Mehrere Stempel werden, höflich gesagt, zusammengefasst.
+                Letzte Bewegungen. Mehrere Stempel werden, hÃ¶flich gesagt, zusammengefasst.
               </div>
               <div
                 id="historyError"
@@ -4691,7 +4694,7 @@
                 style="display: none"
               ></div>
               <div id="historyEmpty" class="hint" style="display: none">
-                Noch keine Einträge.
+                Noch keine EintrÃ¤ge.
               </div>
               <div id="historyList" class="historyList"></div>
             </div>
@@ -4706,7 +4709,7 @@
                   <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schliessen">Schliessen</button>
                   <h3 style="margin: 0">Wallet</h3>
                   <div class="hint" id="walletSubtitle">
-                    Öffne deine Karten hier zentral. Tippe eine Karte, wenn du den QR zeigen willst.
+                    Ã–ffne deine Karten hier zentral. Tippe eine Karte, wenn du den QR zeigen willst.
                   </div>
                 </div>
                 <div
@@ -4722,10 +4725,10 @@
                     type="button"
                     style="width: auto; margin-top: 12px"
                   >
-                    Cafés entdecken
+                    CafÃ©s entdecken
                   </button>
-                  Noch keine Karten. Wähle ein Café auf der Karte und tippe
-                  „Stempelkarte holen“.
+                  Noch keine Karten. WÃ¤hle ein CafÃ© auf der Karte und tippe
+                  â€žStempelkarte holenâ€œ.
                 </div>
                 <div
                   id="walletList"
@@ -4736,8 +4739,8 @@
             </div>
           </div>
           <div class="notice" id="noCafesNotice" style="display: none">
-            Es sind noch keine Cafés registriert. Bitte zuerst ein Café
-            anlegen (z.B. über die Café-Tools).
+            Es sind noch keine CafÃ©s registriert. Bitte zuerst ein CafÃ©
+            anlegen (z.B. Ã¼ber die CafÃ©-Tools).
           </div>
         </div>
       </div>
@@ -4752,11 +4755,11 @@
       aria-label="Kaffeekarte installieren"
     >
       <div class="installHintCard">
-        <div class="installHintEyebrow">Beim nächsten Mal schneller da</div>
+        <div class="installHintEyebrow">Beim nÃ¤chsten Mal schneller da</div>
         <h3 class="installHintTitle">Kaffeekarte aufs Handy legen</h3>
         <p class="installHintLead">
-          Wenn du Kaffeekarte auf deinem Homescreen ablegst, öffnet sie sich
-          beim nächsten Kaffee direkter und fühlt sich mehr nach App als nach Browser an.
+          Wenn du Kaffeekarte auf deinem Homescreen ablegst, Ã¶ffnet sie sich
+          beim nÃ¤chsten Kaffee direkter und fÃ¼hlt sich mehr nach App als nach Browser an.
         </p>
         <div class="installHintSteps" id="installHintSteps"></div>
         <div class="installHintActions">
@@ -4783,7 +4786,7 @@
       class="modalBackdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Café Details"
+      aria-label="CafÃ© Details"
     >
       <div class="modal" id="cafeModal">
         <div class="modalHero">
@@ -4794,7 +4797,7 @@
               </div>
               <div style="min-width: 0">
                 <div class="modalKicker">Cafe im Veedel</div>
-                <h3 class="modalTitle" id="cafeModalName">Café</h3>
+                <h3 class="modalTitle" id="cafeModalName">CafÃ©</h3>
                 <div class="modalAddr" id="cafeModalAddr"></div>
                 <div class="modalMetaRow" id="cafeModalMetaRow">
                   <div class="modalStatusPill" id="cafeModalStatus" style="display: none"></div>
@@ -4807,14 +4810,14 @@
               class="btn secondary"
               id="cafeModalClose"
               type="button"
-              aria-label="Schließen"
+              aria-label="SchlieÃŸen"
             >
-              Schließen
+              SchlieÃŸen
             </button>
           </div>
 
           <div class="modalImage" id="cafeModalImageWrap" style="display: none">
-            <img id="cafeModalImage" alt="Café Bild" />
+            <img id="cafeModalImage" alt="CafÃ© Bild" />
           </div>
 
           <div class="modalGallery" id="cafeModalGallery"></div>
@@ -4827,7 +4830,7 @@
             style="display: none"
           ></div>
           <div class="hint" id="cafeModalAboutEmpty" style="display: none">
-            Noch keine Beschreibung. Vielleicht spricht das Café lieber durch den Espresso.
+            Noch keine Beschreibung. Vielleicht spricht das CafÃ© lieber durch den Espresso.
           </div>
 
           <div class="modalLinkRow" id="cafeModalLinks">
@@ -5122,14 +5125,14 @@
           if (isIos()) {
             return (
               '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Teilen</strong> im Browser antippen.</div></div>' +
-              '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>Zum Home-Bildschirm</strong> auswählen.</div></div>' +
-              '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Hinzufügen</strong> bestätigen und Kaffeekarte wie eine App öffnen.</div></div>'
+              '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>Zum Home-Bildschirm</strong> auswÃ¤hlen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>HinzufÃ¼gen</strong> bestÃ¤tigen und Kaffeekarte wie eine App Ã¶ffnen.</div></div>'
             );
           }
           return (
-            '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Browser-Menü</strong> öffnen.</div></div>' +
-            '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong> wählen.</div></div>' +
-            '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Bestätigen</strong> und Kaffeekarte künftig direkt vom Homescreen starten.</div></div>'
+            '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Browser-MenÃ¼</strong> Ã¶ffnen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufÃ¼gen</strong> wÃ¤hlen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>BestÃ¤tigen</strong> und Kaffeekarte kÃ¼nftig direkt vom Homescreen starten.</div></div>'
           );
         }
 

@@ -397,7 +397,7 @@
     var s = String(a || "");
     if (!s) return "";
     if (s.length <= 14) return s;
-    return s.slice(0, 6) + "…" + s.slice(-4);
+    return s.slice(0, 6) + "â€¦" + s.slice(-4);
   }
 
   function formatTs(ts) {
@@ -611,23 +611,24 @@
       el.welcomeLead.textContent =
         favCount > 0
           ? uname
-            ? "Schön, dass du wieder da bist. Deine Karten sind bereit für den nächsten Kaffee im Veedel."
-            : "Deine Karten sind bereit für den nächsten Kaffee im Veedel."
+            ? "Schön, dich wiederzusehen. Deine Karten warten schon auf den nächsten Kaffee im Veedel."
+            : "Schön, dass du wieder da bist. Deine Karten warten schon auf den nächsten Kaffee im Veedel."
           : uname
-            ? "Schön, dass du da bist. Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit."
-            : "Sobald du deine erste Karte holst, bleibt sie hier immer griffbereit.";
+            ? "Schön, dass du da bist. Deine erste Karte ist nur einen kurzen Abstecher ins nächste Café entfernt."
+            : "Schön, dass du da bist. Deine erste Karte ist nur einen kurzen Abstecher ins nächste Café entfernt.";
     }
     if (el.welcomeCardCount) {
       el.welcomeCardCount.textContent = String(favCount || 0);
     }
     if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Neu hier";
+      el.welcomeStateTitle.textContent =
+        favCount > 0 ? "Startklar" : "Los geht's";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
         favCount > 0
-          ? "Deine aktive Karte wartet in der Wallet. Neue Cafés findest du jederzeit im Menü oben rechts."
-          : "Noch keine Karte in deiner Wallet. Öffne Cafés im Menü oben rechts und hol dir deine erste Karte.";
+          ? "Öffne deine Wallet, zeig deinen QR im Café und nimm den nächsten Stempel ganz nebenbei mit."
+          : "Öffne Cafés im Menü oben rechts und hol dir deine erste digitale Stempelkarte in weniger als einer Minute.";
     }
   }
 
@@ -828,7 +829,17 @@
           );
           if (!openPass) return;
           if (openPass.contains(t)) return;
-          if (t.closest && t.closest(".passInfoLink, .passQr, .passQrBox")) return;
+          if (
+            t.closest &&
+            t.closest(
+              ".passInfoLink, .passQr, .passQrBox, .walletOverlayClose, #walletEmpty",
+            )
+          )
+            return;
+          if (el.walletOverlay && el.walletOverlay.contains(t)) {
+            closeWalletOverlay();
+            return;
+          }
           closeAllPasses();
         } catch (eWalletClose) {}
       });
@@ -1151,7 +1162,7 @@
 
   function renderCafeModal(cafe, opts) {
     var o = opts || {};
-    var name = cafe && cafe.name ? String(cafe.name) : "Café";
+    var name = cafe && cafe.name ? String(cafe.name) : "CafÃ©";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
     var program = cafe && cafe.program ? cafe.program : {};
@@ -1382,8 +1393,8 @@
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
       empty.textContent = q
-        ? "Keine Treffer. Vielleicht übt sich das richtige Café gerade noch in Understatement."
-        : "Noch keine Cafés.";
+        ? "Keine Treffer. Vielleicht Ã¼bt sich das richtige CafÃ© gerade noch in Understatement."
+        : "Noch keine CafÃ©s.";
       el.cafeResults.appendChild(empty);
       return;
     }
@@ -1400,7 +1411,7 @@
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "CafÃ©";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -1411,7 +1422,7 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Öffnen";
+        hint.textContent = "Ã–ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
@@ -1971,7 +1982,7 @@
     pickedCafe = cafe || null;
     if (el.discoverPickName)
       el.discoverPickName.textContent =
-        cafe && cafe.name ? String(cafe.name) : "Café";
+        cafe && cafe.name ? String(cafe.name) : "CafÃ©";
     if (el.discoverPickAddr)
       el.discoverPickAddr.textContent =
         cafe && cafe.address ? String(cafe.address) : "";
@@ -2011,7 +2022,7 @@
       el.mapList.innerHTML = "";
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
-      empty.textContent = "Noch keine Cafés.";
+      empty.textContent = "Noch keine CafÃ©s.";
       el.mapList.appendChild(empty);
       return;
     }
@@ -2030,7 +2041,7 @@
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "CafÃ©";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -2041,7 +2052,7 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Öffnen";
+        hint.textContent = "Ã–ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
@@ -2083,7 +2094,7 @@
       } else {
         html =
           '<div class="cafePin"><div class="cafePinLetter">' +
-          cafeInitials(cafe && cafe.name ? cafe.name : "Café") +
+          cafeInitials(cafe && cafe.name ? cafe.name : "CafÃ©") +
           "</div></div>";
       }
 
@@ -2278,10 +2289,10 @@
         }
         if (body) {
           body.textContent =
-            "Entdecke zuerst ein Café auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
+            "Entdecke zuerst ein CafÃ© auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
         }
         if (cta) {
-          cta.textContent = "Cafés entdecken";
+          cta.textContent = "CafÃ©s entdecken";
         }
         var nodes = el.walletEmpty.childNodes || [];
         for (var i = nodes.length - 1; i >= 0; i--) {
@@ -3017,18 +3028,18 @@
       if (el.qrSheetSub) {
         var countEl = passEl.querySelector(".passCountLine");
         el.qrSheetSub.textContent = countEl
-          ? String(countEl.textContent || "QR wird geladen…")
-          : "QR wird geladen…";
+          ? String(countEl.textContent || "QR wird geladenâ€¦")
+          : "QR wird geladenâ€¦";
       }
       if (el.qrSheetHint) {
         var stamps = getPassStampCount(passEl);
         var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
         el.qrSheetHint.textContent = full
-          ? "Im Café scannen lassen, um die Belohnung einzulösen."
-          : "Im Café scannen lassen, dann ist der nächste Stempel nur noch Formsache.";
+          ? "Im CafÃ© scannen lassen, um die Belohnung einzulÃ¶sen."
+          : "Im CafÃ© scannen lassen, dann ist der nÃ¤chste Stempel nur noch Formsache.";
       }
       if (el.qrSheetBox) {
-        el.qrSheetBox.textContent = "QR wird geladen…";
+        el.qrSheetBox.textContent = "QR wird geladenâ€¦";
       }
     } catch (eMeta) {}
 
@@ -3102,7 +3113,7 @@
         // If the user opens instantly after boot, stamps might not be loaded yet.
         // Fetch once so we can show the correct QR (redeem vs stamp).
         try {
-          setQrPlaceholder(passEl, "Stempelstand wird geladen…", "loading");
+          setQrPlaceholder(passEl, "Stempelstand wird geladenâ€¦", "loading");
         } catch (e0) {}
         apiFetch(
           "/stamps/" +
@@ -3178,7 +3189,7 @@
       try {
         setQrPlaceholder(
           passEl,
-          full ? "Einlösen-QR wird geladen…" : "QR wird geladen…",
+          full ? "EinlÃ¶sen-QR wird geladenâ€¦" : "QR wird geladenâ€¦",
           "loading",
         );
       } catch (eTxt) {}
@@ -3228,7 +3239,7 @@
 
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
-    var title = String(card.name || "Café");
+    var title = String(card.name || "CafÃ©");
     var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
@@ -3434,8 +3445,8 @@
     var progressSub = document.createElement("span");
     progressSub.className = "passProgressSub";
     progressSub.textContent = isFull
-      ? "Diese Karte ist bereit zum Einlösen."
-      : "Dann ist deine nächste Belohnung in erfreulicher Reichweite.";
+      ? "Diese Karte ist bereit zum EinlÃ¶sen."
+      : "Dann ist deine nÃ¤chste Belohnung in erfreulicher Reichweite.";
     progressText.appendChild(progressHeadline);
     progressText.appendChild(progressSub);
 
@@ -3448,7 +3459,7 @@
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
+    hint.textContent = isFull ? "Tippe fÃ¼r EinlÃ¶sen-QR" : "Tippe fÃ¼r QR";
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -3509,7 +3520,7 @@
         ? String(card.cardBackText)
         : about
           ? about
-          : "Tippe auf den QR-Code zum Schließen";
+          : "Tippe auf den QR-Code zum SchlieÃŸen";
     try {
       passCard.setAttribute(
         "data-backtext-base",
@@ -3521,14 +3532,14 @@
     var qrBox = document.createElement("div");
     qrBox.className = "passQrBox";
     qrBox.setAttribute("role", "button");
-    qrBox.setAttribute("aria-label", "QR anzeigen / schließen");
+    qrBox.setAttribute("aria-label", "QR anzeigen / schlieÃŸen");
     qr.appendChild(qrBox);
 
     var qrCaption = document.createElement("div");
     qrCaption.className = "passQrCaption";
     qrCaption.textContent = isFull
-      ? "Im Café scannen lassen, um die Belohnung einzuloesen."
-      : "Im Café scannen lassen, damit dein naechster Stempel dazukommt.";
+      ? "Im CafÃ© scannen lassen, um die Belohnung einzuloesen."
+      : "Im CafÃ© scannen lassen, damit dein naechster Stempel dazukommt.";
     qr.appendChild(qrCaption);
 
     var backNote = document.createElement("div");
@@ -4109,7 +4120,7 @@
             cafe && cafe.cardBackText
               ? cafe.cardBackText
               : meta.loading
-                ? "Café wird geladen…"
+                ? "CafÃ© wird geladenâ€¦"
                 : null,
         }),
       );
@@ -4403,7 +4414,7 @@
     );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
-      hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
+      hint.textContent = isFull ? "Tippe fÃ¼r EinlÃ¶sen-QR" : "Tippe fÃ¼r QR";
 
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
@@ -4424,7 +4435,7 @@
         // Best-effort bootstrap for older cards: strip any existing full-info header.
         base = existing;
         if (
-          base.indexOf("🎁 Karte voll!") === 0 ||
+          base.indexOf("ðŸŽ Karte voll!") === 0 ||
           base.indexOf("Karte voll!") === 0
         ) {
           var nl = base.indexOf("\n");
@@ -4446,7 +4457,7 @@
           cafeTitle = "";
         }
         var info =
-          "Karte voll! Einlösen" +
+          "Karte voll! EinlÃ¶sen" +
           (cafeTitle ? " bei: " + cafeTitle : "") +
           ". Extra Stempel bleiben erhalten.";
 
@@ -4639,7 +4650,7 @@
               showToast(
                 "Stempel angekommen" +
                   (delta ? " (+" + delta + ")" : "") +
-                  (cafeLabel ? " · " + cafeLabel : ""),
+                  (cafeLabel ? " Â· " + cafeLabel : ""),
                 null,
               );
               try {
@@ -4654,13 +4665,13 @@
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
               launchRedeemCelebration();
               showToast(
-                "Belohnung eingelöst. Lass dir dein Getränk schmecken." +
-                  (cafeLabel ? " · " + cafeLabel : ""),
+                "Belohnung eingelÃ¶st. Lass dir dein GetrÃ¤nk schmecken." +
+                  (cafeLabel ? " Â· " + cafeLabel : ""),
                 null,
               );
             } else if (type === "card_start") {
               showToast(
-                "Neue Karte gestartet" + (cafeLabel ? " · " + cafeLabel : ""),
+                "Neue Karte gestartet" + (cafeLabel ? " Â· " + cafeLabel : ""),
                 null,
               );
             }
@@ -4715,22 +4726,22 @@
     var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
     if (!email || !password) {
-      showMsg("danger", "Bitte E-Mail und Passwort ausfüllen.");
+      showMsg("danger", "Bitte E-Mail und Passwort ausfÃ¼llen.");
       return;
     }
 
     if (authMode === "register") {
       if (!username) {
-        showMsg("danger", "Bitte Username ausfüllen.");
+        showMsg("danger", "Bitte Username ausfÃ¼llen.");
         return;
       }
       if (confirmPassword !== password) {
-        showMsg("danger", "Passwörter stimmen nicht überein.");
+        showMsg("danger", "PasswÃ¶rter stimmen nicht Ã¼berein.");
         return;
       }
 
       if (!acceptPrivacy) {
-        showMsg("danger", "Bitte bestÃ¤tige die DatenschutzerklÃ¤rung.");
+        showMsg("danger", "Bitte bestÃƒÂ¤tige die DatenschutzerklÃƒÂ¤rung.");
         return;
       }
       if (!acceptTerms) {
@@ -4779,7 +4790,7 @@
       body: JSON.stringify({ email: email, password: password }),
     })
       .then(function (data2) {
-        if (!data2 || !data2.address) throw new Error("Ungültige Antwort");
+        if (!data2 || !data2.address) throw new Error("UngÃ¼ltige Antwort");
         saveSession({
           address: data2.address,
           email: email,
@@ -4868,7 +4879,7 @@
           var cafeLabel = String(cafeName || "");
           if (/^0x[0-9a-f]{40}$/i.test(cafeLabel))
             cafeLabel = shortAddr(cafeLabel);
-          if (!cafeLabel) cafeLabel = "Café";
+          if (!cafeLabel) cafeLabel = "CafÃ©";
 
           var cafe = document.createElement("div");
           cafe.className = "historyCafe";
@@ -4880,13 +4891,13 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "Belohnung eingelöst"
+              ? "Belohnung eingelÃ¶st"
               : t === "card_start"
                 ? "Neue Karte"
                 : t === "stamp"
                   ? "Stempel"
                   : "Event";
-          meta.textContent = (when ? when + " · " : "") + verb;
+          meta.textContent = (when ? when + " Â· " : "") + verb;
 
           main.appendChild(cafe);
           main.appendChild(meta);
@@ -4953,7 +4964,7 @@
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
           el.authForgotMsg.className = "notice danger";
           el.authForgotMsg.textContent =
-            "Bitte zuerst eine gültige E-Mail eingeben.";
+            "Bitte zuerst eine gÃ¼ltige E-Mail eingeben.";
           return;
         }
         el.authForgotSubmit.disabled = true;
@@ -5099,10 +5110,10 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im Café zeigen willst.";
+          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im CafÃ© zeigen willst.";
       }
       if (el.utilityMapBtn) {
-        el.utilityMapBtn.textContent = "Cafés";
+        el.utilityMapBtn.textContent = "CafÃ©s";
       }
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
@@ -5112,7 +5123,7 @@
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
           authHint.textContent =
-            "Kein Schlüssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch für dich an.";
+            "Kein SchlÃ¼ssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch fÃ¼r dich an.";
         }
       }
     } catch (eText) {}
@@ -5145,7 +5156,7 @@
       });
     } catch (ePop) {}
 
-    // Café details modal
+    // CafÃ© details modal
     if (el.cafeModalClose)
       el.cafeModalClose.addEventListener("click", function () {
         closeCafeModal();
@@ -5262,5 +5273,8 @@
     } catch (e5) {}
   }
 })();
+
+
+
 
 
