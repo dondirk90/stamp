@@ -507,7 +507,7 @@
         position: relative;
         flex: 0 0 auto;
         width: auto;
-        min-width: 132px;
+        min-width: 188px;
         min-height: 64px;
         margin-left: auto;
         margin-right: auto;
@@ -531,8 +531,9 @@
       }
 
       .bottomTabBtn.walletHeroBtn .lbl {
-        font-size: 11px;
-        letter-spacing: 0.16em;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: none;
       }
 
       .bottomTabBtn.active {
@@ -1804,28 +1805,30 @@
       }
 
       #welcomePanel {
-        width: min(460px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        width: min(560px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
         margin: auto;
         display: grid;
-        gap: 18px;
-        padding: 94px 24px 48px;
+        gap: 20px;
+        padding: 72px 24px 108px;
         min-height: 0;
         background: transparent;
         border: none;
         box-shadow: none;
         backdrop-filter: none;
-        align-content: center;
+        align-content: start;
         justify-items: start;
       }
 
       .welcomeIntro {
         display: grid;
-        gap: 14px;
-        max-width: 35ch;
+        gap: 10px;
+        max-width: 30ch;
       }
 
       .welcomePrimaryAction {
-        margin-top: 6px;
+        width: auto;
+        min-width: 168px;
+        margin: 0;
       }
 
       .welcomeKicker {
@@ -1838,23 +1841,24 @@
 
       .welcomeLeadText {
         color: rgba(59, 42, 31, 0.8);
-        line-height: 1.64;
-        font-size: 18px;
+        line-height: 1.5;
+        font-size: 16px;
         letter-spacing: -0.01em;
+        max-width: 30ch;
       }
 
       .welcomeSummary {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 14px;
         width: 100%;
-        max-width: 360px;
+        max-width: none;
       }
 
       .welcomeStat {
         display: grid;
         gap: 4px;
-        padding: 14px 0 0;
+        padding: 12px 0 0;
         border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
@@ -1873,31 +1877,152 @@
         color: rgba(59, 42, 31, 0.56);
       }
 
-      .welcomeFacts {
+      .welcomeDeck {
         display: grid;
         gap: 14px;
-        max-width: 35ch;
+        width: 100%;
       }
 
-      .welcomeFact {
-        padding: 14px 0 0;
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
-        color: rgba(59, 42, 31, 0.82);
+      .welcomeSectionHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .welcomeSectionTitle {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .welcomeCardsList {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+      }
+
+      .welcomeEmptyState {
+        width: 100%;
+        padding: 18px 18px 20px;
+        border-radius: 26px;
+        border: 1px dashed rgba(81, 58, 40, 0.18);
+        background: rgba(255, 251, 246, 0.78);
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .welcomePreviewCard {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+        padding: 18px 18px 20px;
+        border-radius: 28px;
+        border: 1px solid rgba(81, 58, 40, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
+        box-shadow:
+          0 16px 34px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .welcomePreviewHead {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .welcomePreviewLogo {
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background: rgba(255, 255, 255, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        flex: 0 0 auto;
+      }
+
+      .welcomePreviewLogo img,
+      .welcomePreviewLogo .passLogoInitial {
+        width: 100%;
+        height: 100%;
+      }
+
+      .welcomePreviewMeta {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .welcomePreviewTitle {
+        font-size: 28px;
+        font-weight: 950;
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+        color: #241710;
+      }
+
+      .welcomePreviewCount {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .welcomePreviewMessage {
+        color: rgba(59, 42, 31, 0.86);
         line-height: 1.5;
+        font-size: 15px;
       }
 
-      .welcomeFact strong {
-        color: var(--text);
+      .welcomePreviewTrack {
+        position: relative;
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(81, 58, 40, 0.1);
+        overflow: hidden;
       }
 
-      .welcomeActions {
-        display: none;
+      .welcomePreviewFill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+      }
+
+      .welcomePreviewFooter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .welcomePreviewHint {
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .welcomePreviewBtn {
+        width: auto;
+        min-width: 132px;
       }
 
       .welcomeNextHint {
-        max-width: 33ch;
+        max-width: 36ch;
         font-size: 14px;
-        line-height: 1.62;
+        line-height: 1.55;
         color: rgba(59, 42, 31, 0.68);
       }
 
@@ -4447,7 +4572,7 @@
           >
             <span class="topMenuBtnContent">
               <span class="ico" aria-hidden="true">W</span>
-              <span class="lbl">Wallet</span>
+              <span class="lbl">Karten</span>
             </span>
           </button>
           <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
@@ -4472,8 +4597,8 @@
           type="button"
         >
           <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">W</span>
-            <span class="lbl">Wallet</span>
+            <span class="ico" aria-hidden="true">☕</span>
+            <span class="lbl">Wallet &ouml;ffnen</span>
           </span>
         </button>
       </div>
@@ -4665,31 +4790,33 @@
                   <h3 id="welcomeTitle">Hallo</h3>
                 </div>
                 <div class="welcomeLeadText" id="welcomeLead">
-                  Sch&ouml;n, dass du da bist. Hier beginnt deine ruhige, schnelle Kaffeekarte f&uuml;r den Alltag im Veedel.
+                  Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
                 </div>
               </div>
               <div class="welcomeSummary" aria-label="Startstatus">
                 <div class="welcomeStat">
                   <div class="welcomeStatValue" id="welcomeCardCount">0</div>
-                  <div class="welcomeStatLabel">Karten auf deinem Handy</div>
+                  <div class="welcomeStatLabel">Kaffeekarten</div>
                 </div>
                 <div class="welcomeStat">
                   <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
-                  <div class="welcomeStatLabel">bereit f&uuml;r den n&auml;chsten Kaffee</div>
+                  <div class="welcomeStatLabel">N&auml;chster Schritt</div>
                 </div>
               </div>
-              <div class="welcomeFacts">
-                <div class="welcomeFact">
-                    <strong>Alles an einem Ort:</strong> deine Karten bleiben gesammelt,
-                  griffbereit und ohne Portemonnaie-Chaos.
+              <div class="welcomeDeck">
+                <div class="welcomeSectionHead">
+                  <div class="welcomeSectionTitle">Deine Kaffeekarten</div>
+                  <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
+                    In Wallet &ouml;ffnen
+                  </button>
                 </div>
-                <div class="welcomeFact">
-                  <strong>Schnell im Caf&eacute;:</strong> Wallet &ouml;ffnen, QR zeigen,
-                  Kaffee genie&szlig;en und den n&auml;chsten Stempel fast nebenbei mitnehmen.
+                <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
+                  Noch keine Kaffeekarten. Entdecke ein Caf&eacute; und hol dir deine erste Karte.
                 </div>
-              </div>
-              <div class="welcomeNextHint" id="welcomeNextHint">
-                Wenn du Lust auf ein neues Caf&eacute; hast, findest du es jederzeit im Men&uuml; oben rechts.
+                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Deine Kaffeekarten"></div>
+                <div class="welcomeNextHint" id="welcomeNextHint">
+                  Zeig im Caf&eacute; einfach den QR-Code, dann kommt der n&auml;chste Stempel direkt dazu.
+                </div>
               </div>
             </div>
             </div>
@@ -4777,9 +4904,9 @@
               <div class="card panel walletDock" id="walletPanel">
                 <div class="walletDockHead">
                   <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schlie&szlig;en">Schlie&szlig;en</button>
-                  <h3 style="margin: 0">Wallet</h3>
+                  <h3 style="margin: 0">Deine Kaffeekarten</h3>
                   <div class="hint" id="walletSubtitle">
-                    &Ouml;ffne deine Karten hier zentral. Tippe eine Karte, wenn du den QR zeigen willst.
+                    W&auml;hle eine Karte und zeig im Caf&eacute; direkt deinen QR-Code.
                   </div>
                 </div>
                 <div

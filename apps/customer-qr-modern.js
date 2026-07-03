@@ -89,6 +89,9 @@
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
+    welcomePrimaryAction: document.getElementById("welcomePrimaryAction"),
+    welcomeCardsEmpty: document.getElementById("welcomeCardsEmpty"),
+    welcomeCardsList: document.getElementById("welcomeCardsList"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -605,31 +608,189 @@
       favCount = 0;
     }
     if (el.welcomeTitle) {
-      el.welcomeTitle.textContent = uname ? "Hallo, " + uname : "Hallo";
+      el.welcomeTitle.textContent = uname ? "Hallo, " + uname + " ☕" : "Hallo ☕";
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
         favCount > 0
-          ? uname
-            ? "Sch\u00f6n, dich wiederzusehen. Deine Karten warten schon auf den n\u00e4chsten Kaffee im Veedel."
-            : "Sch\u00f6n, dass du wieder da bist. Deine Karten warten schon auf den n\u00e4chsten Kaffee im Veedel."
-          : uname
-            ? "Sch\u00f6n, dass du da bist. Deine erste Karte ist nur einen kurzen Abstecher ins n\u00e4chste Caf\u00e9 entfernt."
-            : "Sch\u00f6n, dass du da bist. Deine erste Karte ist nur einen kurzen Abstecher ins n\u00e4chste Caf\u00e9 entfernt.";
+          ? "Willkommen zur\u00fcck. Deine Karten sind bereit f\u00fcr den n\u00e4chsten Kaffee."
+          : "Hol dir deine erste Kaffeekarte und sammle deinen n\u00e4chsten Stempel digital.";
     }
     if (el.welcomeCardCount) {
       el.welcomeCardCount.textContent = String(favCount || 0);
     }
     if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent =
-        favCount > 0 ? "Startklar" : "Los geht's";
+      el.welcomeStateTitle.textContent = favCount > 0 ? "QR zeigen" : "Caf\u00e9s entdecken";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
         favCount > 0
-          ? "\u00d6ffne deine Wallet, zeig deinen QR im Caf\u00e9 und nimm den n\u00e4chsten Stempel ganz nebenbei mit."
-          : "\u00d6ffne Caf\u00e9s im Men\u00fc oben rechts und hol dir deine erste digitale Stempelkarte in weniger als einer Minute.";
+          ? "Dein n\u00e4chster Stempel ist nur einen Scan entfernt."
+          : "\u00d6ffne Caf\u00e9s im Men\u00fc oben rechts und hol dir deine erste digitale Kaffeekarte.";
     }
+    if (el.welcomePrimaryAction) {
+      el.welcomePrimaryAction.textContent =
+        favCount > 0 ? "In Wallet \u00f6ffnen" : "Caf\u00e9s entdecken";
+    }
+    renderWelcomeCards();
+  }
+
+  function renderWelcomeCards() {
+    if (!el.welcomeCardsList || !el.welcomeCardsEmpty) return;
+
+    var favorites = [];
+    try {
+      favorites = getFavorites();
+    } catch (eFav) {
+      favorites = [];
+    }
+
+    var favNorm = [];
+    for (var i = 0; i < favorites.length; i++) {
+      var addr = normalizeAddr(favorites[i]);
+      if (!addr) continue;
+      favNorm.push(addr);
+    }
+
+    el.welcomeCardsList.innerHTML = "";
+
+    if (!favNorm.length) {
+      el.welcomeCardsEmpty.style.display = "block";
+      return;
+    }
+
+    el.welcomeCardsEmpty.style.display = "none";
+
+    var frag = document.createDocumentFragment();
+    for (var j = 0; j < favNorm.length; j++) {
+      var cafeAddress = favNorm[j];
+      var cafe = cafesByCafeAddress[cafeAddress] || null;
+      var serverCard = getServerCard(cafeAddress);
+      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
+      var meta = resolveCafeDisplayMeta(cafeAddress, serverCard, cafe);
+      var rewardThreshold = serverCard
+        ? getCardRewardThreshold(serverCard)
+        : cafe
+          ? getCardRewardThreshold(cafe)
+          : REWARD_THRESHOLD;
+      var rewardLabel = "";
+      try {
+        rewardLabel = String(
+          (serverCard && (serverCard.rewardDescription || serverCard.reward)) ||
+            (cafe && (cafe.rewardDescription || cafe.reward)) ||
+            "",
+        ).trim();
+      } catch (eReward) {
+        rewardLabel = "";
+      }
+      var stampCount =
+        Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
+      var isFull = stampCount >= rewardThreshold;
+      var remaining = Math.max(
+        0,
+        rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+      );
+      var countLine = formatStampCountLine(stampCount, rewardThreshold, Math.max(0, stampCount - rewardThreshold));
+      var article = document.createElement("article");
+      article.className = "welcomePreviewCard";
+
+      var head = document.createElement("div");
+      head.className = "welcomePreviewHead";
+
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "welcomePreviewLogo";
+      logoWrap.setAttribute("data-cafe-name", meta.name);
+      if (cafe && cafe.logoDataUrl) {
+        var img = document.createElement("img");
+        img.src = String(cafe.logoDataUrl);
+        img.alt = "";
+        img.decoding = "async";
+        img.loading = "lazy";
+        img.addEventListener("error", function () {
+          try {
+            var parent = this.parentNode;
+            var cafeName = parent
+              ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
+              : "Kaffeekarte";
+            if (parent) {
+              parent.innerHTML = "";
+              parent.appendChild(buildPassLogoFallback(cafeName));
+            }
+          } catch (eLogo) {}
+        });
+        logoWrap.appendChild(img);
+      } else {
+        logoWrap.appendChild(buildPassLogoFallback(meta.name));
+      }
+
+      var metaWrap = document.createElement("div");
+      metaWrap.className = "welcomePreviewMeta";
+
+      var title = document.createElement("div");
+      title.className = "welcomePreviewTitle";
+      title.textContent = meta.name;
+
+      var count = document.createElement("div");
+      count.className = "welcomePreviewCount";
+      count.textContent = countLine;
+
+      metaWrap.appendChild(title);
+      metaWrap.appendChild(count);
+      head.appendChild(logoWrap);
+      head.appendChild(metaWrap);
+
+      var message = document.createElement("div");
+      message.className = "welcomePreviewMessage";
+      message.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
+
+      var track = document.createElement("div");
+      track.className = "welcomePreviewTrack";
+      var fill = document.createElement("div");
+      fill.className = "welcomePreviewFill";
+      fill.style.width = String(
+        Math.max(0, Math.min(100, (Math.min(stampCount, rewardThreshold) / rewardThreshold) * 100)),
+      ) + "%";
+      track.appendChild(fill);
+
+      var footer = document.createElement("div");
+      footer.className = "welcomePreviewFooter";
+
+      var hint = document.createElement("div");
+      hint.className = "welcomePreviewHint";
+      hint.textContent = formatNextStampLine(remaining, isFull);
+
+      var btn = document.createElement("button");
+      btn.className = "btn secondary welcomePreviewBtn";
+      btn.type = "button";
+      btn.textContent = "QR zeigen";
+      btn.addEventListener("click", (function (addr) {
+        return function (ev) {
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+        };
+      })(cafeAddress));
+
+      footer.appendChild(hint);
+      footer.appendChild(btn);
+
+      article.appendChild(head);
+      article.appendChild(message);
+      article.appendChild(track);
+      article.appendChild(footer);
+
+      article.addEventListener("click", (function (addr) {
+        return function () {
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+        };
+      })(cafeAddress));
+
+      frag.appendChild(article);
+    }
+
+    el.welcomeCardsList.appendChild(frag);
   }
 
   function setWalletOverlayOpen(open) {
@@ -1773,6 +1934,42 @@
     } catch (e1) {
       return REWARD_THRESHOLD;
     }
+  }
+
+  function formatStampCountLine(stampCount, rewardThreshold, extra) {
+    var threshold = clamp(Number(rewardThreshold || REWARD_THRESHOLD) || REWARD_THRESHOLD, 1, 50);
+    var stamps = clamp(Number(stampCount || 0) || 0, 0, 999);
+    var base = clamp(stamps, 0, threshold);
+    var bonus = Math.max(0, Number(extra || 0) || 0);
+    var line = base + " von " + threshold + " Stempeln";
+    if (bonus > 0) line += " + " + bonus + " extra";
+    return line;
+  }
+
+  function formatRewardProgressLine(remaining, isFull, rewardLabel) {
+    var hasCustomReward = !!String(rewardLabel || "").trim();
+    if (isFull) {
+      return hasCustomReward ? "Deine Belohnung wartet ☕" : "Dein Gratiskaffee wartet ☕";
+    }
+    if (hasCustomReward) {
+      return remaining === 1
+        ? "Noch 1 Kaffee bis zur Belohnung"
+        : "Noch " + remaining + " Kaffees bis zur Belohnung";
+    }
+    return remaining === 1
+      ? "Noch 1 Kaffee bis zum Gratiskaffee"
+      : "Noch " + remaining + " Kaffees bis zum Gratiskaffee";
+  }
+
+  function formatNextStampLine(remaining, isFull) {
+    if (isFull) return "QR zeigen und deine Belohnung im Café einlösen.";
+    if (remaining === 1) return "Dein nächster Stempel ist nur einen Scan entfernt.";
+    return "Im Café scannen lassen und den nächsten Stempel sammeln.";
+  }
+
+  function formatFooterProgressLine(remaining, isFull) {
+    if (isFull) return "GRATISKAFFEE WARTET";
+    return remaining === 1 ? "NOCH 1 KAFFEE" : "NOCH " + remaining + " KAFFEES";
   }
 
   function getCampaignSeenMap() {
@@ -3057,8 +3254,8 @@
         var stamps = getPassStampCount(passEl);
         var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
         el.qrSheetHint.textContent = full
-          ? "Im Caf\u00e9 scannen lassen, um die Belohnung einzul\u00f6sen."
-          : "Im Caf\u00e9 scannen lassen, dann ist der n\u00e4chste Stempel nur noch Formsache.";
+          ? "Im Caf\u00e9 scannen lassen und die Belohnung einl\u00f6sen."
+          : "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
       }
       if (el.qrSheetBox) {
         el.qrSheetBox.textContent = "QR wird geladen\u2026";
@@ -3290,11 +3487,7 @@
     var subtitle = getCardPrintSubtitle(card);
     var rewardSideNote = getRewardSideNote(rewardLabel, isFull);
     var footerLabel = getCardFooterLabel(card);
-    var countLine = isFull
-      ? extra > 0
-        ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
-        : rewardThreshold + "/" + rewardThreshold + " VOLL"
-      : clamp(stampCount, 0, rewardThreshold) + " / " + rewardThreshold + " STEMPEL";
+    var countLine = formatStampCountLine(stampCount, rewardThreshold, extra);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
@@ -3393,7 +3586,7 @@
 
     var stampLead = document.createElement("div");
     stampLead.className = "passStampLead";
-    stampLead.textContent = "Hier stempeln";
+    stampLead.textContent = "Fortschritt";
 
     var stampNeed = document.createElement("div");
     stampNeed.className = "passStampNeed";
@@ -3470,16 +3663,10 @@
     progressText.className = "passProgressText";
     var progressHeadline = document.createElement("strong");
     progressHeadline.className = "passProgressHeadline";
-    progressHeadline.textContent = isFull
-      ? "Belohnung bereit"
-      : remaining === 1
-        ? "Nur noch 1 Besuch"
-        : "Nur noch " + remaining + " Besuche";
+    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
     var progressSub = document.createElement("span");
     progressSub.className = "passProgressSub";
-    progressSub.textContent = isFull
-      ? "Diese Karte ist bereit zum Einl\u00f6sen."
-      : "Dann ist deine n\u00e4chste Belohnung in erfreulicher Reichweite.";
+    progressSub.textContent = formatNextStampLine(remaining, isFull);
     progressText.appendChild(progressHeadline);
     progressText.appendChild(progressSub);
 
@@ -3492,7 +3679,7 @@
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = isFull ? "Tippe f\u00fcr Einl\u00f6sen-QR" : "Tippe f\u00fcr QR";
+    hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -3513,11 +3700,7 @@
 
     var footerVisit = document.createElement("div");
     footerVisit.className = "passFooterVisit";
-    footerVisit.textContent = isFull
-      ? "ZUM EINLOESEN ZEIGEN"
-      : remaining === 1
-        ? "1 STEMPEL FEHLT"
-        : remaining + " STEMPEL FEHLEN";
+    footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
 
     footer.appendChild(footerMeta);
     footer.appendChild(footerVisit);
@@ -3578,7 +3761,7 @@
     qrCaption.className = "passQrCaption";
     qrCaption.textContent = isFull
       ? "Im Caf\u00e9 scannen lassen, um die Belohnung einzul\u00f6sen."
-      : "Im Caf\u00e9 scannen lassen, damit dein n\u00e4chster Stempel dazukommt.";
+      : "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
     qr.appendChild(qrCaption);
 
     var backNote = document.createElement("div");
@@ -4128,6 +4311,7 @@
       walletState.lastFavKey = "";
       walletState.lastCardCount = 0;
       setWalletEmptyVisible(true);
+      renderWelcomeCards();
       return;
     }
 
@@ -4179,6 +4363,7 @@
     if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
     if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
 
+    renderWelcomeCards();
     scheduleWalletStampsRefresh(40);
   }
 
@@ -4456,7 +4641,7 @@
     );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
-      hint.textContent = isFull ? "Tippe f\u00fcr Einl\u00f6sen-QR" : "Tippe f\u00fcr QR";
+      hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
 
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
@@ -4514,26 +4699,26 @@
 
     var countLine = passCardEl.querySelector(".passCountLine");
     if (countLine) {
-      countLine.textContent = isFull
-        ? extra > 0
-          ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
-          : rewardThreshold + "/" + rewardThreshold + " VOLL"
-        : clamp(stampCount, 0, rewardThreshold) +
-          " / " +
-          rewardThreshold +
-          " STEMPEL";
+      countLine.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
     }
 
     var stampNeed = passCardEl.querySelector(".passStampNeed");
     if (stampNeed) {
-      stampNeed.textContent = isFull
-        ? extra > 0
-          ? rewardThreshold + "/" + rewardThreshold + " + " + extra + " EXTRA"
-          : rewardThreshold + "/" + rewardThreshold + " VOLL"
-        : clamp(stampCount, 0, rewardThreshold) +
-          " / " +
-          rewardThreshold +
-          " STEMPEL";
+      stampNeed.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
+    }
+
+    var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
+    if (progressHeadline) {
+      progressHeadline.textContent = formatRewardProgressLine(
+        remaining,
+        isFull,
+        passCardEl.getAttribute("data-reward-label") || "",
+      );
+    }
+
+    var progressSub = passCardEl.querySelector(".passProgressSub");
+    if (progressSub) {
+      progressSub.textContent = formatNextStampLine(remaining, isFull);
     }
 
     var rewardNote = passCardEl.querySelector(".passRewardNote");
@@ -4546,11 +4731,7 @@
 
     var footerVisit = passCardEl.querySelector(".passFooterVisit");
     if (footerVisit) {
-      footerVisit.textContent = isFull
-        ? "ZUM EINLOESEN ZEIGEN"
-        : remaining === 1
-          ? "1 STEMPEL FEHLT"
-          : remaining + " STEMPEL FEHLEN";
+      footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -5152,7 +5333,7 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "Wische wie durch echte Karten. Tippe eine Karte, wenn du den QR im Caf\u00e9 zeigen willst.";
+          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR-Code.";
       }
       if (el.utilityMapBtn) {
         el.utilityMapBtn.textContent = "Caf\u00e9s";
@@ -5160,6 +5341,10 @@
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
         if (lbl) lbl.textContent = "Entdecken";
+      }
+      if (el.mainModeWallet) {
+        var walletLbl = el.mainModeWallet.querySelector(".lbl");
+        if (walletLbl) walletLbl.textContent = "Karten";
       }
       if (el.authPanel) {
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
@@ -5237,6 +5422,21 @@
     if (el.walletEmptyMapBtn) {
       el.walletEmptyMapBtn.addEventListener("click", function () {
         closeWalletOverlay({ silent: true });
+        navigateToMode("map");
+      });
+    }
+    if (el.welcomePrimaryAction) {
+      el.welcomePrimaryAction.addEventListener("click", function () {
+        var hasCards = false;
+        try {
+          hasCards = getFavorites().length > 0;
+        } catch (eFav) {
+          hasCards = false;
+        }
+        if (hasCards) {
+          openWalletOverlay();
+          return;
+        }
         navigateToMode("map");
       });
     }
