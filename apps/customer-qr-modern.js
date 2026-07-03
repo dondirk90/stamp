@@ -2072,11 +2072,33 @@
       .trim()
       .replace(/\s+/g, " ");
     if (!s) return "C";
-    var parts = s.split(" ");
-    var a = parts[0] ? parts[0].charAt(0) : "C";
-    var b = parts.length > 1 && parts[1] ? parts[1].charAt(0) : "";
-    var out = (a + b).toUpperCase();
+    var parts = s.split(" ").filter(Boolean);
+    if (parts.length > 1 && /^caf/i.test(parts[0] || "")) parts = parts.slice(1);
+    if (!parts.length) parts = ["C"];
+    var first = String(parts[0] || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    var second = parts.length > 1 ? String(parts[1] || "") : "";
+    first = first.replace(/^[^A-Za-z0-9]+/, "");
+    second = second
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/^[^A-Za-z0-9]+/, "");
+    var out = "";
+    if (second) {
+      out = (first.charAt(0) + second.charAt(0)).toUpperCase();
+    } else {
+      out = first.slice(0, 2).toUpperCase();
+    }
     return out.slice(0, 2) || "C";
+  }
+
+  function buildPassLogoFallback(name) {
+    var fallback = document.createElement("div");
+    fallback.className = "passLogoInitial";
+    fallback.setAttribute("aria-hidden", "true");
+    fallback.textContent = cafeInitials(name);
+    return fallback;
   }
 
   function buildCafePinIcon(cafe) {
@@ -3328,8 +3350,19 @@
       img.decoding = "async";
       img.loading = "lazy";
       img.src = String(card.logoDataUrl);
+      img.addEventListener("error", function () {
+        try {
+          logoWrap.innerHTML = "";
+          logoWrap.appendChild(buildPassLogoFallback(title));
+        } catch (eLogoFallback) {}
+      });
       logoWrap.appendChild(img);
       brandLockup.appendChild(logoWrap);
+    } else {
+      var fallbackLogoWrap = document.createElement("div");
+      fallbackLogoWrap.className = "passLogoWrap";
+      fallbackLogoWrap.appendChild(buildPassLogoFallback(title));
+      brandLockup.appendChild(fallbackLogoWrap);
     }
 
     var titleBlock = document.createElement("div");
