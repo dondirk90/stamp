@@ -2,497 +2,473 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kaffeekarte - Lokale Stempelkarten fuer Cafes und Gaeste</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Kaffeekarte - Die digitale Stempelkarte für dein Lieblingscafé</title>
     <meta
       name="description"
-      content="Kaffeekarte bringt lokale Stempelkarten aufs Handy und macht das Stempeln fuer Cafes einfach und schnell."
+      content="Nie wieder Papierkarten verlieren. Sammle Stempel digital und entdecke die besten Cafés deiner Stadt."
     />
-    <meta name="theme-color" content="#f7efe6" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      :root {
+        --page-max: 1180px;
+        --glass: rgba(255, 251, 246, 0.82);
+        --line: rgba(81, 58, 40, 0.1);
+        --line-strong: rgba(81, 58, 40, 0.18);
+      }
+
       body {
-        padding: calc(var(--space-5) + var(--safe-top, 0px))
-          calc(var(--space-5) + var(--safe-right, 0px))
-          calc(var(--space-6) + var(--safe-bottom, 0px))
-          calc(var(--space-5) + var(--safe-left, 0px));
+        min-height: 100svh;
         background:
-          radial-gradient(circle at top, rgba(229, 197, 164, 0.18), rgba(229, 197, 164, 0) 34%),
-          linear-gradient(180deg, #fcf8f3 0%, #f4ede4 100%);
+          radial-gradient(circle at top left, rgba(213, 173, 132, 0.24), rgba(213, 173, 132, 0) 34%),
+          radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 28%),
+          linear-gradient(180deg, #fbf7f1 0%, #f4ede4 48%, #efe6dc 100%);
+        color: var(--text);
       }
 
-      .siteShell {
-        width: min(1140px, 100%);
+      .page {
+        width: min(var(--page-max), calc(100% - 28px));
         margin: 0 auto;
+        padding: 22px 0 48px;
       }
 
-      .siteHeader {
+      .header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        padding: 14px 18px;
-        margin-bottom: 22px;
-        border-radius: 28px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.74);
-        backdrop-filter: blur(16px);
-        box-shadow:
-          0 12px 28px rgba(68, 41, 22, 0.06),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+        gap: 18px;
+        margin-bottom: 26px;
       }
 
-      .headerNav {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .headerNav a {
-        min-height: 42px;
-        padding: 0 16px;
-        border-radius: 999px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
+      .brand {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        font-size: 12px;
+        gap: 14px;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .brandMark {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(247, 239, 229, 0.9));
+        box-shadow:
+          0 14px 30px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .brandMark img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+
+      .brandText {
+        display: grid;
+        gap: 3px;
+      }
+
+      .brandKicker {
+        font-size: 11px;
         font-weight: 900;
-        letter-spacing: 0.14em;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--text);
-        background: rgba(255, 252, 248, 0.9);
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .brandWord {
+        font-family: var(--font-serif);
+        font-size: 34px;
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 252, 248, 0.72);
+        backdrop-filter: blur(14px);
+      }
+
+      .nav a {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: rgba(59, 42, 31, 0.76);
       }
 
       .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
-        gap: 42px;
-        align-items: center;
-        margin-bottom: calc(var(--space-7) + 10px);
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 26px;
+        align-items: stretch;
       }
 
       .heroCard,
-      .journeyPanel,
-      .audienceCard {
-        border: none;
-        background: transparent;
-        box-shadow: none;
+      .heroVisual,
+      .feature,
+      .story,
+      .cafe,
+      .audience,
+      .journey {
+        border-radius: 34px;
+        border: 1px solid var(--line);
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        box-shadow:
+          0 22px 44px rgba(68, 41, 22, 0.09),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
       }
 
       .heroCard {
-        padding: clamp(10px, 2vw, 18px) 4px 4px 0;
+        padding: 34px;
+        display: grid;
+        align-content: start;
+        gap: 18px;
       }
 
       .eyebrow {
         display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 7px 14px;
+        width: fit-content;
+        padding: 8px 14px;
         border-radius: 999px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 255, 255, 0.55);
-        font-size: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.64);
+        font-size: 11px;
         font-weight: 900;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        margin-bottom: 16px;
+        color: #7a5236;
       }
 
       .heroTitle {
-        margin: 0 0 14px;
-        font-size: clamp(40px, 6vw, 72px);
-        line-height: 0.94;
-        letter-spacing: -0.05em;
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(46px, 7vw, 76px);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
       }
 
       .heroLead {
-        max-width: 30ch;
-        margin: 0 0 14px;
-        font-size: 18px;
-        line-height: 1.58;
-        color: var(--text-muted);
+        margin: 0;
+        max-width: 34ch;
+        font-size: 19px;
+        line-height: 1.55;
+        color: rgba(59, 42, 31, 0.8);
       }
 
-      .ctaRow {
+      .heroActions {
         display: flex;
-        flex-wrap: wrap;
         gap: 12px;
-        margin-top: 22px;
-      }
-
-      .ctaRow .btn {
-        min-height: 52px;
-        padding-inline: 18px;
+        flex-wrap: wrap;
       }
 
       .heroValues {
         display: flex;
+        gap: 10px;
         flex-wrap: wrap;
-        gap: 14px;
-        margin-top: 22px;
       }
 
-      .heroValues span {
+      .heroValues span,
+      .cafeTag {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        font-size: 12px;
+        min-height: 34px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.6);
+        font-size: 11px;
         font-weight: 900;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.72);
+        color: rgba(59, 42, 31, 0.68);
       }
 
-      .heroValues span::before {
-        content: "";
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #6b452c;
+      .heroSignature {
+        color: rgba(59, 42, 31, 0.74);
+        line-height: 1.55;
       }
 
-      .phoneStage {
+      .heroSignature strong {
+        color: var(--text);
+      }
+
+      .heroVisual {
         position: relative;
-        min-height: 620px;
-        border-radius: 34px;
-        overflow: hidden;
-        padding: 18px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background:
-          radial-gradient(circle at top right, rgba(255, 245, 234, 0.12), rgba(255, 245, 234, 0) 36%),
-          linear-gradient(180deg, #161210 0%, #2d221b 42%, #4b3427 100%);
-        box-shadow: 0 24px 54px rgba(68, 41, 22, 0.14);
-      }
-
-      .phoneShell {
-        position: absolute;
-        inset: 18px 24px;
-        border-radius: 36px;
-        background:
-          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.98));
-        box-shadow:
-          0 28px 54px rgba(0, 0, 0, 0.34),
-          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        padding: 28px;
         overflow: hidden;
       }
 
-      .phoneTopbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 22px 24px 0;
-      }
-
-      .phoneBrand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 26px;
-        line-height: 1;
-        color: #241710;
-      }
-
-      .phoneBrand img {
-        width: 44px;
-        height: 44px;
-        padding: 6px;
-        border-radius: 14px;
-        border: 1px solid rgba(107, 69, 44, 0.12);
-        background:
-          linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(247, 238, 228, 0.94));
-      }
-
-      .phoneMenu {
-        width: 18px;
-        height: 14px;
-        position: relative;
-      }
-
-      .phoneMenu::before,
-      .phoneMenu::after,
-      .phoneMenu span {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #7a5236;
-      }
-
-      .phoneMenu::before {
-        top: 0;
-      }
-
-      .phoneMenu span {
-        top: 6px;
-      }
-
-      .phoneMenu::after {
-        top: 12px;
-      }
-
-      .phoneBody {
-        padding: 24px 24px 118px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: calc(100% - 72px);
-      }
-
-      .walletTop {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 12px;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.72);
-      }
-
-      .phoneWalletCard {
-        margin: 10px auto 0;
-        width: min(100%, 320px);
-        aspect-ratio: 1.56 / 1;
-        border-radius: 28px;
-        padding: 20px 18px;
-        background:
-          linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(245, 236, 226, 0.98));
-        box-shadow:
-          0 16px 32px rgba(68, 41, 22, 0.18),
-          0 1px 0 rgba(255, 255, 255, 0.84) inset;
-        position: relative;
-      }
-
-      .phoneWalletCard::before {
+      .heroVisual::before {
         content: "";
         position: absolute;
         inset: 0;
-        border-radius: inherit;
         background:
-          repeating-linear-gradient(
-            -12deg,
-            rgba(108, 79, 52, 0.03) 0 2px,
-            rgba(255, 255, 255, 0) 2px 11px
-          );
+          radial-gradient(circle at top right, rgba(219, 180, 140, 0.28), rgba(219, 180, 140, 0) 36%),
+          linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
         pointer-events: none;
       }
 
-      .walletCafe {
-        margin: 0 0 4px;
-        font-size: 34px;
-        line-height: 0.96;
-        letter-spacing: -0.05em;
+      .mockup {
+        position: relative;
+        width: min(420px, 100%);
+        margin: 0 auto;
+        padding: 18px 16px 16px;
+        border-radius: 44px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(243, 232, 220, 0.96));
+        box-shadow:
+          0 30px 60px rgba(57, 34, 21, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
       }
 
-      .walletSub {
-        margin: 0 0 22px;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.56);
-      }
-
-      .stampHeader {
+      .mockupTop {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 12px;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
+        margin-bottom: 14px;
       }
 
-      .stampGrid {
+      .mockupBrand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+      }
+
+      .mockupBrand img {
+        width: 22px;
+        height: 22px;
+      }
+
+      .mockupMenu {
+        width: 18px;
+        height: 2px;
+        border-radius: 999px;
+        background: #7a5236;
+        box-shadow: 0 6px 0 #7a5236, 0 -6px 0 #7a5236;
+      }
+
+      .mockupScreen {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .miniCard {
+        padding: 18px;
+        border-radius: 28px;
+        border: 1px solid rgba(81, 58, 40, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 237, 226, 0.94));
+        box-shadow:
+          0 16px 30px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      }
+
+      .miniTop,
+      .miniMeta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 12px;
       }
 
-      .stampDot {
-        aspect-ratio: 1 / 1;
-        border-radius: 999px;
-        border: 1.5px solid rgba(36, 23, 16, 0.2);
-        background: rgba(255, 255, 255, 0.52);
-        display: grid;
-        place-items: center;
-      }
-
-      .stampDot img {
-        width: 72%;
-        height: 72%;
-        object-fit: contain;
-        opacity: 0.28;
-      }
-
-      .stampDot.filled {
-        border-color: rgba(36, 23, 16, 0.56);
-        background: rgba(107, 69, 44, 0.08);
-      }
-
-      .stampDot.filled img {
-        opacity: 1;
-      }
-
-      .phoneTabs {
-        position: absolute;
-        left: 16px;
-        right: 16px;
-        bottom: 16px;
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: end;
-        gap: 10px;
-        padding: 10px;
-        border-radius: 22px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.96);
-      }
-
-      .phoneTab {
-        min-height: 50px;
-        display: grid;
-        place-items: center;
+      .miniTop {
         font-size: 11px;
         font-weight: 900;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.62);
+        color: rgba(59, 42, 31, 0.62);
       }
 
-      .phoneTab:last-child {
-        justify-self: end;
+      .miniMeta {
+        margin-top: 14px;
       }
 
-      .phoneTab.hero {
-        width: auto;
-        min-width: 132px;
-        justify-self: center;
-        padding: 0 22px;
+      .miniLogo {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
         border-radius: 18px;
-        color: #fffaf5;
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
-        box-shadow:
-          0 18px 30px rgba(68, 41, 22, 0.2),
-          0 1px 0 rgba(255, 255, 255, 0.14) inset;
-        transform: translateY(-18px);
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background: rgba(255, 255, 255, 0.9);
       }
 
-      .featureStrip {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0;
-        padding: 24px 0 22px;
-        margin-bottom: var(--space-6);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
-        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      .miniLogo img {
+        width: 28px;
+        height: 28px;
       }
 
-      .featureItem {
-        padding: 10px 18px;
-      }
-
-      .featureItem + .featureItem {
-        border-left: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .featureKicker {
-        margin-bottom: 12px;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.58);
-      }
-
-      .featureItem h3,
-      .audienceCard h3,
-      .journeyPanel h3,
-      .storyBlock h3 {
-        margin: 0 0 10px;
-        font-size: 22px;
-      }
-
-      .featureItem p,
-      .sectionLead,
-      .audienceCard p,
-      .journeyPanel p,
-      .storyBlock p {
+      .miniCafe {
         margin: 0;
-        color: var(--text-muted);
-        line-height: 1.58;
+        font-size: 34px;
+        line-height: 0.95;
+        letter-spacing: -0.05em;
       }
 
-      .plainStory {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 24px;
-        padding: 28px 0 20px;
-        margin-bottom: var(--space-6);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      .miniSub {
+        margin: 8px 0 0;
+        color: rgba(59, 42, 31, 0.76);
       }
 
-      .storyBlock {
-        max-width: 52ch;
-      }
-
-      .storyBlock + .storyBlock {
-        padding-left: 24px;
-        border-left: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .contentFlow {
-        display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-        gap: 34px;
-        padding-top: 28px;
-        margin-bottom: var(--space-6);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .audienceCard {
-        padding: 0;
-      }
-
-      .list {
+      .miniProgress {
         display: grid;
         gap: 10px;
         margin-top: 16px;
       }
 
-      .list div {
-        color: var(--text-muted);
-        line-height: 1.48;
+      .miniProgressLine {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        font-weight: 800;
+        color: rgba(59, 42, 31, 0.72);
       }
 
-      .list strong {
+      .beanRow {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .bean {
+        aspect-ratio: 1;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.12);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .bean.filled {
+        background: linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+        border-color: rgba(72, 47, 30, 0.44);
+      }
+
+      .mockupFooter {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(81, 58, 40, 0.08);
+      }
+
+      .mockupFooter span {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.54);
+      }
+
+      .mockupFooter .active {
         color: var(--text);
       }
 
-      .journeyPanel {
-        padding: 28px 0 0;
-        margin-bottom: var(--space-6);
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      .section {
+        margin-top: 26px;
+      }
+
+      .featureGrid,
+      .storyGrid,
+      .cafeGrid,
+      .audienceGrid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .featureGrid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .feature,
+      .story,
+      .cafe,
+      .audience,
+      .journey {
+        padding: 24px;
+      }
+
+      .featureIcon {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        font-size: 22px;
+      }
+
+      .feature h3,
+      .story h3,
+      .audience h3,
+      .journey h3,
+      .cafe h3 {
+        margin: 14px 0 8px;
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .feature p,
+      .story p,
+      .audience p,
+      .journey p,
+      .cafe p {
+        margin: 0;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .storyGrid,
+      .audienceGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .sectionKicker {
-        margin-bottom: 10px;
         font-size: 11px;
         font-weight: 900;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(36, 23, 16, 0.58);
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .cafeGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .cafe h3 {
+        margin-top: 18px;
+      }
+
+      .cafeMeta {
+        margin-top: 8px;
+      }
+
+      .list {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .list div {
+        padding: 14px 0 0;
+        border-top: 1px solid rgba(81, 58, 40, 0.08);
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
       }
 
       .journeyList {
@@ -503,138 +479,131 @@
 
       .journeyStep {
         display: grid;
-        grid-template-columns: 34px minmax(0, 1fr);
-        gap: 12px;
+        grid-template-columns: 46px minmax(0, 1fr);
+        gap: 14px;
         align-items: start;
       }
 
       .journeyNo {
-        width: 34px;
-        height: 34px;
-        border-radius: 999px;
+        width: 46px;
+        height: 46px;
         display: grid;
         place-items: center;
+        border-radius: 999px;
         background: #6b452c;
-        color: #fffaf5;
-        font-size: 12px;
+        color: #fff;
+        font-size: 14px;
         font-weight: 900;
       }
 
       .journeyStepTitle {
-        margin: 0 0 4px;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: 900;
+        margin-bottom: 4px;
       }
 
       .footerNote {
-        max-width: 58ch;
-        margin: 0 auto;
-        text-align: center;
-        color: var(--text-muted);
-        font-size: 15px;
-        line-height: 1.6;
+        margin: 24px 0 14px;
+        color: rgba(59, 42, 31, 0.7);
+        line-height: 1.55;
       }
 
       .footerLinks {
         display: flex;
-        justify-content: center;
+        gap: 14px;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 18px;
       }
 
       .footerLinks a {
-        min-height: 40px;
-        padding: 0 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        background: rgba(255, 252, 248, 0.88);
-        color: var(--text);
+        color: rgba(59, 42, 31, 0.72);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
       }
 
-      @media (max-width: 980px) {
-        .hero,
-        .plainStory,
-        .contentFlow,
-        .featureStrip {
+      @media (max-width: 1080px) {
+        .hero {
           grid-template-columns: 1fr;
         }
 
-        .phoneStage {
-          min-height: 560px;
+        .featureGrid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .featureItem + .featureItem,
-        .storyBlock + .storyBlock {
-          border-left: none;
-          padding-left: 0;
+        .cafeGrid {
+          grid-template-columns: 1fr;
         }
       }
 
       @media (max-width: 760px) {
-        body {
-          padding: calc(var(--space-4) + var(--safe-top, 0px))
-            calc(var(--space-4) + var(--safe-right, 0px))
-            calc(var(--space-5) + var(--safe-bottom, 0px))
-            calc(var(--space-4) + var(--safe-left, 0px));
+        .page {
+          width: min(100% - 20px, var(--page-max));
+          padding-top: 14px;
         }
 
-        .siteHeader {
-          align-items: flex-start;
+        .header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .nav {
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .heroCard,
+        .heroVisual,
+        .feature,
+        .story,
+        .cafe,
+        .audience,
+        .journey {
+          border-radius: 28px;
+        }
+
+        .heroCard,
+        .heroVisual,
+        .feature,
+        .story,
+        .cafe,
+        .audience,
+        .journey {
+          padding: 20px;
+        }
+
+        .featureGrid,
+        .storyGrid,
+        .audienceGrid {
+          grid-template-columns: 1fr;
+        }
+
+        .heroActions {
           flex-direction: column;
         }
 
-        .headerNav {
+        .heroActions .btn {
           width: 100%;
         }
 
-        .headerNav a {
-          flex: 1 1 calc(50% - 6px);
-        }
-
-        .phoneShell {
-          inset: 14px;
-        }
-
-        .phoneBody {
-          padding-inline: 18px;
-        }
-
-        .phoneBrand {
-          font-size: 22px;
-        }
-
-        .walletCafe {
+        .miniCafe {
           font-size: 28px;
-        }
-
-        .phoneTab.hero {
-          min-width: 124px;
-          padding-inline: 18px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="siteShell">
-      <header class="siteHeader">
-        <a class="kk-brand is-hero" href="/">
-          <span class="kk-brandMark" aria-hidden="true">
+    <div class="page">
+      <header class="header">
+        <a class="brand" href="/">
+          <span class="brandMark" aria-hidden="true">
             <img src="/assets/stamp-bean.png?v=1" alt="" />
           </span>
-          <span class="kk-brandText">
-            <span class="kk-brandKicker">Kaffee im Veedel</span>
-            <span class="kk-brandWord">Kaffeekarte</span>
+          <span class="brandText">
+            <span class="brandKicker">Kaffee im Veedel</span>
+            <span class="brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <nav class="headerNav" aria-label="Produktnavigation">
+        <nav class="nav" aria-label="Produktnavigation">
           <a href="#gaeste">Gäste</a>
           <a href="#cafes">Cafés</a>
           <a href="#ablauf">Ablauf</a>
@@ -644,196 +613,244 @@
 
       <section class="hero">
         <div class="heroCard">
-          <div class="eyebrow">Lokal. Schnell. Ohne App-Theater.</div>
-          <h1 class="heroTitle">Die Stempelkarte f&uuml;rs Veedel.</h1>
+          <div class="eyebrow">Support your local café.</div>
+          <h1 class="heroTitle">Die digitale Stempelkarte für dein Lieblingscafé.</h1>
           <p class="heroLead">
-            Kaffeekarte bringt lokale Treuekarten aufs Handy und macht das
-            Stempeln f&uuml;r Caf&eacute;s einfach und schnell. F&uuml;r mehr
-            Stammg&auml;ste, klare Abl&auml;ufe und ein Treuesystem, das im Alltag funktioniert. So wird aus einem Kaffee eher ein zweiter, dritter und vierter.
+            Nie wieder Papierkarten verlieren. Sammle Stempel digital und entdecke die besten Cafés deiner Stadt.
           </p>
-
-          <div class="ctaRow" id="cta">
-            <a class="btn primary" href="/wallet">Wallet starten</a>
-            <a class="btn secondary" href="/cafe">Caf&eacute; starten</a>
+          <div class="heroActions" id="cta">
+            <a class="btn primary" href="/wallet">Jetzt starten</a>
+            <a class="btn secondary" href="/cafe">Partnercafé werden</a>
           </div>
-
           <div class="heroValues" aria-label="Kernwerte">
-            <span>Lokal</span>
-            <span>Schnell</span>
-            <span>Unkompliziert</span>
+            <span>Digital statt Papier</span>
+            <span>Made for independent cafés</span>
+            <span>Specialty-Coffee-Vibes</span>
+          </div>
+          <div class="heroSignature">
+            <strong>Made for independent cafés.</strong> Für Stammgäste, Baristas und gute Routinen.
           </div>
         </div>
 
-        <div class="phoneStage" aria-hidden="true">
-          <div class="phoneShell">
-            <div class="phoneTopbar">
-              <div class="phoneBrand">
+        <div class="heroVisual" aria-hidden="true">
+          <div class="mockup">
+            <div class="mockupTop">
+              <div class="mockupBrand">
                 <img src="/assets/stamp-bean.png?v=1" alt="" />
                 <span>Kaffeekarte</span>
               </div>
-              <span class="phoneMenu"><span></span></span>
+              <span class="mockupMenu"></span>
             </div>
-            <div class="phoneBody">
-              <div class="walletTop">
-                <span>Jeder 10. Kaffee gratis</span>
-                <span>7 / 10</span>
+            <div class="mockupScreen">
+              <div class="miniCard">
+                <div class="miniTop">
+                  <span>Deine Lieblingscafés</span>
+                  <span>3 Karten</span>
+                </div>
+                <div class="miniMeta">
+                  <div>
+                    <h2 class="miniCafe">Café Vacacione</h2>
+                    <p class="miniSub">Sülz · Specialty Coffee · Flat White</p>
+                  </div>
+                  <div class="miniLogo">
+                    <img src="/assets/stamp-bean.png?v=1" alt="" />
+                  </div>
+                </div>
+                <div class="miniProgress">
+                  <div class="miniProgressLine">
+                    <span>7 von 10 Stempeln</span>
+                    <span>Noch 3 bis zum Gratiskaffee</span>
+                  </div>
+                  <div class="beanRow">
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean"></span>
+                    <span class="bean"></span>
+                    <span class="bean"></span>
+                  </div>
+                </div>
               </div>
-              <div class="phoneWalletCard">
-                <div class="walletTop">
-                  <span>Treuekarte</span>
-                  <span>Köln</span>
+
+              <div class="miniCard">
+                <div class="miniTop">
+                  <span>QR bereit</span>
+                  <span>Nur ein Scan</span>
                 </div>
-                <h2 class="walletCafe">Cafe Mausbert</h2>
-                <p class="walletSub">Kaffeespezialitaeten</p>
-                <div class="stampHeader">
-                  <span>Hier stempeln</span>
-                  <span>7 / 10 Stempel</span>
+                <div class="miniMeta">
+                  <div>
+                    <h2 class="miniCafe">Jackson Kaffee</h2>
+                    <p class="miniSub">Lindenthal · Rösterei · Hinterhof</p>
+                  </div>
+                  <div class="miniLogo">
+                    <img src="/assets/stamp-bean.png?v=1" alt="" />
+                  </div>
                 </div>
-                <div class="stampGrid">
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot filled"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
-                  <div class="stampDot"><img src="/assets/stamp-bean.png?v=1" alt="" /></div>
+                <div class="miniProgress">
+                  <div class="miniProgressLine">
+                    <span>9 von 10 Stempeln</span>
+                    <span>Nur noch ein Kaffee bis zur Gratisrunde</span>
+                  </div>
+                  <div class="beanRow">
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean filled"></span>
+                    <span class="bean"></span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="phoneTabs">
-              <div class="phoneTab">Cafés</div>
-              <div class="phoneTab hero">Wallet</div>
-              <div class="phoneTab">Konto</div>
+            <div class="mockupFooter">
+              <span>Cafés</span>
+              <span class="active">Wallet</span>
+              <span>Konto</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="featureStrip">
-        <article class="featureItem">
-          <div class="featureKicker">Für Gäste</div>
-          <h3>Lieblingsorte statt Zettelsammlung</h3>
+      <section class="section featureGrid">
+        <article class="feature">
+          <div class="featureIcon">☕</div>
+          <div class="sectionKicker">Wallet</div>
+          <h3>Alle Karten an einem Ort</h3>
+          <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie.</p>
+        </article>
+        <article class="feature">
+          <div class="featureIcon">▣</div>
+          <div class="sectionKicker">Scan</div>
+          <h3>QR zeigen, Stempel sammeln</h3>
+          <p>Ein Scan im Café genügt und der nächste Stempel landet direkt auf deiner Karte.</p>
+        </article>
+        <article class="feature">
+          <div class="featureIcon">⌂</div>
+          <div class="sectionKicker">Discovery</div>
+          <h3>Lieblingscafés entdecken</h3>
+          <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
+        </article>
+        <article class="feature">
+          <div class="featureIcon">✦</div>
+          <div class="sectionKicker">Flow</div>
+          <h3>Papierlos & unkompliziert</h3>
+          <p>Ruhig, schnell und ohne Tool-Gefühl. Eher Wallet als SaaS, eher Ritual als Pflichtprogramm.</p>
+        </article>
+      </section>
+
+      <section class="section storyGrid">
+        <article class="story">
+          <div class="sectionKicker">Kaffeekultur</div>
+          <h3>Mehr Cafégefühl, weniger Tool.</h3>
           <p>
-            Statt loser Papierkarten landen deine Café-Karten gesammelt auf dem
-            Handy - mit QR, Stempelstand und einer Belohnung, die in Sicht
-            bleibt.
+            Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
+            gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
           </p>
         </article>
-        <article class="featureItem">
-          <div class="featureKicker">Für Cafés</div>
-          <h3>Im Caféalltag zählt Tempo</h3>
+        <article class="story">
+          <div class="sectionKicker">Für Wiederkehr gebaut</div>
+          <h3>Support your local café.</h3>
           <p>
-            Die Scanner-App ist als Arbeitswerkzeug gebaut: Kamera im Mittelpunkt,
-            kaum Umwege und schnell im laufenden Betrieb.
-          </p>
-        </article>
-        <article class="featureItem">
-          <div class="featureKicker">Produktprinzip</div>
-          <h3>So leicht wie ein guter Espresso</h3>
-          <p>
-            Kaffeekarte will keine große Loyalty-Maschinerie sein, sondern eine
-            gute Gewohnheit: wiederkommen, stempeln, belohnt werden.
+            Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
+            lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
           </p>
         </article>
       </section>
 
-      <section class="plainStory">
-        <div class="storyBlock">
-          <div class="sectionKicker">Warum Kaffeekarte</div>
-          <h3>Warum Kaffeekarte?</h3>
-          <p>
-            Kleine Cafés brauchen keine Plattform, die klingt wie eine
-            Vorstandspräsentation. Sie brauchen ein Werkzeug, das menschlich,
-            lokal und schnell funktioniert.
-          </p>
-        </div>
-        <div class="storyBlock">
-          <div class="sectionKicker">Für echte Wiederkehr</div>
-          <h3>Für Lieblingsorte gebaut.</h3>
-          <p>
-            Kurze Wege im Alltag, bekannte Cafés im Viertel und eine Treuekarte,
-            die man tatsächlich wieder öffnet, statt sie tapfer zu vergessen.
-          </p>
-        </div>
+      <section class="section cafeGrid" id="cafes">
+        <article class="cafe">
+          <div class="cafeTag">Sülz · Specialty Coffee</div>
+          <h3>Café Vacacione</h3>
+          <p class="cafeMeta">Hausröstung, Flat White & entspannte Vibes.</p>
+        </article>
+        <article class="cafe">
+          <div class="cafeTag">Lindenthal · Espresso Bar</div>
+          <h3>Jackson Kaffee</h3>
+          <p class="cafeMeta">Rösterei, ruhiger Hinterhof und viel Liebe zum Produkt.</p>
+        </article>
+        <article class="cafe">
+          <div class="cafeTag">Sülz · Independent Café</div>
+          <h3>Impact Café</h3>
+          <p class="cafeMeta">Nachbarschaft, Haltung und Specialty Coffee mit lokaler Energie.</p>
+        </article>
       </section>
 
-      <section class="contentFlow">
-        <article class="audienceCard" id="gaeste">
+      <section class="section audienceGrid">
+        <article class="audience" id="gaeste">
           <div class="sectionKicker">Für Gäste</div>
-          <h3>Deine Stempelkarten sind sofort griffbereit.</h3>
-          <p class="sectionLead">
-            Karte öffnen, QR zeigen, weiter Kaffee genießen. Und wenn du Lust
-            auf etwas Neues hast, führt dich die Karte direkt zu den nächsten
-            Orten im Veedel.
+          <h3>Stempelkarten, die man wirklich wieder öffnet.</h3>
+          <p>
+            Karten öffnen, QR zeigen, Kaffee genießen. Neue Orte entdecken, ohne
+            den entspannten Produktfluss zu verlieren.
           </p>
           <div class="list">
-            <div><strong>Eine aktive Karte:</strong> die wichtigste Stempelkarte steht sofort im Fokus.</div>
-            <div><strong>Neue Orte entdecken:</strong> Die Karte zeigt dir, was in deiner Nähe gut ist und als Nächstes in deine Sammlung passen könnte.</div>
-            <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Durcheinander zwischen Portemonnaie und Handy.</div>
+            <div><strong>Sofort verständlich:</strong> Lieblingscafés, Fortschritt und QR liegen direkt vor dir.</div>
+            <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Kartenchaos.</div>
+            <div><strong>Mehr Vorfreude:</strong> jeder Besuch fühlt sich wie ein kleiner Schritt zur nächsten Gratisrunde an.</div>
           </div>
         </article>
-
-        <article class="audienceCard" id="cafes">
+        <article class="audience">
           <div class="sectionKicker">Für Cafés</div>
           <h3>Ein Werkzeug für den Caféalltag.</h3>
-          <p class="sectionLead">
-            Die Café-App bündelt Scanner, Stempelkarte, Verwaltung und Dashboard
-            in einer einzigen klaren Oberfläche. Sie arbeitet mit, statt sich
-            wichtig zu machen.
+          <p>
+            Scanner, Wallet und Verwaltung leben in derselben ruhigen Oberfläche.
+            Schnell genug für die Theke, hochwertig genug fürs Produktgefühl.
           </p>
           <div class="list">
-            <div><strong>Ein Klick zum Scan:</strong> der Scanner bleibt auf jeder Seite präsent.</div>
-            <div><strong>Direkt aus der Kameraansicht:</strong> auf dem Handy springt ihr ohne zusätzliche App-Suche oder Menüwege direkt in den Scan.</div>
+            <div><strong>Ein Klick zum Scan:</strong> keine Umwege, keine Theken-Hektik.</div>
             <div><strong>Eigene Karte pflegen:</strong> Reward, Beschreibung, Website und Bild an einem Ort.</div>
-            <div><strong>Arbeitsmodus statt Website:</strong> für echte Schichten gebaut, nicht für schöne Folien.</div>
+            <div><strong>Arbeitsmodus statt Website:</strong> gemacht für echte Schichten, nicht für Folien.</div>
           </div>
         </article>
       </section>
 
-      <section class="journeyPanel" id="ablauf">
+      <section class="section journey" id="ablauf">
         <div class="sectionKicker">So funktioniert es</div>
-        <h3>So funktioniert es</h3>
-        <p class="sectionLead">
-          Ein klarer Ablauf für beide Seiten: entdecken, stempeln, wiederkommen.
-        </p>
+        <h3>Entdecken, stempeln, wiederkommen.</h3>
+        <p>Ein klarer Ablauf für beide Seiten: vom ersten Cafébesuch bis zur nächsten Gratisrunde.</p>
         <div class="journeyList">
           <div class="journeyStep">
             <div class="journeyNo">1</div>
             <div>
               <div class="journeyStepTitle">Café ansehen</div>
-              <p>Auf der Karte ein Café öffnen, kurz reinlesen und entscheiden, ob die Karte in deine Wallet soll.</p>
+              <p>Ein Café öffnen, kurz hineinspüren und die Karte mit einem Tap holen.</p>
             </div>
           </div>
           <div class="journeyStep">
             <div class="journeyNo">2</div>
             <div>
               <div class="journeyStepTitle">Stempelkarte holen</div>
-              <p>Die Karte wandert direkt in deine Wallet und bleibt dort als kleines, sehr greifbares Objekt im Mittelpunkt.</p>
+              <p>Die Karte landet direkt in deiner Wallet und bleibt dort als ruhiger, vertrauter Begleiter.</p>
             </div>
           </div>
           <div class="journeyStep">
             <div class="journeyNo">3</div>
             <div>
               <div class="journeyStepTitle">QR im Café zeigen</div>
-              <p>Beim Bezahlen oder Abholen öffnest du die Karte, holst den QR nach vorn und zeigst ihn zum Stempeln.</p>
+              <p>Beim Bestellen oder Bezahlen öffnest du die Karte und zeigst den QR für den nächsten Stempel.</p>
             </div>
           </div>
           <div class="journeyStep">
             <div class="journeyNo">4</div>
             <div>
               <div class="journeyStepTitle">Belohnung im Blick behalten</div>
-              <p>Du siehst sofort, wie nah du an deinem nächsten Gratiskaffee oder kleinen Triumph des Alltags bist.</p>
+              <p>Du siehst sofort, wie nah du am Gratiskaffee, an deiner Belohnung und an deinem nächsten Ritual bist.</p>
             </div>
           </div>
         </div>
       </section>
 
       <p class="footerNote">
-        Kaffeekarte verbindet lokale Lieblingscafés mit einer klaren, schnellen
-        Treue-Erfahrung für Menschen, die gute Routinen schätzen und schlechten Plastikstempeln nicht nachtrauern.
+        Kaffeekarte verbindet lokale Lieblingscafés mit einer ruhigen, klaren Loyalty-Erfahrung
+        für Menschen, die gute Routinen schätzen und Specialty Coffee ernst nehmen.
       </p>
       <div class="footerLinks" aria-label="Rechtliches">
         <a href="/impressum">Impressum</a>

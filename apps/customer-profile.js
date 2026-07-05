@@ -13,6 +13,7 @@
     authedOnly: document.getElementById("authedOnly"),
     forgotPanel: document.getElementById("forgotPanel"),
     profileInfo: document.getElementById("profileInfo"),
+    profileAdvancedInfo: document.getElementById("profileAdvancedInfo"),
 
     currentPassword: document.getElementById("currentPassword"),
     newPassword: document.getElementById("newPassword"),
@@ -93,6 +94,15 @@
     return String(fallback || "Ein Fehler ist aufgetreten.");
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function getResetTokenFromUrl() {
     try {
       const u = new URL(location.href);
@@ -144,7 +154,7 @@
 
     if (!session) {
       el.profileStatus.textContent = "Nicht eingeloggt";
-      if (el.profileSub) el.profileSub.textContent = "Verwalte deine Zugangsdaten.";
+      if (el.profileSub) el.profileSub.textContent = "Melde dich an oder fordere einen Reset-Link an.";
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
@@ -152,19 +162,33 @@
       return;
     }
 
-    el.profileStatus.textContent = `Eingeloggt: ${session.username || session.email}`;
-    if (el.profileSub) el.profileSub.textContent = "Dein Account ist aktiv und bereit.";
+    el.profileStatus.textContent = `Willkommen zur\u00fcck, ${session.username || session.email}`;
+    if (el.profileSub) el.profileSub.textContent = "Dein Account ist aktiv und bereit f\u00fcr den n\u00e4chsten Kaffee.";
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";
     if (el.notLoggedIn) el.notLoggedIn.style.display = "none";
     if (el.authedOnly) el.authedOnly.style.display = "grid";
     if (el.forgotPanel) el.forgotPanel.style.display = "none";
 
     if (el.profileInfo) {
+      const fields = [];
+      if (session.username) {
+        fields.push(
+          `<div class="profileField"><div class="profileFieldLabel">Benutzername</div><div class="profileFieldValue">${escapeHtml(session.username)}</div></div>`,
+        );
+      }
+      if (session.email) {
+        fields.push(
+          `<div class="profileField"><div class="profileFieldLabel">E-Mail</div><div class="profileFieldValue">${escapeHtml(session.email)}</div></div>`,
+        );
+      }
+      el.profileInfo.innerHTML = fields.join("");
+    }
+
+    if (el.profileAdvancedInfo) {
       const lines = [];
-      if (session.username) lines.push(`Username: ${session.username}`);
-      if (session.email) lines.push(`E-Mail: ${session.email}`);
+      if (session.customer_id != null) lines.push(`Kunden-ID: ${session.customer_id}`);
       if (session.address) lines.push(`Kunden-Adresse: ${session.address}`);
-      el.profileInfo.textContent = lines.join("\n");
+      el.profileAdvancedInfo.textContent = lines.length ? lines.join("\n") : "Keine erweiterten Informationen vorhanden.";
     }
 
     if (el.resetEmail && session.email) el.resetEmail.value = session.email;
@@ -195,7 +219,7 @@
       return;
     }
     if (newPassword !== newPassword2) {
-      showNotice(el.changePwMsg, "danger", "Neue Passwoerter stimmen nicht ueberein.");
+      showNotice(el.changePwMsg, "danger", "Neue Passwörter stimmen nicht überein.");
       return;
     }
 
@@ -213,7 +237,7 @@
       showNotice(
         el.changePwMsg,
         "danger",
-        safeUiErrorMessage(e, "Passwort konnte nicht geaendert werden."),
+        safeUiErrorMessage(e, "Passwort konnte nicht geändert werden."),
       );
       return;
     }
@@ -222,7 +246,7 @@
     if (el.newPassword) el.newPassword.value = "";
     if (el.newPassword2) el.newPassword2.value = "";
 
-    showNotice(el.changePwMsg, "success", "Passwort wurde geaendert.");
+    showNotice(el.changePwMsg, "success", "Passwort wurde geändert.");
   }
 
   async function handleForgotPassword() {
@@ -277,7 +301,7 @@
       return;
     }
     if (pw1 !== pw2) {
-      showNotice(el.resetPwMsg, "danger", "Passwoerter stimmen nicht ueberein.");
+      showNotice(el.resetPwMsg, "danger", "Passwörter stimmen nicht überein.");
       return;
     }
 
@@ -386,3 +410,4 @@
 
   boot();
 })();
+

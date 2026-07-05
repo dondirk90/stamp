@@ -2,11 +2,8 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
-    />
-    <title>Customer - Profil - Suelzer Kaffeekarte</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Customer - Profil - Kaffeekarte</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -252,15 +249,8 @@
         line-height: 1.5;
       }
 
-      .divider {
-        height: 1px;
-        background: rgba(17, 17, 17, 0.08);
-        margin: 16px 0;
-      }
-
       .formRow {
         display: grid;
-        grid-template-columns: 1fr;
         gap: 14px;
       }
 
@@ -279,6 +269,69 @@
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: rgba(255, 255, 255, 0.72);
         word-break: break-word;
+      }
+
+      .profileFields {
+        display: grid;
+        gap: 12px;
+      }
+
+      .profileField {
+        display: grid;
+        gap: 4px;
+        padding: 0 0 12px;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .profileField:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .profileFieldLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.58);
+      }
+
+      .profileFieldValue {
+        font-size: 16px;
+        font-weight: 700;
+        color: #241710;
+        word-break: break-word;
+      }
+
+      .advancedDetails {
+        margin-top: 14px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.6);
+        overflow: hidden;
+      }
+
+      .advancedDetails summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.68);
+      }
+
+      .advancedDetails summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .advancedDetails[open] summary {
+        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .advancedDetailsBody {
+        padding: 14px 16px 16px;
       }
 
       .hiddenWhenLoggedOut {
@@ -337,13 +390,13 @@
             <span class="kk-brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menue">
+        <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
           <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
         </button>
       </div>
 
-      <div class="utilityMenu" id="utilityMenu" aria-label="Menue">
-        <a class="utilityMenuLink" href="/customer-map">Cafes</a>
+      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
+        <a class="utilityMenuLink" href="/customer-map">Caf&eacute;s</a>
         <a class="utilityMenuLink" href="/customer-history">Verlauf</a>
         <a class="utilityMenuLink" href="/customer-profile">Konto</a>
         <button class="utilityMenuLink utilityMenuButton" id="utilityLogoutBtn" type="button">
@@ -358,16 +411,9 @@
             <div class="profileHead">
               <div class="stack" style="gap: 8px">
                 <h1>Profil</h1>
-                <p class="profileLead">
-                  Verwalte deine Zugangsdaten in derselben klaren
-                  Produktansicht wie deine Karten.
-                </p>
+                <p class="profileLead">Verwalte deinen Account ohne Umwege.</p>
               </div>
-              <button
-                class="btn secondary hiddenWhenLoggedOut"
-                id="logoutBtn"
-                type="button"
-              >
+              <button class="btn secondary hiddenWhenLoggedOut" id="logoutBtn" type="button">
                 Logout
               </button>
             </div>
@@ -378,7 +424,7 @@
               <div class="stack" style="gap: 6px">
                 <div class="badge" id="profileStatus">Nicht eingeloggt</div>
                 <div class="smallHint" id="profileSub">
-                  Verwalte deine Zugangsdaten ohne großes Tamtam.
+                  Halte deine Daten aktuell und bleib bereit f&uuml;r den n&auml;chsten Kaffee.
                 </div>
               </div>
             </div>
@@ -391,110 +437,72 @@
           <div id="authedOnly" class="stack" style="display: none; gap: 16px; margin-top: 16px">
             <div class="sectionCard">
               <div class="sectionTitle">Account</div>
-              <div class="sectionLead">
-                Deine Accountdaten liegen hier kompakt an einem Ort. Ganz so, wie es sein sollte.
-              </div>
-              <div class="tokenBox" id="profileInfo"></div>
+              <div class="sectionLead">Benutzername und E-Mail liegen hier klar an einem Ort.</div>
+              <div class="profileFields" id="profileInfo"></div>
+              <details class="advancedDetails">
+                <summary>Erweiterte Informationen</summary>
+                <div class="advancedDetailsBody">
+                  <div class="tokenBox" id="profileAdvancedInfo"></div>
+                </div>
+              </details>
             </div>
 
             <div class="sectionCard">
-              <div class="sectionTitle">Passwort aendern</div>
-              <div class="sectionLead">
-                Halte deinen Zugang aktuell, ohne den App-Kontext zu verlassen.
-              </div>
+              <div class="sectionTitle">Passwort &auml;ndern</div>
+              <div class="sectionLead">Wenn du willst, aktualisierst du hier deinen Zugang.</div>
               <div class="formRow">
                 <div class="stack" style="gap: 6px">
                   <label for="currentPassword">Aktuelles Passwort</label>
-                  <input
-                    id="currentPassword"
-                    type="password"
-                    autocomplete="current-password"
-                  />
+                  <input id="currentPassword" type="password" autocomplete="current-password" />
                 </div>
                 <div class="stack" style="gap: 6px">
                   <label for="newPassword">Neues Passwort</label>
-                  <input
-                    id="newPassword"
-                    type="password"
-                    autocomplete="new-password"
-                  />
+                  <input id="newPassword" type="password" autocomplete="new-password" />
                 </div>
                 <div class="stack" style="gap: 6px">
-                  <label for="newPassword2">Neues Passwort bestaetigen</label>
-                  <input
-                    id="newPassword2"
-                    type="password"
-                    autocomplete="new-password"
-                  />
+                  <label for="newPassword2">Neues Passwort best&auml;tigen</label>
+                  <input id="newPassword2" type="password" autocomplete="new-password" />
                 </div>
               </div>
-              <button class="btn primary" id="changePwBtn" type="button">
-                Passwort aendern
-              </button>
+              <button class="btn primary" id="changePwBtn" type="button">Passwort &auml;ndern</button>
               <div id="changePwMsg" class="notice" style="display: none"></div>
-              <div class="smallHint" style="margin-top: 10px">
-                Aus Sicherheitsgründen brauchst du dafür dein aktuelles Passwort. Die Bürokratie hält sich immerhin in Grenzen.
-              </div>
             </div>
           </div>
 
           <div id="forgotPanel" class="sectionCard" style="margin-top: 16px">
             <div class="sectionTitle">Passwort vergessen</div>
-            <div class="sectionLead">
-              Fordere einen Reset-Link an, wenn du nicht mehr in deinen Account
-              kommst. Das passiert den Besten.
-            </div>
+            <div class="sectionLead">Fordere einen Reset-Link an, wenn du gerade nicht mehr reinkommst.</div>
             <div class="formRow">
               <div class="stack" style="gap: 6px">
                 <label for="resetEmail">E-Mail</label>
-                <input
-                  id="resetEmail"
-                  type="email"
-                  inputmode="email"
-                  autocomplete="email"
-                />
+                <input id="resetEmail" type="email" inputmode="email" autocomplete="email" />
               </div>
             </div>
-            <button class="btn secondary" id="forgotPwBtn" type="button">
-              Reset-Link senden
-            </button>
+            <button class="btn secondary" id="forgotPwBtn" type="button">Reset-Link senden</button>
             <div id="forgotPwMsg" class="notice" style="display: none"></div>
             <div id="devResetBox" style="display: none">
               <div class="smallHint" style="margin-top: 10px">Reset-Link</div>
               <div class="tokenBox" id="devResetUrl"></div>
             </div>
             <div class="smallHint" style="margin-top: 10px">
-              Wenn die E-Mail existiert, bekommst du eine Nachricht. Ob der
-              Account existiert, verraten wir aus guten Gründen nicht.
+              Wenn die E-Mail existiert, bekommst du eine Nachricht.
             </div>
           </div>
 
           <div id="resetPanel" class="sectionCard" style="display: none; margin-top: 16px">
             <div class="sectionTitle">Neues Passwort setzen</div>
-            <div class="sectionLead">
-              Der Link ist nur begrenzt gültig und lässt sich genau einmal verwenden.
-            </div>
+            <div class="sectionLead">Der Link ist nur begrenzt gültig und lässt sich genau einmal verwenden.</div>
             <div class="formRow">
               <div class="stack" style="gap: 6px">
                 <label for="resetNewPw">Neues Passwort</label>
-                <input
-                  id="resetNewPw"
-                  type="password"
-                  autocomplete="new-password"
-                />
+                <input id="resetNewPw" type="password" autocomplete="new-password" />
               </div>
               <div class="stack" style="gap: 6px">
-                <label for="resetNewPw2">Neues Passwort bestaetigen</label>
-                <input
-                  id="resetNewPw2"
-                  type="password"
-                  autocomplete="new-password"
-                />
+                <label for="resetNewPw2">Neues Passwort bestätigen</label>
+                <input id="resetNewPw2" type="password" autocomplete="new-password" />
               </div>
             </div>
-            <button class="btn primary" id="resetPwBtn" type="button">
-              Passwort setzen
-            </button>
+            <button class="btn primary" id="resetPwBtn" type="button">Passwort setzen</button>
             <div id="resetPwMsg" class="notice" style="display: none"></div>
           </div>
         </div>

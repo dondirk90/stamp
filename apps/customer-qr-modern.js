@@ -620,7 +620,7 @@
       el.welcomeCardCount.textContent = String(favCount || 0);
     }
     if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent = favCount > 0 ? "QR zeigen" : "Caf\u00e9s entdecken";
+      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Entdecken";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
@@ -630,7 +630,7 @@
     }
     if (el.welcomePrimaryAction) {
       el.welcomePrimaryAction.textContent =
-        favCount > 0 ? "In Wallet \u00f6ffnen" : "Caf\u00e9s entdecken";
+        favCount > 0 ? "Karten öffnen" : "Caf\u00e9s entdecken";
     }
     renderWelcomeCards();
   }
@@ -693,6 +693,23 @@
       var countLine = formatStampCountLine(stampCount, rewardThreshold, Math.max(0, stampCount - rewardThreshold));
       var article = document.createElement("article");
       article.className = "welcomePreviewCard";
+      article.tabIndex = 0;
+      article.setAttribute("role", "button");
+      article.setAttribute("aria-label", meta.name + " öffnen");
+      article.addEventListener("click", (function (addr) {
+        return function () {
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+        };
+      })(cafeAddress));
+      article.addEventListener("keydown", (function (addr) {
+        return function (ev) {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          try {
+            ev.preventDefault();
+          } catch (e) {}
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+        };
+      })(cafeAddress));
 
       var head = document.createElement("div");
       head.className = "welcomePreviewHead";
@@ -744,13 +761,14 @@
       message.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
 
       var track = document.createElement("div");
-      track.className = "welcomePreviewTrack";
-      var fill = document.createElement("div");
-      fill.className = "welcomePreviewFill";
-      fill.style.width = String(
-        Math.max(0, Math.min(100, (Math.min(stampCount, rewardThreshold) / rewardThreshold) * 100)),
-      ) + "%";
-      track.appendChild(fill);
+      track.className = "welcomePreviewStampRow";
+      for (var stampIndex = 0; stampIndex < rewardThreshold; stampIndex++) {
+        var stampDot = document.createElement("span");
+        stampDot.className =
+          "welcomePreviewStamp" +
+          (stampIndex < Math.min(stampCount, rewardThreshold) ? " filled" : "");
+        track.appendChild(stampDot);
+      }
 
       var footer = document.createElement("div");
       footer.className = "welcomePreviewFooter";
@@ -1949,22 +1967,24 @@
   function formatRewardProgressLine(remaining, isFull, rewardLabel) {
     var hasCustomReward = !!String(rewardLabel || "").trim();
     if (isFull) {
-      return hasCustomReward ? "Deine Belohnung wartet ☕" : "Dein Gratiskaffee wartet ☕";
+      return hasCustomReward
+        ? "Deine Belohnung wartet \u2615"
+        : "Dein Gratiskaffee wartet \u2615";
     }
     if (hasCustomReward) {
       return remaining === 1
-        ? "Noch 1 Kaffee bis zur Belohnung"
-        : "Noch " + remaining + " Kaffees bis zur Belohnung";
+        ? "Nur noch ein Kaffee bis zur Belohnung."
+        : "Noch " + remaining + " Kaffees bis zur Belohnung.";
     }
     return remaining === 1
-      ? "Noch 1 Kaffee bis zum Gratiskaffee"
-      : "Noch " + remaining + " Kaffees bis zum Gratiskaffee";
+      ? "Nur noch ein Kaffee bis zur Gratisrunde."
+      : "Noch " + remaining + " Kaffees bis zum Gratiskaffee.";
   }
 
   function formatNextStampLine(remaining, isFull) {
-    if (isFull) return "QR zeigen und deine Belohnung im Café einlösen.";
-    if (remaining === 1) return "Dein nächster Stempel ist nur einen Scan entfernt.";
-    return "Im Café scannen lassen und den nächsten Stempel sammeln.";
+    if (isFull) return "Im Caf\u00e9 scannen lassen und deine Belohnung einl\u00f6sen.";
+    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Scan entfernt.";
+    return "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
   }
 
   function formatFooterProgressLine(remaining, isFull) {
@@ -5114,11 +5134,11 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "Belohnung eingel\u00f6st"
+              ? "\ud83c\udf81 Gratiskaffee eingel\u00f6st"
               : t === "card_start"
-                ? "Neue Karte"
+                ? "Neue Karte geholt"
                 : t === "stamp"
-                  ? "Stempel"
+                  ? "\u2615 Stempel gesammelt"
                   : "Event";
           meta.textContent = (when ? when + " \u00b7 " : "") + verb;
 
@@ -5129,9 +5149,10 @@
           var right = document.createElement("div");
           right.className = "historyTx";
           if (t === "stamp") {
-            right.textContent = "+" + Math.max(0, Number(ev.delta || 0));
+            right.textContent =
+              "+" + Math.max(0, Number(ev.delta || 0)) + " Stempel";
           } else if (t === "redeem") {
-            right.textContent = "-10";
+            right.textContent = "Gratiskaffee";
           } else {
             right.textContent = ev.delta ? String(ev.delta) : "";
           }
@@ -5515,6 +5536,7 @@
     } catch (e5) {}
   }
 })();
+
 
 
 

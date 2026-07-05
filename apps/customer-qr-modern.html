@@ -1927,6 +1927,19 @@
         box-shadow:
           0 16px 34px rgba(47, 31, 22, 0.08),
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        cursor: pointer;
+        transition:
+          transform 220ms ease-out,
+          box-shadow 220ms ease-out,
+          border-color 220ms ease-out;
+      }
+
+      .welcomePreviewCard:hover {
+        transform: translateY(-2px);
+        border-color: rgba(81, 58, 40, 0.18);
+        box-shadow:
+          0 22px 40px rgba(47, 31, 22, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
       }
 
       .welcomePreviewHead {
@@ -1937,8 +1950,8 @@
       }
 
       .welcomePreviewLogo {
-        width: 46px;
-        height: 46px;
+        width: 60px;
+        height: 60px;
         border-radius: 999px;
         border: 1px solid rgba(81, 58, 40, 0.1);
         background: rgba(255, 255, 255, 0.92);
@@ -1984,21 +1997,23 @@
         font-size: 15px;
       }
 
-      .welcomePreviewTrack {
-        position: relative;
-        width: 100%;
-        height: 10px;
-        border-radius: 999px;
-        background: rgba(81, 58, 40, 0.1);
-        overflow: hidden;
+      .welcomePreviewStampRow {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 8px;
       }
 
-      .welcomePreviewFill {
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 0%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+      .welcomePreviewStamp {
+        aspect-ratio: 1;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.14);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+      }
+
+      .welcomePreviewStamp.filled {
+        border-color: rgba(72, 47, 30, 0.42);
+        background: linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
       }
 
       .welcomePreviewFooter {
@@ -2012,6 +2027,7 @@
       .welcomePreviewHint {
         font-size: 13px;
         color: rgba(59, 42, 31, 0.66);
+        max-width: 28ch;
       }
 
       .welcomePreviewBtn {
@@ -3896,7 +3912,7 @@
       }
 
       .qrSheetClose::before {
-        content: "Ã—";
+        content: "\00d7";
         display: block;
         font-size: 28px;
         font-weight: 400;
@@ -4527,14 +4543,14 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menue">
+          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
             <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
           </button>
         </div>
       </div>
 
-      <div class="utilityMenu" id="utilityMenu" aria-label="Menue">
-        <button class="utilityMenuBtn" id="utilityMapBtn" type="button">Cafes</button>
+      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
+        <button class="utilityMenuBtn" id="utilityMapBtn" type="button">Caf&eacute;s</button>
         <button class="utilityMenuBtn" id="utilityHistoryBtn" type="button">Verlauf</button>
         <button class="utilityMenuBtn" id="utilityAccountBtn" type="button">Konto</button>
         <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Logout</button>
@@ -4562,7 +4578,7 @@
           <button class="topMenuBtn ghost active" id="mainModeMap" type="button">
             <span class="topMenuBtnContent">
               <span class="ico" aria-hidden="true">C</span>
-              <span class="lbl">Cafes</span>
+              <span class="lbl">Caf&eacute;s</span>
             </span>
           </button>
           <button
@@ -4597,8 +4613,8 @@
           type="button"
         >
           <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">☕</span>
-            <span class="lbl">Wallet &ouml;ffnen</span>
+            <span class="ico" aria-hidden="true">&#9749;</span>
+            <span class="lbl">Karten &ouml;ffnen</span>
           </span>
         </button>
       </div>
@@ -4616,7 +4632,7 @@
           <div class="stack panelBody">
             <div class="authIntro">
               <div class="authEyebrow">Suelzer Kaffeekarte</div>
-                <h3 class="authTitle">Deine Lieblingscafes an einem Ort.</h3>
+                <h3 class="authTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
               <p class="authLead">
                 Melde dich an und behalte Stempel, Rewards und deine naechsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
@@ -4626,7 +4642,7 @@
                 <div class="authPerk">
                   <div class="authPerkNo">1</div>
                   <div class="authPerkText">
-                    <strong>Alles an einem Ort:</strong> mehrere Cafes, mehrere Karten,
+                    <strong>Alles an einem Ort:</strong> mehrere Caf&eacute;s, mehrere Karten,
                     aber nur ein klarer Einstieg.
                   </div>
                 </div>
@@ -4640,7 +4656,7 @@
                 <div class="authPerk">
                   <div class="authPerkNo">3</div>
                   <div class="authPerkText">
-                    <strong>Schnell im Caf&eacute;:</strong> Wallet &ouml;ffnen, QR zeigen, Kaffee genie&szlig;en.
+                    <strong>Schnell im Caf&eacute;:</strong> Karten &ouml;ffnen, QR zeigen, Kaffee genie&szlig;en.
                   </div>
                 </div>
               </div>
@@ -4689,7 +4705,7 @@
             </div>
 
             <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
-              <label for="confirmPassword">Passwort bestaetigen</label>
+              <label for="confirmPassword">Passwort best&auml;tigen</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -4805,15 +4821,15 @@
               </div>
               <div class="welcomeDeck">
                 <div class="welcomeSectionHead">
-                  <div class="welcomeSectionTitle">Deine Kaffeekarten</div>
+                  <div class="welcomeSectionTitle">Deine Lieblingscaf&eacute;s</div>
                   <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
-                    In Wallet &ouml;ffnen
+                    Karten &ouml;ffnen
                   </button>
                 </div>
                 <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
                   Noch keine Kaffeekarten. Entdecke ein Caf&eacute; und hol dir deine erste Karte.
                 </div>
-                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Deine Kaffeekarten"></div>
+                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Deine Lieblingscaf&eacute;s"></div>
                 <div class="welcomeNextHint" id="welcomeNextHint">
                   Zeig im Caf&eacute; einfach den QR-Code, dann kommt der n&auml;chste Stempel direkt dazu.
                 </div>
@@ -4833,7 +4849,7 @@
                     class="stack"
                     style="gap: 8px; margin-top: var(--space-3)"
                   >
-                    <div class="muted" style="font-size: 12px">Cafe suchen</div>
+                    <div class="muted" style="font-size: 12px">Lieblingscaf&eacute; finden</div>
                     <input
                       id="cafeSearch"
                       type="search"
@@ -4883,7 +4899,7 @@
                 <h3>Stempel-Historie</h3>
               </div>
               <div class="hint" id="historySubtitle">
-                Letzte Bewegungen. Mehrere Stempel werden, h&ouml;flich gesagt, zusammengefasst.
+                Deine letzten Kaffee-Momente auf einen Blick.
               </div>
               <div
                 id="historyError"
@@ -4904,7 +4920,7 @@
               <div class="card panel walletDock" id="walletPanel">
                 <div class="walletDockHead">
                   <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schlie&szlig;en">Schlie&szlig;en</button>
-                  <h3 style="margin: 0">Deine Kaffeekarten</h3>
+                  <h3 style="margin: 0">Deine Lieblingscafés</h3>
                   <div class="hint" id="walletSubtitle">
                     W&auml;hle eine Karte und zeig im Caf&eacute; direkt deinen QR-Code.
                   </div>
@@ -5399,3 +5415,4 @@
     <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
+
