@@ -630,7 +630,7 @@
     }
     if (el.welcomePrimaryAction) {
       el.welcomePrimaryAction.textContent =
-        favCount > 0 ? "Karten öffnen" : "Caf\u00e9s entdecken";
+        favCount > 0 ? "Wallet ansehen" : "Caf\u00e9s entdecken";
     }
     renderWelcomeCards();
   }
@@ -695,21 +695,7 @@
       article.className = "welcomePreviewCard";
       article.tabIndex = 0;
       article.setAttribute("role", "button");
-      article.setAttribute("aria-label", meta.name + " öffnen");
-      article.addEventListener("click", (function (addr) {
-        return function () {
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
-        };
-      })(cafeAddress));
-      article.addEventListener("keydown", (function (addr) {
-        return function (ev) {
-          if (ev.key !== "Enter" && ev.key !== " ") return;
-          try {
-            ev.preventDefault();
-          } catch (e) {}
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
-        };
-      })(cafeAddress));
+      article.setAttribute("aria-label", meta.name + " �ffnen");
 
       var head = document.createElement("div");
       head.className = "welcomePreviewHead";
@@ -5536,6 +5522,8 @@
     } catch (e5) {}
   }
 })();
+
+
 
 
 

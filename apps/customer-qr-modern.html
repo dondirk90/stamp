@@ -1901,7 +1901,7 @@
 
       .welcomeCardsList {
         display: grid;
-        gap: 14px;
+        gap: 12px;
         width: 100%;
       }
 
@@ -1917,10 +1917,10 @@
 
       .welcomePreviewCard {
         display: grid;
-        gap: 14px;
+        gap: 12px;
         width: 100%;
-        padding: 18px 18px 20px;
-        border-radius: 28px;
+        padding: 16px 16px 18px;
+        border-radius: 24px;
         border: 1px solid rgba(81, 58, 40, 0.12);
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
@@ -1942,16 +1942,30 @@
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
       }
 
+      .welcomePreviewCard:focus-visible {
+        outline: 2px solid rgba(109, 78, 50, 0.34);
+        outline-offset: 2px;
+      }
+
       .welcomePreviewHead {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
+        justify-content: space-between;
         gap: 12px;
         min-width: 0;
       }
 
+      .welcomePreviewHeadMain {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
       .welcomePreviewLogo {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         border-radius: 999px;
         border: 1px solid rgba(81, 58, 40, 0.1);
         background: rgba(255, 255, 255, 0.92);
@@ -1970,21 +1984,21 @@
 
       .welcomePreviewMeta {
         display: grid;
-        gap: 4px;
+        gap: 3px;
         min-width: 0;
         flex: 1 1 auto;
       }
 
       .welcomePreviewTitle {
-        font-size: 28px;
+        font-size: 21px;
         font-weight: 950;
-        line-height: 0.98;
+        line-height: 1;
         letter-spacing: -0.04em;
         color: #241710;
       }
 
       .welcomePreviewCount {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1993,14 +2007,14 @@
 
       .welcomePreviewMessage {
         color: rgba(59, 42, 31, 0.86);
-        line-height: 1.5;
-        font-size: 15px;
+        line-height: 1.45;
+        font-size: 14px;
       }
 
       .welcomePreviewStampRow {
         display: grid;
         grid-template-columns: repeat(10, minmax(0, 1fr));
-        gap: 8px;
+        gap: 6px;
       }
 
       .welcomePreviewStamp {
@@ -2021,18 +2035,37 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        flex-wrap: wrap;
       }
 
       .welcomePreviewHint {
-        font-size: 13px;
+        font-size: 12px;
         color: rgba(59, 42, 31, 0.66);
-        max-width: 28ch;
+        max-width: 26ch;
       }
 
       .welcomePreviewBtn {
         width: auto;
-        min-width: 132px;
+        min-width: 116px;
+        align-self: flex-end;
+      }
+
+      @media (max-width: 520px) {
+        .welcomePreviewHead {
+          align-items: flex-start;
+        }
+
+        .welcomePreviewHeadMain {
+          min-width: 0;
+        }
+
+        .welcomePreviewFooter {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .welcomePreviewBtn {
+          width: 100%;
+        }
       }
 
       .welcomeNextHint {
@@ -4821,9 +4854,9 @@
               </div>
               <div class="welcomeDeck">
                 <div class="welcomeSectionHead">
-                  <div class="welcomeSectionTitle">Deine Lieblingscaf&eacute;s</div>
+                  <div class="welcomeSectionTitle">Deine Caf&eacute;s</div>
                   <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
-                    Karten &ouml;ffnen
+                    Wallet ansehen
                   </button>
                 </div>
                 <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
