@@ -1907,9 +1907,9 @@
 
       .welcomeOverviewCard {
         display: grid;
-        gap: 16px;
+        gap: 14px;
         width: 100%;
-        padding: 18px 18px 20px;
+        padding: 16px 16px 18px;
         border-radius: 26px;
         border: 1px solid rgba(81, 58, 40, 0.12);
         background:
@@ -1943,7 +1943,7 @@
 
       .welcomeCafeRows {
         display: grid;
-        gap: 10px;
+        gap: 6px;
       }
 
       .welcomeCafeRow {
@@ -1951,7 +1951,7 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
-        padding: 14px 0;
+        padding: 12px 0;
         border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
@@ -1981,7 +1981,7 @@
 
       .welcomeCafeMeta {
         display: grid;
-        gap: 4px;
+        gap: 5px;
         min-width: 0;
       }
 
@@ -2003,14 +2003,32 @@
         color: rgba(59, 42, 31, 0.6);
       }
 
-      .welcomeCafeReward {
-        font-size: 14px;
-        color: rgba(59, 42, 31, 0.82);
+      .welcomeCafeStampRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .welcomeCafeStamp {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.16);
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+      }
+
+      .welcomeCafeStamp.filled {
+        border-color: rgba(96, 65, 43, 0.48);
+        background:
+          radial-gradient(circle at 35% 35%, rgba(245, 215, 175, 0.95), rgba(150, 98, 58, 0.96));
       }
 
       .welcomeCafeAction {
-        min-width: 108px;
+        min-width: 98px;
         width: auto;
+        padding-inline: 16px;
       }
 
       .welcomeEmptyState {

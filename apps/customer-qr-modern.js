@@ -696,24 +696,8 @@
         : cafe
           ? getCardRewardThreshold(cafe)
           : REWARD_THRESHOLD;
-      var rewardLabel = "";
-      try {
-        rewardLabel = String(
-          (serverCard && (serverCard.rewardDescription || serverCard.reward)) ||
-            (cafe && (cafe.rewardDescription || cafe.reward)) ||
-            "",
-        ).trim();
-      } catch (eReward) {
-        rewardLabel = "";
-      }
-
       var stampCount =
         Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
-      var isFull = stampCount >= rewardThreshold;
-      var remaining = Math.max(
-        0,
-        rewardThreshold - clamp(stampCount, 0, rewardThreshold),
-      );
       var countLine = formatStampCountLine(
         stampCount,
         rewardThreshold,
@@ -777,13 +761,19 @@
       count.className = "welcomeCafeCount";
       count.textContent = countLine;
 
-      var reward = document.createElement("div");
-      reward.className = "welcomeCafeReward";
-      reward.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
+      var stampRow = document.createElement("div");
+      stampRow.className = "welcomeCafeStampRow";
+      for (var stampIndex = 0; stampIndex < rewardThreshold; stampIndex++) {
+        var stampDot = document.createElement("span");
+        stampDot.className =
+          "welcomeCafeStamp" +
+          (stampIndex < Math.min(stampCount, rewardThreshold) ? " filled" : "");
+        stampRow.appendChild(stampDot);
+      }
 
       metaWrap.appendChild(title);
       metaWrap.appendChild(count);
-      metaWrap.appendChild(reward);
+      metaWrap.appendChild(stampRow);
 
       var btn = document.createElement("button");
       btn.className = "btn secondary welcomeCafeAction";
