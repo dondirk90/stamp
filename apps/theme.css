@@ -33,9 +33,9 @@
   --info: #175cd3;
   --info-bg: #eff8ff;
 
-  /* Completely rectangular */
-  --radius: 0px;
-  --radius-sm: 0px;
+  /* Shared soft geometry for wallet-like product feel */
+  --radius: 30px;
+  --radius-sm: 20px;
 
   --space-1: 6px;
   --space-2: 10px;
@@ -47,33 +47,50 @@
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
+  --font-display:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
+  --shadow-sm: 0 10px 22px rgba(68, 41, 22, 0.06);
+  --shadow-md: 0 18px 40px rgba(68, 41, 22, 0.08);
+  --shadow-lg: 0 28px 56px rgba(68, 41, 22, 0.12);
 
   --focus: rgba(17, 17, 17, 0.14);
+  --coffee-ink: #6b452c;
+  --coffee-ink-soft: #8a6145;
+  --coffee-paper: #f2e6d7;
+  --coffee-paper-deep: #e9d8c3;
+  --coffee-line: rgba(107, 69, 44, 0.16);
+  --soft-button-bg: rgba(255, 255, 255, 0.56);
+  --soft-button-border: rgba(17, 17, 17, 0.1);
+  --soft-button-text: var(--text);
+  --soft-button-bg-hover: rgba(255, 255, 255, 0.72);
+  --notice-surface: rgba(255, 255, 255, 0.62);
 }
 
 /* Inverted (café) theme: same layout tokens, swapped canvas/ink */
 .theme-invert {
-  --bg: #111111;
-  --surface: #111111;
-  --surface-muted: rgba(255, 255, 255, 0.04);
+  --bg: #211712;
+  --surface: #2a1d18;
+  --surface-muted: rgba(255, 248, 241, 0.05);
 
-  --text: rgba(255, 255, 255, 0.92);
-  --text-muted: rgba(255, 255, 255, 0.62);
+  --text: rgba(255, 247, 239, 0.94);
+  --text-muted: rgba(242, 228, 216, 0.68);
 
-  --border: rgba(255, 255, 255, 0.18);
-  --focus: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 241, 233, 0.14);
+  --focus: rgba(255, 244, 236, 0.14);
 
-  --brand: #ffffff;
-  --brand-700: #ffffff;
-  --brand-50: rgba(255, 255, 255, 0.08);
-  --on-brand: #111111;
+  --brand: #f5ecdf;
+  --brand-700: #fff8f0;
+  --brand-50: rgba(255, 248, 241, 0.08);
+  --on-brand: #241812;
+  --soft-button-bg: var(--coffee-paper);
+  --soft-button-border: var(--coffee-line);
+  --soft-button-text: #2b1c14;
+  --soft-button-bg-hover: var(--coffee-paper-deep);
+  --notice-surface: rgba(242, 230, 215, 0.94);
 }
 
 * {
@@ -93,6 +110,132 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.kk-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.kk-brand:hover {
+  color: inherit;
+}
+
+.kk-brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--coffee-line) 72%, transparent);
+  border-radius: 18px;
+}
+
+.kk-brandMark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, var(--coffee-paper), var(--coffee-paper-deep));
+  border: 1px solid var(--coffee-line);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.66) inset,
+    0 -1px 0 rgba(72, 46, 30, 0.05) inset;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.kk-brandMark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0) 26%),
+    repeating-linear-gradient(
+      -18deg,
+      rgba(107, 69, 44, 0.028) 0 1px,
+      rgba(255, 255, 255, 0) 1px 7px
+    );
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.kk-brandMark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kk-brandText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kk-brandKicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.kk-brandWord {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.kk-brandSub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.kk-brand.is-hero .kk-brandMark {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+}
+
+.kk-brand.is-hero .kk-brandWord {
+  font-size: clamp(30px, 4vw, 38px);
+}
+
+.kk-brand.is-hero .kk-brandKicker {
+  font-size: 11px;
+}
+
+.theme-invert .kk-brandWord,
+.theme-invert .kk-brandKicker,
+.theme-invert .kk-brandSub {
+  color: var(--text);
+}
+
+.theme-invert .kk-brandMark {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.22) inset;
+}
+
+.theme-invert .kk-brandMark::after {
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 26%),
+    repeating-linear-gradient(
+      -18deg,
+      rgba(255, 255, 255, 0.04) 0 1px,
+      rgba(255, 255, 255, 0) 1px 7px
+    );
 }
 
 /* Many legacy pages set a purple gradient on body. Force the theme background. */
@@ -112,10 +255,18 @@ a:hover {
 /* Common page container used across many static pages */
 .card {
   /* Avoid “cards everywhere”: default to a simple section wrapper */
-  background: transparent;
-  border: none;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
+  border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow:
+    0 18px 40px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset;
+  transition:
+    transform 240ms ease-out,
+    box-shadow 240ms ease-out,
+    border-color 240ms ease-out,
+    background 240ms ease-out;
 }
 
 h1,
@@ -150,30 +301,42 @@ input,
 select,
 textarea {
   color: var(--text);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  padding: 10px 12px;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.66) inset,
+    0 8px 18px rgba(68, 41, 22, 0.04);
+  transition:
+    border-color 220ms ease-out,
+    box-shadow 220ms ease-out,
+    background 220ms ease-out,
+    transform 220ms ease-out;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--brand);
+  border-color: rgba(107, 69, 44, 0.42);
   box-shadow: 0 0 0 3px var(--focus);
 }
 
 button {
   background: var(--brand);
   color: var(--on-brand, #fff);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 12px 16px;
   font-weight: 700;
   letter-spacing: 0;
+  transition:
+    transform 220ms ease-out,
+    box-shadow 220ms ease-out,
+    background 220ms ease-out,
+    border-color 220ms ease-out,
+    opacity 220ms ease-out;
 }
 
 /* Some legacy pages still have inline purple button backgrounds.
@@ -205,9 +368,9 @@ button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
 
 button.secondary,
 button.ghost {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border);
 }
 
 /* Modern utility + layout helpers */
@@ -248,7 +411,7 @@ button.ghost {
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.56);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -268,6 +431,9 @@ button.ghost {
   font-weight: 700;
   text-decoration: none;
   touch-action: manipulation;
+  box-shadow:
+    0 10px 22px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 
 .btn.primary {
@@ -276,9 +442,35 @@ button.ghost {
 }
 
 .btn.secondary {
-  background: transparent !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border);
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border);
+}
+
+.btn-secondary,
+button.btn-secondary {
+  background: var(--soft-button-bg) !important;
+  color: var(--soft-button-text) !important;
+  border: 1px solid var(--soft-button-border) !important;
+}
+
+button.secondary:hover,
+button.ghost:hover,
+.btn.secondary:hover,
+.btn-secondary:hover,
+button.btn-secondary:hover {
+  background: var(--soft-button-bg-hover) !important;
+  color: var(--soft-button-text) !important;
+}
+
+button:hover,
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+button:active,
+.btn:active {
+  transform: translateY(0);
 }
 
 /* Clean top navigation (Holm-like): text links on white */
@@ -421,7 +613,10 @@ button.topMenuBtn.ghost {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--notice-surface);
+  box-shadow:
+    0 12px 28px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.58) inset;
   color: var(--text);
 }
 
@@ -479,6 +674,13 @@ button.topMenuBtn.ghost {
 
 .appPanel {
   padding: var(--space-5);
+  border-radius: var(--radius);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(245, 237, 228, 0.92));
+  box-shadow:
+    0 18px 40px rgba(68, 41, 22, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset;
 }
 
 .appCtas {

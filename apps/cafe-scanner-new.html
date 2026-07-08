@@ -6,7 +6,25 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Café Scanner - Stamp</title>
+    <title>Barista App - Kaffeekarte</title>
+    <meta
+      name="description"
+      content="Barista App der Kaffeekarte zum schnellen Scannen, Stempeln und Einloesen im Caféalltag."
+    />
+    <meta name="theme-color" content="#6b452c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Barista App" />
+    <meta name="application-name" content="Barista App - Kaffeekarte" />
+    <link rel="manifest" href="/pwa/manifest-cafe.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/pwa/icons/icon-192.png"
+    />
+    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       /* Inverted cafe theme is provided by `theme.css` via `.theme-invert`. */
@@ -22,82 +40,714 @@
         min-height: 100vh;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
-          calc(var(--space-5) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
           calc(var(--space-5) + var(--safe-left, 0px));
         position: relative;
         color: var(--text);
+        overflow-x: hidden;
+      }
+      body.installHintOpen {
+        overflow: hidden;
+      }
+
+      .installHintBackdrop {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: calc(var(--space-4) + var(--safe-top, 0px))
+          calc(var(--space-4) + var(--safe-right, 0px))
+          calc(var(--space-4) + var(--safe-bottom, 0px))
+          calc(var(--space-4) + var(--safe-left, 0px));
+        background: rgba(8, 5, 4, 0.42);
+        backdrop-filter: blur(14px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        z-index: 50;
+      }
+
+      .installHintBackdrop[hidden] {
+        display: none;
+      }
+
+      .installHintBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .installHintCard {
+        width: min(520px, 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background:
+          linear-gradient(180deg, rgba(43, 29, 24, 0.98), rgba(31, 20, 16, 0.98));
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.34),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        padding: 22px 22px 18px;
+        transform: translateY(18px);
+        transition: transform 220ms ease;
+      }
+
+      .installHintBackdrop.open .installHintCard {
+        transform: translateY(0);
+      }
+
+      .installHintEyebrow {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #e8c8a9;
+        margin-bottom: 10px;
+      }
+
+      .installHintTitle {
+        font-size: clamp(24px, 6vw, 30px);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin: 0 0 10px;
+        color: #fff5ec;
+      }
+
+      .installHintLead {
+        font-size: 15px;
+        line-height: 1.55;
+        color: rgba(255, 241, 233, 0.78);
+        margin: 0 0 16px;
+      }
+
+      .installHintSteps {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .installHintStep {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .installHintStepNo {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(232, 200, 169, 0.12);
+        color: #f2d8bf;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .installHintStepText {
+        font-size: 14px;
+        line-height: 1.5;
+        color: #fff5ec;
+      }
+
+      .installHintStepText strong {
+        color: #fff5ec;
+      }
+
+      .installHintActions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
       }
       body::before {
         content: none;
       }
 
       .shell {
-        max-width: 1100px;
+        max-width: 1120px;
         margin: 0 auto;
       }
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-
-        padding: var(--space-4) 0;
-        border-bottom: none;
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.82);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        position: relative;
+        z-index: 3;
       }
 
       .brand {
         display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
+      }
+
+      .brandHead {
+        display: flex;
         align-items: center;
-        gap: var(--space-3);
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 18px;
-        line-height: 1.15;
-        font-weight: 950;
+      .menuToggle {
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #7a5236 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
       }
 
-      .brand .avatar {
-        width: 42px;
-        height: 42px;
+      .menuToggleLines {
+        position: relative;
+        width: 20px;
+        height: 14px;
+        display: block;
+      }
+
+      .menuToggleLines::before,
+      .menuToggleLines::after,
+      .menuToggleLines span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
         border-radius: 999px;
-        background: var(--brand);
-        display: grid;
-        place-items: center;
-        color: var(--on-brand, #fff);
-        font-weight: 900;
+        background: #7a5236;
+        transition: transform 0.18s ease, opacity 0.18s ease;
       }
+
+      .menuToggleLines::before {
+        top: 0;
+      }
+
+      .menuToggleLines span {
+        top: 6px;
+      }
+
+      .menuToggleLines::after {
+        top: 12px;
+      }
+
+      body.menuOpen .menuToggleLines::before {
+        transform: translateY(6px) rotate(45deg);
+      }
+
+      body.menuOpen .menuToggleLines span {
+        opacity: 0;
+      }
+
+      body.menuOpen .menuToggleLines::after {
+        transform: translateY(-6px) rotate(-45deg);
+      }
+
+      .menuBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 12, 9, 0.24);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+        z-index: 61;
+      }
+
+      .menuBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .menuDrawer {
+        position: absolute;
+        top: 18px;
+        left: 20px;
+        width: min(320px, calc(100vw - 32px));
+        padding: 16px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.98), rgba(31, 21, 17, 0.98));
+        box-shadow:
+          0 20px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.985);
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        z-index: 72;
+      }
+
+      .menuDrawer.open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .menuDrawerHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(81, 58, 40, 0.08);
+      }
+
+      .menuDrawerTitle {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.72);
+      }
+
+      .menuDrawerMeta {
+        margin-top: 6px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.48);
+      }
+
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--text);
+      }
+
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 241, 233, 0.12) !important;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.02) !important;
+        color: var(--text) !important;
+        box-shadow:
+          0 12px 22px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: var(--text);
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.98), rgba(31, 21, 17, 0.98));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background:
+          linear-gradient(180deg, rgba(255, 248, 241, 0.05), rgba(255, 248, 241, 0.03)) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        background-image: none !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 241, 233, 0.08) !important;
+        border-radius: 14px;
+        color: var(--text) !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .utilityMenuBtn:hover,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
+        background: rgba(107, 69, 44, 0.08) !important;
+      }
+
+      .pageMeta,
+      .pageMeta *,
+      .card,
+      .card h1,
+      .card h2,
+      .card h3,
+      .card p,
+      .card label,
+      .card strong,
+      .card b,
+      .heroCard,
+      .heroCard *,
+      .menuInfo,
+      .menuInfo *,
+      .hintBox,
+      .hintBox * {
+        color: var(--text);
+      }
+
+      .pageMetaSub,
+      .subtitle,
+      .card .muted,
+      .heroCard .muted,
+      .menuInfo .muted,
+      .hintBox .muted {
+        color: var(--text-muted) !important;
+      }
+
+      input,
+      textarea,
+      select {
+        color: var(--text) !important;
+      }
+
+      .topMenu {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+      }
+
+      .topMenuBtn {
+        width: 100%;
+        min-width: 0;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 14px;
+        padding: 12px 12px;
+        cursor: pointer;
+        touch-action: manipulation;
+        color: #3b2a1f !important;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        box-shadow: none !important;
+        opacity: 0.76;
+      }
+
+      button.topMenuBtn.ghost {
+        border: none !important;
+      }
+
+      .topMenuBtn .ico {
+        display: inline-flex;
+        width: 24px;
+        align-items: center;
+        justify-content: center;
+        color: rgba(47, 32, 23, 0.5);
+      }
+
+      .topMenuBtn .lbl {
+        display: block;
+        text-align: left;
+        font-size: inherit;
+        font-weight: inherit;
+        margin: 0;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .topMenuBtn.active {
+        background: rgba(107, 69, 44, 0.08) !important;
+        opacity: 1;
+      }
+
+      .topMenuBtn.active .lbl {
+        color: #241710;
+      }
+
+      .topMenuBtn.active .ico {
+        color: #6b452c;
+      }
+
+      .topMenuBtnContent {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bottomTabs {
+        display: none;
+      }
+
+      .bottomTabSpacer {
+        flex: 1 1 0;
+      }
+
+      .bottomTabBtn {
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .bottomTabBtn .ico,
+      .bottomTabBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 64px;
+        margin-top: -18px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
+      }
+
+      .bottomTabBtn.walletHeroBtn.active {
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
+        color: #fffaf5 !important;
+      }
+
       .card {
-        max-width: 500px;
-        margin: var(--space-6) auto;
-        background: transparent;
-        padding: var(--space-6);
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
+        width: min(560px, 100%);
+        margin: clamp(28px, 5vw, 54px) auto;
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(31, 21, 17, 0.94));
+        padding: clamp(24px, 4vw, 40px);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 241, 233, 0.10);
+        box-shadow:
+          0 24px 56px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset;
         position: relative;
         z-index: 1;
+        --paper-text: var(--text);
+        --paper-muted: var(--text-muted);
+        --paper-border: var(--border);
+      }
+      .introBadge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 14%, transparent 86%);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 auto 18px;
       }
       h2 {
         text-align: center;
-        color: var(--brand);
+        color: var(--paper-text);
         font-size: 22px;
         font-weight: 950;
         margin-bottom: 6px;
       }
       .subtitle {
         text-align: center;
-        color: var(--text-muted);
+        color: var(--paper-muted);
         font-size: 15px;
-        margin-bottom: 32px;
+        margin-bottom: 28px;
+      }
+      .featureGrid,
+      .homeGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0 0 22px;
+      }
+      .featureCard,
+      .homeCard {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.10);
+      }
+      .featureCard strong,
+      .homeCard strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--paper-text);
+        font-size: 14px;
+      }
+      .featureCard span,
+      .homeCard span {
+        display: block;
+        color: var(--paper-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .softSection {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .softSectionTitle {
+        font-size: 14px;
+        font-weight: 900;
+        color: var(--paper-text);
+        margin-bottom: 8px;
+      }
+      .softSectionText {
+        color: var(--paper-muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .linkRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .ghostLink {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        border: 1px solid rgba(255, 241, 233, 0.12);
+        color: var(--paper-text);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .ghostLink:hover {
+        background: rgba(107, 69, 44, 0.08);
+      }
+      #loginScreen > .featureGrid + h2,
+      #loginScreen > .featureGrid + h2 + p.subtitle {
+        display: none;
       }
       label {
         display: block;
-        color: var(--text);
+        color: var(--paper-text);
         font-weight: 600;
         font-size: 14px;
         margin-bottom: 8px;
@@ -112,7 +762,10 @@
         font-size: 16px;
         transition: border-color 0.15s ease;
         background: transparent;
-        color: var(--text);
+        color: var(--paper-text);
+      }
+      input::placeholder {
+        color: rgba(79, 56, 39, 0.62);
       }
       input:focus {
         outline: none;
@@ -149,9 +802,24 @@
       }
       button.secondary {
         background: transparent;
-        color: var(--text);
+        color: var(--paper-text);
         border: none;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--paper-border);
+      }
+      #loginCard,
+      #loginCard .subtitle,
+      #loginCard .smallHint,
+      #loginCard .muted {
+        color: var(--paper-muted);
+      }
+      #loginCard .kk-brandKicker {
+        color: var(--text-muted);
+      }
+      #loginCard .kk-brandWord,
+      #loginCard .kk-brandSub,
+      #loginCard .kk-brandMark,
+      #loginCard .kk-brand {
+        color: var(--paper-text);
       }
       #videoContainer {
         position: relative;
@@ -179,12 +847,27 @@
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
       .customer-info {
-        background: transparent;
-        padding: 20px 0 0;
-        border-radius: 0;
+        background: var(--surface-muted);
+        padding: 20px;
+        border-radius: var(--radius);
         margin-top: 24px;
-        border: none;
-        border-top: 1px solid var(--border);
+        border: 1px solid color-mix(in srgb, var(--border) 90%, white 10%);
+      }
+
+      #scannerScreen.customerLoaded .scannerStage {
+        display: none;
+      }
+
+      #scannerScreen.customerLoaded #scanHint {
+        display: none;
+      }
+
+      #scannerScreen.customerLoaded .scannerMain {
+        padding-bottom: 6px;
+      }
+
+      #scannerScreen.customerLoaded .scannerLead {
+        max-width: none;
       }
       .customer-info .label {
         font-weight: 600;
@@ -202,9 +885,21 @@
         border-bottom: 1px solid var(--border);
       }
       .stamp-controls {
-        display: flex;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
+        align-items: end;
+        gap: 14px;
         margin-top: 20px;
+      }
+
+      .stamp-controls > * {
+        width: 100%;
+        flex: none;
+      }
+
+      #awardBtn {
+        width: 100%;
+        margin: 0;
       }
       .stamp-input {
         flex: 1;
@@ -219,20 +914,41 @@
         color: var(--text);
       }
 
-      .stamp-range {
+      .stamp-presets {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
         width: 100%;
-        margin: 0;
-        accent-color: var(--brand);
       }
 
-      .stamp-range-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 6px;
+      .stamp-presets button {
+        width: 100%;
+        margin-top: 0;
+        padding: 10px 12px;
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .stamp-presets button:hover {
+        background: var(--surface-muted);
+      }
+
+      .stamp-presets button.active {
+        background: var(--brand);
+        color: var(--on-brand, white);
+        border-color: transparent;
+      }
+
+      .stamp-selected {
+        margin-top: 10px;
         font-size: 13px;
         color: var(--text-muted);
-        font-weight: 700;
+        font-weight: 800;
+        text-align: center;
       }
       .toast {
         position: fixed;
@@ -244,11 +960,11 @@
           360px,
           calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px))
         );
-        background: var(--surface);
+        background: var(--surface-muted);
         color: var(--text);
         padding: 12px 14px;
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         box-shadow: none;
         display: none;
         font-weight: 600;
@@ -263,8 +979,8 @@
       }
 
       .app-shell {
-        max-width: 1100px;
-        margin: 0 auto 24px;
+        width: min(760px, 100%);
+        margin: 0 auto 28px;
         display: none;
       }
       .sidebar {
@@ -342,29 +1058,95 @@
         background: transparent;
       }
       .mainPanel {
-        flex: 1;
+        width: 100%;
         background: transparent;
         border: none;
         border-radius: 0;
         box-shadow: none;
         padding: 0;
       }
+      #homeScreen,
+      #scannerScreen {
+        width: 100%;
+        margin: 0 auto;
+        padding: clamp(24px, 4vw, 38px);
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(31, 21, 17, 0.94));
+        border: 1px solid rgba(255, 241, 233, 0.10);
+        border-radius: 30px;
+        box-shadow:
+          0 24px 56px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset;
+        --paper-text: var(--text);
+        --paper-muted: var(--text-muted);
+        color: var(--paper-text);
+      }
       .panelTitle {
-        font-size: 28px;
-        font-weight: 800;
-        color: var(--brand);
-        margin-bottom: 8px;
+        font-size: clamp(26px, 4vw, 34px);
+        font-weight: 900;
+        color: var(--paper-text);
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
       }
       .hintBox {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 14px 0 0;
-        border-top: 1px solid var(--border);
-        margin-top: 16px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 241, 233, 0.10);
+        border-radius: var(--radius);
+        padding: 18px;
+        margin-top: 18px;
         font-size: 14px;
-        color: var(--text);
+        color: var(--paper-text);
         line-height: 1.4;
+      }
+      .miniSteps {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .miniStep {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+      .miniStepNum {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .miniStepText {
+        color: var(--paper-muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .menuInfo {
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: var(--radius);
+        background: rgba(255, 248, 241, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .menuInfo strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      .menuInfo span {
+        color: var(--paper-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      #homeScreen > .homeGrid + p.subtitle {
+        display: none;
+      }
+      #homeScreen .hintBox:last-of-type > div[style*="color: var(--text-muted)"] {
+        display: none;
       }
 
       @media (max-width: 900px) {
@@ -374,21 +1156,480 @@
         .sidebar {
           width: 100%;
         }
+        .stamp-controls {
+          grid-template-columns: 1fr;
+        }
+        .featureGrid,
+        .homeGrid {
+          grid-template-columns: 1fr;
+        }
+        .scannerWorkspace {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: calc(8px + var(--safe-top, 0px))
+            calc(var(--space-3) + var(--safe-right, 0px))
+            calc(12px + var(--safe-bottom, 0px) + 88px)
+            calc(var(--space-3) + var(--safe-left, 0px));
+          overflow-x: hidden;
+          overscroll-behavior: none;
+        }
+
+        .topbar {
+          position: sticky;
+          top: calc(8px + var(--safe-top, 0px));
+          left: auto;
+          right: auto;
+          margin: 0 0 var(--space-4);
+          padding: 14px 20px;
+          border: 1px solid rgba(255, 241, 233, 0.14);
+          border-radius: 28px;
+          background: rgba(42, 29, 24, 0.82);
+          box-shadow:
+            0 18px 40px rgba(0, 0, 0, 0.22),
+            0 1px 0 rgba(255, 255, 255, 0.06) inset;
+          backdrop-filter: blur(18px);
+          justify-content: center;
+          z-index: 70;
+        }
+
+        .topbar .row {
+          display: flex;
+          position: absolute;
+          top: 50%;
+          right: 14px;
+          width: 44px;
+          height: 44px;
+          transform: translateY(-50%);
+          align-items: center;
+          justify-content: center;
+          z-index: 71;
+        }
+
+        .card,
+        #homeScreen,
+        #scannerScreen {
+          border-radius: calc(var(--radius) + 4px);
+          padding: 22px;
+          box-shadow: 0 14px 34px rgba(58, 36, 24, 0.08);
+        }
+
+        .panelTitle,
+        .subtitle {
+          text-align: left;
+        }
+
+        .topbar .kk-brandWord {
+          font-size: 24px;
+        }
+
+        .shell {
+          max-width: none;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 20px);
+        }
+
+        .brand {
+          gap: 0;
+        }
+
+        .bottomTabs {
+          position: fixed;
+          left: calc(10px + var(--safe-left, 0px));
+          right: calc(10px + var(--safe-right, 0px));
+          bottom: calc(10px + var(--safe-bottom, 0px));
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+          padding: 8px;
+          border-radius: 22px;
+          border: 1px solid rgba(255, 241, 233, 0.14);
+          background: rgba(42, 29, 24, 0.94);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 22px 42px rgba(0, 0, 0, 0.28),
+            0 1px 0 rgba(255, 255, 255, 0.06) inset;
+          z-index: 28;
+        }
+
+        .bottomTabBtn.walletHeroBtn {
+          margin-top: -24px;
+          min-height: 70px;
+        }
+
+        #appShell {
+          padding-top: 0;
+          padding-bottom: calc(96px + var(--safe-bottom, 0px));
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px));
+        }
+
+        .mainPanel {
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 162px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        #homeScreen,
+        #scannerScreen {
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
+          max-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 12px;
+        }
+
+        #homeScreen .homeGrid,
+        #homeScreen .menuInfo,
+        #homePending,
+        #homeScreen .hintBox:last-of-type {
+          display: none !important;
+        }
+
+        #homeScreen .panelTitle {
+          margin-bottom: 0;
+        }
+
+        #homeScreen > .subtitle {
+          margin-bottom: 0;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        #homeScreen .hintBox {
+          margin-top: 6px;
+          padding: 14px;
+          font-size: 13px;
+        }
+
+        #scannerScreen > .panelTitle,
+        #scannerScreen > .subtitle {
+          display: none;
+        }
+
+        .scannerMain {
+          padding: 14px;
+          border-radius: 20px;
+        }
+
+        .scannerMainHead {
+          gap: 12px;
+        }
+
+        .scannerLead {
+          margin-top: 6px;
+          font-size: 13px;
+          line-height: 1.4;
+          max-width: 30ch;
+        }
+
+        .cameraControls {
+          gap: 10px;
+        }
+
+        #cameraStartBtn {
+          min-height: 54px;
+          padding: 14px 20px;
+          font-size: 16px;
+        }
+
+        .scannerStage {
+          margin-top: 10px;
+          padding: 12px;
+          border-radius: 18px;
+        }
+
+        #videoContainer {
+          max-width: min(100%, 320px);
+          margin: 0 auto;
+        }
+
+        #video {
+          aspect-ratio: 1 / 1.04;
+          max-height: min(40svh, 340px);
+        }
+
+        .scan-overlay {
+          width: min(50vw, 188px);
+          height: min(50vw, 188px);
+        }
+
+        .scannerStatus,
+        .scannerHintCompact {
+          margin-top: 8px;
+          font-size: 12px;
+        }
+
+        #customerInfo {
+          margin-top: 10px;
+          padding: 14px;
+          max-height: none;
+          overflow: visible;
+        }
+
+        #scannerScreen.customerLoaded {
+          justify-content: flex-start;
+          gap: 10px;
+        }
+
+        #scannerScreen.customerLoaded .scannerMain {
+          padding: 14px;
+        }
+
+        #scannerScreen.customerLoaded .scannerMainHead {
+          gap: 10px;
+        }
+
+        #scannerScreen.customerLoaded .scannerLead {
+          font-size: 13px;
+        }
+
+        #scannerScreen.customerLoaded .scannerStatus {
+          margin-top: 0;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .stamp-presets {
+          grid-template-columns: repeat(5, minmax(44px, 1fr));
+        }
+
+        #awardBtn {
+          min-height: 52px;
+        }
+
+        .cameraControls button {
+          width: 100%;
+        }
+      }
+
+      .scannerStage {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .scannerWorkspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .scannerMain,
+      .scannerSideCard {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 248, 241, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+      }
+
+      .scannerMainHead {
+        display: grid;
+        gap: 18px;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .scannerEyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scannerEyebrowDot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 84%, transparent 16%);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 12%, transparent 88%);
+      }
+
+      .scannerLead {
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 1.55;
+        max-width: 40ch;
+      }
+
+      .cameraControls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cameraControls button {
+        width: auto;
+        min-width: 180px;
+        margin: 0;
+      }
+
+      #cameraStartBtn {
+        min-height: 60px;
+        padding: 16px 24px;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        box-shadow:
+          0 18px 34px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.1) inset;
+      }
+
+      .cameraSecondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .cameraSecondary:hover {
+        background: rgba(255, 248, 241, 0.08);
+      }
+
+      .scannerHintCompact {
+        margin-top: 14px;
+        padding: 12px 14px;
+        font-size: 12px;
+        text-align: center;
+        opacity: 0.9;
+      }
+
+      .scannerMetaList {
+        display: grid;
+        gap: 12px;
+      }
+
+      .scannerMetaItem strong,
+      .quickLinksTitle {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .scannerMetaItem span,
+      .quickLinksBody {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .quickLinksGrid {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .quickLinkCard {
+        display: block;
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 248, 241, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .quickLinkCard:hover {
+        background: rgba(255, 248, 241, 0.1);
+      }
+
+      .quickLinkCard strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+
+      .quickLinkCard span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .scannerStatus {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .scannerSideCard {
+        display: none;
+      }
+
+      .scannerSideCard .quickLinksTitle {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scannerSideCard .quickLinksBody {
+        margin-bottom: 12px;
+      }
+
+      #videoContainer {
+        max-width: 100%;
+        margin: 0;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.26);
+      }
+
+      #video {
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        background: #120d0b;
+      }
+
+      .scan-overlay {
+        width: min(54vw, 220px);
+        height: min(54vw, 220px);
+        border-radius: 24px;
+        border: 2px solid rgba(245, 236, 223, 0.92);
+        box-shadow: 0 0 0 9999px rgba(10, 6, 4, 0.3);
       }
     </style>
   </head>
   <body class="theme-invert">
     <div class="shell">
-      <!-- Café Header + Top Menu (customer-style) -->
+      <!-- Cafe Header + Top Menu (customer-style) -->
       <div id="cafeBadge" class="topbar" style="display: none">
-        <div class="brand">
-          <div class="avatar" id="cafeAvatar">C</div>
-          <div>
-            <h1 id="cafeName">Café</h1>
+        <div class="brand brandScanner">
+          <a class="kk-brand" href="/">
+            <span class="kk-brandMark" aria-hidden="true">
+              <img src="/assets/stamp-bean.png?v=1" alt="" />
+            </span>
+            <span class="kk-brandText">
+              <span class="kk-brandKicker">Kaffee im Veedel</span>
+              <span class="kk-brandWord">Kaffeekarte</span>
+            </span>
+          </a>
+          <div class="scannerBrandMeta">
+            <div class="scannerBrandLabel">Barista App</div>
+            <div class="scannerBrandCafe" id="cafeName">Cafe</div>
+            <div class="scannerBuildBadge">scanner-new - ui-20260603b</div>
           </div>
         </div>
 
-        <div class="row">
+        <div class="row topbarActions">
           <button
             class="btn secondary"
             id="logoutBtn"
@@ -401,16 +1642,16 @@
 
         <div class="topMenu" aria-label="Navigation">
           <button class="topMenuBtn ghost active" id="navHome" type="button">
-            <span class="ico" aria-hidden="true">H</span>
-            <span class="lbl">Willkommen</span>
-          </button>
-          <button class="topMenuBtn ghost" id="navScan" type="button">
             <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scan</span>
+            <span class="lbl">Scanner</span>
           </button>
           <a class="topMenuBtn ghost" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
+            <span class="ico" aria-hidden="true">K</span>
+            <span class="lbl">Stempelkarte</span>
+          </a>
+          <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verwaltung</span>
           </a>
           <a class="topMenuBtn ghost" href="/cafe-dashboard">
             <span class="ico" aria-hidden="true">D</span>
@@ -422,8 +1663,30 @@
       <div class="card" id="loginCard">
         <!-- Login Screen -->
         <div id="loginScreen">
-          <h2>Café Scanner</h2>
-          <p class="subtitle">Melde dich mit deinem Café-Konto an</p>
+          <div class="introBadge">Kaffeekarte fuer Cafés</div>
+          <h2>Willkommen im Caféalltag</h2>
+          <p class="subtitle">
+            Melde dich kurz an und arbeite in derselben klaren App-Welt wie
+            deine Kunden. Stempel, Rewards und Tagesbetrieb bleiben klar,
+            schnell und frei von digitalem Theater.
+          </p>
+
+          <div class="featureGrid" aria-label="Leistungsumfang">
+            <div class="featureCard">
+              <strong>Schnell stempeln</strong>
+              <span>Kunden aufrufen, Stempel vergeben und Rewards direkt im laufenden Betrieb bestaetigen.</span>
+            </div>
+            <div class="featureCard">
+              <strong>Freundlich fuers Team</strong>
+              <span>Eine klare Oberfläche für Bar, Service und laufenden Betrieb, ohne unnötigen Pflege-Druck beim Einstieg.</span>
+            </div>
+            <div class="featureCard">
+              <strong>Mehr als nur Punkte</strong>
+              <span>Die Kaffeekarte unterstuetzt Wiederkehr, Stammgaeste und das seltene Gefuehl, dass eine App tatsaechlich hilft.</span>
+            </div>
+          </div>
+          <h2>Cafe Scanner</h2>
+          <p class="subtitle">Melde dich mit deinem Cafe-Konto an</p>
 
           <!-- Email Login -->
           <div id="apiKeyTab">
@@ -440,6 +1703,17 @@
               placeholder="Dein Passwort"
             />
             <button id="loginBtn" style="margin-top: 20px">Anmelden</button>
+
+            <div class="softSection">
+              <div class="softSectionTitle">
+                Was du nach dem Login sofort tun kannst
+              </div>
+              <div class="softSectionText">
+                Kunden empfangen, Stempel vergeben, Rewards einloesen und den
+                Tagesbetrieb im Café begleiten. Die Pflege der Karte bleibt
+                bewusst im Hintergrund, damit hier vorne niemand nach Menues fischen muss.
+              </div>
+            </div>
 
             <div style="margin-top: 12px; text-align: center">
               <button
@@ -462,14 +1736,26 @@
               style="
                 display: none;
                 margin-top: 14px;
-                padding: 14px;
-                background: var(--surface-muted);
-                border: 1px solid var(--border);
-                border-radius: 12px;
+                padding: 14px 0 0;
+                background: transparent;
+                border: none;
+                border-top: 1px solid var(--border);
+                border-radius: 0;
               "
             >
               <div style="font-weight: 900; margin-bottom: 10px">
                 Reset-Link anfordern
+              </div>
+              <div
+                style="
+                  margin-bottom: 12px;
+                  font-size: 13px;
+                  color: var(--text-muted);
+                  line-height: 1.45;
+                "
+              >
+                Wenn du dein Passwort gerade nicht zur Hand hast, schicken wir
+                dir einen sicheren Link fuer den Wiedereinstieg. Unaufgeregt und ohne Drama.
               </div>
               <label style="margin-top: 0">E-Mail</label>
               <input
@@ -494,7 +1780,7 @@
                       line-height: 1.35;
                     "
                   >
-                    Nur dieses Café (aus QR):
+                    Nur dieses Cafe (aus QR):
                     <span
                       id="forgotScopeCafe"
                       style="color: var(--text); font-weight: 800"
@@ -508,7 +1794,7 @@
                     color: var(--text-muted);
                   "
                 >
-                  Tipp: Deaktiviere das, wenn dieselbe E-Mail mehreren Cafés
+                  Tipp: Deaktiviere das, wenn dieselbe E-Mail mehreren Cafes
                   zugeordnet ist.
                 </div>
               </div>
@@ -534,10 +1820,11 @@
                 style="
                   display: none;
                   margin-top: 12px;
-                  padding: 12px;
-                  background: var(--surface);
-                  border: 1px solid var(--border);
-                  border-radius: 10px;
+                  padding: 12px 0 0;
+                  background: transparent;
+                  border: none;
+                  border-top: 1px solid var(--border);
+                  border-radius: 0;
                   font-size: 13px;
                   color: var(--text);
                 "
@@ -569,7 +1856,7 @@
                     padding: 10px 12px;
                     background: var(--brand);
                     color: var(--on-brand, #fff);
-                    border-radius: 10px;
+                    border-radius: var(--radius-sm);
                     text-decoration: none;
                     font-weight: 800;
                   "
@@ -590,24 +1877,30 @@
             <div
               style="
                 margin-top: 15px;
-                padding: 12px;
-                background: var(--surface-muted);
-                border: 1px solid var(--border);
-                border-radius: 8px;
+                padding: 12px 0 0;
+                background: transparent;
+                border: none;
+                border-top: 1px solid var(--border);
+                border-radius: 0;
                 font-size: 13px;
                 color: var(--text-muted);
               "
             >
-              Noch kein Konto?
-              <a
-                href="/cafe-onboarding"
-                style="
-                  color: var(--brand);
-                  text-decoration: none;
-                  font-weight: 700;
-                "
-                >Jetzt registrieren</a
-              >
+              <div class="softSectionTitle" style="margin-bottom: 6px">
+                Noch kein Konto?
+              </div>
+              <div class="softSectionText">
+                Registriere dein Cafe in wenigen Schritten. Auch dort fuehren
+                wir dich zuerst durch den Grundaufbau, statt dich sofort mit
+                Stempelkarten und Programmdetails zu überladen.
+              </div>
+              <div class="linkRow">
+                <a
+                  href="/cafe-onboarding"
+                  class="ghostLink"
+                  >Cafe registrieren</a
+                >
+              </div>
             </div>
           </div>
         </div>
@@ -616,11 +1909,31 @@
       <div id="appShell" class="app-shell" style="display: none">
         <main class="mainPanel">
           <!-- Welcome / Home -->
-          <div id="homeScreen">
-            <div class="panelTitle">Willkommen</div>
+          <div id="homeScreen" style="display: none">
+            <div class="panelTitle">Dein Start in den Tag</div>
             <p class="subtitle" style="text-align: left">
-              Hier ist deine Café-Startseite. Scans öffnen automatisch die
-              Stempel- Ansicht.
+              Hier landet dein Team nach dem Login. Kunden-Links öffnen
+              automatisch die passende Stempelansicht, waehrend Einrichtung und
+              Programmsteuerung bewusst im Hintergrund bleiben.
+            </p>
+
+            <div class="homeGrid">
+              <div class="homeCard">
+                <strong>Heute am wichtigsten</strong>
+                <span>QR öffnen, Kunde sehen, Stempel oder Reward direkt bestätigen. Alles ist auf Tempo im laufenden Betrieb optimiert.</span>
+              </div>
+              <div class="homeCard">
+                <strong>Pflege spaeter im Menue</strong>
+                <span>Stempelkarten, Rewards und Programmdetails pflegst du spaeter unter Stempelkarte, Verwaltung und Dashboard.</span>
+              </div>
+              <div class="homeCard">
+                <strong>Was die Kaffeekarte liefern soll</strong>
+                <span>Weniger Reibung fuers Team, klarere Reward-Logik und eine staerkere Kundenbindung ohne App-Chaos.</span>
+              </div>
+            </div>
+            <p class="subtitle" style="text-align: left">
+              Hier beginnt dein Tagesgeschaeft. Scans oeffnen automatisch die
+              passende Kundenansicht.
             </p>
 
             <div id="homePending" class="hintBox" style="display: none">
@@ -635,28 +1948,109 @@
 
             <div class="hintBox">
               <div style="font-weight: 800; margin-bottom: 6px">
-                So nutzt du es
+                So laeuft ein Scan in der Praxis
+              </div>
+              <div class="miniSteps">
+                <div class="miniStep">
+                  <div class="miniStepNum">1</div>
+                  <div class="miniStepText">
+                    Kunde zeigt den Wallet-QR oder öffnet den persönlichen
+                    Link.
+                  </div>
+                </div>
+                <div class="miniStep">
+                  <div class="miniStepNum">2</div>
+                  <div class="miniStepText">
+                    Der Scanner öffnet automatisch die passende Kundenansicht
+                    und zeigt den aktuellen Stand.
+                  </div>
+                </div>
+                <div class="miniStep">
+                  <div class="miniStepNum">3</div>
+                  <div class="miniStepText">
+                    Du vergibst Stempel oder löst Rewards ein, ohne erst durch
+                    Pflege-Seiten springen zu müssen.
+                  </div>
+                </div>
               </div>
               <div style="color: var(--text-muted)">
                 1) Kunde zeigt QR-Code auf dem Handy.<br />
                 2) Du scannst mit der Kamera-App.<br />
                 3) Der Link öffnet diese Seite mit Parametern – dann kannst du
-                direkt stempeln.
+                direkt stempeln. So schlicht darf Technik ruhig sein.
               </div>
+            </div>
+
+            <div class="menuInfo">
+              <strong>Wo du spaeter was findest</strong>
+              <span>
+                Unter <b>Stempelkarte</b> pflegst du Programm und Reward. Unter
+                <b>Verwaltung</b> liegen Zusatzpflege und Organisation. Das
+                <b>Dashboard</b> bleibt für den Überblick und der Scanner für
+                den Tagesbetrieb da.
+              </span>
             </div>
           </div>
 
           <!-- Scan / Stamp -->
-          <div id="scannerScreen" style="display: none">
-            <div class="panelTitle" id="scanTitle">Stempel vergeben</div>
+          <div id="scannerScreen">
+            <div class="panelTitle" id="scanTitle">Scanner</div>
             <p class="subtitle" id="scanSubtitle" style="text-align: left">
               Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet
               wurde.
             </p>
 
-            <div id="scanHint" class="hintBox">
-              Noch kein Kunde geladen. Scanne den Kunden-QR, damit die Daten
-              hier erscheinen.
+            <div class="scannerWorkspace">
+              <div class="scannerMain">
+                <div class="scannerMainHead">
+                  <div>
+                    <div class="scannerEyebrow">
+                      <span class="scannerEyebrowDot" aria-hidden="true"></span>
+                      Scanner bereit
+                    </div>
+                    <div class="scannerLead">
+                      Starte die Kamera und halte den QR ruhig in den Rahmen.
+                      Genau das ist hier die Hauptsache.
+                    </div>
+                  </div>
+                  <div class="cameraControls">
+                    <button id="cameraStartBtn" type="button">
+                      Kamera starten
+                    </button>
+                    <button
+                      id="cameraStopBtn"
+                      type="button"
+                      class="cameraSecondary"
+                      style="display: none"
+                    >
+                      Kamera pausieren
+                    </button>
+                  </div>
+                </div>
+
+                <div id="scanHint" class="hintBox scannerHintCompact">
+                  Noch kein Kunde geladen. Starte die Kamera oder öffne einen
+                  QR-Link direkt aus der Wallet.
+                </div>
+
+                <div class="scannerStage">
+                  <div id="videoContainer" aria-label="Kamera Scanner">
+                    <video
+                      id="video"
+                      autoplay
+                      muted
+                      playsinline
+                      webkit-playsinline
+                    ></video>
+                    <div class="scan-overlay" aria-hidden="true"></div>
+                  </div>
+                  <div id="scannerStatus" class="scannerStatus">
+                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
+                    scannen willst.
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <div id="customerInfo" class="customer-info" style="display: none">
@@ -678,19 +2072,20 @@
               </div>
 
               <div class="stamp-controls">
-                <div style="flex: 1">
-                  <input
-                    type="range"
-                    class="stamp-range"
-                    id="stampAmount"
-                    value="1"
-                    min="1"
-                    max="10"
-                    step="1"
-                  />
-                  <div class="stamp-range-meta">
-                    <span><span id="stampAmountValue">1</span> Stempel</span>
-                    <span>1–10</span>
+                <div id="stampAmountUi" style="flex: 1">
+                  <div class="stamp-presets" id="stampPresets">
+                    <button type="button" data-amount="1" class="active">
+                      1
+                    </button>
+                    <button type="button" data-amount="2">2</button>
+                    <button type="button" data-amount="3">3</button>
+                    <button type="button" data-amount="4">4</button>
+                    <button type="button" data-amount="5">5</button>
+                  </div>
+
+                  <input type="hidden" id="stampAmount" value="1" />
+                  <div class="stamp-selected">
+                    <span id="stampAmountValue">1</span> Stempel
                   </div>
                 </div>
                 <button id="awardBtn" style="margin: 0; flex: 2">
@@ -705,13 +2100,71 @@
 
     <div id="toast" class="toast">Stempel vergeben</div>
 
+    <script>
+      (function mountCafeShell() {
+        const badge = document.getElementById("cafeBadge");
+        const shell = document.querySelector(".shell");
+        const appShell = document.getElementById("appShell");
+        if (!badge || !shell || !appShell) return;
+
+        badge.innerHTML = `
+          <div class="brand">
+            <div class="brandHead">
+              <a class="kk-brand" href="/cafe-scanner">
+                <span class="kk-brandMark" aria-hidden="true">
+                  <img src="/assets/stamp-bean.png?v=1" alt="" />
+                </span>
+                <span class="kk-brandText">
+                  <span class="kk-brandKicker">Kaffee im Veedel</span>
+                  <span class="kk-brandWord">Kaffeekarte</span>
+                </span>
+              </a>
+            </div>
+          </div>
+          <div class="row">
+            <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
+              <span class="topUtilityIcon"><span></span></span>
+            </button>
+          </div>
+        `;
+
+        badge.insertAdjacentHTML(
+          "afterend",
+          `
+            <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+              <button class="utilityMenuBtn" id="utilityWelcomeBtn" type="button">Start</button>
+              <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
+              <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
+              <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
+              <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
+            </div>
+          `,
+        );
+
+        appShell.insertAdjacentHTML(
+          "afterend",
+          `
+            <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
+              <div class="bottomTabSpacer" aria-hidden="true"></div>
+              <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
+                <span class="topMenuBtnContent">
+                  <span class="ico" aria-hidden="true">S</span>
+                  <span class="lbl">Scanner</span>
+                </span>
+              </button>
+              <div class="bottomTabSpacer" aria-hidden="true"></div>
+            </div>
+          `,
+        );
+      })();
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
       // Elements
       const loginScreen = document.getElementById("loginScreen");
       const scannerScreen = document.getElementById("scannerScreen");
       const loginBtn = document.getElementById("loginBtn");
-      const logoutBtn = document.getElementById("logoutBtn");
       const loginCard = document.getElementById("loginCard");
       const appShell = document.getElementById("appShell");
       const forgotPwBtn = document.getElementById("forgotPwBtn");
@@ -728,21 +2181,20 @@
       const forgotScopeThis = document.getElementById("forgotScopeThis");
       const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
-      const navHome = document.getElementById("navHome");
-      const navScan = document.getElementById("navScan");
-      const navLogout = document.getElementById("navLogout");
-      const sidebarCafeName = document.getElementById("sidebarCafeName");
-      const sidebarAvatar = document.getElementById("sidebarAvatar");
-      const homePending = document.getElementById("homePending");
-      const homePendingText = document.getElementById("homePendingText");
+      const navScanner = document.getElementById("navScanner");
       const openScanBtn = document.getElementById("openScanBtn");
+      const cameraStartBtn = document.getElementById("cameraStartBtn");
+      const cameraStopBtn = document.getElementById("cameraStopBtn");
       const scanHint = document.getElementById("scanHint");
+      const scannerStatus = document.getElementById("scannerStatus");
       const apiKeyInput = document.getElementById("apiKeyInput");
       const video = document.getElementById("video");
       const customerInfo = document.getElementById("customerInfo");
       const customerName = document.getElementById("customerName");
       const customerAddress = document.getElementById("customerAddress");
       const currentStamps = document.getElementById("currentStamps");
+      const stampAmountUi = document.getElementById("stampAmountUi");
+      const stampPresets = document.getElementById("stampPresets");
       const stampAmount = document.getElementById("stampAmount");
       const stampAmountValue = document.getElementById("stampAmountValue");
       const awardBtn = document.getElementById("awardBtn");
@@ -750,8 +2202,16 @@
       const scanSubtitle = document.getElementById("scanSubtitle");
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
-      const cafeAvatar = document.getElementById("cafeAvatar");
       const toast = document.getElementById("toast");
+      const topUtilityBtn = document.getElementById("topUtilityBtn");
+      const utilityMenu = document.getElementById("utilityMenu");
+      const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
+      const utilityCardBtn = document.getElementById("utilityCardBtn");
+      const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+      const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
+      const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+      const bottomTabs = document.getElementById("bottomTabs");
+      const bottomModeScanner = document.getElementById("bottomModeScanner");
 
       // State
       let cafe = null;
@@ -762,6 +2222,99 @@
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
+      let scanLoopHandle = 0;
+      let scanBusy = false;
+      let scanCanvas = null;
+      let scanContext = null;
+      let cameraPermissionState = "unknown";
+      const CAMERA_AUTO_START_KEY = "scanner_camera_auto_start";
+      let currentView = "home";
+      const shellState = { drawerOpen: false, utilityOpen: false };
+
+      const DEBUG = (function () {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          if (sp.get("debug") === "1") return true;
+          return localStorage.getItem("stamp_debug") === "1";
+        } catch (e) {
+          return false;
+        }
+      })();
+
+      function dlog() {
+        if (!DEBUG) return;
+        try {
+          console.log.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function dwarn() {
+        if (!DEBUG) return;
+        try {
+          console.warn.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function derror() {
+        if (!DEBUG) return;
+        try {
+          console.error.apply(console, arguments);
+        } catch (e) {}
+      }
+
+      function looksTechnicalMessage(msg) {
+        const s = String(msg || "");
+        if (!s) return false;
+        if (/\bStatus\s*\d+\b/i.test(s)) return true;
+        if (/\bHTTP\s*\d+\b/i.test(s)) return true;
+        if (/\b(TypeError|SyntaxError|ReferenceError)\b/i.test(s)) return true;
+        if (/(ECONN|ETIMEDOUT|ENOTFOUND|fetch failed)/i.test(s)) return true;
+        if (/\b0x[0-9a-f]{12,}\b/i.test(s)) return true;
+        return false;
+      }
+
+      function userSafeErrorMessage(err, fallback) {
+        const fb = fallback || "Aktion fehlgeschlagen. Bitte erneut versuchen.";
+        try {
+          if (!err) return fb;
+          const raw =
+            typeof err === "string"
+              ? err
+              : err && err.message
+                ? String(err.message)
+                : "";
+          const msg = String(raw || "").trim();
+          if (!msg) return fb;
+          if (looksTechnicalMessage(msg)) return fb;
+          return msg;
+        } catch (e) {
+          return fb;
+        }
+      }
+
+      function mapApiError(detail, status) {
+        try {
+          const st = Number(status);
+          if (st === 401 || st === 403) {
+            return "Session abgelaufen. Bitte erneut anmelden.";
+          }
+
+          if (detail && typeof detail === "object") {
+            const code = String(detail.error || detail.code || "");
+            if (
+              code === "unauthorized" ||
+              code === "invalid_token" ||
+              code === "token_invalid"
+            ) {
+              return "Session abgelaufen. Bitte erneut anmelden.";
+            }
+
+            const msg = detail.message ? String(detail.message).trim() : "";
+            if (msg && !looksTechnicalMessage(msg)) return msg;
+          }
+        } catch (e) {}
+        return null;
+      }
 
       // Detect API
       async function detectAPI() {
@@ -805,31 +2358,394 @@
       }
 
       function setActiveNav(view) {
-        if (navHome) navHome.classList.toggle("active", view === "home");
-        if (navScan) navScan.classList.toggle("active", view === "scan");
+        currentView = view === "scan" ? "scan" : "home";
+        if (navScanner) navScanner.classList.toggle("active", currentView === "scan");
+        if (bottomModeScanner)
+          bottomModeScanner.classList.toggle("active", currentView === "scan");
+      }
+
+      function setDrawerOpen(open) {
+        shellState.drawerOpen = !!open;
+      }
+
+      function setUtilityMenuOpen(open) {
+        shellState.utilityOpen = !!open;
+        if (utilityMenu) utilityMenu.classList.toggle("open", shellState.utilityOpen);
+        if (topUtilityBtn)
+          topUtilityBtn.setAttribute("aria-expanded", shellState.utilityOpen ? "true" : "false");
+      }
+
+      function syncScannerUrl(view) {
+        try {
+          const url = new URL(location.href);
+          if (view === "scan") url.searchParams.set("view", "scan");
+          else url.searchParams.delete("view");
+          history.replaceState({}, "", url.pathname + url.search + url.hash);
+        } catch (e) {}
+      }
+
+      function getInitialView() {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          return sp.get("view") === "scan" ? "scan" : "home";
+        } catch (e) {
+          return "home";
+        }
+      }
+
+      function goToWelcome() {
+        setDrawerOpen(false);
+        setUtilityMenuOpen(false);
+        showView("home");
+      }
+
+      function goToScanner() {
+        setDrawerOpen(false);
+        setUtilityMenuOpen(false);
+        showView("scan");
+      }
+
+      function wireShellChrome() {
+        if (topUtilityBtn) {
+          topUtilityBtn.addEventListener("click", () => {
+            setUtilityMenuOpen(!shellState.utilityOpen);
+          });
+        }
+        if (utilityWelcomeBtn) utilityWelcomeBtn.addEventListener("click", goToWelcome);
+        if (utilityCardBtn) {
+          utilityCardBtn.addEventListener("click", () => {
+            location.href = "/cafe-profile";
+          });
+        }
+        if (utilityAdminBtn)
+          utilityAdminBtn.addEventListener("click", () => {
+            location.href = "/cafe-profile?view=advanced";
+          });
+        if (utilityDashboardBtn)
+          utilityDashboardBtn.addEventListener("click", () => {
+            location.href = "/cafe-dashboard";
+          });
+        if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
+        if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
+        document.addEventListener("click", (ev) => {
+          const t = ev && ev.target ? ev.target : null;
+          if (!t) return;
+          if (
+            shellState.utilityOpen &&
+            utilityMenu &&
+            !utilityMenu.contains(t) &&
+            topUtilityBtn &&
+            !topUtilityBtn.contains(t)
+          ) {
+            setUtilityMenuOpen(false);
+          }
+        });
+        document.addEventListener("keydown", (ev) => {
+          if (!ev || (ev.key !== "Escape" && ev.key !== "Esc")) return;
+          if (shellState.utilityOpen) {
+            setUtilityMenuOpen(false);
+            return;
+          }
+          if (shellState.drawerOpen) {
+            setDrawerOpen(false);
+          }
+        });
+      }
+
+      function setScannerStatus(message) {
+        if (!scannerStatus) return;
+        scannerStatus.textContent = String(message || "");
+      }
+
+      function setCustomerLoadedUi(loaded) {
+        if (!scannerScreen) return;
+        scannerScreen.classList.toggle("customerLoaded", !!loaded);
+      }
+
+      function getScannerAutoStartPreference() {
+        try {
+          return localStorage.getItem(CAMERA_AUTO_START_KEY) === "1";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function setScannerAutoStartPreference(enabled) {
+        try {
+          if (enabled) localStorage.setItem(CAMERA_AUTO_START_KEY, "1");
+          else localStorage.removeItem(CAMERA_AUTO_START_KEY);
+        } catch (e) {}
+      }
+
+      async function getCameraPermissionState() {
+        try {
+          if (!navigator.permissions || !navigator.permissions.query) {
+            return "prompt";
+          }
+          const result = await navigator.permissions.query({ name: "camera" });
+          cameraPermissionState = String(
+            result && result.state ? result.state : "prompt",
+          );
+          return cameraPermissionState;
+        } catch (e) {
+          return "prompt";
+        }
+      }
+
+      function syncCameraButtons() {
+        if (cameraStartBtn) {
+          cameraStartBtn.style.display = stream ? "none" : "inline-flex";
+        }
+        if (cameraStopBtn) {
+          cameraStopBtn.style.display = stream ? "inline-flex" : "none";
+        }
+      }
+
+      function updateScannerHint(message) {
+        if (!scanHint) return;
+        if (scannedCustomer) {
+          scanHint.style.display = "none";
+          return;
+        }
+        scanHint.style.display = "block";
+        if (message) scanHint.textContent = message;
+      }
+
+      function pauseScannerLoop() {
+        scanning = false;
+        scanBusy = false;
+        if (scanLoopHandle) {
+          try {
+            cancelAnimationFrame(scanLoopHandle);
+          } catch (e) {}
+        }
+        scanLoopHandle = 0;
+      }
+
+      function stopScannerCamera() {
+        pauseScannerLoop();
+        try {
+          if (stream && stream.getTracks) {
+            stream.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch (e) {}
+            });
+          }
+        } catch (e2) {}
+        stream = null;
+        try {
+          if (video) video.srcObject = null;
+        } catch (e3) {}
+        syncCameraButtons();
+      }
+
+      function parseScannedPayload(raw) {
+        const value = String(raw || "").trim();
+        if (!value) return null;
+        try {
+          const u = new URL(value);
+          const customer = u.searchParams.get("customer");
+          if (!customer) return null;
+          return {
+            address: customer,
+            name: u.searchParams.get("customerName") || "Unbekannt",
+            cafe: u.searchParams.get("cafe") || u.searchParams.get("qrCafe") || null,
+            cardId:
+              u.searchParams.get("cardId") ||
+              u.searchParams.get("cid") ||
+              u.searchParams.get("card") ||
+              null,
+            action:
+              u.searchParams.get("action") ||
+              (u.searchParams.get("redeem") === "true" ? "redeem" : "stamp"),
+            redeemToken:
+              u.searchParams.get("rt") || u.searchParams.get("redeemToken") || null,
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function scanVideoFrame() {
+        if (!scanning || !video || !stream) return;
+        try {
+          if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+            if (!scanCanvas) scanCanvas = document.createElement("canvas");
+            if (!scanContext) scanContext = scanCanvas.getContext("2d", { willReadFrequently: true });
+            scanCanvas.width = video.videoWidth;
+            scanCanvas.height = video.videoHeight;
+            scanContext.drawImage(video, 0, 0, scanCanvas.width, scanCanvas.height);
+            const image = scanContext.getImageData(
+              0,
+              0,
+              scanCanvas.width,
+              scanCanvas.height,
+            );
+            const qr = window.jsQR
+              ? window.jsQR(image.data, image.width, image.height, {
+                  inversionAttempts: "dontInvert",
+                })
+              : null;
+            if (qr && qr.data && !scanBusy) {
+              const parsed = parseScannedPayload(qr.data);
+              if (parsed && parsed.address) {
+                scanBusy = true;
+                pendingScan = parsed;
+                const a = String(parsed.action || "stamp").toLowerCase();
+                pendingAction =
+                  a === "redeem" ? "redeem" : a === "reset" ? "reset" : "stamp";
+                setScannerStatus("QR erkannt. Der Kunde wird geladen ...");
+                pauseScannerLoop();
+                void loadPendingScan().finally(() => {
+                  scanBusy = false;
+                });
+                return;
+              }
+              setScannerStatus("QR erkannt, aber das Format passt nicht zur Kaffeekarte.");
+            }
+          }
+        } catch (e) {
+          dwarn("Scan frame failed", e);
+        }
+        scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+      }
+
+      async function startScannerCamera(options) {
+        const opts = options || {};
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setScannerStatus("Diese App kann auf diesem Gerät die Kamera nicht öffnen.");
+          updateScannerHint(
+            "Dieses Gerät unterstützt keinen direkten Kamerazugriff in der Scanner-App.",
+          );
+          return;
+        }
+        if (stream) {
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          scanning = true;
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, dann ist der Kunde gleich da.",
+          );
+          if (!scanLoopHandle) scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+          return;
+        }
+        if (!opts.forcePrompt) {
+          const permission = await getCameraPermissionState();
+          if (permission !== "granted") {
+            setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.');
+            updateScannerHint(
+              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+            );
+            syncCameraButtons();
+            return;
+          }
+        }
+        try {
+          setScannerStatus("Kamera wird gestartet...");
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 960 },
+            },
+            audio: false,
+          });
+          if (video) {
+            video.srcObject = stream;
+            try {
+              await video.play();
+            } catch (ePlay) {}
+          }
+          cameraPermissionState = "granted";
+          setScannerAutoStartPreference(true);
+          scanning = true;
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird.",
+          );
+          scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+        } catch (e) {
+          cameraPermissionState = "denied";
+          setScannerStatus("Die Kamera konnte nicht gestartet werden. Bitte den Zugriff erlauben.");
+          updateScannerHint(
+            "Die Kamera ist noch nicht aktiv. Erlaube den Zugriff im Browser oder in der App, damit du direkt scannen kannst.",
+          );
+          syncCameraButtons();
+          dwarn("Camera start failed", e);
+        }
+      }
+
+      async function resumeScannerCameraIfAllowed() {
+        if (scannedCustomer) {
+          syncCameraButtons();
+          return;
+        }
+        if (stream) {
+          scanning = true;
+          setScannerStatus("Kamera aktiv. QR in den Rahmen halten.");
+          syncCameraButtons();
+          updateScannerHint(
+            "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird.",
+          );
+          if (!scanLoopHandle) scanLoopHandle = requestAnimationFrame(scanVideoFrame);
+          return;
+        }
+        const permission = await getCameraPermissionState();
+        if (permission === "granted") {
+          await startScannerCamera({ forcePrompt: false });
+          return;
+        }
+        setScannerStatus(
+          getScannerAutoStartPreference()
+            ? 'Kamera bereit. iOS fragt nach einem kompletten Schließen der App eventuell erneut nach der Freigabe. Tippe auf "Kamera starten", um weiterzumachen.'
+            : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.',
+        );
+        updateScannerHint(
+          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+        );
+        syncCameraButtons();
       }
 
       function showView(view) {
-        if (view === "scan") {
-          homeScreen.style.display = "none";
-          scannerScreen.style.display = "block";
-          setActiveNav("scan");
+        const targetView = view === "scan" ? "scan" : "home";
+        if (homeScreen) homeScreen.style.display = targetView === "home" ? "block" : "none";
+        if (scannerScreen) scannerScreen.style.display = targetView === "scan" ? "block" : "none";
+        setCustomerLoadedUi(targetView === "scan" && !!scannedCustomer);
+        setActiveNav(targetView);
+        syncScannerUrl(targetView);
+        if (targetView === "home") {
+          stopScannerCamera();
+          setScannerStatus("Scanner bereit. Öffne ihn unten, wenn du direkt scannen willst.");
+          updateScannerHint(
+            "Dein Team startet hier klar und wechselt erst beim Scan in die Kamerabühne.",
+          );
           return;
         }
-        scannerScreen.style.display = "none";
-        homeScreen.style.display = "block";
-        setActiveNav("home");
+        if (scannedCustomer) {
+          setScannerStatus("Kunde geladen. Jetzt kannst du direkt bestaetigen oder bei Bedarf neu scannen.");
+          syncCameraButtons();
+          updateScannerHint();
+          return;
+        }
+        void resumeScannerCameraIfAllowed();
       }
 
       function showLoginUI() {
         loginCard.style.display = "block";
         appShell.style.display = "none";
-        showView("home");
+        stopScannerCamera();
+        if (homeScreen) homeScreen.style.display = "none";
+        if (scannerScreen) scannerScreen.style.display = "none";
+        if (bottomTabs) bottomTabs.style.display = "none";
+        setActiveNav("home");
       }
 
       function showAppUI() {
         loginCard.style.display = "none";
         appShell.style.display = "block";
+        if (bottomTabs) bottomTabs.style.display = "";
       }
 
       function hideForgotNotice() {
@@ -882,7 +2798,7 @@
         if (forgotDevBox) forgotDevBox.style.display = "none";
         const email = String((forgotEmail || {}).value || "").trim();
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-          showForgotNotice("Bitte eine gültige E-Mail eingeben.");
+          showForgotNotice("Bitte eine gueltige E-Mail eingeben.");
           return;
         }
         try {
@@ -952,21 +2868,17 @@
       }
 
       function updateHomeStatus() {
-        const last = localStorage.getItem("last_scanned_customer");
-        const lastCustomer = last ? JSON.parse(last) : null;
-
-        const source = pendingScan || lastCustomer;
-        if (!source) {
-          homePending.style.display = "none";
-          navScan.disabled = false;
+        if (scannedCustomer) {
+          updateScannerHint(
+            `Letzter Vorgang bereit: ${scannedCustomer.name || "Kunde"}. Öffne unten den Scanner, um direkt weiterzumachen.`,
+          );
           return;
         }
-
-        const addr = source.address || source.customer || "";
-        const name = source.name || source.customerName || "Unbekannt";
-        homePendingText.textContent = `${name} (${addr.slice(0, 10)}...)`;
-        homePending.style.display = "block";
-        navScan.disabled = false;
+        updateScannerHint(
+          stream
+            ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
+            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus der Wallet.",
+        );
       }
 
       // Show toast
@@ -984,14 +2896,7 @@
           return;
         }
         cafeBadge.style.display = "flex";
-        cafeName.textContent = cafe.name || "Café";
-        cafeAvatar.textContent = (cafe.name || "C").charAt(0).toUpperCase();
-
-        if (sidebarCafeName) sidebarCafeName.textContent = cafe.name || "Café";
-        if (sidebarAvatar)
-          sidebarAvatar.textContent = (cafe.name || "C")
-            .charAt(0)
-            .toUpperCase();
+        if (cafeName) cafeName.textContent = cafe.name || "Barista App";
       }
 
       // Login
@@ -1000,7 +2905,7 @@
         const password = document.getElementById("passwordInput").value;
 
         if (!email || !email.includes("@") || !password) {
-          alert("Bitte gib E-Mail und Passwort ein");
+          showToast("Bitte E-Mail und Passwort eingeben", true);
           return;
         }
 
@@ -1024,7 +2929,7 @@
 
           const loginData = await loginRes.json();
 
-          console.log("Login erfolgreich:", loginData);
+          dlog("Login erfolgreich");
 
           // Store session
           cafe = {
@@ -1038,13 +2943,19 @@
           // Update UI
           updateCafeBadge();
           showAppUI();
-          showView(pendingScan ? "scan" : "home");
+          showView(pendingScan ? "scan" : getInitialView());
           updateHomeStatus();
 
           // Lade evtl. vorhandenen Scan (kein Kamera-Modus)
           loadPendingScan();
         } catch (e) {
-          alert("Fehler beim Anmelden: " + e.message);
+          showToast(
+            userSafeErrorMessage(
+              e,
+              "Anmelden fehlgeschlagen. Bitte prüfen und erneut versuchen.",
+            ),
+            true,
+          );
           loginBtn.disabled = false;
           loginBtn.textContent = "Anmelden";
         }
@@ -1067,13 +2978,7 @@
         // and to avoid any leftover UI/scanner state.
         try {
           // Stop camera stream if it is running
-          if (stream && stream.getTracks) {
-            stream.getTracks().forEach((t) => {
-              try {
-                t.stop();
-              } catch (e) {}
-            });
-          }
+          stopScannerCamera();
         } catch (e) {}
         try {
           window.location.replace("/cafe-onboarding");
@@ -1081,21 +2986,24 @@
           window.location.href = "/cafe-onboarding";
         }
       }
-      if (logoutBtn) logoutBtn.onclick = doLogout;
-      if (navLogout) navLogout.onclick = doLogout;
-
-      if (navHome)
-        navHome.onclick = () => {
-          showView("home");
-          updateHomeStatus();
-        };
-      if (navScan)
-        navScan.onclick = () => {
+      if (openScanBtn)
+        openScanBtn.onclick = () => {
           showView("scan");
         };
-      openScanBtn.onclick = () => {
-        showView("scan");
-      };
+      if (cameraStartBtn)
+        cameraStartBtn.onclick = () => {
+          void startScannerCamera({ forcePrompt: true });
+        };
+      if (cameraStopBtn)
+        cameraStopBtn.onclick = () => {
+          stopScannerCamera();
+          setScannerStatus(
+            'Kamera pausiert. Tippe auf "Kamera starten", wenn du weiter scannen willst.',
+          );
+          updateScannerHint(
+            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Wallet oeffnen.",
+          );
+        };
 
       // URL-basierter Scan (ohne Kamera)
       let pendingScan = null;
@@ -1125,7 +3033,7 @@
               a === "redeem" ? "redeem" : a === "reset" ? "reset" : "stamp";
           }
         } catch (e) {
-          console.warn("Keine URL-Scan-Parameter", e);
+          dwarn("Keine URL-Scan-Parameter", e);
         }
       }
       capturePendingFromURL();
@@ -1133,6 +3041,50 @@
       function applyActionUi() {
         const isRedeem = pendingAction === "redeem";
         const isReset = pendingAction === "reset";
+
+        function getClampedStampAmount() {
+          try {
+            const raw = stampAmount ? parseInt(stampAmount.value) : 1;
+            return Math.max(1, Math.min(5, raw || 1));
+          } catch (e) {
+            return 1;
+          }
+        }
+
+        function setActivePreset(amount) {
+          try {
+            if (!stampPresets) return;
+            const btns = stampPresets.querySelectorAll("button[data-amount]");
+            btns.forEach((b) => {
+              const a = parseInt(b.getAttribute("data-amount")) || 0;
+              b.classList.toggle("active", a === amount);
+            });
+          } catch (e) {}
+        }
+
+        function updateStampUiFromValue() {
+          if (!stampAmount) return;
+          const v = getClampedStampAmount();
+          stampAmount.value = String(v);
+          if (stampAmountValue) stampAmountValue.textContent = String(v);
+          setActivePreset(v);
+          return v;
+        }
+
+        function updateAwardButtonLabel() {
+          if (!awardBtn) return;
+          if (isRedeem) {
+            awardBtn.textContent = "Einlösen";
+            return;
+          }
+          if (isReset) {
+            awardBtn.textContent = "Neue Karte";
+            return;
+          }
+          const v = updateStampUiFromValue() || 1;
+          awardBtn.textContent = `Freigeben (${v})`;
+        }
+
         if (scanTitle) {
           scanTitle.textContent = isRedeem
             ? "Belohnung einlösen"
@@ -1147,47 +3099,45 @@
               ? "Diese Ansicht erscheint automatisch, wenn ein QR für eine neue Karte geöffnet wurde."
               : "Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet wurde.";
         }
-        if (awardBtn) {
-          awardBtn.textContent = isRedeem
-            ? "Einlösen"
-            : isReset
-              ? "Neue Karte"
-              : "Stempel vergeben";
+
+        if (stampAmountUi) {
+          stampAmountUi.style.display = isRedeem || isReset ? "none" : "block";
         }
-        if (stampAmount) {
-          stampAmount.style.display = isRedeem || isReset ? "none" : "block";
-          if (!isRedeem && !isReset) {
-            try {
-              const v = Math.max(
-                1,
-                Math.min(10, parseInt(stampAmount.value) || 1),
-              );
-              stampAmount.value = String(v);
-              if (stampAmountValue) stampAmountValue.textContent = String(v);
-            } catch (e) {}
-          }
-        }
+
+        updateAwardButtonLabel();
       }
 
-      if (stampAmount) {
-        stampAmount.addEventListener("input", () => {
+      if (stampPresets) {
+        stampPresets.addEventListener("click", (ev) => {
           try {
-            const v = Math.max(
-              1,
-              Math.min(10, parseInt(stampAmount.value) || 1),
-            );
-            if (stampAmountValue) stampAmountValue.textContent = String(v);
+            const t = ev.target;
+            if (!(t && t.tagName === "BUTTON")) return;
+            const amt = parseInt(t.getAttribute("data-amount")) || 0;
+            if (!amt) return;
+            if (stampAmount) stampAmount.value = String(amt);
+            if (stampAmountValue) stampAmountValue.textContent = String(amt);
+            try {
+              const btns = stampPresets.querySelectorAll("button[data-amount]");
+              btns.forEach((b) => {
+                const a = parseInt(b.getAttribute("data-amount")) || 0;
+                b.classList.toggle("active", a === amt);
+              });
+            } catch (e) {}
+            try {
+              if (awardBtn && pendingAction === "stamp") {
+                awardBtn.textContent = `Freigeben (${amt})`;
+              }
+            } catch (e) {}
           } catch (e) {}
         });
       }
 
       async function loadPendingScan() {
-        console.log(
-          "loadPendingScan called, pendingScan:",
-          pendingScan,
-          "cafe:",
-          cafe,
-        );
+        dlog("loadPendingScan", {
+          hasPending: !!pendingScan,
+          action: pendingScan ? pendingScan.action : null,
+          hasCafe: !!cafe,
+        });
         if (!pendingScan) return;
         if (
           scannedCustomer &&
@@ -1224,7 +3174,7 @@
               );
               if (match && match.name) scannedName = match.name;
             } catch (e) {
-              console.warn("Cafe name lookup failed", e);
+              dwarn("Cafe name lookup failed", e);
             }
             showToast(
               /^0x[0-9a-f]{40}$/i.test(String(scannedName || ""))
@@ -1232,10 +3182,7 @@
                 : `Falsches Café. QR gehört zu "${scannedName}". Bitte eigenen Kunden fragen.`,
               true,
             );
-            console.warn("QR validation failed:", {
-              qrCafe: pendingScan.cafe,
-              loggedInCafe: loggedInCafeAddr,
-            });
+            dwarn("QR validation failed");
             return;
           }
         }
@@ -1272,15 +3219,19 @@
           customerAddress.textContent = scannedCustomer.address;
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
-          if (scanHint) scanHint.style.display = "none";
+          setCustomerLoadedUi(true);
           awardBtn.disabled = false;
           applyActionUi();
+          setScannerStatus("Kunde geladen. Du kannst jetzt bestaetigen oder erneut scannen.");
           showToast("Kunde geladen");
+          syncCameraButtons();
+          updateScannerHint();
           showView("scan");
           updateHomeStatus();
         } catch (e) {
-          console.warn("Stempel laden fehlgeschlagen", e);
+          dwarn("Stempel laden fehlgeschlagen", e);
           showToast("Fehler beim Laden der Stempel", true);
+          updateHomeStatus();
         }
       }
 
@@ -1303,11 +3254,13 @@
           return;
         }
         const amount =
-          !isRedeem && !isReset ? parseInt(stampAmount.value) || 1 : 0;
-        console.log(isRedeem ? "Redeem attempt:" : "Award attempt:", {
-          cafe,
+          !isRedeem && !isReset
+            ? Math.max(1, Math.min(5, parseInt(stampAmount.value) || 1))
+            : 0;
+        dlog(isRedeem ? "Redeem attempt" : "Award attempt", {
           customer: scannedCustomer.address,
           action: pendingAction,
+          amount,
         });
         awardBtn.disabled = true;
         awardBtn.textContent = isRedeem
@@ -1357,13 +3310,20 @@
 
           if (!res.ok) {
             const text = await res.text();
-            console.error("Stamp award failure", res.status, text);
+            derror(
+              "Stamp award failure",
+              res.status,
+              String(text || "").slice(0, 260),
+            );
             let detail;
             try {
               detail = JSON.parse(text);
             } catch {
               detail = text;
             }
+
+            const mapped = mapApiError(detail, res.status);
+            if (mapped) throw new Error(mapped);
 
             if (
               detail &&
@@ -1397,11 +3357,7 @@
                 detail.required != null ? Number(detail.required) : 10;
               throw new Error(`Zu wenige Stempel: ${cur}/${reqd}.`);
             }
-            const errMsg =
-              detail && typeof detail === "object"
-                ? detail.message || detail.error || JSON.stringify(detail)
-                : detail;
-            throw new Error(`Status ${res.status}: ${errMsg}`);
+            throw new Error("Aktion fehlgeschlagen. Bitte erneut versuchen.");
           }
 
           const data = await res.json();
@@ -1425,6 +3381,7 @@
             scannedCustomer = null;
             localStorage.removeItem("last_scanned_customer");
             customerInfo.style.display = "none";
+            setCustomerLoadedUi(false);
             awardBtn.disabled = false;
             pendingScan = null;
             pendingAction = "stamp";
@@ -1433,16 +3390,24 @@
               if (stampAmountValue) stampAmountValue.textContent = "1";
             } catch (e) {}
             applyActionUi();
+            setScannerStatus("Bereit fuer den naechsten QR.");
+            updateScannerHint(
+              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Wallet-Link.",
+            );
+            void resumeScannerCameraIfAllowed();
           }, 1800);
         } catch (e) {
-          // Keep popups non-technical.
-          showToast("Aktion fehlgeschlagen. Bitte erneut versuchen.", true);
+          showToast(userSafeErrorMessage(e), true);
           awardBtn.disabled = false;
           applyActionUi();
+          setScannerStatus("Aktion fehlgeschlagen. QR erneut scannen oder Kunde erneut laden.");
+          syncCameraButtons();
         }
       };
 
       // Auto-login if saved
+      wireShellChrome();
+
       (async function autoLogin() {
         try {
           apiBase = await detectAPI();
@@ -1476,15 +3441,16 @@
               cafe.cafeAddress = ovData.cafe?.address || cafe.cafeAddress;
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
             } catch (err) {
-              console.error("Session validation failed:", err);
+              dwarn("Session validation failed", err);
             }
 
-            console.log("Auto-Login für Café:", cafe);
+            dlog("Auto-Login für Café");
             updateCafeBadge();
             showAppUI();
-            showView(pendingScan ? "scan" : "home");
+            showView(pendingScan ? "scan" : getInitialView());
             customerInfo.style.display = "none";
-            if (scanHint) scanHint.style.display = "block";
+            setCustomerLoadedUi(false);
+            syncCameraButtons();
             updateHomeStatus();
 
             // Lade evtl. vorhandenen Scan direkt
@@ -1500,6 +3466,7 @@
                 customerName.textContent = scannedCustomer.name;
                 customerAddress.textContent = scannedCustomer.address;
                 customerInfo.style.display = "block";
+                setCustomerLoadedUi(true);
 
                 // Fetch current stamps
                 const stampsRes = await fetch(
@@ -1510,16 +3477,17 @@
                 const stampsData = await stampsRes.json();
                 const stamps = stampsData.stamps ?? stampsData.count ?? 0;
                 currentStamps.textContent = stamps;
-                console.log("Restored customer stamps:", stamps);
+                dlog("Restored customer stamps", stamps);
 
                 awardBtn.disabled = false;
                 pendingAction = "stamp";
                 applyActionUi();
+                syncCameraButtons();
 
                 // Keep welcome as default unless a QR link is active
                 updateHomeStatus();
               } catch (e) {
-                console.error("Restore last scanned failed", e);
+                dwarn("Restore last scanned failed", e);
                 localStorage.removeItem("last_scanned_customer");
               }
             }
@@ -1530,7 +3498,7 @@
             showLoginUI();
           }
         } catch (e) {
-          console.warn("Auto-login failed:", e);
+          dwarn("Auto-login failed", e);
           localStorage.removeItem("cafe_session");
           showLoginUI();
         }
@@ -1541,11 +3509,197 @@
       window.addEventListener("load", () => {
         setTimeout(() => {
           if (pendingScan && !scannedCustomer && cafe) {
-            console.log("Loading pending scan after page load...");
+            dlog("Loading pending scan after page load");
             loadPendingScan();
           }
         }, 500);
       });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          pauseScannerLoop();
+          return;
+        }
+        if (cafe && !scannedCustomer) {
+          void resumeScannerCameraIfAllowed();
+        }
+      });
+
+      window.addEventListener("pagehide", () => {
+        stopScannerCamera();
+      });
     </script>
+    <div
+      id="installHintBackdrop"
+      class="installHintBackdrop"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kaffeekarte installieren"
+    >
+      <div class="installHintCard">
+        <div class="installHintEyebrow">Beim nächsten Dienst schneller da</div>
+        <h3 class="installHintTitle">Kaffeekarte aufs Handy legen</h3>
+        <p class="installHintLead">
+          Wenn du die Café-App auf dem Homescreen ablegst, ist der Scanner beim
+          nächsten Öffnen direkter zur Hand und der Browser bleibt aus dem Weg.
+        </p>
+        <div class="installHintSteps" id="installHintSteps"></div>
+        <div class="installHintActions">
+          <button class="btn secondary" id="installHintLater" type="button">
+            Nicht jetzt
+          </button>
+          <button
+            class="btn primary"
+            id="installHintInstall"
+            type="button"
+            style="display: none; width: auto"
+          >
+            App installieren
+          </button>
+          <button class="btn primary" id="installHintDone" type="button" style="width: auto">
+            Verstanden
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var STORAGE_KEY = "kk_install_hint_cafe_v1";
+        var deferredInstallPrompt = null;
+
+        function isStandalone() {
+          try {
+            return (
+              (window.matchMedia &&
+                window.matchMedia("(display-mode: standalone)").matches) ||
+              window.navigator.standalone === true
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isMobileBrowser() {
+          try {
+            var ua = String(navigator.userAgent || "");
+            if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+            return (
+              window.matchMedia &&
+              window.matchMedia("(max-width: 900px)").matches &&
+              (navigator.maxTouchPoints > 0 || "ontouchstart" in window)
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isIos() {
+          try {
+            return /iPhone|iPad|iPod/i.test(String(navigator.userAgent || ""));
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function wasSeen() {
+          try {
+            return localStorage.getItem(STORAGE_KEY) === "1";
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function markSeen() {
+          try {
+            localStorage.setItem(STORAGE_KEY, "1");
+          } catch (e) {}
+        }
+
+        function buildStepsHtml() {
+          if (isIos()) {
+            return (
+              '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Teilen</strong> im Browser antippen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>Zum Home-Bildschirm</strong> auswählen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Hinzufügen</strong> bestätigen und die Café-App direkt vom Homescreen öffnen.</div></div>'
+            );
+          }
+          return (
+            '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Browser-Menü</strong> öffnen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzufügen</strong> wählen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Bestätigen</strong> und den Scanner künftig direkt vom Homescreen starten.</div></div>'
+          );
+        }
+
+        function syncInstallButton() {
+          var btn = document.getElementById("installHintInstall");
+          if (!btn) return;
+          btn.style.display = deferredInstallPrompt ? "" : "none";
+        }
+
+        function closeInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          if (!backdrop) return;
+          markSeen();
+          backdrop.classList.remove("open");
+          document.body.classList.remove("installHintOpen");
+          window.setTimeout(function () {
+            backdrop.hidden = true;
+          }, 180);
+        }
+
+        function openInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          var steps = document.getElementById("installHintSteps");
+          if (!backdrop || !steps) return;
+          steps.innerHTML = buildStepsHtml();
+          syncInstallButton();
+          backdrop.hidden = false;
+          document.body.classList.add("installHintOpen");
+          window.requestAnimationFrame(function () {
+            backdrop.classList.add("open");
+          });
+        }
+
+        window.addEventListener("beforeinstallprompt", function (event) {
+          try {
+            event.preventDefault();
+          } catch (e) {}
+          deferredInstallPrompt = event;
+          syncInstallButton();
+        });
+
+        window.addEventListener("load", function () {
+          var laterBtn = document.getElementById("installHintLater");
+          var doneBtn = document.getElementById("installHintDone");
+          var installBtn = document.getElementById("installHintInstall");
+
+          if (laterBtn) laterBtn.addEventListener("click", closeInstallHint);
+          if (doneBtn) doneBtn.addEventListener("click", closeInstallHint);
+          if (installBtn) {
+            installBtn.addEventListener("click", async function () {
+              if (!deferredInstallPrompt) {
+                closeInstallHint();
+                return;
+              }
+              try {
+                deferredInstallPrompt.prompt();
+                await deferredInstallPrompt.userChoice;
+              } catch (e) {}
+              deferredInstallPrompt = null;
+              closeInstallHint();
+            });
+          }
+
+          window.setTimeout(function () {
+            if (!isMobileBrowser()) return;
+            if (isStandalone()) return;
+            if (wasSeen()) return;
+            openInstallHint();
+          }, 900);
+        });
+      })();
+    </script>
+    <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>

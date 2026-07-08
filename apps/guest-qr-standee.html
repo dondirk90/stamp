@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaffeekarte Aufsteller</title>
+    <style>
+      :root {
+        --paper: #f6efe5;
+        --paper-strong: #efe2d0;
+        --ink: #2e1d14;
+        --ink-soft: #6d5546;
+        --coffee: #6f4a32;
+        --coffee-deep: #3e281d;
+        --line: rgba(70, 44, 31, 0.14);
+        --shadow: 0 22px 42px rgba(42, 24, 14, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background:
+          radial-gradient(circle at top, rgba(160, 115, 80, 0.1), transparent 28%),
+          linear-gradient(180deg, #f7f1ea 0%, #efe5d7 100%);
+        color: var(--ink);
+        font-family: "Aptos", "Segoe UI", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        padding: 28px;
+      }
+
+      .toolbar {
+        max-width: 1120px;
+        margin: 0 auto 18px;
+        display: grid;
+        grid-template-columns: 1.3fr 1fr auto;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+
+      .field input {
+        width: 100%;
+        border: 1px solid rgba(62, 40, 29, 0.16);
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        border-radius: 16px;
+        padding: 14px 16px;
+        font-size: 15px;
+        outline: none;
+      }
+
+      .toolbarActions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 22px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        background: var(--coffee-deep);
+        color: var(--paper);
+      }
+
+      .btn.secondary {
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--ink);
+        border: 1px solid rgba(62, 40, 29, 0.12);
+      }
+
+      .help {
+        max-width: 1120px;
+        margin: 0 auto 18px;
+        color: var(--ink-soft);
+        font-size: 14px;
+      }
+
+      .sheet {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.16)),
+          linear-gradient(180deg, var(--paper) 0%, #f3e8da 100%);
+        box-shadow: var(--shadow);
+        border-radius: 22px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .sheet::after {
+        content: "";
+        position: absolute;
+        left: 18mm;
+        right: 18mm;
+        top: 50%;
+        border-top: 2px dashed rgba(70, 44, 31, 0.2);
+      }
+
+      .foldLabel {
+        position: absolute;
+        top: calc(50% - 13px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(246, 239, 229, 0.96);
+        border: 1px solid rgba(70, 44, 31, 0.14);
+        color: var(--ink-soft);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .faceWrap {
+        height: 148.5mm;
+        padding: 14mm 14mm 11mm;
+      }
+
+      .faceWrap.bottom {
+        padding-top: 11mm;
+      }
+
+      .face {
+        height: 100%;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 11mm 10mm;
+        background:
+          radial-gradient(circle at top right, rgba(160, 115, 80, 0.12), transparent 28%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.24)),
+          linear-gradient(180deg, #fbf6f0 0%, #f1e4d2 100%);
+        display: grid;
+        grid-template-columns: 1.15fr 0.92fr;
+        gap: 7mm;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .face::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(115deg, rgba(255, 255, 255, 0.4), transparent 40%),
+          repeating-linear-gradient(
+            -10deg,
+            rgba(140, 102, 73, 0.03) 0,
+            rgba(140, 102, 73, 0.03) 2px,
+            transparent 2px,
+            transparent 14px
+          );
+        pointer-events: none;
+      }
+
+      .bottom .faceInner {
+        transform: rotate(180deg);
+        transform-origin: center;
+      }
+
+      .faceInner {
+        display: contents;
+      }
+
+      .copy {
+        position: relative;
+        z-index: 1;
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .brandMark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect x='10' y='10' width='76' height='76' rx='24' fill='%23F2E6D7'/%3E%3Cpath d='M48 22C32.6 22 20 34.6 20 50s12.6 28 28 28 28-12.6 28-28S63.4 22 48 22Z' fill='%236B452C'/%3E%3Cpath d='M39 24c9.7 6.1 14.3 13 16.4 20.7 1.8 6.6 2.3 13.8 7.8 25.3' fill='none' stroke='%23F2E6D7' stroke-linecap='round' stroke-width='10'/%3E%3Cpath d='M39 24c9.7 6.1 14.3 13 16.4 20.7 1.8 6.6 2.3 13.8 7.8 25.3' fill='none' stroke='%23E6D6C2' stroke-linecap='round' stroke-width='2.5' opacity='.65'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        box-shadow: 0 8px 20px rgba(62, 40, 29, 0.12);
+        flex: 0 0 auto;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        border: 1px solid rgba(62, 40, 29, 0.12);
+        background: rgba(255, 255, 255, 0.56);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--coffee);
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--coffee);
+        flex: 0 0 auto;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 25px;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+      }
+
+      .lead {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--ink-soft);
+        max-width: 42ch;
+      }
+
+      .steps {
+        display: grid;
+        gap: 8px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        align-items: start;
+      }
+
+      .stepNum {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--coffee-deep);
+        color: var(--paper);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .stepText {
+        font-size: 13px;
+        line-height: 1.38;
+        color: var(--ink);
+      }
+
+      .stepText strong {
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .footerNote {
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--ink-soft);
+      }
+
+      .qrCard {
+        position: relative;
+        z-index: 1;
+        align-self: center;
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+        padding: 8mm 6mm 6mm;
+        border-radius: 26px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.68)),
+          var(--paper);
+        border: 1px solid rgba(62, 40, 29, 0.08);
+        box-shadow: 0 18px 36px rgba(62, 40, 29, 0.12);
+      }
+
+      .qrCafe {
+        min-height: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--coffee);
+        text-align: center;
+      }
+
+      .qrFrame {
+        width: 50mm;
+        height: 50mm;
+        display: grid;
+        place-items: center;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid rgba(62, 40, 29, 0.08);
+        padding: 6mm;
+      }
+
+      .qrFrame img,
+      .qrFrame canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .qrFallback {
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+
+      .qrUrl {
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--ink-soft);
+        text-align: center;
+        word-break: break-word;
+      }
+
+      .qrHint {
+        font-size: 12px;
+        text-align: center;
+        color: var(--ink);
+      }
+
+      .qrHint strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--coffee-deep);
+      }
+
+      @media print {
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        html,
+        body {
+          background: white;
+        }
+
+        body {
+          padding: 0;
+        }
+
+        .toolbar,
+        .help {
+          display: none !important;
+        }
+
+        .sheet {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="field">
+        <label for="urlInput">QR-Ziel</label>
+        <input id="urlInput" type="text" />
+      </div>
+      <div class="field">
+        <label for="cafeInput">Café-Name auf dem Aufsteller</label>
+        <input id="cafeInput" type="text" placeholder="Optional, z. B. Impact Café" />
+      </div>
+      <div class="toolbarActions">
+        <button class="btn secondary" type="button" id="updateBtn">Aktualisieren</button>
+        <button class="btn primary" type="button" id="printBtn">Drucken</button>
+      </div>
+    </div>
+
+    <div class="help">
+      Drucke die Seite auf etwas stärkerem Papier oder kaschiere sie auf Pappe. Danach an der markierten Linie falten.
+    </div>
+
+    <main class="sheet">
+      <div class="foldLabel">Hier falten</div>
+
+      <section class="faceWrap top">
+        <div class="face">
+          <div class="faceInner">
+            <div class="copy">
+              <div>
+                <div class="brand">
+                  <span class="brandMark" aria-hidden="true"></span>
+                  <span>Kaffeekarte</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="eyebrow">Die Stempelkarte fuers Veedel</div>
+                <h1>Hier Stempelkarte holen</h1>
+                <p class="lead">
+                  Einmal scannen, direkt aufs Handy holen und beim naechsten Kaffee schon wieder einen Stempel
+                  mitnehmen.
+                </p>
+              </div>
+
+              <div class="steps">
+                <div class="step">
+                  <div class="stepNum">1</div>
+                  <div class="stepText">
+                    <strong>QR scannen</strong>
+                    Mit der Handykamera oder direkt aus der Kamera-App heraus.
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="stepNum">2</div>
+                  <div class="stepText">
+                    <strong>Karte aufs Handy holen</strong>
+                    Die Kaffeekarte oeffnet sich direkt und kann auf dem Homescreen gespeichert werden.
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="stepNum">3</div>
+                  <div class="stepText">
+                    <strong>Beim naechsten Besuch wieder zeigen</strong>
+                    Im Cafe kurz den QR zeigen und Stempel sammeln.
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerNote">
+                Lokal, schnell, unkompliziert. Ganz ohne Papierkarte in der Hosentasche.
+              </div>
+            </div>
+
+            <div class="qrCard">
+              <div class="qrCafe" data-cafe-name></div>
+              <div class="qrFrame" data-qr-target></div>
+              <div class="qrHint">
+                <strong>Jetzt scannen</strong>
+                Die Gast-App oeffnet sich direkt auf dem Handy.
+              </div>
+              <div class="qrUrl" data-url-label></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faceWrap bottom">
+        <div class="face">
+          <div class="faceInner">
+            <div class="copy">
+              <div>
+                <div class="brand">
+                  <span class="brandMark" aria-hidden="true"></span>
+                  <span>Kaffeekarte</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="eyebrow">Die Stempelkarte fuers Veedel</div>
+                <h1>Hier Stempelkarte holen</h1>
+                <p class="lead">
+                  Einmal scannen, direkt aufs Handy holen und beim naechsten Kaffee schon wieder einen Stempel
+                  mitnehmen.
+                </p>
+              </div>
+
+              <div class="steps">
+                <div class="step">
+                  <div class="stepNum">1</div>
+                  <div class="stepText">
+                    <strong>QR scannen</strong>
+                    Mit der Handykamera oder direkt aus der Kamera-App heraus.
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="stepNum">2</div>
+                  <div class="stepText">
+                    <strong>Karte aufs Handy holen</strong>
+                    Die Kaffeekarte oeffnet sich direkt und kann auf dem Homescreen gespeichert werden.
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="stepNum">3</div>
+                  <div class="stepText">
+                    <strong>Beim naechsten Besuch wieder zeigen</strong>
+                    Im Cafe kurz den QR zeigen und Stempel sammeln.
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerNote">
+                Lokal, schnell, unkompliziert. Ganz ohne Papierkarte in der Hosentasche.
+              </div>
+            </div>
+
+            <div class="qrCard">
+              <div class="qrCafe" data-cafe-name></div>
+              <div class="qrFrame" data-qr-target></div>
+              <div class="qrHint">
+                <strong>Jetzt scannen</strong>
+                Die Gast-App oeffnet sich direkt auf dem Handy.
+              </div>
+              <div class="qrUrl" data-url-label></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/vendor/qrcode.min.js"></script>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var runtimeOrigin = /^https?:/i.test(window.location.protocol) ? window.location.origin : "https://staging.kaffeekarte.app";
+        var defaultUrl = runtimeOrigin + "/wallet";
+        var urlInput = document.getElementById("urlInput");
+        var cafeInput = document.getElementById("cafeInput");
+        var updateBtn = document.getElementById("updateBtn");
+        var printBtn = document.getElementById("printBtn");
+        var qrTargets = Array.prototype.slice.call(document.querySelectorAll("[data-qr-target]"));
+        var urlLabels = Array.prototype.slice.call(document.querySelectorAll("[data-url-label]"));
+        var cafeLabels = Array.prototype.slice.call(document.querySelectorAll("[data-cafe-name]"));
+
+        function normalizeUrl(raw) {
+          var value = String(raw || "").trim();
+          if (!value) return defaultUrl;
+          if (/^https?:\/\//i.test(value)) return value;
+          if (value.charAt(0) === "/") return window.location.origin + value;
+          return "https://" + value;
+        }
+
+        function updateHistory(url, cafe) {
+          if (!/^https?:/i.test(window.location.protocol)) return;
+          var next = new URL(window.location.href);
+          next.searchParams.set("url", url);
+          if (cafe) next.searchParams.set("cafe", cafe);
+          else next.searchParams.delete("cafe");
+          window.history.replaceState({}, "", next.toString());
+        }
+
+        function renderQr(target, url) {
+          target.innerHTML = "";
+          if (window.QRCode && window.QRCode.CorrectLevel) {
+            new QRCode(target, {
+              text: url,
+              width: 180,
+              height: 180,
+              colorDark: "#2e1d14",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+            return;
+          }
+
+          var img = document.createElement("img");
+          img.alt = "QR-Code fuer die Gast-App";
+          img.src = "https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=" + encodeURIComponent(url);
+          img.loading = "eager";
+          target.appendChild(img);
+        }
+
+        function render() {
+          var finalUrl = normalizeUrl(urlInput.value);
+          var cafeName = String(cafeInput.value || "").trim();
+
+          cafeLabels.forEach(function (label) {
+            label.textContent = cafeName || "Fuer Gaeste";
+          });
+
+          urlLabels.forEach(function (label) {
+            label.textContent = finalUrl.replace(/^https?:\/\//i, "");
+          });
+
+          qrTargets.forEach(function (target) {
+            try {
+              renderQr(target, finalUrl);
+            } catch (error) {
+              target.innerHTML = '<div class="qrFallback">QR-Code konnte gerade nicht erzeugt werden.<br />Bitte Seite neu laden.</div>';
+            }
+          });
+
+          updateHistory(finalUrl, cafeName);
+        }
+
+        urlInput.value = normalizeUrl(params.get("url") || defaultUrl);
+        cafeInput.value = params.get("cafe") || "";
+
+        updateBtn.addEventListener("click", render);
+        printBtn.addEventListener("click", function () {
+          render();
+          window.print();
+        });
+
+        urlInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") render();
+        });
+
+        cafeInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") render();
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

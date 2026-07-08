@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-$ports = @(8545,3000,8080,8081)
+$ports = @(8545,3000,8080,8081,19000,19001,19002)
 
 Write-Host "Stopping listeners on ports: $($ports -join ', ')" -ForegroundColor Cyan
 

@@ -4,10 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Profil</title>
+    <meta name="theme-color" content="#6b452c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Barista App" />
+    <meta name="application-name" content="Barista App - Kaffeekarte" />
+    <link rel="manifest" href="/pwa/manifest-cafe.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/pwa/icons/icon-192.png"
+    />
+    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
+          calc(var(--space-5) + var(--safe-left, 0px));
+        overflow-x: hidden;
       }
 
       .shell {
@@ -17,36 +35,280 @@
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-
-        padding: var(--space-4) 0;
-        border-bottom: none;
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.82);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        position: relative;
+        z-index: 3;
       }
 
       .brand {
         display: flex;
         align-items: center;
-        gap: var(--space-3);
+        justify-content: center;
+        width: 100%;
       }
 
-      .avatar {
-        width: 42px;
-        height: 42px;
+      .brandHead {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
+      }
+
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--text);
+      }
+
+      .topbar .row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 241, 233, 0.12) !important;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.02) !important;
+        color: var(--text) !important;
+        box-shadow:
+          0 12px 22px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
         border-radius: 999px;
-        background: var(--brand);
-        display: grid;
-        place-items: center;
-        color: var(--on-brand, #fff);
-        font-weight: 900;
+        background: var(--text);
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 18px;
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.98);
+        box-shadow:
+          0 20px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        background-image: none !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 241, 233, 0.08) !important;
+        border-radius: 14px;
+        color: var(--text) !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .pageMeta,
+      .pageMeta *,
+      .card,
+      .card h1,
+      .card h2,
+      .card h3,
+      .card p,
+      .card label,
+      .card strong,
+      .card b,
+      .viewSection,
+      .viewSection *,
+      .heroCard,
+      .heroCard * {
+        color: var(--text);
+      }
+
+      .pageMetaSub,
+      .pageIntro,
+      .card .muted,
+      .viewSection .muted,
+      .heroCard .muted {
+        color: var(--text-muted) !important;
+      }
+
+      input,
+      textarea,
+      select {
+        color: var(--text) !important;
+      }
+
+      .card,
+      .viewSection,
+      .heroCard,
+      .cardSection,
+      .cardBgPreview,
+      #profileAboutPreview {
+        background: rgba(255, 248, 241, 0.05) !important;
+        border: 1px solid rgba(255, 241, 233, 0.10) !important;
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+      }
+
+      .bottomTabs {
+        position: fixed;
+        left: calc(10px + var(--safe-left, 0px));
+        right: calc(10px + var(--safe-right, 0px));
+        bottom: calc(10px + var(--safe-bottom, 0px));
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.94);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 22px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        z-index: 28;
+      }
+
+      .bottomTabSpacer {
+        flex: 1 1 0;
+      }
+
+      .bottomTabBtn {
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .bottomTabBtn .ico,
+      .bottomTabBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 70px;
+        margin-top: -24px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
       }
 
       .subtitle {
@@ -54,8 +316,87 @@
         color: var(--text-muted);
       }
 
+      .pageMeta {
+        margin: 0 0 var(--space-4);
+        padding: 0 var(--space-1);
+      }
+
+      .pageMetaTitle {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+
+      .pageMetaSub {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .pageIntro {
+        margin: 0 0 var(--space-4);
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
       .nav {
         display: none;
+      }
+
+      .viewSection[hidden] {
+        display: none !important;
+      }
+
+      #setupHero + h2,
+      #setupHero + h2 + .muted {
+        display: none;
+      }
+
+      .cardSection[hidden] {
+        display: none !important;
+      }
+
+      .advancedOnly[hidden] {
+        display: none !important;
+      }
+
+      .heroCard {
+        padding: var(--space-4);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface-muted) 88%, white 12%);
+      }
+
+      .heroCard h3 {
+        margin: 0 0 10px;
+        color: var(--brand);
+        font-size: 18px;
+      }
+
+      .heroCard p {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
+      .helperNote {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .helperNote a {
+        color: var(--brand);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .subSectionTitle {
+        margin: 0 0 8px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 900;
       }
 
       textarea.profileInput {
@@ -167,37 +508,48 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <div class="avatar" id="cafeAvatar">C</div>
-          <div>
-            <h1 id="cafeName">Café Profil</h1>
-            <div class="subtitle" id="buildBadge">—</div>
+          <div class="brandHead">
+            <a class="kk-brand" href="/cafe-scanner">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Kaffeekarte</span>
+              </span>
+            </a>
           </div>
         </div>
         <div class="row">
-          <button
-            class="btn secondary"
-            type="button"
-            id="logoutBtn"
-            onclick="location.href = '/cafe-logout.html'"
-          >
-            Abmelden
+          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
+            <span class="topUtilityIcon"><span></span></span>
           </button>
         </div>
+      </div>
 
-        <div class="topMenu" aria-label="Navigation">
-          <a class="topMenuBtn ghost" href="/cafe-scanner">
+      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
+        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
+        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
+        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
+        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
+      </div>
+
+      <div class="pageMeta">
+        <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
+        <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
+        <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
+      </div>
+
+      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
+        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
+          <span class="topMenuBtnContent">
             <span class="ico" aria-hidden="true">S</span>
             <span class="lbl">Scanner</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-dashboard">
-            <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
-          </a>
-          <a class="topMenuBtn ghost active" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
-          </a>
-        </div>
+          </span>
+        </button>
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -209,15 +561,42 @@
         class="card"
         style="padding: var(--space-5); display: none"
       >
+        <div id="setupHero">
+          <h2 id="profileTitle" style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
+            Stempelkarte
+          </h2>
+          <div class="pageIntro" id="profileIntro">
+            Richte zuerst die Kundenkarte und die Belohnung ein. Alles Weitere
+            wie Kampagnen, Standortdaten und Zusatzpflege liegt bewusst getrennt
+            unter <strong>Verwaltung</strong>.
+          </div>
+          <div class="heroCard">
+            <h3>Ein guter Aufbau in 3 Schritten</h3>
+            <p>
+              1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
+              ist. 2. Gestalte die Karte so, dass sie in der Wallet klar und
+              hochwertig wirkt. 3. Pflege später in der Verwaltung Kampagnen,
+              Standort und Zusatzinhalte.
+            </p>
+          </div>
+        </div>
+        <div
+          id="modeBadge"
+          class="badge"
+          style="display: inline-flex; margin: 0 0 var(--space-2) 0"
+        >
+          Kartenlogik und Reward
+        </div>
         <h2 style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
           Café Profil
         </h2>
         <div class="muted" style="margin-bottom: var(--space-4)">
-          Beschreibung und Logo erscheinen auf der Stempelkarte des Kunden.
+          Beschreibung und Logo erscheinen auf der Stempelkarte des Kunden. Kurz:
+          Was Gäste sehen, sollte sitzen.
         </div>
 
         <div class="stack" style="gap: 12px">
-          <div>
+          <div id="sectionLocation" class="viewSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Standort (für Kunden-Karte)
             </div>
@@ -234,7 +613,86 @@
             </div>
           </div>
 
-          <div class="logoRow" style="align-items: flex-end">
+          <div id="sectionProgramCampaigns" class="card" style="padding: var(--space-4); margin-top: 8px">
+            <h3 id="programSectionTitle" style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
+              Stempelprogramm
+            </h3>
+            <div class="muted" id="programSectionIntro" style="margin-bottom: var(--space-3)">
+              Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist
+              und wie sie auf der Kundenkarte als gedruckter Reward-Hinweis erscheint.
+            </div>
+
+            <div id="sectionRewardCore" class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Stempel f?r Belohnung
+                </div>
+                <input id="profileRewardThreshold" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
+              </div>
+              <div style="flex: 2">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Belohnungs-Beschreibung
+                </div>
+                <input id="profileRewardDescription" class="input" type="text" maxlength="240" placeholder="z.B. 1 Freigetr?nk oder 1 Cookie aufs Haus" style="width: 100%" />
+              </div>
+            </div>
+            <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
+              Kurz halten lohnt sich: Dieser Text sitzt auf der Karte neben dem
+              letzten Stempelfeld, eher wie ein Druckhinweis als wie ein kleiner Roman.
+            </div>
+            <div class="cardSection" style="padding: 0; margin-bottom: 14px">
+              <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                Stempelstil
+              </div>
+              <select id="profileStampStyle" class="input" style="width: 100%">
+                <option value="bean">Kaffeebohne</option>
+                <option value="cup">Tasse</option>
+                <option value="star">Stern</option>
+                <option value="circle">Kreis</option>
+              </select>
+              <div class="muted" style="margin-top: 6px">
+                Damit legst du fest, welches Zeichen die gestempelten Felder auf
+                der Kundenkarte füllt.
+              </div>
+            </div>
+
+            <div id="programAdvancedIntro" class="advancedOnly">
+              <div class="muted" style="margin: 4px 0 14px">
+                Diese Hinweise erscheinen in der Kunden-Wallet, wenn ein Besuch
+                länger her ist oder nur noch wenige Stempel bis zur Belohnung fehlen.
+              </div>
+            </div>
+
+            <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
+              <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                <input id="profilePopupInactiveEnabled" type="checkbox" checked />
+                <span>Reaktivierungs-Popup aktiv</span>
+              </label>
+              <div style="width: 180px">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Tage seit letztem Besuch
+                </div>
+                <input id="profilePopupInactiveDays" class="input" type="number" min="7" max="365" step="1" style="width: 100%" />
+              </div>
+            </div>
+            <textarea id="profilePopupInactiveMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text f?r Kunden, die l?nger nicht da waren. Leer = Standardtext."></textarea>
+
+            <div class="logoRow advancedOnly" style="align-items: flex-end; margin: 16px 0 14px">
+              <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                <input id="profilePopupAlmostRewardEnabled" type="checkbox" checked />
+                <span>"Fast geschafft"-Popup aktiv</span>
+              </label>
+              <div style="width: 180px">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Reststempel f?r Hinweis
+                </div>
+                <input id="profilePopupAlmostRewardRemaining" class="input" type="number" min="1" max="10" step="1" style="width: 100%" />
+              </div>
+            </div>
+            <textarea id="profilePopupAlmostRewardMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text f?r Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+          </div>
+
+          <div id="sectionLatLng" class="logoRow viewSection" style="align-items: flex-end">
             <div style="flex: 1">
               <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                 Latitude (optional)
@@ -263,7 +721,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionAbout" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Über das Café
             </div>
@@ -276,6 +734,10 @@
             <div class="muted" style="margin-top: 8px">
               Formatierung: <strong>**fett**</strong>, Überschrift:
               <strong># Groß</strong> oder <strong>## Mittel</strong>.
+            </div>
+            <div class="muted" style="margin-top: 6px">
+              Die erste kurze Zeile kann auf der Karte als kleine Unterzeile
+              unter eurem Namen erscheinen.
             </div>
             <div
               class="card"
@@ -292,7 +754,48 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionLinks" class="cardSection">
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Links im Kunden-Popup
+            </div>
+            <div class="logoRow" style="align-items: flex-end; gap: 12px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Website
+                </div>
+                <input
+                  id="profileWebsiteUrl"
+                  class="input"
+                  type="url"
+                  maxlength="240"
+                  placeholder="https://deincafe.de"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Instagram
+                </div>
+                <input
+                  id="profileInstagramUrl"
+                  class="input"
+                  type="url"
+                  maxlength="240"
+                  placeholder="@deincafe"
+                  style="width: 100%"
+                />
+              </div>
+            </div>
+            <div class="muted" style="margin-top: 8px">
+              Diese Links erscheinen später im kleinen Café-Fenster auf der
+              Kundenkarte und helfen beim direkten Sprung zu Website oder Instagram.
+            </div>
+            <div class="muted" style="margin-top: 4px">
+              Bei Instagram reicht dein Handle, also zum Beispiel <strong>@deincafe</strong>.
+            </div>
+          </div>
+
+          <div id="sectionRedeem" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Einlöse-Text (wenn Karte voll ist)
             </div>
@@ -308,7 +811,7 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionLogo" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Logo
             </div>
@@ -325,24 +828,25 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardTheme" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Kartendesign
             </div>
             <select id="profileCardTheme" class="input" style="width: 100%">
-              <option value="paper">Paper (Standard)</option>
-              <option value="clean">Clean (Weiß)</option>
-              <option value="ink">Ink (Dunkel)</option>
-              <option value="brand">Brand (Akzent)</option>
-              <option value="latte">Latte (Warm)</option>
-              <option value="mono">Mono (Neutral)</option>
+              <option value="paper">Printed (Warm White)</option>
+              <option value="clean">Printed (Bright White)</option>
+              <option value="ink">Printed (Dark)</option>
+              <option value="brand">Printed (Espresso Accent)</option>
+              <option value="latte">Printed (Soft Cream)</option>
+              <option value="mono">Printed (Mono)</option>
             </select>
             <div class="muted" style="margin-top: 6px">
-              Das Design wird in der Kunden-Wallet automatisch verwendet.
+              Das Design wird in der Kunden-Wallet automatisch verwendet und
+              orientiert sich eher an einer echten gedruckten Treuekarte als an einer allzu eifrigen App.
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardBackground" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Karten-Hintergrund (optional)
             </div>
@@ -370,22 +874,22 @@
             </div>
           </div>
 
-          <div>
+          <div id="sectionCardBackText" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-              Rückseite (Text)
+              Text auf der Karte
             </div>
             <textarea
               id="profileCardBackText"
               class="profileInput small"
               maxlength="400"
-              placeholder="z.B. Öffnungszeiten, Hinweise oder ein kurzer Gruß"
+              placeholder="z.B. Oeffnungszeiten, Hinweise oder ein kurzer Gruss"
             ></textarea>
             <div class="muted" style="margin-top: 6px">
-              Erscheint auf der Rückseite der Kunden-Karte (bei QR).
+              Erscheint direkt auf der Kunden-Karte unter den Stempeln.
             </div>
           </div>
 
-          <div>
+          <div id="sectionGallery" class="viewSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Bilder (optional)
             </div>
@@ -403,14 +907,19 @@
 
           <div class="logoRow" style="justify-content: space-between">
             <button class="btn" id="profileSaveBtn" type="button">
-              Speichern
+              Änderungen speichern
             </button>
             <div class="msg" id="profileMsg"></div>
+          </div>
+          <div class="helperNote" id="switchHint">
+            Standort, Popup-Kampagnen und Bilder findest du gesammelt unter
+            <a href="/cafe-profile?view=advanced">Verwaltung</a>.
           </div>
         </div>
       </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       let cafe = null;
 
@@ -429,7 +938,82 @@
         cardBackText: "",
         images: [],
         cardTheme: "paper",
+        stampStyle: "bean",
       };
+
+      function getProfileViewMode() {
+        try {
+          const sp = new URLSearchParams(location.search || "");
+          return sp.get("view") === "advanced" ? "advanced" : "card";
+        } catch (e) {
+          return "card";
+        }
+      }
+
+      function applyProfileViewMode(mode) {
+        const isAdvanced = mode === "advanced";
+        const titleEl = document.getElementById("profileTitle");
+        const introEl = document.getElementById("profileIntro");
+        const heroEl = document.getElementById("setupHero");
+        const modeBadgeEl = document.getElementById("modeBadge");
+        const switchHintEl = document.getElementById("switchHint");
+        const navCardSetup = document.getElementById("navCardSetup");
+        const navAdvanced = document.getElementById("navAdvanced");
+        const saveBtn = document.getElementById("profileSaveBtn");
+        const programSectionTitle = document.getElementById("programSectionTitle");
+        const programSectionIntro = document.getElementById("programSectionIntro");
+        const cardSections = document.querySelectorAll(".cardSection");
+        const advancedSections = document.querySelectorAll(".viewSection");
+        const advancedOnlySections = document.querySelectorAll(".advancedOnly");
+
+        if (titleEl) {
+          titleEl.textContent = isAdvanced ? "Verwaltung" : "Stempelkarte";
+        }
+        if (modeBadgeEl) {
+          modeBadgeEl.textContent = isAdvanced
+            ? "Standort, Links und Zusatzpflege"
+            : "Kartenlogik und Reward";
+        }
+        if (introEl) {
+          introEl.innerHTML = isAdvanced
+            ? "Hier liegen die erweiterten Einstellungen wie Standort, Popup-Kampagnen und Bilder. Die eigentliche Kundenkarte bleibt bewusst in einem eigenen, klaren Bereich."
+            : "Richte zuerst die Kundenkarte und die Belohnung ein. Alles Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt unter <strong>Verwaltung</strong>.";
+        }
+        if (heroEl) heroEl.hidden = isAdvanced;
+        if (switchHintEl) switchHintEl.hidden = isAdvanced;
+        if (saveBtn) {
+          saveBtn.textContent = isAdvanced
+            ? "Verwaltung speichern"
+            : "Stempelkarte speichern";
+        }
+        if (programSectionTitle) {
+          programSectionTitle.textContent = isAdvanced
+            ? "Stempelprogramm und Kampagnen"
+            : "Stempelprogramm";
+        }
+        if (programSectionIntro) {
+          programSectionIntro.textContent = isAdvanced
+            ? "Hier pflegst du die Grundlogik der Karte und optional die Hinweise fuer Rueckkehr und Fast-geschafft-Momente."
+            : "Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist und wie sie auf der Kundenkarte benannt wird.";
+        }
+        if (navCardSetup) {
+          navCardSetup.classList.toggle("active", !isAdvanced);
+          navCardSetup.classList.toggle("ghost", isAdvanced);
+        }
+        if (navAdvanced) {
+          navAdvanced.classList.toggle("active", isAdvanced);
+          navAdvanced.classList.toggle("ghost", !isAdvanced);
+        }
+        cardSections.forEach((el) => {
+          el.hidden = isAdvanced;
+        });
+        advancedSections.forEach((el) => {
+          el.hidden = !isAdvanced;
+        });
+        advancedOnlySections.forEach((el) => {
+          el.hidden = !isAdvanced;
+        });
+      }
 
       async function resolveApiBase() {
         if (location.protocol === "file:") return DEFAULT_API_BASE;
@@ -452,7 +1036,10 @@
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+          const err = new Error("api_error");
+          err.status = res.status;
+          err.responseText = text || "";
+          throw err;
         }
         return res.json();
       }
@@ -510,13 +1097,24 @@
       function renderProfile(cafeInfo) {
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
+        const websiteEl = document.getElementById("profileWebsiteUrl");
+        const instagramEl = document.getElementById("profileInstagramUrl");
         const logoPreview = document.getElementById("profileLogoPreview");
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
         const cardBgPreview = document.getElementById("profileCardBgPreview");
         const cardBackEl = document.getElementById("profileCardBackText");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+        const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+        const popupInactiveEnabledEl = document.getElementById("profilePopupInactiveEnabled");
+        const popupInactiveDaysEl = document.getElementById("profilePopupInactiveDays");
+        const popupInactiveMessageEl = document.getElementById("profilePopupInactiveMessage");
+        const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
+        const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
+        const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -552,6 +1150,30 @@
               ? String(cafeInfo.redeemMessage)
               : "";
         }
+        if (websiteEl) {
+          websiteEl.value =
+            cafeInfo && cafeInfo.websiteUrl ? String(cafeInfo.websiteUrl) : "";
+        }
+        if (instagramEl) {
+          instagramEl.value =
+            cafeInfo && cafeInfo.instagramUrl
+              ? String(cafeInfo.instagramUrl)
+              : "";
+        }
+
+        const program = cafeInfo && cafeInfo.program ? cafeInfo.program : {};
+        if (stampStyleEl)
+          stampStyleEl.value = program.stampStyle
+            ? String(program.stampStyle).toLowerCase()
+            : "bean";
+        if (rewardThresholdEl) rewardThresholdEl.value = String(program.stampsForReward != null ? program.stampsForReward : 10);
+        if (rewardDescriptionEl) rewardDescriptionEl.value = program.rewardDescription ? String(program.rewardDescription) : "1 Freigetr?nk";
+        if (popupInactiveEnabledEl) popupInactiveEnabledEl.checked = Number(program.popupInactiveEnabled != null ? program.popupInactiveEnabled : 1) !== 0;
+        if (popupInactiveDaysEl) popupInactiveDaysEl.value = String(program.popupInactiveDays != null ? program.popupInactiveDays : 21);
+        if (popupInactiveMessageEl) popupInactiveMessageEl.value = program.popupInactiveMessage ? String(program.popupInactiveMessage) : "";
+        if (popupAlmostRewardEnabledEl) popupAlmostRewardEnabledEl.checked = Number(program.popupAlmostRewardEnabled != null ? program.popupAlmostRewardEnabled : 1) !== 0;
+        if (popupAlmostRewardRemainingEl) popupAlmostRewardRemainingEl.value = String(program.popupAlmostRewardRemaining != null ? program.popupAlmostRewardRemaining : 2);
+        if (popupAlmostRewardMessageEl) popupAlmostRewardMessageEl.value = program.popupAlmostRewardMessage ? String(program.popupAlmostRewardMessage) : "";
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -599,6 +1221,8 @@
               : "paper";
 
         profileState.cardTheme = nextTheme;
+        profileState.stampStyle =
+          program && program.stampStyle ? String(program.stampStyle).toLowerCase() : "bean";
         if (themeEl) themeEl.value = nextTheme;
 
         if (profileState.logoDataUrl) {
@@ -662,9 +1286,14 @@
                 },
               );
               await refreshGallery();
-              setMsg("Bild entfernt ✔️");
+              setMsg("Bild entfernt");
             } catch (e) {
-              setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+              setMsg(
+                stampUI.userSafeErrorMessage(
+                  e,
+                  "Bild konnte nicht entfernt werden.",
+                ),
+              );
             }
           });
 
@@ -734,23 +1363,39 @@
           });
 
           await refreshGallery();
-          setMsg("Bild aktualisiert ✔️");
+          setMsg("Bild aktualisiert");
         } catch (e) {
           console.error("Cover upload failed", e);
-          setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+          setMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Bild konnte nicht hochgeladen werden.",
+            ),
+          );
         }
       }
 
       async function saveProfile() {
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
+        const websiteEl = document.getElementById("profileWebsiteUrl");
+        const instagramEl = document.getElementById("profileInstagramUrl");
         const logoInput = document.getElementById("profileLogo");
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
         const cardBgInput = document.getElementById("profileCardBg");
         const cardBackEl = document.getElementById("profileCardBackText");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+        const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+        const popupInactiveEnabledEl = document.getElementById("profilePopupInactiveEnabled");
+        const popupInactiveDaysEl = document.getElementById("profilePopupInactiveDays");
+        const popupInactiveMessageEl = document.getElementById("profilePopupInactiveMessage");
+        const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
+        const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
+        const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -794,15 +1439,30 @@
           const redeemMessage = redeemEl
             ? String(redeemEl.value || "").trim()
             : "";
+          const websiteUrl = websiteEl ? String(websiteEl.value || "").trim() : "";
+          const instagramUrl = instagramEl ? String(instagramEl.value || "").trim() : "";
 
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
           const lng = lngEl ? String(lngEl.value || "").trim() : "";
+          const stampsForReward = rewardThresholdEl ? String(rewardThresholdEl.value || "").trim() : "10";
+          const rewardDescription = rewardDescriptionEl ? String(rewardDescriptionEl.value || "").trim() : "";
+          const popupInactiveEnabled = popupInactiveEnabledEl ? !!popupInactiveEnabledEl.checked : true;
+          const popupInactiveDays = popupInactiveDaysEl ? String(popupInactiveDaysEl.value || "").trim() : "21";
+          const popupInactiveMessage = popupInactiveMessageEl ? String(popupInactiveMessageEl.value || "").trim() : "";
+          const popupAlmostRewardEnabled = popupAlmostRewardEnabledEl ? !!popupAlmostRewardEnabledEl.checked : true;
+          const popupAlmostRewardRemaining = popupAlmostRewardRemainingEl ? String(popupAlmostRewardRemainingEl.value || "").trim() : "2";
+          const popupAlmostRewardMessage = popupAlmostRewardMessageEl ? String(popupAlmostRewardMessageEl.value || "").trim() : "";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
                 .trim()
                 .toLowerCase()
             : "";
+          const stampStyle = stampStyleEl
+            ? String(stampStyleEl.value || "")
+                .trim()
+                .toLowerCase()
+            : "bean";
 
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
@@ -813,6 +1473,8 @@
             body: JSON.stringify({
               about,
               redeemMessage,
+              websiteUrl: websiteUrl || null,
+              instagramUrl: instagramUrl || null,
               logoDataUrl: logoDataUrl || null,
               cardBgDataUrl: cardBgDataUrl || null,
               cardBackText: cardBackText || null,
@@ -820,18 +1482,33 @@
               lat: lat || null,
               lng: lng || null,
               cardTheme: cardTheme || null,
+              stampStyle: stampStyle || "bean",
+              stampsForReward: stampsForReward || null,
+              rewardDescription: rewardDescription || null,
+              popupInactiveEnabled,
+              popupInactiveDays: popupInactiveDays || null,
+              popupInactiveMessage: popupInactiveMessage || null,
+              popupAlmostRewardEnabled,
+              popupAlmostRewardRemaining: popupAlmostRewardRemaining || null,
+              popupAlmostRewardMessage: popupAlmostRewardMessage || null,
             }),
           });
 
           if (cardTheme) profileState.cardTheme = cardTheme;
+          if (stampStyle) profileState.stampStyle = stampStyle;
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
           if (cardBgInput) cardBgInput.value = "";
-          setMsg("Gespeichert ✔️");
+          setMsg("Gespeichert");
         } catch (e) {
           console.error("Profile save failed", e);
-          setMsg(`Fehler: ${e && e.message ? e.message : e}`);
+          setMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+            ),
+          );
         } finally {
           btn.disabled = false;
         }
@@ -846,6 +1523,49 @@
         window.location.href = "/cafe-onboarding";
       }
 
+      function wireUtilityMenu() {
+        const topUtilityBtn = document.getElementById("topUtilityBtn");
+        const utilityMenu = document.getElementById("utilityMenu");
+        const utilityStartBtn = document.getElementById("utilityStartBtn");
+        const utilityCardBtn = document.getElementById("utilityCardBtn");
+        const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+        const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
+        const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+        const bottomModeScanner = document.getElementById("bottomModeScanner");
+
+        const setOpen = (open) => {
+          if (!utilityMenu) return;
+          utilityMenu.classList.toggle("open", !!open);
+          if (topUtilityBtn) {
+            topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
+          }
+        };
+
+        if (topUtilityBtn) {
+          topUtilityBtn.addEventListener("click", () => {
+            const isOpen = utilityMenu && utilityMenu.classList.contains("open");
+            setOpen(!isOpen);
+          });
+        }
+        if (utilityStartBtn) utilityStartBtn.addEventListener("click", () => (location.href = "/cafe-scanner"));
+        if (utilityCardBtn) utilityCardBtn.addEventListener("click", () => (location.href = "/cafe-profile"));
+        if (utilityAdminBtn)
+          utilityAdminBtn.addEventListener("click", () => (location.href = "/cafe-profile?view=advanced"));
+        if (utilityDashboardBtn)
+          utilityDashboardBtn.addEventListener("click", () => (location.href = "/cafe-dashboard"));
+        if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
+        if (bottomModeScanner)
+          bottomModeScanner.addEventListener("click", () => (location.href = "/cafe-scanner?view=scan"));
+
+        document.addEventListener("click", (ev) => {
+          const t = ev && ev.target ? ev.target : null;
+          if (!t || !utilityMenu) return;
+          if (utilityMenu.contains(t)) return;
+          if (topUtilityBtn && topUtilityBtn.contains(t)) return;
+          setOpen(false);
+        });
+      }
+
       async function init() {
         try {
           apiBase = await resolveApiBase();
@@ -858,16 +1578,12 @@
 
           cafe = JSON.parse(saved);
 
-          document.getElementById("cafeAvatar").textContent = (cafe.name || "C")
-            .charAt(0)
-            .toUpperCase();
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
-          document.getElementById("buildBadge").textContent = `API: ${apiBase}`;
-
-          document
-            .getElementById("logoutBtn")
-            .addEventListener("click", doLogout);
+          document.getElementById("buildBadge").textContent =
+            `profile · ui-20260603c · API: ${apiBase}`;
+          applyProfileViewMode(getProfileViewMode());
+          wireUtilityMenu();
 
           const btn = document.getElementById("profileSaveBtn");
           if (btn) btn.addEventListener("click", saveProfile);
@@ -976,13 +1692,16 @@
           document.getElementById("profileCard").style.display = "block";
         } catch (e) {
           console.error(e);
-          document.getElementById("loading").textContent = `Fehler: ${
-            e && e.message ? e.message : e
-          }`;
+          document.getElementById("loading").textContent =
+            stampUI.userSafeErrorMessage(
+              e,
+              "Profil konnte nicht geladen werden.",
+            );
         }
       }
 
       init();
     </script>
+    <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>

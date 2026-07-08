@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AGB - Kaffeekarte</title>
+    <meta name="theme-color" content="#f7efe6" />
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-6) + var(--safe-bottom, 0px))
+          calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(229, 197, 164, 0.22), rgba(229, 197, 164, 0) 34%),
+          linear-gradient(180deg, #fcf8f3 0%, #f4ede4 100%);
+      }
+
+      .legalShell {
+        width: min(980px, 100%);
+        margin: 0 auto;
+      }
+
+      .legalCard {
+        padding: clamp(28px, 4vw, 42px);
+        border-radius: 34px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(245, 237, 228, 0.96));
+        box-shadow:
+          0 22px 48px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(34px, 5vw, 54px);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        margin: 28px 0 10px;
+        font-size: 24px;
+      }
+
+      p,
+      li {
+        color: var(--text-muted);
+        line-height: 1.62;
+      }
+
+      ol,
+      ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .todoBox,
+      .infoBox {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .todoBox strong,
+      .infoBox strong {
+        color: var(--text);
+      }
+
+      .legalNav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .legalNav a {
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: rgba(255, 252, 248, 0.92);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="legalShell">
+      <div class="legalCard">
+        <a class="kk-brand is-hero" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Kaffee im Veedel</span>
+            <span class="kk-brandWord">Kaffeekarte</span>
+          </span>
+        </a>
+
+        <div class="eyebrow">Rechtliches</div>
+        <h1>Allgemeine Geschäftsbedingungen</h1>
+        <p>
+          Diese AGB sind als MVP-Grundlage für Kaffeekarte vorbereitet. Vor dem
+          Livegang sollten sie auf euer tatsächliches Geschäftsmodell, eure
+          Vertragsbeziehungen und eure Abrechnungslogik abgestimmt werden.
+        </p>
+
+        <div class="todoBox">
+          <strong>Vor Veröffentlichung anpassen:</strong>
+          <ul>
+            <li>Vertragspartner und Kontaktdaten</li>
+            <li>genauer Leistungsumfang für Gäste und Cafés</li>
+            <li>Regeln zu etwaigen Gebühren / Testphasen / Kündigung</li>
+            <li>Haftungsregelungen passend zu eurem Geschäftsmodell</li>
+            <li>Vertragslaufzeit und Kündigungsmodalitäten für Cafés</li>
+          </ul>
+        </div>
+
+        <h2>1. Geltungsbereich</h2>
+        <p>
+          Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der
+          digitalen Dienste von <strong>[Name / Firma einsetzen]</strong> unter der
+          Marke <strong>Kaffeekarte</strong> durch Gäste und angeschlossene Cafés.
+        </p>
+
+        <h2>2. Leistungsbeschreibung</h2>
+        <p>
+          Kaffeekarte stellt eine digitale Wallet für Gäste sowie eine Café-PWA
+          mit Scanner-, Karten- und Verwaltungsfunktionen für teilnehmende Cafés bereit.
+          Ziel ist die Verwaltung und Nutzung digitaler Stempelkarten.
+        </p>
+
+        <h2>3. Registrierung und Konto</h2>
+        <ol>
+          <li>Für bestimmte Funktionen ist eine Registrierung erforderlich.</li>
+          <li>Nutzer sind verpflichtet, bei der Registrierung wahrheitsgemäße Angaben zu machen.</li>
+          <li>Zugangsdaten sind vertraulich zu behandeln und vor dem Zugriff Dritter zu schützen.</li>
+        </ol>
+
+        <h2>4. Nutzung durch Gäste</h2>
+        <p>
+          Gäste können Stempelkarten abrufen, in ihrer Wallet verwalten und
+          QR-Codes zur Stempelvergabe oder Reward-Einlösung verwenden. Ein Anspruch
+          auf bestimmte Rewards besteht nur im Rahmen der vom jeweiligen Café festgelegten Aktionen.
+        </p>
+
+        <h2>5. Nutzung durch Cafés</h2>
+        <p>
+          Cafés können eigene Stempelkarten konfigurieren, Informationen zu ihrem
+          Betrieb pflegen und die Scanner-Funktion zur Stempelvergabe nutzen. Sie
+          sind für die inhaltliche Richtigkeit ihrer Angaben sowie für die Gestaltung
+          ihrer Reward-Angebote selbst verantwortlich.
+        </p>
+
+        <h2>6. Verfügbarkeit</h2>
+        <p>
+          Wir bemühen uns um eine möglichst hohe Verfügbarkeit der Dienste. Ein
+          unterbrechungsfreier oder jederzeit fehlerfreier Betrieb kann jedoch
+          nicht garantiert werden.
+        </p>
+
+        <h2>7. Pflichten der Nutzer</h2>
+        <ul>
+          <li>Keine missbräuchliche oder rechtswidrige Nutzung der Dienste</li>
+          <li>Keine Manipulation von QR-, Stempel- oder Reward-Abläufen</li>
+          <li>Keine Störung oder Beeinträchtigung der technischen Infrastruktur</li>
+        </ul>
+
+        <h2>8. Haftung</h2>
+        <p>
+          Für Vorsatz und grobe Fahrlässigkeit haften wir nach den gesetzlichen
+          Vorschriften. Bei leichter Fahrlässigkeit haften wir nur bei Verletzung
+          wesentlicher Vertragspflichten und begrenzt auf den vorhersehbaren,
+          vertragstypischen Schaden. Zwingende gesetzliche Haftungsvorschriften bleiben unberührt.
+        </p>
+
+        <h2>9. Änderungen und Weiterentwicklung</h2>
+        <p>
+          Wir behalten uns vor, Funktionen der Plattform weiterzuentwickeln,
+          anzupassen oder einzustellen, soweit dies für Nutzer zumutbar ist und
+          keine entgegenstehenden zwingenden Rechte bestehen.
+        </p>
+
+        <h2>10. Vertragslaufzeit und Beendigung</h2>
+        <p>
+          Für Gäste kann das Nutzungsverhältnis grundsätzlich jederzeit beendet
+          werden. Für Cafés sollten hier vor dem Livegang die konkreten Regeln
+          zu Laufzeit, Kündigung und eventuellen Testphasen ergänzt werden.
+        </p>
+
+        <h2>11. Schlussbestimmungen</h2>
+        <p>
+          Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des
+          UN-Kaufrechts, soweit dem keine zwingenden verbraucherschützenden
+          Vorschriften entgegenstehen.
+        </p>
+
+        <div class="infoBox">
+          <strong>Hinweis:</strong> Diese AGB sind eine strukturierte MVP-Vorlage,
+          aber keine abschließende juristische Fassung.
+        </div>
+
+        <nav class="legalNav" aria-label="Rechtliche Navigation">
+          <a href="/">Startseite</a>
+          <a href="/wallet">Wallet</a>
+          <a href="/cafe">Café</a>
+          <a href="/impressum">Impressum</a>
+          <a href="/datenschutz">Datenschutz</a>
+        </nav>
+      </div>
+    </div>
+  </body>
+</html>

@@ -2,13 +2,18 @@
   const STORAGE_KEY = "customer_session_v1";
 
   const el = {
-    buildBadge: document.getElementById("buildBadge"),
-    sessionBadge: document.getElementById("sessionBadge"),
+    profileStatus: document.getElementById("profileStatus"),
+    profileSub: document.getElementById("profileSub"),
     logoutBtn: document.getElementById("logoutBtn"),
+    topUtilityBtn: document.getElementById("topUtilityBtn"),
+    utilityMenu: document.getElementById("utilityMenu"),
+    utilityLogoutBtn: document.getElementById("utilityLogoutBtn"),
 
     notLoggedIn: document.getElementById("notLoggedIn"),
     authedOnly: document.getElementById("authedOnly"),
+    forgotPanel: document.getElementById("forgotPanel"),
     profileInfo: document.getElementById("profileInfo"),
+    profileAdvancedInfo: document.getElementById("profileAdvancedInfo"),
 
     currentPassword: document.getElementById("currentPassword"),
     newPassword: document.getElementById("newPassword"),
@@ -35,11 +40,6 @@
       : location.port === "3000"
         ? location.origin
         : `${location.origin}/api`;
-
-  function setBuildBadge() {
-    if (!el.buildBadge) return;
-    el.buildBadge.textContent = `v ${new Date().toLocaleString()}`;
-  }
 
   function showNotice(target, kind, msg) {
     if (!target) return;
@@ -77,9 +77,30 @@
     const res = await fetch(`${apiBase}${path}`, init);
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(text || `HTTP ${res.status}`);
+      const err = new Error("api_error");
+      err.status = res.status;
+      err.responseText = text || "";
+      throw err;
     }
     return res.json();
+  }
+
+  function safeUiErrorMessage(err, fallback) {
+    try {
+      if (window.stampUI && stampUI.userSafeErrorMessage) {
+        return stampUI.userSafeErrorMessage(err, fallback);
+      }
+    } catch (e) {}
+    return String(fallback || "Ein Fehler ist aufgetreten.");
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   function getResetTokenFromUrl() {
@@ -91,58 +112,102 @@
     }
   }
 
+  function setUtilityMenuOpen(open) {
+    if (!el.utilityMenu) return;
+    el.utilityMenu.classList.toggle("open", !!open);
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }
+
+  function wireUtilityMenu() {
+    if (!el.topUtilityBtn || !el.utilityMenu) return;
+    el.topUtilityBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setUtilityMenuOpen(!el.utilityMenu.classList.contains("open"));
+    });
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (el.utilityMenu.contains(target) || el.topUtilityBtn.contains(target)) {
+        return;
+      }
+      setUtilityMenuOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setUtilityMenuOpen(false);
+    });
+    el.utilityMenu.querySelectorAll("a").forEach((node) => {
+      node.addEventListener("click", () => setUtilityMenuOpen(false));
+    });
+    if (el.utilityLogoutBtn) {
+      el.utilityLogoutBtn.addEventListener("click", () => {
+        setUtilityMenuOpen(false);
+        clearSession();
+        location.href = "/wallet";
+      });
+    }
+  }
+
   function renderProfile(session) {
-    if (!el.sessionBadge) return;
+    if (!el.profileStatus) return;
 
     if (!session) {
-      el.sessionBadge.textContent = "Nicht eingeloggt";
+      el.profileStatus.textContent = "Nicht eingeloggt";
+      if (el.profileSub) el.profileSub.textContent = "Melde dich an oder fordere einen Reset-Link an.";
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
+      if (el.forgotPanel) el.forgotPanel.style.display = "block";
       return;
     }
 
-    el.sessionBadge.textContent = `Eingeloggt: ${
-      session.username || session.email
-    }`;
+    el.profileStatus.textContent = `Willkommen zur\u00fcck, ${session.username || session.email}`;
+    if (el.profileSub) el.profileSub.textContent = "Dein Account ist aktiv und bereit f\u00fcr den n\u00e4chsten Kaffee.";
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";
     if (el.notLoggedIn) el.notLoggedIn.style.display = "none";
-    if (el.authedOnly) el.authedOnly.style.display = "block";
+    if (el.authedOnly) el.authedOnly.style.display = "grid";
+    if (el.forgotPanel) el.forgotPanel.style.display = "none";
 
     if (el.profileInfo) {
+      const fields = [];
+      if (session.username) {
+        fields.push(
+          `<div class="profileField"><div class="profileFieldLabel">Benutzername</div><div class="profileFieldValue">${escapeHtml(session.username)}</div></div>`,
+        );
+      }
+      if (session.email) {
+        fields.push(
+          `<div class="profileField"><div class="profileFieldLabel">E-Mail</div><div class="profileFieldValue">${escapeHtml(session.email)}</div></div>`,
+        );
+      }
+      el.profileInfo.innerHTML = fields.join("");
+    }
+
+    if (el.profileAdvancedInfo) {
       const lines = [];
-      if (session.username) lines.push(`Username: ${session.username}`);
-      if (session.email) lines.push(`E-Mail: ${session.email}`);
+      if (session.customer_id != null) lines.push(`Kunden-ID: ${session.customer_id}`);
       if (session.address) lines.push(`Kunden-Adresse: ${session.address}`);
-      el.profileInfo.textContent = lines.join("\n");
+      el.profileAdvancedInfo.textContent = lines.length ? lines.join("\n") : "Keine erweiterten Informationen vorhanden.";
     }
 
     if (el.resetEmail && session.email) el.resetEmail.value = session.email;
   }
 
-  async function handleChangePassword(session) {
+  async function handleChangePassword() {
+    const session = loadSession();
     hideNotice(el.changePwMsg);
     if (!session || !session.email) {
       showNotice(el.changePwMsg, "danger", "Bitte zuerst einloggen.");
       return;
     }
 
-    const currentPassword = el.currentPassword
-      ? String(el.currentPassword.value || "")
-      : "";
-    const newPassword = el.newPassword
-      ? String(el.newPassword.value || "")
-      : "";
-    const newPassword2 = el.newPassword2
-      ? String(el.newPassword2.value || "")
-      : "";
+    const currentPassword = String(el.currentPassword?.value || "");
+    const newPassword = String(el.newPassword?.value || "");
+    const newPassword2 = String(el.newPassword2?.value || "");
 
     if (!currentPassword) {
-      showNotice(
-        el.changePwMsg,
-        "danger",
-        "Bitte aktuelles Passwort eingeben.",
-      );
+      showNotice(el.changePwMsg, "danger", "Bitte aktuelles Passwort eingeben.");
       return;
     }
     if (!newPassword || newPassword.length < 6) {
@@ -154,23 +219,28 @@
       return;
     }
     if (newPassword !== newPassword2) {
-      showNotice(
-        el.changePwMsg,
-        "danger",
-        "Neue Passwörter stimmen nicht überein.",
-      );
+      showNotice(el.changePwMsg, "danger", "Neue Passwörter stimmen nicht überein.");
       return;
     }
 
-    await apiFetch("/customers/change-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: session.email,
-        currentPassword,
-        newPassword,
-      }),
-    });
+    try {
+      await apiFetch("/customers/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          currentPassword,
+          newPassword,
+        }),
+      });
+    } catch (e) {
+      showNotice(
+        el.changePwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Passwort konnte nicht geändert werden."),
+      );
+      return;
+    }
 
     if (el.currentPassword) el.currentPassword.value = "";
     if (el.newPassword) el.newPassword.value = "";
@@ -183,21 +253,27 @@
     hideNotice(el.forgotPwMsg);
     if (el.devResetBox) el.devResetBox.style.display = "none";
 
-    const email = el.resetEmail ? String(el.resetEmail.value || "").trim() : "";
+    const email = String(el.resetEmail?.value || "").trim();
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      showNotice(
-        el.forgotPwMsg,
-        "danger",
-        "Bitte eine gültige E-Mail eingeben.",
-      );
+      showNotice(el.forgotPwMsg, "danger", "Bitte eine gueltige E-Mail eingeben.");
       return;
     }
 
-    const resp = await apiFetch("/customers/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    let resp = null;
+    try {
+      resp = await apiFetch("/customers/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    } catch (e) {
+      showNotice(
+        el.forgotPwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Reset-Link konnte nicht gesendet werden."),
+      );
+      return;
+    }
 
     showNotice(
       el.forgotPwMsg,
@@ -205,8 +281,10 @@
       "Wenn die Adresse existiert, wurde ein Reset-Link versendet.",
     );
 
-    // Dev convenience: show link if API returns it.
-    if (resp && resp.devResetUrl && el.devResetUrl && el.devResetBox) {
+    const isLocalDev =
+      /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "") ||
+      location.protocol === "file:";
+    if (isLocalDev && resp && resp.devResetUrl && el.devResetUrl && el.devResetBox) {
       el.devResetUrl.textContent = String(resp.devResetUrl);
       el.devResetBox.style.display = "block";
     }
@@ -215,15 +293,11 @@
   async function handleResetPassword(token) {
     hideNotice(el.resetPwMsg);
 
-    const pw1 = el.resetNewPw ? String(el.resetNewPw.value || "") : "";
-    const pw2 = el.resetNewPw2 ? String(el.resetNewPw2.value || "") : "";
+    const pw1 = String(el.resetNewPw?.value || "");
+    const pw2 = String(el.resetNewPw2?.value || "");
 
     if (!pw1 || pw1.length < 6) {
-      showNotice(
-        el.resetPwMsg,
-        "danger",
-        "Passwort muss mindestens 6 Zeichen haben.",
-      );
+      showNotice(el.resetPwMsg, "danger", "Passwort muss mindestens 6 Zeichen haben.");
       return;
     }
     if (pw1 !== pw2) {
@@ -231,11 +305,20 @@
       return;
     }
 
-    await apiFetch("/customers/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword: pw1 }),
-    });
+    try {
+      await apiFetch("/customers/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword: pw1 }),
+      });
+    } catch (e) {
+      showNotice(
+        el.resetPwMsg,
+        "danger",
+        safeUiErrorMessage(e, "Passwort konnte nicht gesetzt werden."),
+      );
+      return;
+    }
 
     if (el.resetNewPw) el.resetNewPw.value = "";
     if (el.resetNewPw2) el.resetNewPw2.value = "";
@@ -246,7 +329,6 @@
       "Passwort wurde gesetzt. Du kannst dich jetzt einloggen.",
     );
 
-    // Remove token from URL for safety
     try {
       const u = new URL(location.href);
       u.searchParams.delete("resetToken");
@@ -254,8 +336,39 @@
     } catch {}
   }
 
+  async function previewResetToken(token) {
+    if (!token) return;
+    hideNotice(el.resetPwMsg);
+    try {
+      const resp = await apiFetch("/customers/reset-password/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const who =
+        resp && (resp.username || resp.email)
+          ? String(resp.username || resp.email)
+          : "dieses Konto";
+      showNotice(
+        el.resetPwMsg,
+        "info",
+        `Reset-Link gueltig fuer ${who}. Du kannst jetzt ein neues Passwort setzen.`,
+      );
+    } catch (e) {
+      showNotice(
+        el.resetPwMsg,
+        "danger",
+        safeUiErrorMessage(
+          e,
+          "Reset-Link konnte nicht geprueft werden. Bitte neuen Link anfordern.",
+        ),
+      );
+      if (el.resetPwBtn) el.resetPwBtn.disabled = true;
+    }
+  }
+
   function boot() {
-    setBuildBadge();
+    wireUtilityMenu();
 
     const session = loadSession();
     renderProfile(session);
@@ -263,6 +376,8 @@
     const resetToken = getResetTokenFromUrl();
     if (resetToken && el.resetPanel) {
       el.resetPanel.style.display = "block";
+      if (el.forgotPanel) el.forgotPanel.style.display = "none";
+      void previewResetToken(resetToken);
     }
 
     if (el.logoutBtn) {
@@ -274,13 +389,11 @@
     }
 
     if (el.changePwBtn) {
-      el.changePwBtn.addEventListener("click", () =>
-        handleChangePassword(session),
-      );
+      el.changePwBtn.addEventListener("click", () => void handleChangePassword());
     }
 
     if (el.forgotPwBtn) {
-      el.forgotPwBtn.addEventListener("click", handleForgotPassword);
+      el.forgotPwBtn.addEventListener("click", () => void handleForgotPassword());
     }
 
     if (el.resetPwBtn) {
@@ -297,3 +410,4 @@
 
   boot();
 })();
+

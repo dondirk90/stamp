@@ -4,10 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Dashboard</title>
+    <meta name="theme-color" content="#6b452c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Barista App" />
+    <meta name="application-name" content="Barista App - Kaffeekarte" />
+    <link rel="manifest" href="/pwa/manifest-cafe.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/pwa/icons/icon-192.png"
+    />
+    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
-        padding: var(--space-5);
+        padding: calc(var(--space-5) + var(--safe-top, 0px))
+          calc(var(--space-5) + var(--safe-right, 0px))
+          calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
+          calc(var(--space-5) + var(--safe-left, 0px));
+        overflow-x: hidden;
       }
 
       .shell {
@@ -17,39 +35,289 @@
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-
-        padding: var(--space-4) 0;
-        border-bottom: none;
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.82);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        position: relative;
+        z-index: 3;
       }
 
       .brand {
         display: flex;
         align-items: center;
-        gap: var(--space-3);
+        justify-content: center;
+        width: 100%;
       }
 
-      .avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        background: var(--brand);
-        display: grid;
-        place-items: center;
-        color: var(--on-brand, #fff);
-        font-weight: 900;
+      .brandHead {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 18px;
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--text);
       }
 
       .subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .topbar .row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 241, 233, 0.12) !important;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.02) !important;
+        color: var(--text) !important;
+        box-shadow:
+          0 12px 22px rgba(0, 0, 0, 0.18),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: var(--text);
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.98);
+        box-shadow:
+          0 20px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        background-image: none !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 241, 233, 0.08) !important;
+        border-radius: 14px;
+        color: var(--text) !important;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .pageMeta,
+      .pageMeta *,
+      .card,
+      .card h1,
+      .card h2,
+      .card h3,
+      .card p,
+      .card label,
+      .card strong,
+      .card b,
+      .stat-card,
+      .stat-card * {
+        color: var(--text);
+      }
+
+      .pageMetaSub,
+      .card .muted,
+      .stat-subtitle,
+      .sourceRow,
+      .sourceRow * {
+        color: var(--text-muted) !important;
+      }
+
+      .card,
+      .stat-card {
+        background: rgba(255, 248, 241, 0.05) !important;
+        border: 1px solid rgba(255, 241, 233, 0.10) !important;
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+      }
+
+      .bottomTabs {
+        position: fixed;
+        left: calc(10px + var(--safe-left, 0px));
+        right: calc(10px + var(--safe-right, 0px));
+        bottom: calc(10px + var(--safe-bottom, 0px));
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        background: rgba(42, 29, 24, 0.94);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 22px 42px rgba(0, 0, 0, 0.28),
+          0 1px 0 rgba(255, 255, 255, 0.06) inset;
+        z-index: 28;
+      }
+
+      .bottomTabSpacer {
+        flex: 1 1 0;
+      }
+
+      .bottomTabBtn {
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .bottomTabBtn .ico,
+      .bottomTabBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 1.18 1 0;
+        min-height: 70px;
+        margin-top: -24px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
+      }
+
+      .pageMeta {
+        margin: 0 0 var(--space-4);
+        padding: 0 var(--space-1);
+      }
+
+      .pageMetaTitle {
+        margin: 0 0 4px;
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+
+      .pageMetaSub {
         font-size: 13px;
         color: var(--text-muted);
       }
@@ -85,6 +353,9 @@
 
       .stat-card {
         padding: var(--space-5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--surface) 92%, white 8%);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
       }
       .stat-label {
         font-size: 14px;
@@ -136,13 +407,13 @@
       }
       .badge {
         display: inline-block;
-        padding: 4px 12px;
+        padding: 0;
         border-radius: 0;
-        border: 1px solid var(--border);
+        border: none;
         font-size: 12px;
         font-weight: 600;
         background: transparent;
-        color: var(--text);
+        color: var(--text-muted);
       }
       .badge-success {
         background: transparent;
@@ -178,44 +449,46 @@
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <div class="avatar" id="cafeAvatar">C</div>
-          <div>
-            <h1 id="cafeName">Café Dashboard</h1>
-            <div class="subtitle" id="buildBadge">—</div>
-            <div class="sourceRow">
-              <span class="badge" id="sourceBadge">Quelle: —</span>
-              <span class="badge" id="refreshBadge">Aktualisiert: —</span>
-            </div>
+          <div class="brandHead">
+            <a class="kk-brand" href="/cafe-scanner">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Kaffeekarte</span>
+              </span>
+            </a>
           </div>
         </div>
         <div class="row">
-          <button
-            class="btn secondary"
-            type="button"
-            onclick="location.href = '/cafe-logout.html'"
-          >
-            Abmelden
+          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
+            <span class="topUtilityIcon"><span></span></span>
           </button>
         </div>
+      </div>
 
-        <div class="topMenu" aria-label="Navigation">
-          <a class="topMenuBtn ghost" href="/cafe-scanner">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
-          </a>
-          <a class="topMenuBtn ghost active" href="/cafe-dashboard">
-            <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
-          </a>
+      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
+        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
+        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
+        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
+        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
+        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
+      </div>
+
+        <div class="pageMeta">
+          <h1 class="pageMetaTitle" id="cafeName">Café Dashboard</h1>
+          <div class="pageMetaSub">Die Dinge im Blick, die im Caféalltag wirklich zählen.</div>
+          <div class="pageMetaSub" id="buildBadge">dashboard · ui-20260603c</div>
+          <span id="cafeAvatar" hidden aria-hidden="true"></span>
+          <div class="sourceRow">
+          <span class="badge" id="sourceBadge">Quelle: —</span>
+          <span class="badge" id="refreshBadge">Aktualisiert: —</span>
         </div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
-        <div class="muted" id="loading">Lade Dashboard…</div>
+        <div class="muted" id="loading">Wir holen kurz die Zahlen an den Tisch …</div>
       </div>
 
       <div id="dashboard" style="display: none">
@@ -223,12 +496,12 @@
           <div class="card stat-card">
             <div class="stat-label">Stempel vergeben</div>
             <div class="stat-value" id="stampsAwarded">0</div>
-            <div class="stat-subtitle">Datenbank (Events)</div>
+            <div class="stat-subtitle">aus den letzten Events</div>
           </div>
           <div class="card stat-card">
             <div class="stat-label">Belohnungen eingelöst</div>
             <div class="stat-value" id="stampsRedeemed">0</div>
-            <div class="stat-subtitle">Datenbank (Events)</div>
+            <div class="stat-subtitle">aus den letzten Events</div>
           </div>
           <div class="card stat-card">
             <div class="stat-label">Netto-Stempel</div>
@@ -238,7 +511,7 @@
           <div class="card stat-card">
             <div class="stat-label">Kunden</div>
             <div class="stat-value" id="uniqueCustomers">0</div>
-            <div class="stat-subtitle">einzigartige Kunden</div>
+            <div class="stat-subtitle">einzigartige Gäste</div>
           </div>
         </div>
 
@@ -246,7 +519,7 @@
           <div class="card" style="padding: var(--space-5)">
             <h2 class="sectionTitle">Top Kunden</h2>
             <div class="muted" style="margin-bottom: var(--space-3)">
-              Top 10 nach Netto-Stempeln (Datenbank)
+              Die zehn aktivsten Gäste nach Netto-Stempeln.
             </div>
             <div style="overflow: auto">
               <table class="history-table">
@@ -286,8 +559,20 @@
           </div>
         </div>
       </div>
+
+      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
+        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">S</span>
+            <span class="lbl">Scanner</span>
+          </span>
+        </button>
+        <div class="bottomTabSpacer" aria-hidden="true"></div>
+      </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       let cafe = null;
 
@@ -319,7 +604,10 @@
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+          const err = new Error("api_error");
+          err.status = res.status;
+          err.responseText = text || "";
+          throw err;
         }
         return res.json();
       }
@@ -349,6 +637,73 @@
         node.className = "badge" + (variant ? " " + variant : "");
       }
 
+      function wireUtilityMenu() {
+        const topUtilityBtn = document.getElementById("topUtilityBtn");
+        const utilityMenu = document.getElementById("utilityMenu");
+        const utilityStartBtn = document.getElementById("utilityStartBtn");
+        const utilityCardBtn = document.getElementById("utilityCardBtn");
+        const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+        const utilityDashboardBtn =
+          document.getElementById("utilityDashboardBtn");
+        const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
+        const bottomModeScanner = document.getElementById("bottomModeScanner");
+
+        const setOpen = (open) => {
+          if (!utilityMenu) return;
+          utilityMenu.classList.toggle("open", !!open);
+          if (topUtilityBtn) {
+            topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
+          }
+        };
+
+        if (topUtilityBtn) {
+          topUtilityBtn.addEventListener("click", () => {
+            const isOpen = utilityMenu && utilityMenu.classList.contains("open");
+            setOpen(!isOpen);
+          });
+        }
+
+        if (utilityStartBtn) {
+          utilityStartBtn.addEventListener("click", () => {
+            window.location.href = "/cafe-scanner";
+          });
+        }
+        if (utilityCardBtn) {
+          utilityCardBtn.addEventListener("click", () => {
+            window.location.href = "/cafe-profile";
+          });
+        }
+        if (utilityAdminBtn) {
+          utilityAdminBtn.addEventListener("click", () => {
+            window.location.href = "/cafe-profile?view=advanced";
+          });
+        }
+        if (utilityDashboardBtn) {
+          utilityDashboardBtn.addEventListener("click", () => {
+            window.location.href = "/cafe-dashboard";
+          });
+        }
+        if (utilityLogoutBtn) {
+          utilityLogoutBtn.addEventListener("click", () => {
+            setOpen(false);
+            logout();
+          });
+        }
+        if (bottomModeScanner) {
+          bottomModeScanner.addEventListener("click", () => {
+            window.location.href = "/cafe-scanner?view=scan";
+          });
+        }
+
+        document.addEventListener("click", (event) => {
+          const t = event.target;
+          if (!t || !utilityMenu) return;
+          if (utilityMenu.contains(t)) return;
+          if (topUtilityBtn && topUtilityBtn.contains(t)) return;
+          setOpen(false);
+        });
+      }
+
       async function init() {
         try {
           apiBase = await resolveApiBase();
@@ -369,9 +724,19 @@
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Dashboard";
 
-          document.getElementById("buildBadge").textContent = `API: ${apiBase}`;
+          document.getElementById("buildBadge").textContent =
+            `dashboard · ui-20260603b · API: ${apiBase}`;
+
+          document.getElementById("cafeName").textContent =
+            cafe.name || "Café Dashboard";
+          document.getElementById("buildBadge").textContent =
+            `dashboard · ui-20260603c · API: ${apiBase}`;
+          wireUtilityMenu();
 
           // Default source badges (updated on refreshAll)
+          setBadge("sourceBadge", "Quelle: —");
+          setBadge("refreshBadge", "Aktualisiert: —");
+
           setBadge("sourceBadge", "Quelle: —");
           setBadge("refreshBadge", "Aktualisiert: —");
 
@@ -381,13 +746,30 @@
           document.getElementById("dashboard").style.display = "block";
 
           // Refresh every 30 seconds
-          setInterval(async () => {
-            await refreshAll();
+          setInterval(() => {
+            refreshAll().catch((e) => {
+              try {
+                setBadge("sourceBadge", "Quelle: offline", "warn");
+              } catch (e0) {}
+              try {
+                setBadge(
+                  "refreshBadge",
+                  stampUI.userSafeErrorMessage(
+                    e,
+                    "Aktualisierung fehlgeschlagen",
+                  ),
+                  "",
+                );
+              } catch (e1) {}
+            });
           }, 30000);
         } catch (err) {
           console.error("Init error:", err);
           document.getElementById("loading").textContent =
-            `Fehler: ${err.message}`;
+            stampUI.userSafeErrorMessage(
+              err,
+              "Dashboard konnte nicht geladen werden.",
+            );
         }
       }
 
@@ -521,5 +903,6 @@
 
       init();
     </script>
+    <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>

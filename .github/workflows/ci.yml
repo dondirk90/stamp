@@ -1,0 +1,36 @@
+name: CI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  pull_request:
+    branches: [test, main]
+  push:
+    branches: [test, main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Syntax checks
+        run: |
+          node --check api/server.cjs
+          node --check api/db.cjs
+          node --check apps/server.cjs
+          node --check apps/customer-profile.js
+          node --check apps/customer-qr-modern.js
+
+      - name: Build API image
+        run: docker build -t stamp-ci-api ./api
+
+      - name: Build Apps image
+        run: docker build -t stamp-ci-apps ./apps

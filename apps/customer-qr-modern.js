@@ -5,9 +5,14 @@
   var STORAGE_KEY_V1 = "customer_session_v1";
   var STORAGE_KEY_V2 = "customer_session_v2"; // read-only (backward compat)
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
+  var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
+  var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
 
   var REWARD_THRESHOLD = 10;
-  var WALLET_MODE = "stack"; // parity across desktop/iOS/Android
+  // Keep the wallet interaction model consistent across phone, tablet and notebook:
+  // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
+  var WALLET_MODE = "carousel";
+  var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
   // while the customer holds it up to be scanned.
@@ -15,11 +20,31 @@
     byKey: {},
   };
 
+  var shellMenuState = {
+    open: false,
+  };
+
+  var qrSheetState = {
+    open: false,
+    passEl: null,
+  };
+
+  var currentPageMode = null;
+
   var el = {
     buildBadge: document.getElementById("buildBadge"),
     liveBadge: document.getElementById("liveBadge"),
-    sessionBadge: document.getElementById("sessionBadge"),
-    logoutBtn: document.getElementById("logoutBtn"),
+    bottomTabs: document.querySelector(".bottomTabs"),
+    qrSheetBackdrop: document.getElementById("qrSheetBackdrop"),
+    qrSheet: document.getElementById("qrSheet"),
+    qrSheetTitle: document.getElementById("qrSheetTitle"),
+    qrSheetSub: document.getElementById("qrSheetSub"),
+    qrSheetBox: document.getElementById("qrSheetBox"),
+    qrSheetHint: document.getElementById("qrSheetHint"),
+    qrSheetClose: document.getElementById("qrSheetClose"),
+    walletOverlayBackdrop: document.getElementById("walletOverlayBackdrop"),
+    walletOverlay: document.getElementById("walletOverlay"),
+    walletOverlayClose: document.getElementById("walletOverlayClose"),
 
     authPanel: document.getElementById("authPanel"),
     mainPanel: document.getElementById("mainPanel"),
@@ -36,12 +61,37 @@
     authSubmit: document.getElementById("authSubmit"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
+    authForgotToggle: document.getElementById("authForgotToggle"),
+    authResendVerificationBtn: document.getElementById(
+      "authResendVerificationBtn",
+    ),
+    authForgotPanel: document.getElementById("authForgotPanel"),
+    authForgotSubmit: document.getElementById("authForgotSubmit"),
+    authForgotMsg: document.getElementById("authForgotMsg"),
 
-    mainModeHome: document.getElementById("mainModeHome"),
+    bottomModeMap: document.getElementById("bottomModeMap"),
+    bottomModeWallet: document.getElementById("bottomModeWallet"),
+    bottomModeHistory: document.getElementById("bottomModeHistory"),
     mainModeMap: document.getElementById("mainModeMap"),
     mainModeWallet: document.getElementById("mainModeWallet"),
     mainModeHistory: document.getElementById("mainModeHistory"),
+    mainModeAccount: document.getElementById("mainModeAccount"),
+    topUtilityBtn: document.getElementById("topUtilityBtn"),
+    utilityMenu: document.getElementById("utilityMenu"),
+    utilityMapBtn: document.getElementById("utilityMapBtn"),
+    utilityHistoryBtn: document.getElementById("utilityHistoryBtn"),
+    utilityAccountBtn: document.getElementById("utilityAccountBtn"),
+    utilityLogoutBtn: document.getElementById("utilityLogoutBtn"),
 
+    welcomePanel: document.getElementById("welcomePanel"),
+    welcomeTitle: document.getElementById("welcomeTitle"),
+    welcomeLead: document.getElementById("welcomeLead"),
+    welcomeCardCount: document.getElementById("welcomeCardCount"),
+    welcomeStateTitle: document.getElementById("welcomeStateTitle"),
+    welcomeNextHint: document.getElementById("welcomeNextHint"),
+    welcomePrimaryAction: document.getElementById("welcomePrimaryAction"),
+    welcomeCardsEmpty: document.getElementById("welcomeCardsEmpty"),
+    welcomeCardsList: document.getElementById("welcomeCardsList"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -55,10 +105,12 @@
 
     cafeSearch: document.getElementById("cafeSearch"),
     cafeResults: document.getElementById("cafeResults"),
+    screenPager: document.getElementById("screenPager"),
 
     walletPanel: document.getElementById("walletPanel"),
     walletSubtitle: document.getElementById("walletSubtitle"),
     walletEmpty: document.getElementById("walletEmpty"),
+    walletEmptyMapBtn: document.getElementById("walletEmptyMapBtn"),
     walletList: document.getElementById("walletList"),
 
     historyPanel: document.getElementById("historyPanel"),
@@ -74,10 +126,20 @@
     cafeModalImageWrap: document.getElementById("cafeModalImageWrap"),
     cafeModalImage: document.getElementById("cafeModalImage"),
     cafeModalGallery: document.getElementById("cafeModalGallery"),
+    cafeModalLogoWrap: document.getElementById("cafeModalLogoWrap"),
+    cafeModalLogo: document.getElementById("cafeModalLogo"),
+    cafeModalMetaRow: document.getElementById("cafeModalMetaRow"),
+    cafeModalStatus: document.getElementById("cafeModalStatus"),
+    cafeModalRewardCycle: document.getElementById("cafeModalRewardCycle"),
+    cafeModalRewardHint: document.getElementById("cafeModalRewardHint"),
     cafeModalAbout: document.getElementById("cafeModalAbout"),
     cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
+    cafeModalLinks: document.getElementById("cafeModalLinks"),
+    cafeModalWebsite: document.getElementById("cafeModalWebsite"),
+    cafeModalInstagram: document.getElementById("cafeModalInstagram"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
-    cafeModalProfileLink: document.getElementById("cafeModalProfileLink"),
+    cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
+    cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
   };
 
   var apiBase =
@@ -86,7 +148,7 @@
       : location.origin + "/api";
 
   var session = null;
-  var authMode = "register";
+  var authMode = "login";
 
   var toastState = {
     el: null,
@@ -101,13 +163,22 @@
 
   var cafesByCafeAddress = {};
 
+  // Incremented whenever cafe metadata is refreshed.
+  var cafesVersion = 0;
+
   var cafes = [];
+  var cafesLoaded = false;
+  var walletServerCardsByCafe = {};
+  var walletServerCardsDigest = "";
 
   var leafletMap = null;
   var leafletMarkers = [];
   var pickedCafe = null;
   var mapInitTimer = 0;
   var mapInitAttempts = 0;
+  var mapHasAskedForLocation = false;
+  var mapUserMarker = null;
+  var mapLastKnownCenter = null;
 
   var walletState = {
     stackDrag: null,
@@ -116,11 +187,37 @@
     dragTx: 0,
     dragTy: 0,
     dragRz: 0,
+    dragRy: 0,
     dragOp: 1,
     dragTxCur: 0,
     dragTyCur: 0,
     dragRzCur: 0,
+    dragRyCur: 0,
     dragOpCur: 1,
+
+    // Wallet render cache (avoid rebuilding DOM on every tab switch)
+    lastFavKey: "",
+    lastCardCount: 0,
+    lastCafesVersion: 0,
+    lastStampIconOk: false,
+    lastServerCardsDigest: "",
+
+    // Stamp refresh throttling
+    stampsRefreshTimer: 0,
+    stampsRefreshQueuedAt: 0,
+    stampsLastRunAt: 0,
+    stampsInFlight: {},
+    overlayOpen: false,
+  };
+
+  var rewardCelebrationState = {
+    host: null,
+    timer: 0,
+    prefersReducedMotion:
+      !!(
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ),
   };
 
   function nowMs() {
@@ -131,6 +228,107 @@
     var n = Number(v);
     if (!isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
+  }
+
+  function ensureRewardCelebrationHost() {
+    if (rewardCelebrationState.host) return rewardCelebrationState.host;
+    try {
+      var host = document.createElement("div");
+      host.className = "rewardBalloons";
+      host.setAttribute("aria-hidden", "true");
+      document.body.appendChild(host);
+      rewardCelebrationState.host = host;
+    } catch (e) {
+      rewardCelebrationState.host = null;
+    }
+    return rewardCelebrationState.host;
+  }
+
+  function launchRewardCelebration() {
+    if (rewardCelebrationState.prefersReducedMotion) return;
+    var host = ensureRewardCelebrationHost();
+    if (!host) return;
+
+    try {
+      host.innerHTML = "";
+      host.classList.add("active");
+    } catch (e0) {}
+
+    var colors = ["#f2c94c", "#e58f65", "#d66853", "#6b452c", "#8fb996", "#d7b98e"];
+    for (var i = 0; i < 14; i++) {
+      var balloon = document.createElement("span");
+      balloon.className = "rewardBalloon";
+      balloon.style.left = 4 + i * 7 + Math.random() * 6 + "%";
+      balloon.style.animationDelay = (Math.random() * 0.45).toFixed(2) + "s";
+      balloon.style.animationDuration = (4.6 + Math.random() * 1.4).toFixed(2) + "s";
+      balloon.style.setProperty("--balloon-color", colors[i % colors.length]);
+      balloon.style.setProperty(
+        "--balloon-drift",
+        (Math.random() * 90 - 45).toFixed(0) + "px",
+      );
+      balloon.style.setProperty(
+        "--balloon-scale",
+        (0.86 + Math.random() * 0.42).toFixed(2),
+      );
+      host.appendChild(balloon);
+    }
+
+    try {
+      window.clearTimeout(rewardCelebrationState.timer);
+    } catch (e1) {}
+    rewardCelebrationState.timer = window.setTimeout(function () {
+      try {
+        host.classList.remove("active");
+        host.innerHTML = "";
+      } catch (e2) {}
+    }, 6200);
+  }
+
+  function launchRedeemCelebration() {
+    if (rewardCelebrationState.prefersReducedMotion) return;
+    var host = ensureRewardCelebrationHost();
+    if (!host) return;
+
+    try {
+      host.innerHTML = "";
+      host.classList.add("active", "isRedeem");
+    } catch (e0) {}
+
+    for (var i = 0; i < 20; i++) {
+      var burst = document.createElement("span");
+      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardBean";
+      burst.style.left = 16 + Math.random() * 68 + "%";
+      burst.style.top = 26 + Math.random() * 24 + "%";
+      burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
+      burst.style.animationDuration = (1.6 + Math.random() * 0.9).toFixed(2) + "s";
+      burst.style.setProperty(
+        "--burst-x",
+        (Math.random() * 320 - 160).toFixed(0) + "px",
+      );
+      burst.style.setProperty(
+        "--burst-y",
+        (-140 - Math.random() * 180).toFixed(0) + "px",
+      );
+      burst.style.setProperty(
+        "--burst-rot",
+        (Math.random() * 420 - 210).toFixed(0) + "deg",
+      );
+      burst.style.setProperty(
+        "--burst-scale",
+        (0.8 + Math.random() * 0.7).toFixed(2),
+      );
+      host.appendChild(burst);
+    }
+
+    try {
+      window.clearTimeout(rewardCelebrationState.timer);
+    } catch (e1) {}
+    rewardCelebrationState.timer = window.setTimeout(function () {
+      try {
+        host.classList.remove("active", "isRedeem");
+        host.innerHTML = "";
+      } catch (e2) {}
+    }, 3200);
   }
 
   function isIOS() {
@@ -202,7 +400,7 @@
     var s = String(a || "");
     if (!s) return "";
     if (s.length <= 14) return s;
-    return s.slice(0, 6) + "…" + s.slice(-4);
+    return s.slice(0, 6) + "?" + s.slice(-4);
   }
 
   function formatTs(ts) {
@@ -222,14 +420,7 @@
     } catch (e) {}
   }
 
-  function setBuildBadge() {
-    if (!el.buildBadge) return;
-    try {
-      el.buildBadge.textContent = "v " + new Date().toLocaleString();
-    } catch (e) {
-      el.buildBadge.textContent = "ready";
-    }
-  }
+  function setBuildBadge() {}
 
   function setLiveConnected(isConnected) {
     if (!el.liveBadge) return;
@@ -349,6 +540,18 @@
       el.authSubmit.textContent =
         authMode === "register" ? "Account erstellen" : "Einloggen";
 
+    if (el.authForgotToggle)
+      el.authForgotToggle.style.display =
+        authMode === "login" ? "inline-flex" : "none";
+    if (authMode !== "login") {
+      if (el.authForgotPanel) el.authForgotPanel.style.display = "none";
+      if (el.authForgotMsg) {
+        el.authForgotMsg.style.display = "none";
+        el.authForgotMsg.textContent = "";
+        el.authForgotMsg.className = "notice";
+      }
+    }
+
     if (el.password) {
       el.password.autocomplete =
         authMode === "register" ? "new-password" : "current-password";
@@ -357,12 +560,15 @@
 
   function setAuthedUI() {
     var isAuthed = !!(session && session.address);
-
-    if (el.logoutBtn)
-      el.logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
     if (el.authPanel) el.authPanel.style.display = isAuthed ? "none" : "block";
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
+    if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
+    if (!isAuthed) closeWalletOverlay({ silent: true });
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.style.display = isAuthed ? "" : "none";
+    }
+    if (!isAuthed) setShellMenuOpen(false);
 
     if (el.welcomeBadge && isAuthed) {
       var uname = session.username || session.email || "";
@@ -370,6 +576,7 @@
         ? "Willkommen, " + uname
         : "Willkommen";
     }
+    if (isAuthed) updateWelcomeUI();
     if (el.addressLine) {
       el.addressLine.style.display = "none";
       el.addressLine.textContent = "";
@@ -377,9 +584,9 @@
   }
 
   function navSetActive(which) {
-    var w = which || "home";
-    if (el.mainModeHome)
-      el.mainModeHome.classList.toggle("active", w === "home");
+    var w = which || "map";
+    if (el.bottomModeWallet)
+      el.bottomModeWallet.classList.toggle("active", w === "wallet");
     if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
     if (el.mainModeWallet)
       el.mainModeWallet.classList.toggle("active", w === "wallet");
@@ -387,30 +594,582 @@
       el.mainModeHistory.classList.toggle("active", w === "history");
   }
 
+  function updateWelcomeUI() {
+    var uname = "";
+    try {
+      uname = String((session && (session.username || session.email)) || "").trim();
+    } catch (e) {
+      uname = "";
+    }
+    var favCount = 0;
+    try {
+      favCount = getFavorites().length;
+    } catch (eFav) {
+      favCount = 0;
+    }
+    if (el.welcomeTitle) {
+      el.welcomeTitle.textContent = uname ? "Hallo, " + uname + " ☕" : "Hallo ☕";
+    }
+    if (el.welcomeLead) {
+      el.welcomeLead.textContent =
+        favCount > 0
+          ? "Willkommen zur\u00fcck. Deine Karten sind bereit f\u00fcr den n\u00e4chsten Kaffee."
+          : "Hol dir deine erste Kaffeekarte und sammle deinen n\u00e4chsten Stempel digital.";
+    }
+    if (el.welcomeCardCount) {
+      el.welcomeCardCount.textContent = String(favCount || 0);
+    }
+    if (el.welcomeStateTitle) {
+      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Entdecken";
+    }
+    if (el.welcomeNextHint) {
+      el.welcomeNextHint.textContent =
+        favCount > 0
+          ? "Dein n\u00e4chster Stempel ist nur einen Scan entfernt."
+          : "\u00d6ffne Caf\u00e9s im Men\u00fc oben rechts und hol dir deine erste digitale Kaffeekarte.";
+    }
+    if (el.welcomePrimaryAction) {
+      el.welcomePrimaryAction.textContent =
+        favCount > 0 ? "Wallet ansehen" : "Caf\u00e9s entdecken";
+    }
+    renderWelcomeCards();
+  }
+
+  function renderWelcomeCards() {
+    if (!el.welcomeCardsList || !el.welcomeCardsEmpty) return;
+
+    var favorites = [];
+    try {
+      favorites = getFavorites();
+    } catch (eFav) {
+      favorites = [];
+    }
+
+    var favNorm = [];
+    for (var i = 0; i < favorites.length; i++) {
+      var addr = normalizeAddr(favorites[i]);
+      if (!addr) continue;
+      favNorm.push(addr);
+    }
+
+    el.welcomeCardsList.innerHTML = "";
+
+    if (!favNorm.length) {
+      el.welcomeCardsEmpty.style.display = "block";
+      return;
+    }
+
+    el.welcomeCardsEmpty.style.display = "none";
+
+    var overview = document.createElement("article");
+    overview.className = "welcomeOverviewCard";
+
+    var overviewHead = document.createElement("div");
+    overviewHead.className = "welcomeOverviewHead";
+
+    var overviewTitleWrap = document.createElement("div");
+    var overviewTitle = document.createElement("div");
+    overviewTitle.className = "welcomeOverviewTitle";
+    overviewTitle.textContent = "Deine Caf\u00e9s im \u00dcberblick";
+
+    var overviewMeta = document.createElement("div");
+    overviewMeta.className = "welcomeOverviewMeta";
+    overviewMeta.textContent =
+      favNorm.length === 1 ? "1 aktive Karte" : String(favNorm.length) + " aktive Karten";
+
+    overviewTitleWrap.appendChild(overviewTitle);
+    overviewTitleWrap.appendChild(overviewMeta);
+    overviewHead.appendChild(overviewTitleWrap);
+    overview.appendChild(overviewHead);
+
+    var rows = document.createElement("div");
+    rows.className = "welcomeCafeRows";
+
+    for (var j = 0; j < favNorm.length; j++) {
+      var cafeAddress = favNorm[j];
+      var cafe = cafesByCafeAddress[cafeAddress] || null;
+      var serverCard = getServerCard(cafeAddress);
+      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
+      var meta = resolveCafeDisplayMeta(cafeAddress, serverCard, cafe);
+      var rewardThreshold = serverCard
+        ? getCardRewardThreshold(serverCard)
+        : cafe
+          ? getCardRewardThreshold(cafe)
+          : REWARD_THRESHOLD;
+      var stampCount =
+        Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
+      var countLine = formatStampCountLine(
+        stampCount,
+        rewardThreshold,
+        Math.max(0, stampCount - rewardThreshold),
+      );
+
+      var row = document.createElement("div");
+      row.className = "welcomeCafeRow";
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-label", meta.name + " \u00f6ffnen");
+      row.addEventListener("click", (function (addr) {
+        return function () {
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+        };
+      })(cafeAddress));
+      row.addEventListener("keydown", (function (addr) {
+        return function (ev) {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          try {
+            ev.preventDefault();
+          } catch (e) {}
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+        };
+      })(cafeAddress));
+
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "welcomeCafeLogo";
+      logoWrap.setAttribute("data-cafe-name", meta.name);
+      if (cafe && cafe.logoDataUrl) {
+        var img = document.createElement("img");
+        img.src = String(cafe.logoDataUrl);
+        img.alt = "";
+        img.decoding = "async";
+        img.loading = "lazy";
+        img.addEventListener("error", function () {
+          try {
+            var parent = this.parentNode;
+            var cafeName = parent
+              ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
+              : "Kaffeekarte";
+            if (parent) {
+              parent.innerHTML = "";
+              parent.appendChild(buildPassLogoFallback(cafeName));
+            }
+          } catch (eLogo) {}
+        });
+        logoWrap.appendChild(img);
+      } else {
+        logoWrap.appendChild(buildPassLogoFallback(meta.name));
+      }
+
+      var metaWrap = document.createElement("div");
+      metaWrap.className = "welcomeCafeMeta";
+
+      var title = document.createElement("div");
+      title.className = "welcomeCafeName";
+      title.textContent = meta.name;
+
+      var count = document.createElement("div");
+      count.className = "welcomeCafeCount";
+      count.textContent = countLine;
+
+      var stampRow = document.createElement("div");
+      stampRow.className = "welcomeCafeStampRow";
+      for (var stampIndex = 0; stampIndex < rewardThreshold; stampIndex++) {
+        var stampDot = document.createElement("span");
+        stampDot.className =
+          "welcomeCafeStamp" +
+          (stampIndex < Math.min(stampCount, rewardThreshold) ? " filled" : "");
+        stampRow.appendChild(stampDot);
+      }
+
+      metaWrap.appendChild(title);
+      metaWrap.appendChild(count);
+      metaWrap.appendChild(stampRow);
+
+      var btn = document.createElement("button");
+      btn.className = "btn secondary welcomeCafeAction";
+      btn.type = "button";
+      btn.textContent = "QR zeigen";
+      btn.addEventListener("click", (function (addr) {
+        return function (ev) {
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+        };
+      })(cafeAddress));
+
+      row.appendChild(logoWrap);
+      row.appendChild(metaWrap);
+      row.appendChild(btn);
+      rows.appendChild(row);
+    }
+
+    overview.appendChild(rows);
+    el.welcomeCardsList.appendChild(overview);
+  }
+
+  function setWalletOverlayOpen(open) {
+    var next = !!open;
+    walletState.overlayOpen = next;
+    try {
+      if (el.walletOverlayBackdrop)
+        el.walletOverlayBackdrop.classList.toggle("open", next);
+      if (el.walletOverlay)
+        el.walletOverlay.classList.toggle("open", next);
+      if (el.walletOverlay)
+        el.walletOverlay.setAttribute("aria-hidden", next ? "false" : "true");
+      document.body.classList.toggle("walletOverlayOpen", next);
+      document.documentElement.classList.toggle("walletMode", next);
+    } catch (e) {}
+  }
+
+  function openWalletOverlay() {
+    closeQrSheet();
+    refreshWallet();
+    setWalletOverlayOpen(true);
+    navSetActive("wallet");
+    window.setTimeout(function () {
+      try {
+        closeAllPasses();
+        centerWalletPrimaryCard();
+      } catch (e0) {}
+    }, 24);
+  }
+
+  function closeWalletOverlay(opts) {
+    var o = opts || {};
+    closeQrSheet();
+    try {
+      if (el.walletList) {
+        var cards = el.walletList.querySelectorAll(".passCard.open");
+        for (var i = 0; i < cards.length; i++) {
+          closePass(cards[i]);
+        }
+      }
+    } catch (e0) {}
+    setWalletOverlayOpen(false);
+    if (o.silent) return;
+    if (currentPageMode === "wallet") {
+      navigateToMode("welcome");
+      return;
+    }
+    navSetActive(currentPageMode === "wallet" ? "wallet" : "");
+  }
+
+  function closeAllPasses(exceptEl) {
+    try {
+      if (!el.walletList) return;
+      var cards = el.walletList.querySelectorAll(".passCard.open, .passCard.isFocused");
+      for (var i = 0; i < cards.length; i++) {
+        if (exceptEl && cards[i] === exceptEl) continue;
+        closePass(cards[i]);
+      }
+    } catch (e) {}
+  }
+
+  function focusPass(passEl) {
+    if (!passEl) return;
+    closeAllPasses(passEl);
+    try {
+      if (passEl.classList) passEl.classList.add("isFocused");
+      if (passEl.scrollIntoView) {
+        passEl.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+    } catch (e) {}
+  }
+
+  function centerWalletPrimaryCard() {
+    try {
+      if (!el.walletList) return;
+      var target =
+        el.walletList.querySelector(".passCard.isFocused") ||
+        el.walletList.querySelector(".passCard.open") ||
+        el.walletList.querySelector(".passCard");
+      if (!target || !target.scrollIntoView) return;
+      target.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "center",
+      });
+    } catch (e) {}
+  }
+
+  function setShellMenuOpen(open) {
+    shellMenuState.open = !!open;
+    try {
+      if (el.utilityMenu) el.utilityMenu.classList.toggle("open", shellMenuState.open);
+      if (el.topUtilityBtn)
+        el.topUtilityBtn.setAttribute("aria-expanded", shellMenuState.open ? "true" : "false");
+    } catch (e) {}
+  }
+
+  function wireShellMenu() {
+    if (el.topUtilityBtn) {
+      el.topUtilityBtn.addEventListener("click", function () {
+        setShellMenuOpen(!shellMenuState.open);
+      });
+    }
+    if (el.utilityMapBtn) {
+      el.utilityMapBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        navigateToMode("map");
+      });
+    }
+    if (el.utilityHistoryBtn) {
+      el.utilityHistoryBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        navigateToMode("history");
+      });
+    }
+    if (el.utilityAccountBtn) {
+      el.utilityAccountBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        location.href = "/customer-profile";
+      });
+    }
+    if (el.utilityLogoutBtn) {
+      el.utilityLogoutBtn.addEventListener("click", function () {
+        setShellMenuOpen(false);
+        if (!window.confirm("Moechtest du dich wirklich ausloggen?")) return;
+        clearSession();
+        disconnectEventsStream();
+        if (el.walletList) el.walletList.innerHTML = "";
+        setWalletEmptyVisible(true);
+
+        try {
+          walletState.lastFavKey = "";
+          walletState.lastCardCount = 0;
+          walletState.lastCafesVersion = 0;
+          walletState.lastStampIconOk = false;
+          walletState.lastServerCardsDigest = "";
+        } catch (e0) {}
+        try {
+          if (walletState.stampsRefreshTimer)
+            window.clearTimeout(walletState.stampsRefreshTimer);
+        } catch (e1) {}
+        setAuthedUI();
+        setAuthMode("login");
+        try {
+          history.replaceState({ mode: "welcome" }, "", "/wallet");
+        } catch (e2) {}
+        currentPageMode = null;
+        applyPageMode("welcome");
+      });
+    }
+    if (el.qrSheetBackdrop) {
+      el.qrSheetBackdrop.addEventListener("click", function () {
+        closeQrSheet();
+      });
+    }
+    if (el.qrSheetClose) {
+      el.qrSheetClose.addEventListener("click", function () {
+        closeQrSheet();
+      });
+    }
+    try {
+      document.addEventListener("keydown", function (ev) {
+        if (ev && (ev.key === "Escape" || ev.key === "Esc")) {
+          if (qrSheetState.open) {
+            closeQrSheet();
+            return;
+          }
+          if (shellMenuState.open) {
+            setShellMenuOpen(false);
+            return;
+          }
+          closeQrSheet();
+        }
+      });
+    } catch (e4) {}
+    try {
+      document.addEventListener("click", function (ev) {
+        var t = ev && ev.target ? ev.target : null;
+        if (!t) return;
+
+        if (shellMenuState.open) {
+          if (el.utilityMenu && el.utilityMenu.contains(t)) return;
+          if (el.topUtilityBtn && el.topUtilityBtn.contains(t)) return;
+          setShellMenuOpen(false);
+        }
+
+        if (!walletState.overlayOpen || !el.walletList) return;
+        if (qrSheetState.open) return;
+
+        try {
+          var openPass = el.walletList.querySelector(
+            ".passCard.open, .passCard.isFocused",
+          );
+          if (!openPass) return;
+          if (openPass.contains(t)) return;
+          if (
+            t.closest &&
+            t.closest(
+              ".passInfoLink, .passQr, .passQrBox, .walletOverlayClose, #walletEmpty",
+            )
+          )
+            return;
+          if (el.walletOverlay && el.walletOverlay.contains(t)) {
+            closeWalletOverlay();
+            return;
+          }
+          closeAllPasses();
+        } catch (eWalletClose) {}
+      });
+    } catch (e5) {}
+  }
+
+  function bindBrandLinksToWelcome() {
+    try {
+      var links = document.querySelectorAll('.kk-brand[href="/wallet"]');
+      for (var i = 0; i < links.length; i++) {
+        links[i].addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+          } catch (e0) {}
+          setShellMenuOpen(false);
+          closeWalletOverlay({ silent: true });
+          try {
+            history.pushState({ mode: "welcome" }, "", "/wallet");
+          } catch (e1) {}
+          currentPageMode = "welcome";
+          applyPageMode("welcome");
+        });
+      }
+    } catch (e) {}
+  }
+
   function getPageMode() {
+    if (currentPageMode) return currentPageMode;
+    try {
+      var stateMode =
+        history && history.state && history.state.mode
+          ? String(history.state.mode)
+          : "";
+      if (
+        stateMode === "welcome" ||
+        stateMode === "map" ||
+        stateMode === "wallet" ||
+        stateMode === "history"
+      )
+        return stateMode;
+    } catch (eState) {}
     try {
       var p = String(location.pathname || "").toLowerCase();
-      if (p.indexOf("/customer-map") === 0) return "map";
+      var qs = "";
+      try {
+        qs = String(location.search || "");
+      } catch (eQs) {
+        qs = "";
+      }
+      var forceMap = /[?&]view=map(?:&|$)/i.test(qs);
+      if (p.indexOf("/customer-map") === 0) {
+        if (forceMap) return "map";
+        return session && session.address ? "welcome" : "map";
+      }
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "wallet";
-      if (p.indexOf("/customer-qr") === 0) return "wallet";
+      if (p.indexOf("/customer-wallet") === 0) return "welcome";
+      if (p.indexOf("/customer-qr") === 0) return "welcome";
       if (
         p.indexOf("/customer-home") === 0 ||
         p.indexOf("/customer-start") === 0
       )
-        return "wallet";
-      return "wallet";
+        return "welcome";
+      if (p === "/wallet" || p === "/wallet/") return "welcome";
+      return "welcome";
     } catch (e) {
-      return "wallet";
+      return "welcome";
+    }
+  }
+
+  function getModeHref(mode) {
+    var m = mode || "map";
+    if (m === "welcome") return "/wallet";
+    if (m === "history") return "/customer-history";
+    if (m === "wallet") return "/customer-wallet";
+    return "/customer-map?view=map";
+  }
+
+  function getCustomerVerifyTokenFromUrl() {
+    try {
+      var u = new URL(location.href);
+      return u.searchParams.get("verifyToken") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function clearCustomerVerifyTokenFromUrl() {
+    try {
+      var u = new URL(location.href);
+      if (!u.searchParams.has("verifyToken")) return;
+      u.searchParams.delete("verifyToken");
+      history.replaceState(
+        history && history.state ? history.state : null,
+        "",
+        u.pathname + (u.search ? u.search : "") + (u.hash || ""),
+      );
+    } catch (e) {}
+  }
+
+  function processCustomerVerifyToken() {
+    var token = getCustomerVerifyTokenFromUrl();
+    if (!token) return Promise.resolve(false);
+    return apiFetch("/customers/verify-email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: token }),
+    })
+      .then(function () {
+        clearCustomerVerifyTokenFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg(
+          "success",
+          "Deine E-Mail-Adresse ist jetzt bestaetigt. Du kannst dich direkt anmelden.",
+        );
+        return true;
+      })
+      .catch(function (e) {
+        clearCustomerVerifyTokenFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg(
+          "danger",
+          "Der Bestaetigungslink ist ungueltig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
+        );
+        return false;
+      });
+  }
+
+  function getAdjacentMode(mode, direction) {
+    var order = ["welcome", "map", "wallet", "history"];
+    var current = String(mode || "welcome");
+    var idx = order.indexOf(current);
+    if (idx < 0) idx = 0;
+    var next = idx + (direction > 0 ? 1 : -1);
+    if (next < 0 || next >= order.length) return null;
+    return order[next];
+  }
+
+  function getModeIndex(mode) {
+    var order = ["welcome", "map", "wallet", "history"];
+    var idx = order.indexOf(String(mode || "welcome"));
+    return idx < 0 ? 0 : idx;
+  }
+
+  function getModeSlide(mode) {
+    var target = null;
+    if (mode === "welcome") target = el.welcomePanel;
+    else if (mode === "history") target = el.historyPanel;
+    else target = el.mapPanel;
+    try {
+      return target && target.closest ? target.closest(".screenSlide") : null;
+    } catch (e) {
+      return null;
     }
   }
 
   function navigateToMode(mode) {
-    var m = mode || "wallet";
-    var href = "/customer-wallet";
-    if (m === "map") href = "/customer-map";
-    if (m === "history") href = "/customer-history";
-    if (m === "wallet") href = "/customer-wallet";
+    var m = mode || "map";
+    var href = getModeHref(m);
+    setShellMenuOpen(false);
     try {
       if (location.pathname === href || location.pathname === href + "/") {
         applyPageMode(m);
@@ -418,19 +1177,360 @@
       }
     } catch (e) {}
     try {
-      location.href = href;
+      history.pushState({ mode: m }, "", href);
+      applyPageMode(m);
+      return;
     } catch (e2) {}
+    try {
+      location.href = href;
+    } catch (e3) {}
   }
 
   function buildCafeProfileHref(cafe) {
-    try {
-      if (!cafe) return null;
-      var id = cafe.id != null ? String(cafe.id) : "";
-      if (!id) return null;
-      return "/cafe-public.html?id=" + encodeURIComponent(id);
-    } catch (e) {
-      return null;
+    // Kept for backwards compatibility (older UI), but we no longer navigate
+    // away from the customer app. Details are shown in a modal.
+    return null;
+  }
+
+  function normalizeExternalUrl(raw) {
+    var value = String(raw || "").trim();
+    if (!value) return "";
+    if (/^(https?:)?\/\//i.test(value)) {
+      return /^\/\//.test(value) ? "https:" + value : value;
     }
+    if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)) {
+      return "mailto:" + value;
+    }
+    return "https://" + value.replace(/^\/+/, "");
+  }
+
+  function normalizeInstagramUrl(raw) {
+    var value = String(raw || "").trim();
+    if (!value) return "";
+    if (/^(https?:)?\/\//i.test(value)) {
+      return /^\/\//.test(value) ? "https:" + value : value;
+    }
+    if (value.charAt(0) === "@") value = value.slice(1).trim();
+    if (!value) return "";
+    if (/^instagram\.com\//i.test(value)) {
+      return "https://" + value;
+    }
+    if (/^[a-z0-9._]+$/i.test(value)) {
+      return "https://instagram.com/" + value;
+    }
+    return normalizeExternalUrl(value);
+  }
+
+  var cafeModalState = {
+    open: false,
+    cafeId: null,
+    cafeAddress: null,
+    reqSeq: 0,
+  };
+
+  function setCafeModalVisible(show) {
+    if (!el.cafeModalBackdrop) return;
+    try {
+      if (show) {
+        el.cafeModalBackdrop.style.display = "flex";
+        // Let display apply before starting the transition.
+        window.requestAnimationFrame(function () {
+          try {
+            el.cafeModalBackdrop.classList.add("open");
+          } catch (e1) {}
+        });
+      } else {
+        el.cafeModalBackdrop.classList.remove("open");
+        // Wait for the transition so the close feels smooth.
+        window.setTimeout(function () {
+          try {
+            if (!cafeModalState.open)
+              el.cafeModalBackdrop.style.display = "none";
+          } catch (e2) {}
+        }, 200);
+      }
+    } catch (e0) {}
+  }
+
+  function closeCafeModal() {
+    cafeModalState.open = false;
+    cafeModalState.cafeId = null;
+    cafeModalState.cafeAddress = null;
+    setCafeModalVisible(false);
+  }
+
+  function isCafeInWallet(cafeAddr) {
+    try {
+      var want = normalizeAddr(cafeAddr || "");
+      if (!want) return false;
+      var fav = getFavorites();
+      for (var i = 0; i < fav.length; i++) {
+        if (normalizeAddr(fav[i]) === want) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function openWalletForCafe(cafeAddr, opts) {
+    var want = normalizeAddr(cafeAddr || "");
+    if (!want) return;
+    var o = opts || {};
+    try {
+      if (o.ensureFavorite && !isCafeInWallet(want)) {
+        addFavorite(want);
+      }
+    } catch (e0) {}
+    try {
+      refreshWallet();
+    } catch (e1) {}
+    closeCafeModal();
+    openWalletOverlay();
+
+    var attempts = 0;
+    var t = window.setInterval(function () {
+      attempts++;
+      var passEl = findWalletPassCardByCafe(want);
+      if (passEl) {
+        try {
+          focusPass(passEl);
+          if (o.showQr) {
+            window.setTimeout(function () {
+              try {
+                openQrSheet(passEl);
+              } catch (e2) {}
+            }, 120);
+          }
+        } catch (e3) {}
+        try {
+          window.clearInterval(t);
+        } catch (e4) {}
+        return;
+      }
+      if (attempts > 12) {
+        try {
+          window.clearInterval(t);
+        } catch (e5) {}
+      }
+    }, 90);
+  }
+
+  function pickCafeHeroImage(cafe) {
+    try {
+      var imgs =
+        cafe && cafe.images && Array.isArray(cafe.images) ? cafe.images : [];
+      if (imgs.length) return String(imgs[0] || "");
+    } catch (e) {}
+    try {
+      if (cafe && cafe.cardBackgroundDataUrl)
+        return String(cafe.cardBackgroundDataUrl || "");
+    } catch (e2) {}
+    return "";
+  }
+
+  function renderCafeModal(cafe, opts) {
+    var o = opts || {};
+    var name = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
+    var addr = cafe && cafe.address ? String(cafe.address) : "";
+    var about = cafe && cafe.about ? String(cafe.about) : "";
+    var program = cafe && cafe.program ? cafe.program : {};
+    var rewardThreshold =
+      program && program.stampsForReward != null
+        ? Number(program.stampsForReward)
+        : 10;
+    if (!Number.isFinite(rewardThreshold) || rewardThreshold < 1)
+      rewardThreshold = 10;
+    var rewardDescription =
+      program && program.rewardDescription
+        ? String(program.rewardDescription).trim()
+        : "";
+    var websiteUrl = normalizeExternalUrl(
+      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "",
+    );
+    var instagramUrl = normalizeInstagramUrl(
+      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "",
+    );
+    var cafeAddr = normalizeAddr(
+      (cafe && (cafe.cafeAddress || cafe.address)) || "",
+    );
+
+    if (el.cafeModalName) el.cafeModalName.textContent = name;
+    if (el.cafeModalAddr) el.cafeModalAddr.textContent = addr;
+    if (el.cafeModalLogoWrap && el.cafeModalLogo) {
+      var logo = cafe && cafe.logoDataUrl ? String(cafe.logoDataUrl) : "";
+      if (logo) {
+        el.cafeModalLogoWrap.style.display = "grid";
+        el.cafeModalLogo.src = logo;
+      } else {
+        el.cafeModalLogoWrap.style.display = "none";
+        try {
+          el.cafeModalLogo.removeAttribute("src");
+        } catch (eLogo) {}
+      }
+    }
+
+    if (el.cafeModalLinks && el.cafeModalWebsite && el.cafeModalInstagram) {
+      var hasLinks = false;
+      if (websiteUrl) {
+        el.cafeModalWebsite.style.display = "inline-flex";
+        el.cafeModalWebsite.href = websiteUrl;
+        hasLinks = true;
+      } else {
+        el.cafeModalWebsite.style.display = "none";
+        el.cafeModalWebsite.href = "#";
+      }
+      if (instagramUrl) {
+        el.cafeModalInstagram.style.display = "inline-flex";
+        el.cafeModalInstagram.href = instagramUrl;
+        hasLinks = true;
+      } else {
+        el.cafeModalInstagram.style.display = "none";
+        el.cafeModalInstagram.href = "#";
+      }
+      el.cafeModalLinks.style.display = hasLinks ? "flex" : "none";
+    }
+
+    if (
+      el.cafeModalMetaRow &&
+      el.cafeModalStatus &&
+      el.cafeModalRewardCycle &&
+      el.cafeModalRewardHint
+    ) {
+      var alreadyInWallet = isCafeInWallet(cafeAddr);
+      el.cafeModalStatus.style.display = "inline-flex";
+      el.cafeModalStatus.textContent = alreadyInWallet
+        ? "Schon in deiner Wallet"
+        : "Neu fuer deine Wallet";
+      el.cafeModalRewardCycle.style.display = "inline-flex";
+      el.cafeModalRewardCycle.textContent =
+        "Jeder " + rewardThreshold + ". Kaffee";
+      if (rewardDescription) {
+        el.cafeModalRewardHint.style.display = "inline-flex";
+        el.cafeModalRewardHint.textContent = rewardDescription;
+      } else {
+        el.cafeModalRewardHint.style.display = "none";
+        el.cafeModalRewardHint.textContent = "";
+      }
+      el.cafeModalMetaRow.style.display = "flex";
+    }
+
+    // About text
+    if (el.cafeModalAbout) {
+      if (about) {
+        el.cafeModalAbout.style.display = "block";
+        el.cafeModalAbout.textContent = about;
+        if (el.cafeModalAboutEmpty)
+          el.cafeModalAboutEmpty.style.display = "none";
+      } else {
+        el.cafeModalAbout.style.display = "none";
+        if (el.cafeModalAboutEmpty)
+          el.cafeModalAboutEmpty.style.display = o.loading ? "none" : "block";
+      }
+    }
+
+    // Images / gallery
+    var hero = pickCafeHeroImage(cafe);
+    if (el.cafeModalImageWrap && el.cafeModalImage) {
+      if (hero) {
+        el.cafeModalImageWrap.style.display = "grid";
+        el.cafeModalImage.src = hero;
+      } else {
+        el.cafeModalImageWrap.style.display = "none";
+        try {
+          el.cafeModalImage.removeAttribute("src");
+        } catch (e0) {}
+      }
+    }
+
+    if (el.cafeModalGallery) {
+      el.cafeModalGallery.innerHTML = "";
+      var imgs2 =
+        cafe && cafe.images && Array.isArray(cafe.images)
+          ? cafe.images.slice(0)
+          : [];
+      if (imgs2.length > 1) {
+        el.cafeModalGallery.style.display = "flex";
+        for (var i = 0; i < Math.min(6, imgs2.length); i++) {
+          (function (src) {
+            var img = document.createElement("img");
+            img.className = "modalThumb";
+            img.alt = "";
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.src = String(src || "");
+            img.addEventListener("click", function () {
+              if (el.cafeModalImage && el.cafeModalImageWrap) {
+                el.cafeModalImageWrap.style.display = "grid";
+                el.cafeModalImage.src = String(src || "");
+              }
+            });
+            el.cafeModalGallery.appendChild(img);
+          })(imgs2[i]);
+        }
+      } else {
+        el.cafeModalGallery.style.display = "none";
+      }
+    }
+
+    // Action button state
+    if (el.cafeModalAddBtn) {
+      var already = isCafeInWallet(cafeAddr);
+      el.cafeModalAddBtn.style.display = already ? "none" : "inline-flex";
+      el.cafeModalAddBtn.disabled = !cafeAddr;
+      el.cafeModalAddBtn.textContent = "Stempelkarte holen";
+    }
+    if (el.cafeModalWalletBtn) {
+      var already2 = isCafeInWallet(cafeAddr);
+      el.cafeModalWalletBtn.style.display = already2 ? "inline-flex" : "none";
+      el.cafeModalWalletBtn.disabled = !already2 || !cafeAddr;
+    }
+    if (el.cafeModalQrBtn) {
+      var already3 = isCafeInWallet(cafeAddr);
+      el.cafeModalQrBtn.style.display = already3 ? "inline-flex" : "none";
+      el.cafeModalQrBtn.disabled = !already3 || !cafeAddr;
+    }
+  }
+
+  function openCafeModal(cafe) {
+    if (!cafe) return;
+    var cafeAddr = normalizeAddr(cafe.cafeAddress || cafe.address || "");
+    cafeModalState.open = true;
+    cafeModalState.cafeId = cafe.id != null ? Number(cafe.id) : null;
+    cafeModalState.cafeAddress = cafeAddr || null;
+
+    // Render immediately with what we have.
+    renderCafeModal(
+      {
+        id: cafe.id,
+        name: cafe.name,
+        address: cafe.address,
+        cafeAddress: cafe.cafeAddress,
+        about: cafe.about || "",
+        program: cafe.program || null,
+        websiteUrl: cafe.websiteUrl || "",
+        instagramUrl: cafe.instagramUrl || "",
+        logoDataUrl: cafe.logoDataUrl || null,
+        cardBackgroundDataUrl: cafe.cardBackgroundDataUrl || null,
+        images: cafe.images || null,
+      },
+      { loading: true },
+    );
+
+    setCafeModalVisible(true);
+
+    // Fetch full profile (nicer about + images) if we have an id.
+    var id = cafeModalState.cafeId;
+    if (!id || !Number.isFinite(id)) return;
+    var seq = ++cafeModalState.reqSeq;
+    apiFetch("/cafes/public/" + encodeURIComponent(String(id)))
+      .then(function (data) {
+        if (!cafeModalState.open || cafeModalState.reqSeq !== seq) return;
+        var c = data && data.cafe ? data.cafe : null;
+        if (!c) return;
+        renderCafeModal(c, { loading: false });
+      })
+      .catch(function () {
+        // non-fatal
+      });
   }
 
   function renderCafeResults(query) {
@@ -459,7 +1559,9 @@
     if (!list.length) {
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
-      empty.textContent = q ? "Keine Treffer." : "Noch keine Cafés.";
+      empty.textContent = q
+        ? "Keine Treffer. Vielleicht \u00fcbt sich das richtige Caf\u00e9 gerade noch in Understatement."
+        : "Noch keine Caf\u00e9s.";
       el.cafeResults.appendChild(empty);
       return;
     }
@@ -467,17 +1569,16 @@
     var max = Math.min(20, list.length);
     for (var i = 0; i < max; i++) {
       (function (cafe) {
-        var href = buildCafeProfileHref(cafe);
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = href || "#";
+        a.href = "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -488,17 +1589,16 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Öffnen";
+        hint.textContent = "\u00d6ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
-        if (!href) {
-          a.addEventListener("click", function (ev) {
-            try {
-              ev.preventDefault();
-            } catch (e) {}
-          });
-        }
+        a.addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+          } catch (e) {}
+          openCafeModal(cafe);
+        });
 
         el.cafeResults.appendChild(a);
       })(list[i]);
@@ -524,23 +1624,64 @@
 
   function applyPageMode(mode) {
     var m = mode || getPageMode();
+    currentPageMode = m;
     navSetActive(m === "wallet" ? "wallet" : m);
 
-    // These panels live on the same HTML, but we show only one per route.
-    if (el.mapPanel) el.mapPanel.style.display = m === "map" ? "block" : "none";
-    if (el.walletPanel)
-      el.walletPanel.style.display = m === "wallet" ? "block" : "none";
-    if (el.historyPanel)
-      el.historyPanel.style.display = m === "history" ? "block" : "none";
+    try {
+      var welcomeSlide = getModeSlide("welcome");
+      var mapSlide = getModeSlide("map");
+      var historySlide = getModeSlide("history");
+      if (welcomeSlide) welcomeSlide.style.display = m === "welcome" ? "block" : "none";
+      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
+      if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
+      if (el.screenPager) {
+        el.screenPager.scrollLeft = 0;
+      }
+    } catch (eScroll) {}
+
+    if (m === "history") {
+      closeWalletOverlay({ silent: true });
+      refreshHistory();
+      return;
+    }
+
+    if (m === "wallet") {
+      openWalletOverlay();
+      return;
+    }
+
+    closeWalletOverlay({ silent: true });
+
+    if (m === "welcome") {
+      return;
+    }
 
     if (m === "map") {
       ensureMapInit();
-    }
-    if (m === "history") {
-      refreshHistory();
-    }
-    if (m === "wallet") {
-      refreshWallet();
+      requestCurrentMapLocation();
+      try {
+        if (leafletMap) {
+          try {
+            if (leafletMap.dragging && leafletMap.dragging.enable)
+              leafletMap.dragging.enable();
+            if (leafletMap.touchZoom && leafletMap.touchZoom.enable)
+              leafletMap.touchZoom.enable();
+            if (leafletMap.doubleClickZoom && leafletMap.doubleClickZoom.enable)
+              leafletMap.doubleClickZoom.enable();
+            if (leafletMap.scrollWheelZoom && leafletMap.scrollWheelZoom.enable)
+              leafletMap.scrollWheelZoom.enable();
+            if (leafletMap.boxZoom && leafletMap.boxZoom.enable)
+              leafletMap.boxZoom.enable();
+            if (leafletMap.tap && leafletMap.tap.enable)
+              leafletMap.tap.enable();
+          } catch (eEnable0) {}
+          window.setTimeout(function () {
+            try {
+              if (leafletMap) leafletMap.invalidateSize();
+            } catch (e0) {}
+          }, 40);
+        }
+      } catch (e1) {}
     }
   }
 
@@ -580,6 +1721,146 @@
     } catch (e) {}
   }
 
+  function getDefaultMapCenter() {
+    return [50.9375, 6.9603];
+  }
+
+  function readCachedMapCenter() {
+    try {
+      var raw = localStorage.getItem(MAP_CENTER_CACHE_KEY_V1);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      var lat = Number(parsed && parsed.lat);
+      var lng = Number(parsed && parsed.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return [lat, lng];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function cacheMapCenter(lat, lng) {
+    try {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      localStorage.setItem(
+        MAP_CENTER_CACHE_KEY_V1,
+        JSON.stringify({
+          lat: Number(lat),
+          lng: Number(lng),
+          ts: Date.now(),
+        }),
+      );
+    } catch (e) {}
+  }
+
+  function getPreferredMapCenter() {
+    if (
+      Array.isArray(mapLastKnownCenter) &&
+      mapLastKnownCenter.length === 2 &&
+      Number.isFinite(Number(mapLastKnownCenter[0])) &&
+      Number.isFinite(Number(mapLastKnownCenter[1]))
+    ) {
+      return [Number(mapLastKnownCenter[0]), Number(mapLastKnownCenter[1])];
+    }
+    var cached = readCachedMapCenter();
+    if (cached) return cached;
+    var firstWithPos = null;
+    for (var i = 0; i < cafes.length; i++) {
+      var c = cafes[i];
+      if (c && Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng))) {
+        firstWithPos = c;
+        break;
+      }
+    }
+    if (firstWithPos) return [Number(firstWithPos.lat), Number(firstWithPos.lng)];
+    return getDefaultMapCenter();
+  }
+
+  function getPreferredMapZoom() {
+    if (mapLastKnownCenter || readCachedMapCenter()) return 14;
+    for (var i = 0; i < cafes.length; i++) {
+      var c = cafes[i];
+      if (c && Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng))) {
+        return 13;
+      }
+    }
+    return 12;
+  }
+
+  function isAddressLike(value) {
+    var s = String(value || "").trim();
+    if (!s) return false;
+    if (/^0x[0-9a-f]{12,}$/i.test(s)) return true;
+    if (/^[0-9a-f]{20,}$/i.test(s)) return true;
+    return false;
+  }
+
+  function getCafeMetaCache() {
+    try {
+      var raw = localStorage.getItem(CAFE_META_CACHE_KEY_V1);
+      var data = raw ? JSON.parse(raw) : {};
+      return data && typeof data === "object" ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setCafeMetaCache(map) {
+    try {
+      localStorage.setItem(CAFE_META_CACHE_KEY_V1, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function rememberCafeMeta(addr, meta) {
+    var key = normalizeAddr(addr || "");
+    if (!key) return;
+    var name = meta && meta.name ? String(meta.name).trim() : "";
+    var address = meta && meta.address ? String(meta.address).trim() : "";
+    if (isAddressLike(name)) name = "";
+    if (!name && !address) return;
+    var map = getCafeMetaCache();
+    map[key] = {
+      name: name || "",
+      address: address || "",
+    };
+    setCafeMetaCache(map);
+  }
+
+  function getRememberedCafeMeta(addr) {
+    var key = normalizeAddr(addr || "");
+    if (!key) return null;
+    try {
+      var map = getCafeMetaCache();
+      return map && map[key] ? map[key] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function resolveCafeDisplayMeta(addr, serverCard, cafe) {
+    var remembered = getRememberedCafeMeta(addr) || {};
+    var name = "";
+    var address = "";
+
+    if (serverCard && serverCard.name) name = String(serverCard.name || "").trim();
+    if (isAddressLike(name)) name = "";
+    if (!name && cafe && cafe.name) name = String(cafe.name || "").trim();
+    if (isAddressLike(name)) name = "";
+    if (!name && remembered && remembered.name) name = String(remembered.name || "").trim();
+    if (isAddressLike(name)) name = "";
+
+    if (serverCard && serverCard.address) address = String(serverCard.address || "").trim();
+    if (!address && cafe && cafe.address) address = String(cafe.address || "").trim();
+    if (!address && remembered && remembered.address)
+      address = String(remembered.address || "").trim();
+
+    return {
+      name: name || "Kaffeekarte",
+      address: address || "",
+      loading: !name && !cafesLoaded,
+    };
+  }
+
   function addFavorite(addr) {
     var a = normalizeAddr(addr);
     if (!a) return false;
@@ -592,6 +1873,310 @@
     return true;
   }
 
+  function mergeFavorites(addrs) {
+    var src = Array.isArray(addrs) ? addrs : [];
+    var cur = getFavorites();
+    var changed = false;
+
+    for (var i = 0; i < src.length; i++) {
+      var a = normalizeAddr(src[i]);
+      if (!a) continue;
+
+      var exists = false;
+      for (var j = 0; j < cur.length; j++) {
+        if (normalizeAddr(cur[j]) === a) {
+          exists = true;
+          break;
+        }
+      }
+
+      if (!exists) {
+        cur.push(a);
+        changed = true;
+      }
+    }
+
+    if (changed) setFavorites(cur);
+    return changed;
+  }
+
+  function getServerCard(cafeAddress) {
+    var addr = normalizeAddr(cafeAddress || "");
+    if (!addr) return null;
+    try {
+      return walletServerCardsByCafe && walletServerCardsByCafe[addr]
+        ? walletServerCardsByCafe[addr]
+        : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getCardProgram(card) {
+    return card && card.program ? card.program : {};
+  }
+
+  function getCardRewardThreshold(card) {
+    var program = getCardProgram(card);
+    return clamp(
+      Number(program && program.stampsForReward) || REWARD_THRESHOLD,
+      1,
+      50,
+    );
+  }
+
+  function getPassRewardThreshold(passEl) {
+    if (!passEl) return REWARD_THRESHOLD;
+    try {
+      var raw = Number(passEl.getAttribute("data-reward-threshold") || "");
+      if (Number.isFinite(raw) && raw > 0) {
+        return clamp(raw, 1, 50);
+      }
+    } catch (e0) {}
+    try {
+      return getCardRewardThreshold(
+        getServerCard(passEl.getAttribute("data-cafe") || ""),
+      );
+    } catch (e1) {
+      return REWARD_THRESHOLD;
+    }
+  }
+
+  function formatStampCountLine(stampCount, rewardThreshold, extra) {
+    var threshold = clamp(Number(rewardThreshold || REWARD_THRESHOLD) || REWARD_THRESHOLD, 1, 50);
+    var stamps = clamp(Number(stampCount || 0) || 0, 0, 999);
+    var base = clamp(stamps, 0, threshold);
+    var bonus = Math.max(0, Number(extra || 0) || 0);
+    var line = base + " von " + threshold + " Stempeln";
+    if (bonus > 0) line += " + " + bonus + " extra";
+    return line;
+  }
+
+  function formatRewardProgressLine(remaining, isFull, rewardLabel) {
+    var hasCustomReward = !!String(rewardLabel || "").trim();
+    if (isFull) {
+      return hasCustomReward
+        ? "Deine Belohnung wartet \u2615"
+        : "Dein Gratiskaffee wartet \u2615";
+    }
+    if (hasCustomReward) {
+      return remaining === 1
+        ? "Nur noch ein Kaffee bis zur Belohnung."
+        : "Noch " + remaining + " Kaffees bis zur Belohnung.";
+    }
+    return remaining === 1
+      ? "Nur noch ein Kaffee bis zur Gratisrunde."
+      : "Noch " + remaining + " Kaffees bis zum Gratiskaffee.";
+  }
+
+  function formatNextStampLine(remaining, isFull) {
+    if (isFull) return "Im Caf\u00e9 scannen lassen und deine Belohnung einl\u00f6sen.";
+    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Scan entfernt.";
+    return "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
+  }
+
+  function formatFooterProgressLine(remaining, isFull) {
+    if (isFull) return "GRATISKAFFEE WARTET";
+    return remaining === 1 ? "NOCH 1 KAFFEE" : "NOCH " + remaining + " KAFFEES";
+  }
+
+  function getCampaignSeenMap() {
+    try {
+      var raw = localStorage.getItem(CAMPAIGN_SEEN_KEY);
+      var data = raw ? JSON.parse(raw) : {};
+      return data && typeof data === "object" ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setCampaignSeenMap(map) {
+    try {
+      localStorage.setItem(CAMPAIGN_SEEN_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function markCampaignSeen(key) {
+    if (!key) return;
+    var map = getCampaignSeenMap();
+    map[String(key)] = nowMs();
+    setCampaignSeenMap(map);
+  }
+
+  function wasCampaignSeenRecently(key, ttlMs) {
+    if (!key) return false;
+    var ttl = Math.max(60 * 1000, Number(ttlMs) || 0);
+    var seen = getCampaignSeenMap();
+    var ts = Number(seen[String(key)] || 0);
+    return !!(ts && nowMs() - ts < ttl);
+  }
+
+  function formatCampaignText(template, vars, fallback) {
+    var text = String(template || "").trim() || String(fallback || "").trim();
+    var data = vars || {};
+    return text.replace(/\{(\w+)\}/g, function (_, key) {
+      var value = data[key];
+      return value == null ? "" : String(value);
+    });
+  }
+
+  function buildServerCardsDigest(cards) {
+    var src = Array.isArray(cards) ? cards : [];
+    var parts = [];
+    for (var i = 0; i < src.length; i++) {
+      var card = src[i] || {};
+      var stats = card.stats || {};
+      var program = getCardProgram(card);
+      parts.push(
+        [
+          normalizeAddr(card.cafeAddress || ""),
+          Number(stats.netStamps || card.netStamps || 0) || 0,
+          Number(stats.lastActivityTs || 0) || 0,
+          Number(program.stampsForReward || REWARD_THRESHOLD) || REWARD_THRESHOLD,
+          Number(program.popupInactiveEnabled || 0) || 0,
+          Number(program.popupInactiveDays || 0) || 0,
+          Number(program.popupAlmostRewardEnabled || 0) || 0,
+          Number(program.popupAlmostRewardRemaining || 0) || 0,
+        ].join(":"),
+      );
+    }
+    parts.sort();
+    return parts.join("|");
+  }
+
+  function evaluateCardCampaigns(cards) {
+    if (!session || !session.address) return;
+    var src = Array.isArray(cards) ? cards : [];
+    for (var i = 0; i < src.length; i++) {
+      var card = src[i] || {};
+      var stats = card.stats || {};
+      var program = getCardProgram(card);
+      var cafeAddress = normalizeAddr(card.cafeAddress || "");
+      if (!cafeAddress) continue;
+
+      var cafeLabel =
+        String(card.name || card.cafeName || "").trim() ||
+        String(card.address || "").trim() ||
+        "deinem Cafe";
+      var rewardGoal = getCardRewardThreshold(card);
+      var netStamps = Math.max(
+        0,
+        Number(stats.netStamps || card.netStamps || 0) || 0,
+      );
+      var remaining = Math.max(0, rewardGoal - netStamps);
+      var lastActivityTs = Number(stats.lastActivityTs || 0) || 0;
+
+      if (
+        Number(program.popupAlmostRewardEnabled || 0) &&
+        remaining > 0 &&
+        remaining <= clamp(Number(program.popupAlmostRewardRemaining) || 2, 1, 10)
+      ) {
+        var almostKey = [
+          normalizeAddr(session.address),
+          cafeAddress,
+          "almost_reward",
+          netStamps,
+          rewardGoal,
+        ].join("|");
+        if (!wasCampaignSeenRecently(almostKey, 24 * 60 * 60 * 1000)) {
+          showToast(
+            formatCampaignText(
+              program.popupAlmostRewardMessage,
+              {
+                cafe: cafeLabel,
+                remaining: remaining,
+                stamps: netStamps,
+                goal: rewardGoal,
+                reward: program.rewardDescription || "deine Belohnung",
+              },
+              "Nur noch {remaining} Stempel bis zur Belohnung bei {cafe}.",
+            ),
+            null,
+          );
+          markCampaignSeen(almostKey);
+          return;
+        }
+      }
+
+      if (
+        Number(program.popupInactiveEnabled || 0) &&
+        lastActivityTs > 0 &&
+        netStamps > 0
+      ) {
+        var inactiveDays = clamp(Number(program.popupInactiveDays) || 21, 7, 365);
+        var silentMs = inactiveDays * 24 * 60 * 60 * 1000;
+        var ageMs = nowMs() - lastActivityTs;
+        if (ageMs >= silentMs) {
+          var ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+          var inactiveBucket = Math.floor(ageDays / inactiveDays);
+          var inactiveKey = [
+            normalizeAddr(session.address),
+            cafeAddress,
+            "inactive",
+            inactiveBucket,
+            lastActivityTs,
+          ].join("|");
+          if (!wasCampaignSeenRecently(inactiveKey, 24 * 60 * 60 * 1000)) {
+            showToast(
+              formatCampaignText(
+                program.popupInactiveMessage,
+                {
+                  cafe: cafeLabel,
+                  days: ageDays,
+                  remaining: remaining,
+                  goal: rewardGoal,
+                  reward: program.rewardDescription || "deine Belohnung",
+                },
+                "Schon {days} Tage kein Besuch bei {cafe}. Deine Karte wartet noch auf dich.",
+              ),
+              null,
+            );
+            markCampaignSeen(inactiveKey);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  function syncFavoritesFromServerCards() {
+    if (!session || !session.address) {
+      return Promise.resolve(false);
+    }
+
+    return apiFetch(
+      "/customers/" + encodeURIComponent(session.address) + "/cards",
+    )
+      .then(function (data) {
+        var cards = data && Array.isArray(data.cards) ? data.cards : [];
+        var nextMap = {};
+        var addrs = [];
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i] || {};
+          var addr = normalizeAddr(card.cafeAddress);
+          if (!addr) continue;
+          addrs.push(addr);
+          nextMap[addr] = card;
+          rememberCafeMeta(addr, {
+            name: card.name || card.cafeName || "",
+            address: card.address || "",
+          });
+        }
+      walletServerCardsByCafe = nextMap;
+      var nextDigest = buildServerCardsDigest(cards);
+      var digestChanged = nextDigest !== walletServerCardsDigest;
+      walletServerCardsDigest = nextDigest;
+      evaluateCardCampaigns(cards);
+      try {
+        if (cards && cards.length) refreshWallet();
+      } catch (eR0) {}
+      return mergeFavorites(addrs) || digestChanged;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function hideDiscoverPick() {
     pickedCafe = null;
     if (!el.discoverPick) return;
@@ -602,7 +2187,7 @@
     pickedCafe = cafe || null;
     if (el.discoverPickName)
       el.discoverPickName.textContent =
-        cafe && cafe.name ? String(cafe.name) : "Café";
+        cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     if (el.discoverPickAddr)
       el.discoverPickAddr.textContent =
         cafe && cafe.address ? String(cafe.address) : "";
@@ -616,6 +2201,7 @@
     addFavorite(addr);
     hideDiscoverPick();
     refreshWallet();
+    navigateToMode("wallet");
   }
 
   function teardownMap() {
@@ -641,7 +2227,7 @@
       el.mapList.innerHTML = "";
       var empty = document.createElement("div");
       empty.className = "mapEmpty";
-      empty.textContent = "Noch keine Cafés.";
+      empty.textContent = "Noch keine Caf\u00e9s.";
       el.mapList.appendChild(empty);
       return;
     }
@@ -651,17 +2237,16 @@
     var max = Math.min(12, cafes.length);
     for (var i = 0; i < max; i++) {
       (function (cafe) {
-        var href = buildCafeProfileHref(cafe);
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = href || "#";
+        a.href = "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
 
         var name = document.createElement("div");
         name.className = "mapItemName";
-        name.textContent = cafe && cafe.name ? String(cafe.name) : "Café";
+        name.textContent = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
 
         var addr = document.createElement("div");
         addr.className = "mapItemAddr";
@@ -672,10 +2257,16 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "Öffnen";
+        hint.textContent = "\u00d6ffnen";
 
         a.appendChild(main);
         a.appendChild(hint);
+        a.addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+          } catch (e) {}
+          openCafeModal(cafe);
+        });
         el.mapList.appendChild(a);
       })(cafes[i]);
     }
@@ -686,11 +2277,33 @@
       .trim()
       .replace(/\s+/g, " ");
     if (!s) return "C";
-    var parts = s.split(" ");
-    var a = parts[0] ? parts[0].charAt(0) : "C";
-    var b = parts.length > 1 && parts[1] ? parts[1].charAt(0) : "";
-    var out = (a + b).toUpperCase();
+    var parts = s.split(" ").filter(Boolean);
+    if (parts.length > 1 && /^caf/i.test(parts[0] || "")) parts = parts.slice(1);
+    if (!parts.length) parts = ["C"];
+    var first = String(parts[0] || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    var second = parts.length > 1 ? String(parts[1] || "") : "";
+    first = first.replace(/^[^A-Za-z0-9]+/, "");
+    second = second
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/^[^A-Za-z0-9]+/, "");
+    var out = "";
+    if (second) {
+      out = (first.charAt(0) + second.charAt(0)).toUpperCase();
+    } else {
+      out = first.slice(0, 2).toUpperCase();
+    }
     return out.slice(0, 2) || "C";
+  }
+
+  function buildPassLogoFallback(name) {
+    var fallback = document.createElement("div");
+    fallback.className = "passLogoInitial";
+    fallback.setAttribute("aria-hidden", "true");
+    fallback.textContent = cafeInitials(name);
+    return fallback;
   }
 
   function buildCafePinIcon(cafe) {
@@ -708,7 +2321,7 @@
       } else {
         html =
           '<div class="cafePin"><div class="cafePinLetter">' +
-          cafeInitials(cafe && cafe.name ? cafe.name : "Café") +
+          cafeInitials(cafe && cafe.name ? cafe.name : "Caf\u00e9") +
           "</div></div>";
       }
 
@@ -724,62 +2337,136 @@
     }
   }
 
+  function syncMapMarkers() {
+    if (!leafletMap || !window.L || !window.L.marker) return;
+    try {
+      if (leafletMarkers && leafletMarkers.length) {
+        for (var i = 0; i < leafletMarkers.length; i++) {
+          try {
+            leafletMarkers[i].remove();
+          } catch (e0) {}
+        }
+      }
+    } catch (e1) {}
+    leafletMarkers = [];
+
+    for (var j = 0; j < cafes.length; j++) {
+      var cafe = cafes[j];
+      if (!cafe || !Number.isFinite(Number(cafe.lat)) || !Number.isFinite(Number(cafe.lng))) {
+        continue;
+      }
+      (function (cafe2) {
+        var icon = buildCafePinIcon(cafe2);
+        var marker = window.L.marker(
+          [Number(cafe2.lat), Number(cafe2.lng)],
+          icon ? { icon: icon } : undefined,
+        );
+        marker.addTo(leafletMap);
+        marker.on("click", function (ev) {
+          try {
+            if (ev && ev.originalEvent) {
+              if (ev.originalEvent.preventDefault)
+                ev.originalEvent.preventDefault();
+              if (ev.originalEvent.stopPropagation)
+                ev.originalEvent.stopPropagation();
+            }
+          } catch (eStop0) {}
+          walletState.ignoreClickUntil = nowMs() + 420;
+          openCafeModal(cafe2);
+        });
+        leafletMarkers.push(marker);
+      })(cafe);
+    }
+  }
+
+  function ensureUserLocationMarker(lat, lng) {
+    if (!leafletMap || !window.L || !window.L.circleMarker) return;
+    try {
+      if (!mapUserMarker) {
+        mapUserMarker = window.L.circleMarker([lat, lng], {
+          radius: 8,
+          weight: 3,
+          color: "#fffaf2",
+          fillColor: "#5b7cfa",
+          fillOpacity: 0.95,
+        }).addTo(leafletMap);
+      } else {
+        mapUserMarker.setLatLng([lat, lng]);
+      }
+    } catch (e) {}
+  }
+
+  function requestCurrentMapLocation() {
+    if (mapHasAskedForLocation) return;
+    mapHasAskedForLocation = true;
+    try {
+      if (!navigator.geolocation || !leafletMap) return;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          try {
+            var lat = Number(pos && pos.coords && pos.coords.latitude);
+            var lng = Number(pos && pos.coords && pos.coords.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || !leafletMap) return;
+            mapLastKnownCenter = [lat, lng];
+            cacheMapCenter(lat, lng);
+            ensureUserLocationMarker(lat, lng);
+            leafletMap.setView([lat, lng], Math.max(leafletMap.getZoom(), 14), {
+              animate: true,
+            });
+          } catch (e1) {}
+        },
+        function () {},
+        {
+          enableHighAccuracy: false,
+          timeout: 4500,
+          maximumAge: 300000,
+        },
+      );
+    } catch (e) {}
+  }
+
   function initMapIfReady() {
     if (!el.cafeMap) return false;
     if (leafletMap) return true;
-    if (!cafes || !cafes.length) return false;
     if (!window.L || !window.L.map) return false;
-
-    var firstWithPos = null;
-    for (var i = 0; i < cafes.length; i++) {
-      var c = cafes[i];
-      if (c && isFinite(Number(c.lat)) && isFinite(Number(c.lng))) {
-        firstWithPos = c;
-        break;
-      }
-    }
-    var center = firstWithPos
-      ? [Number(firstWithPos.lat), Number(firstWithPos.lng)]
-      : [52.52, 13.405];
+    var center = getPreferredMapCenter();
+    var zoom = getPreferredMapZoom();
 
     try {
       leafletMap = window.L.map(el.cafeMap, {
         zoomControl: false,
         attributionControl: false,
-      }).setView(center, firstWithPos ? 14 : 5);
+      }).setView(center, zoom);
 
       window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(leafletMap);
 
-      leafletMap.on("click", function () {
+      leafletMap.on("click", function (ev) {
+        try {
+          if (ev && ev.originalEvent) {
+            if (ev.originalEvent.preventDefault)
+              ev.originalEvent.preventDefault();
+            if (ev.originalEvent.stopPropagation)
+              ev.originalEvent.stopPropagation();
+          }
+        } catch (eStop1) {}
+        walletState.ignoreClickUntil = nowMs() + 280;
         hideDiscoverPick();
       });
-
-      for (var j = 0; j < cafes.length; j++) {
-        var cafe = cafes[j];
-        if (!cafe || !isFinite(Number(cafe.lat)) || !isFinite(Number(cafe.lng)))
-          continue;
-        (function (cafe2) {
-          var icon = buildCafePinIcon(cafe2);
-          var marker = window.L.marker(
-            [Number(cafe2.lat), Number(cafe2.lng)],
-            icon ? { icon: icon } : undefined,
-          );
-          marker.addTo(leafletMap);
-          marker.on("click", function () {
-            var href = buildCafeProfileHref(cafe2);
-            if (href) {
-              try {
-                location.href = href;
-                return;
-              } catch (e) {}
-            }
-            showDiscoverPick(cafe2);
-          });
-          leafletMarkers.push(marker);
-        })(cafe);
-      }
+      leafletMap.on("movestart", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("moveend", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("dragstart", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      leafletMap.on("dragend", function () {
+        walletState.ignoreClickUntil = nowMs() + 520;
+      });
+      syncMapMarkers();
 
       // Leaflet often needs a size recalculation after being shown.
       window.setTimeout(function () {
@@ -819,6 +2506,30 @@
 
   function setWalletEmptyVisible(show) {
     if (el.walletEmpty) el.walletEmpty.style.display = show ? "block" : "none";
+    if (el.walletEmpty) {
+      try {
+        var lead = el.walletEmpty.querySelector(".walletEmptyLead");
+        var body = el.walletEmpty.querySelector(".walletEmptyBody");
+        var cta = el.walletEmpty.querySelector("#walletEmptyMapBtn");
+        if (lead) {
+          lead.textContent = "Noch keine Karten";
+        }
+        if (body) {
+          body.textContent =
+            "Entdecke zuerst ein Caf\u00e9 auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
+        }
+        if (cta) {
+          cta.textContent = "Caf\u00e9s entdecken";
+        }
+        var nodes = el.walletEmpty.childNodes || [];
+        for (var i = nodes.length - 1; i >= 0; i--) {
+          var node = nodes[i];
+          if (node && node.nodeType === 3 && String(node.nodeValue || "").trim()) {
+            el.walletEmpty.removeChild(node);
+          }
+        }
+      } catch (e) {}
+    }
   }
 
   var stampSvgSeq = 0;
@@ -861,73 +2572,192 @@
     return stampIconState.promise;
   }
 
-  function buildStampSvg(filled) {
-    // Coffee bean stamp (oval + curved seam) similar to the provided reference.
-    // Uses only existing theme tokens: currentColor + --pass-bg/--surface.
-    // Unique filter ids are required because multiple SVGs exist in the DOM.
-    // If an exact image is available, use it for pixel-identical rendering.
-    if (stampIconState.ok && stampIconState.url) {
+  function buildStampSvg(filled, style) {
+    stampSvgSeq = (stampSvgSeq + 1) % 1000000;
+    var uid = String(stampSvgSeq);
+    var kind = String(style || "bean").trim().toLowerCase();
+    if (kind === "cup") kind = "bean";
+
+    if (kind === "bean") {
+      var beanSrc = stampIconState && stampIconState.url
+        ? String(stampIconState.url)
+        : getStampIconUrl();
+      var beanOpacity = filled ? "0.96" : "0.18";
       return (
-        '<img class="stampIcon stampIconImg" alt="" aria-hidden="true" draggable="false" src="' +
-        String(stampIconState.url).replace(/"/g, "&quot;") +
-        '">'
+        '<img class="stampIcon stampIconImg" src="' +
+        beanSrc +
+        '" alt="" aria-hidden="true" draggable="false" style="opacity:' +
+        beanOpacity +
+        ';" />'
       );
     }
 
-    stampSvgSeq = (stampSvgSeq + 1) % 1000000;
-    var uid = String(stampSvgSeq);
-    var seam = "var(--stamp-seam, var(--pass-bg, var(--surface)))";
-    var beanPath =
-      "M14 50 C14 28 30 12 50 12 C70 12 86 28 86 50 C86 72 70 88 50 88 C30 88 14 72 14 50 Z";
-    // Diagonal, slightly wavy seam like the provided stamp reference.
-    var seamPath = "M28 18 C52 30 54 52 60 62 C66 72 70 78 74 82";
+    if (kind === "star") {
+      if (filled) {
+        return (
+          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+          '<path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="currentColor" opacity="0.92"></path>' +
+          "</svg>"
+        );
+      }
+      return (
+        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+        '<path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="none" stroke="currentColor" stroke-width="4.8" opacity="0.4" stroke-linejoin="round"></path>' +
+        "</svg>"
+      );
+    }
+
+    if (kind === "circle") {
+      if (filled) {
+        return (
+          '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+          '<circle cx="50" cy="50" r="26" fill="currentColor" opacity="0.92"></circle>' +
+          "</svg>"
+        );
+      }
+      return (
+        '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
+        '<circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle>' +
+        "</svg>"
+      );
+    }
 
     if (filled) {
       return (
         '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
         "<defs>" +
-        '<filter id="stampGrain-' +
+        '<filter id="stampPrint-' +
         uid +
-        '" x="-20%" y="-20%" width="140%" height="140%">' +
-        '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="2" result="noise"></feTurbulence>' +
+        '" x="-24%" y="-24%" width="148%" height="148%">' +
+        '<feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="1" seed="4" result="noise"></feTurbulence>' +
         '<feColorMatrix in="noise" type="saturate" values="0" result="mono"></feColorMatrix>' +
         '<feComponentTransfer in="mono" result="grain">' +
-        '<feFuncR type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncR>' +
-        '<feFuncG type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncG>' +
-        '<feFuncB type="table" tableValues="0.25 0.2 0.15 0.1 0"></feFuncB>' +
-        '<feFuncA type="table" tableValues="0 0.05 0.08 0.1 0.12 0.14"></feFuncA>' +
+        '<feFuncA type="table" tableValues="0 0.03 0.07 0.11 0.16 0.2"></feFuncA>' +
         "</feComponentTransfer>" +
         '<feComposite in="grain" in2="SourceAlpha" operator="in" result="grainIn"></feComposite>' +
         '<feBlend in="SourceGraphic" in2="grainIn" mode="multiply"></feBlend>' +
         "</filter>" +
         "</defs>" +
-        '<path d="' +
-        beanPath +
-        '" fill="currentColor" opacity="0.96" filter="url(#stampGrain-' +
+        '<path d="M24 48h42c8 0 15 6 15 15v1H33c-8 0-14-6-14-14v-2c0-7 5-12 12-12h19c10 0 15 6 15 13 0 7-5 12-13 12H24" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#stampPrint-' +
         uid +
-        ')"></path>' +
-        '<path d="' +
-        seamPath +
-        '" fill="none" stroke="' +
-        seam +
-        '" stroke-width="14" stroke-linecap="round" opacity="0.95"></path>' +
+        ')" opacity="0.96"></path>' +
+        '<path d="M66 39h8c6 0 12 5 12 12 0 7-6 12-12 12h-7" fill="none" stroke="currentColor" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.96"></path>' +
+        '<path d="M24 68c6 7 18 11 31 11 18 0 30-5 37-11" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" opacity="0.9"></path>' +
+        '<path d="M41 31c3-8 10-12 20-12" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" opacity="0.34"></path>' +
         "</svg>"
       );
     }
 
     return (
       '<svg class="stampIcon" viewBox="0 0 100 100" role="img" aria-hidden="true">' +
-      '<path d="' +
-      beanPath +
-      '" fill="none" stroke="currentColor" stroke-width="6" opacity="0.34" stroke-linejoin="round"></path>' +
-      '<path d="' +
-      seamPath +
-      '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" opacity="0.14"></path>' +
+      '<circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle>' +
       "</svg>"
     );
   }
 
+  function getOrdinalLabel(n) {
+    var num = Math.max(1, Number(n || 0) || 1);
+    var mod10 = num % 10;
+    var mod100 = num % 100;
+    if (mod10 === 1 && mod100 !== 11) return String(num) + "st";
+    if (mod10 === 2 && mod100 !== 12) return String(num) + "nd";
+    if (mod10 === 3 && mod100 !== 13) return String(num) + "rd";
+    return String(num) + "th";
+  }
+
+  function stripCardMarkup(raw) {
+    return String(raw || "")
+      .replace(/[*_`>#-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getCardPrintSubtitle(card) {
+    var about = stripCardMarkup(card && card.about ? card.about : "");
+    if (about) {
+      var line = about.split(/[.!?\n]/)[0] || "";
+      line = String(line).trim();
+      if (line && line.length <= 34) return line.toUpperCase();
+    }
+    return "KAFFEESPEZIALITAETEN";
+  }
+
+  function getCardFrontKicker(threshold) {
+    return "JEDER " + String(threshold) + ". KAFFEE GRATIS";
+  }
+
+
+  function getCardFrontNote(card, about) {
+    var note = card && card.cardBackText ? String(card.cardBackText || "").trim() : "";
+    if (note) return note;
+    var fallback = String(about || "").trim();
+    if (!fallback) return "";
+    return fallback.length > 120 ? fallback.slice(0, 117).trim() + "..." : fallback;
+  }
+
+  function getCardStampStyle(card) {
+    try {
+      var program = getCardProgram(card);
+      var raw =
+        program && program.stampStyle != null
+          ? String(program.stampStyle)
+          : card && card.stampStyle != null
+            ? String(card.stampStyle)
+            : "";
+      var style = raw.trim().toLowerCase();
+      if (
+        style === "cup" ||
+        style === "bean" ||
+        style === "star" ||
+        style === "circle"
+      ) {
+        return style;
+      }
+    } catch (e) {}
+    return "bean";
+  }
+
+  function getRewardSideNote(label, isFull) {
+    if (isFull) return "PRAEMIE BEREIT";
+    var src = String(label || "").trim();
+    if (!src) return "GRATIS";
+    var normalized = src
+      .replace(/^1\s+/i, "")
+      .replace(/freigetr[a\u00e4]nk/i, "gratis")
+      .replace(/free cup/i, "gratis")
+      .replace(/free/i, "gratis")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+    if (!normalized) return "GRATIS";
+    return normalized.length > 18 ? "GRATIS" : normalized;
+  }
+
+  function getCardFooterLabel(card) {
+    var address = stripCardMarkup(card && card.address ? card.address : "");
+    if (address) {
+      var shortAddress = address.split(",")[0] || address;
+      shortAddress = String(shortAddress).trim();
+      if (shortAddress && shortAddress.length <= 24)
+        return shortAddress.toUpperCase();
+    }
+    return "KAFFEEKARTE";
+  }
+
   function renderStampGrid(container, count) {
+    var threshold = REWARD_THRESHOLD;
+    var stampStyle = "bean";
+    try {
+      var pass = null;
+      if (container && container.closest)
+        pass = container.closest(".passCard, .face");
+      threshold = getPassRewardThreshold(pass);
+      stampStyle = pass
+        ? String(pass.getAttribute("data-stamp-style") || "bean")
+            .trim()
+            .toLowerCase()
+        : "bean";
+    } catch (eThreshold0) {}
     function hash32(str) {
       var s = String(str || "");
       var h = 2166136261;
@@ -973,18 +2803,18 @@
       }
     }
 
-    var n = clamp(Number(count || 0) || 0, 0, REWARD_THRESHOLD);
+    var n = clamp(Number(count || 0) || 0, 0, threshold);
     var prev = null;
     if (arguments.length >= 3) {
       try {
-        prev = clamp(Number(arguments[2] || 0) || 0, 0, REWARD_THRESHOLD);
+        prev = clamp(Number(arguments[2] || 0) || 0, 0, threshold);
       } catch (ePrev0) {
         prev = null;
       }
     }
     var seedKey = getStampSeedKey();
     container.innerHTML = "";
-    for (var i = 0; i < REWARD_THRESHOLD; i++) {
+    for (var i = 0; i < threshold; i++) {
       var cell = document.createElement("div");
       var filled = i < n;
       var isNew = prev != null && filled && i >= prev;
@@ -1009,9 +2839,21 @@
         } catch (eJ) {}
       }
 
-      cell.innerHTML = buildStampSvg(filled);
+      cell.innerHTML = buildStampSvg(filled, stampStyle);
       container.appendChild(cell);
     }
+  }
+
+  function wireScreenPager() {
+    try {
+      window.addEventListener(
+        "resize",
+        function () {
+          applyPageMode(currentPageMode || getPageMode());
+        },
+        { passive: true },
+      );
+    } catch (e2) {}
   }
 
   function findWalletPassCardByCafe(cafeAddress) {
@@ -1168,6 +3010,27 @@
     return box;
   }
 
+  function syncPassFaceHeight(passEl) {
+    if (!passEl) return;
+    try {
+      var flip = passEl.querySelector(".passFlip");
+      if (!flip) return;
+      var w = Number(passEl.clientWidth || flip.clientWidth || 0) || 0;
+      if (w <= 0) return;
+      var ratio = 1.58;
+      try {
+        var ratioRaw = window.getComputedStyle(passEl).getPropertyValue(
+          "--pass-card-ratio",
+        );
+        var ratioNum = Number(String(ratioRaw || "").trim());
+        if (Number.isFinite(ratioNum) && ratioNum > 0) ratio = ratioNum;
+      } catch (eRatio) {}
+      var h = w / ratio;
+      flip.style.minHeight = "0px";
+      flip.style.height = String(Math.ceil(h)) + "px";
+    } catch (e) {}
+  }
+
   function setQrSvg(passEl, svgText) {
     var box = passEl ? passEl.querySelector(".passQrBox") : null;
     if (!box) return false;
@@ -1175,6 +3038,7 @@
     try {
       box.innerHTML = String(svgText);
       clearQrHint(passEl);
+      syncPassFaceHeight(passEl);
       return true;
     } catch (e0) {
       return false;
@@ -1194,6 +3058,7 @@
         function (err2) {
           if (!err2) {
             clearQrHint(passEl);
+            syncPassFaceHeight(passEl);
             return;
           }
           try {
@@ -1243,6 +3108,7 @@
             try {
               img.onload = function () {
                 clearQrHint(passEl);
+                syncPassFaceHeight(passEl);
               };
             } catch (eOnLoad) {}
             img.src = String(url);
@@ -1275,13 +3141,196 @@
     }
   }
 
+  function renderQrIntoBox(box, link, onDone) {
+    if (!box || !link) return;
+    box.innerHTML = "";
+    if (
+      typeof QRCode === "undefined" ||
+      !QRCode ||
+      (!QRCode.toString && !QRCode.toDataURL && !QRCode.toCanvas)
+    ) {
+      box.textContent = "QR konnte nicht erzeugt werden.";
+      return;
+    }
+    if (QRCode && typeof QRCode.toString === "function") {
+      try {
+        QRCode.toString(
+          link,
+          { type: "svg", width: 360, margin: 1, errorCorrectionLevel: "M" },
+          function (errSvg, svgText) {
+            if (!errSvg && svgText) {
+              box.innerHTML = String(svgText);
+              if (onDone) onDone(true);
+              return;
+            }
+            renderQrIntoBoxWithImage(box, link, onDone);
+          },
+        );
+        return;
+      } catch (eSvg) {}
+    }
+    renderQrIntoBoxWithImage(box, link, onDone);
+  }
+
+  function renderQrIntoBoxWithImage(box, link, onDone) {
+    if (!box || !link) return;
+    if (QRCode && typeof QRCode.toDataURL === "function") {
+      try {
+        QRCode.toDataURL(
+          link,
+          { width: 360, margin: 1, errorCorrectionLevel: "M" },
+          function (err, url) {
+            if (!err && url) {
+              box.innerHTML = "";
+              var img = document.createElement("img");
+              img.alt = "QR Code";
+              img.src = String(url);
+              box.appendChild(img);
+              if (onDone) onDone(true);
+              return;
+            }
+            renderQrIntoBoxWithCanvas(box, link, onDone);
+          },
+        );
+        return;
+      } catch (eImg) {}
+    }
+    renderQrIntoBoxWithCanvas(box, link, onDone);
+  }
+
+  function renderQrIntoBoxWithCanvas(box, link, onDone) {
+    if (!box || !link) return;
+    box.innerHTML = "";
+    var canvas = document.createElement("canvas");
+    box.appendChild(canvas);
+    try {
+      QRCode.toCanvas(
+        canvas,
+        link,
+        { width: 360, margin: 1, errorCorrectionLevel: "M" },
+        function (err) {
+          if (err) {
+            box.textContent = "QR konnte nicht erzeugt werden.";
+            if (onDone) onDone(false);
+            return;
+          }
+          if (onDone) onDone(true);
+        },
+      );
+    } catch (eCanvas) {
+      box.textContent = "QR konnte nicht erzeugt werden.";
+      if (onDone) onDone(false);
+    }
+  }
+
+  function setQrSheetOpen(open) {
+    var next = !!open;
+    qrSheetState.open = next;
+    try {
+      if (el.qrSheetBackdrop) el.qrSheetBackdrop.classList.toggle("open", next);
+      if (el.qrSheet) el.qrSheet.classList.toggle("open", next);
+      if (el.qrSheet) el.qrSheet.setAttribute("aria-hidden", next ? "false" : "true");
+      document.body.classList.toggle("qrSheetOpen", next);
+    } catch (e) {}
+  }
+
+  function closeQrSheet() {
+    qrSheetState.passEl = null;
+    setQrSheetOpen(false);
+    try {
+      if (el.qrSheetBox) el.qrSheetBox.innerHTML = "";
+    } catch (e) {}
+  }
+
+  function openQrSheet(passEl) {
+    if (!passEl) return;
+    qrSheetState.passEl = passEl;
+    try {
+      if (el.qrSheetTitle) {
+        var titleEl = passEl.querySelector(".passTitle");
+        el.qrSheetTitle.textContent = titleEl
+          ? String(titleEl.textContent || "Kaffeekarte")
+          : "Kaffeekarte";
+      }
+      if (el.qrSheetSub) {
+        var countEl = passEl.querySelector(".passCountLine");
+        el.qrSheetSub.textContent = countEl
+          ? String(countEl.textContent || "QR wird geladen\u2026")
+          : "QR wird geladen\u2026";
+      }
+      if (el.qrSheetHint) {
+        var stamps = getPassStampCount(passEl);
+        var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
+        el.qrSheetHint.textContent = full
+          ? "Im Caf\u00e9 scannen lassen und die Belohnung einl\u00f6sen."
+          : "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
+      }
+      if (el.qrSheetBox) {
+        el.qrSheetBox.textContent = "QR wird geladen\u2026";
+      }
+    } catch (eMeta) {}
+
+    setQrSheetOpen(true);
+
+    try {
+      var cafeAddress = passEl.getAttribute("data-cafe") || "";
+      var stamps = getPassStampCount(passEl);
+      var renderLink = function (count) {
+        var full = Number(count || 0) >= getPassRewardThreshold(passEl);
+        var link = full ? buildRedeemLink(cafeAddress) : buildCafeLink(cafeAddress);
+        if (!link || !el.qrSheetBox) {
+          if (el.qrSheetBox) el.qrSheetBox.textContent = "QR konnte nicht erzeugt werden.";
+          return;
+        }
+        renderQrIntoBox(el.qrSheetBox, link);
+      };
+
+      if (stamps == null) {
+        apiFetch(
+          "/stamps/" +
+            encodeURIComponent(session.address) +
+            "?fallback=1&cafe=" +
+            encodeURIComponent(cafeAddress),
+        )
+          .then(function (data) {
+            var s =
+              data && data.stamps != null
+                ? Number(data.stamps)
+                : data && data.count != null
+                  ? Number(data.count)
+                  : 0;
+            if (!Number.isFinite(s)) s = 0;
+            try {
+              setPassCardStamps(passEl, s);
+            } catch (e1) {}
+            renderLink(s);
+          })
+          .catch(function () {
+            if (el.qrSheetBox) el.qrSheetBox.textContent = "QR Fehler.";
+          });
+        return;
+      }
+      renderLink(stamps);
+    } catch (e) {
+      if (el.qrSheetBox) el.qrSheetBox.textContent = "QR Fehler.";
+    }
+  }
+
   function openPass(passEl) {
     if (!passEl) return;
-    passEl.classList.add("open");
+    closeAllPasses(passEl);
     try {
-      // Use the stable 2D backside mode (prevents invisible backfaces on some browsers/WebViews).
-      if (passEl.classList) passEl.classList.add("forceBack");
-    } catch (eFb0) {}
+      if (passEl.__forceBackTimer) {
+        window.clearTimeout(passEl.__forceBackTimer);
+        passEl.__forceBackTimer = 0;
+      }
+      if (passEl.classList) {
+        passEl.classList.add("forceBack");
+        passEl.classList.add("isFocused");
+      }
+    } catch (ePrepOpen) {}
+    passEl.classList.add("open");
+    syncPassFaceHeight(passEl);
     try {
       var cafeAddress = passEl.getAttribute("data-cafe") || "";
       var stamps = getPassStampCount(passEl);
@@ -1291,7 +3340,7 @@
         // If the user opens instantly after boot, stamps might not be loaded yet.
         // Fetch once so we can show the correct QR (redeem vs stamp).
         try {
-          setQrPlaceholder(passEl, "Stempelstand wird geladen…", "loading");
+          setQrPlaceholder(passEl, "Stempelstand wird geladen\u2026", "loading");
         } catch (e0) {}
         apiFetch(
           "/stamps/" +
@@ -1311,7 +3360,7 @@
               setPassCardStamps(passEl, s);
             } catch (e1) {}
 
-            var full2 = s >= REWARD_THRESHOLD;
+            var full2 = s >= getPassRewardThreshold(passEl);
             var link2 = full2
               ? buildRedeemLink(cafeAddress)
               : buildCafeLink(cafeAddress);
@@ -1327,6 +3376,7 @@
             window.requestAnimationFrame(function () {
               window.requestAnimationFrame(function () {
                 renderQrSvg(passEl, link2, box);
+                syncPassFaceHeight(passEl);
               });
             });
           })
@@ -1339,7 +3389,7 @@
         return;
       }
 
-      var full = Number(stamps || 0) >= REWARD_THRESHOLD;
+      var full = Number(stamps || 0) >= getPassRewardThreshold(passEl);
       var link = full
         ? buildRedeemLink(cafeAddress)
         : buildCafeLink(cafeAddress);
@@ -1366,7 +3416,7 @@
       try {
         setQrPlaceholder(
           passEl,
-          full ? "Einlösen-QR wird geladen…" : "QR wird geladen…",
+          full ? "Einl\u00f6sen-QR wird geladen\u2026" : "QR wird geladen\u2026",
           "loading",
         );
       } catch (eTxt) {}
@@ -1388,14 +3438,12 @@
         } catch (eW) {}
       }, 1500);
 
-      // Note: we intentionally keep the 2D mode even if 3D would work,
-      // because the user reported the backside rendering as fully blank.
-
       // Delay rendering until after the "open" class applied and layout settled.
       // This avoids rare cases where the canvas ends up 0-sized / not painted.
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () {
           renderQrSvg(passEl, link, box);
+          syncPassFaceHeight(passEl);
         });
       });
     } catch (e) {}
@@ -1403,26 +3451,59 @@
 
   function closePass(passEl) {
     if (!passEl) return;
-    passEl.classList.remove("open");
     try {
-      if (passEl.classList) passEl.classList.remove("forceBack");
-    } catch (eFb2) {}
+      if (passEl.__forceBackTimer) {
+        window.clearTimeout(passEl.__forceBackTimer);
+        passEl.__forceBackTimer = 0;
+      }
+      if (passEl.classList) {
+        passEl.classList.remove("forceBack");
+        passEl.classList.remove("isFocused");
+      }
+    } catch (ePrepClose) {}
+    passEl.classList.remove("open");
   }
 
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
-    var title = String(card.name || "Café");
+    var title = String(card.name || "Caf\u00e9");
     var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
-    var isFull = stampCount >= REWARD_THRESHOLD;
-    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
+    if (theme === "ink") theme = "clean";
+    var rewardThreshold = getCardRewardThreshold(card);
+    var rewardLabel = "";
+    try {
+      rewardLabel = String(
+        (card && (card.rewardDescription || card.reward)) || "",
+      ).trim();
+    } catch (eReward0) {
+      rewardLabel = "";
+    }
+    var isFull = stampCount >= rewardThreshold;
+    var extra = Math.max(0, stampCount - rewardThreshold);
+    var remaining = Math.max(
+      0,
+      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+    );
+    var serialTail = cafeAddress
+      ? cafeAddress.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6)
+      : "";
+    if (!serialTail) serialTail = "STAMP";
+    var kickerText = getCardFrontKicker(rewardThreshold);
+    var subtitle = getCardPrintSubtitle(card);
+    var rewardSideNote = getRewardSideNote(rewardLabel, isFull);
+    var footerLabel = getCardFooterLabel(card);
+    var countLine = formatStampCountLine(stampCount, rewardThreshold, extra);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
     passCard.setAttribute("data-pass-theme", theme);
+    passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
+    passCard.setAttribute("data-reward-label", rewardLabel || "");
+    passCard.setAttribute("data-stamp-style", getCardStampStyle(card));
 
     if (card && card.cardBackgroundDataUrl) {
       try {
@@ -1441,10 +3522,11 @@
     var flip = document.createElement("div");
     flip.className = "passFlip";
 
-    var mainBtn = document.createElement("button");
-    mainBtn.type = "button";
+    var mainBtn = document.createElement("div");
     mainBtn.className = "passMain";
-    mainBtn.setAttribute("aria-label", "Karte öffnen");
+    mainBtn.setAttribute("role", "button");
+    mainBtn.setAttribute("tabindex", "0");
+    mainBtn.setAttribute("aria-label", "Karte oeffnen");
 
     var head = document.createElement("div");
     head.className = "passHead";
@@ -1453,62 +3535,188 @@
     left.className = "stack";
     left.style.minWidth = "0";
 
-    var h = document.createElement("div");
-    h.className = "passTitle";
-    h.textContent = title;
+    var eyebrow = document.createElement("div");
+    eyebrow.className = "passEyebrow";
+    eyebrow.textContent = kickerText;
 
-    var sub = document.createElement("div");
-    sub.className = "passSub";
-    sub.textContent =
-      clamp(stampCount, 0, REWARD_THRESHOLD) +
-      " / " +
-      REWARD_THRESHOLD +
-      " Stempel" +
-      (extra > 0 ? " (+" + extra + " extra)" : "");
+    var brandLockup = document.createElement("div");
+    brandLockup.className = "passBrandLockup";
 
-    left.appendChild(h);
-    left.appendChild(sub);
-
-    var right = document.createElement("div");
-    right.className = "passRight";
-
-    var badge = document.createElement("div");
-    badge.className = "badge";
-    badge.textContent = isFull
-      ? extra > 0
-        ? "Voll +" + extra
-        : "Voll"
-      : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
-
-    right.appendChild(badge);
-
-    var logoWrap = document.createElement("div");
-    logoWrap.className = "passLogoWrap";
     if (card.logoDataUrl) {
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "passLogoWrap";
       var img = document.createElement("img");
       img.className = "passLogo";
       img.alt = "Logo";
       img.decoding = "async";
       img.loading = "lazy";
       img.src = String(card.logoDataUrl);
+      img.addEventListener("error", function () {
+        try {
+          logoWrap.innerHTML = "";
+          logoWrap.appendChild(buildPassLogoFallback(title));
+        } catch (eLogoFallback) {}
+      });
       logoWrap.appendChild(img);
+      brandLockup.appendChild(logoWrap);
+    } else {
+      var fallbackLogoWrap = document.createElement("div");
+      fallbackLogoWrap.className = "passLogoWrap";
+      fallbackLogoWrap.appendChild(buildPassLogoFallback(title));
+      brandLockup.appendChild(fallbackLogoWrap);
     }
-    right.appendChild(logoWrap);
+
+    var titleBlock = document.createElement("div");
+    titleBlock.className = "passTitleBlock";
+
+    var h = document.createElement("div");
+    h.className = "passTitle";
+    h.textContent = title;
+
+    var sub = document.createElement("div");
+    sub.className = "passSub";
+    sub.textContent = subtitle;
+
+    titleBlock.appendChild(h);
+    titleBlock.appendChild(sub);
+    brandLockup.appendChild(titleBlock);
+
+    left.appendChild(eyebrow);
+    left.appendChild(brandLockup);
 
     head.appendChild(left);
-    head.appendChild(right);
+
+    var stampField = document.createElement("div");
+    stampField.className = "passStampField";
+
+    var stampGuide = document.createElement("div");
+    stampGuide.className = "passStampGuide";
+
+    var stampLead = document.createElement("div");
+    stampLead.className = "passStampLead";
+    stampLead.textContent = "Fortschritt";
+
+    var stampNeed = document.createElement("div");
+    stampNeed.className = "passStampNeed";
+    stampNeed.textContent = countLine;
+
+    stampGuide.appendChild(stampLead);
+    stampGuide.appendChild(stampNeed);
+    stampField.appendChild(stampGuide);
 
     var grid = document.createElement("div");
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
+    stampField.appendChild(grid);
+    var rewardNote = document.createElement("div");
+    rewardNote.className = "passRewardNote";
+    rewardNote.textContent = rewardSideNote;
+    stampField.appendChild(rewardNote);
+
+    var infoBlock = document.createElement("div");
+    infoBlock.className = "passInfoBlock";
+
+    var frontNote = getCardFrontNote(card, about);
+    if (frontNote) {
+      var noteEl = document.createElement("div");
+      noteEl.className = "passCardNote";
+      noteEl.textContent = frontNote;
+      infoBlock.appendChild(noteEl);
+    }
+
+    var frontWebsiteUrl = normalizeExternalUrl(
+      card && card.websiteUrl ? String(card.websiteUrl).trim() : "",
+    );
+    var frontInstagramUrl = normalizeInstagramUrl(
+      card && card.instagramUrl ? String(card.instagramUrl).trim() : "",
+    );
+    if (frontWebsiteUrl || frontInstagramUrl) {
+      var linkRow = document.createElement("div");
+      linkRow.className = "passLinkRow";
+      if (frontWebsiteUrl) {
+        var websiteLink = document.createElement("a");
+        websiteLink.className = "passInfoLink";
+        websiteLink.href = frontWebsiteUrl;
+        websiteLink.target = "_blank";
+        websiteLink.rel = "noopener noreferrer";
+        websiteLink.textContent = "Website";
+        websiteLink.addEventListener("click", function (ev) {
+          try {
+            ev.stopPropagation();
+          } catch (e) {}
+        });
+        linkRow.appendChild(websiteLink);
+      }
+      if (frontInstagramUrl) {
+        var instagramLink = document.createElement("a");
+        instagramLink.className = "passInfoLink";
+        instagramLink.href = frontInstagramUrl;
+        instagramLink.target = "_blank";
+        instagramLink.rel = "noopener noreferrer";
+        instagramLink.textContent = "Instagram";
+        instagramLink.addEventListener("click", function (ev) {
+          try {
+            ev.stopPropagation();
+          } catch (e) {}
+        });
+        linkRow.appendChild(instagramLink);
+      }
+      infoBlock.appendChild(linkRow);
+    }
+
+    var metaRow = document.createElement("div");
+    metaRow.className = "passMetaRow";
+
+    var progressText = document.createElement("div");
+    progressText.className = "passProgressText";
+    var progressHeadline = document.createElement("strong");
+    progressHeadline.className = "passProgressHeadline";
+    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
+    var progressSub = document.createElement("span");
+    progressSub.className = "passProgressSub";
+    progressSub.textContent = formatNextStampLine(remaining, isFull);
+    progressText.appendChild(progressHeadline);
+    progressText.appendChild(progressSub);
+
+    var rewardChip = document.createElement("div");
+    rewardChip.className = "passRewardChip";
+    rewardChip.textContent = rewardLabel || "Belohnung";
+
+    metaRow.appendChild(progressText);
+    metaRow.appendChild(rewardChip);
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
+    hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
+
+    var footer = document.createElement("div");
+    footer.className = "passFooter";
+
+    var footerMeta = document.createElement("div");
+    footerMeta.className = "passFooterMeta";
+
+    var serial = document.createElement("span");
+    serial.className = "passSerial";
+    serial.textContent = footerLabel;
+
+    var footerType = document.createElement("span");
+    footerType.className = "passCountLine";
+    footerType.textContent = countLine;
+
+    footerMeta.appendChild(serial);
+    footerMeta.appendChild(footerType);
+
+    var footerVisit = document.createElement("div");
+    footerVisit.className = "passFooterVisit";
+    footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
+
+    footer.appendChild(footerMeta);
+    footer.appendChild(footerVisit);
 
     mainBtn.appendChild(head);
-    mainBtn.appendChild(grid);
-    mainBtn.appendChild(hint);
+    mainBtn.appendChild(stampField);
+    if (infoBlock.childNodes.length) mainBtn.appendChild(infoBlock);
+    mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
     qr.className = "passQr";
@@ -1520,6 +3728,12 @@
     backTitle.className = "passBackTitle";
     backTitle.textContent = title;
     backMeta.appendChild(backTitle);
+
+    var backClose = document.createElement("button");
+    backClose.className = "passBackClose";
+    backClose.type = "button";
+    backClose.setAttribute("aria-label", "Karte schlie\u00dfen");
+    backMeta.appendChild(backClose);
 
     if (address) {
       var backAddr = document.createElement("div");
@@ -1536,7 +3750,7 @@
         ? String(card.cardBackText)
         : about
           ? about
-          : "Tippe auf den QR-Code zum Schließen";
+          : "Tippe auf den QR-Code zum Schlie\u00dfen";
     try {
       passCard.setAttribute(
         "data-backtext-base",
@@ -1548,26 +3762,52 @@
     var qrBox = document.createElement("div");
     qrBox.className = "passQrBox";
     qrBox.setAttribute("role", "button");
-    qrBox.setAttribute("aria-label", "QR anzeigen / schließen");
+    qrBox.setAttribute("aria-label", "QR anzeigen / schlie\u00dfen");
     qr.appendChild(qrBox);
+
+    var qrCaption = document.createElement("div");
+    qrCaption.className = "passQrCaption";
+    qrCaption.textContent = isFull
+      ? "Im Caf\u00e9 scannen lassen, um die Belohnung einzul\u00f6sen."
+      : "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
+    qr.appendChild(qrCaption);
+
+    var backNote = document.createElement("div");
+    backNote.className = "passBackNote";
+    backNote.textContent =
+      "Tippe irgendwo auf die Rueckseite, um wieder zur Karte zu wechseln.";
+    qr.appendChild(backNote);
 
     flip.appendChild(mainBtn);
     flip.appendChild(qr);
     passCard.appendChild(flip);
+    try {
+      window.requestAnimationFrame(function () {
+        syncPassFaceHeight(passCard);
+      });
+    } catch (eSync0) {}
 
     mainBtn.addEventListener("click", function () {
       if (nowMs() < walletState.ignoreClickUntil) return;
-      // Toggle: makes "flip back" robust even if the click target ends up on the front
-      // due to browser hit-testing quirks during 3D transforms.
       try {
         if (passCard.classList && passCard.classList.contains("open")) {
           closePass(passCard);
+        } else if (passCard.classList && passCard.classList.contains("isFocused")) {
+          openQrSheet(passCard);
         } else {
-          openPass(passCard);
+          focusPass(passCard);
         }
       } catch (e0) {
-        openPass(passCard);
+        focusPass(passCard);
       }
+    });
+    mainBtn.addEventListener("keydown", function (ev) {
+      var key = ev && ev.key ? String(ev.key) : "";
+      if (key !== "Enter" && key !== " ") return;
+      try {
+        ev.preventDefault();
+      } catch (e) {}
+      mainBtn.click();
     });
 
     // On phones (stack mode), the wallet swipe handler listens on the scroller and
@@ -1583,6 +3823,9 @@
     var close = function () {
       closePass(passCard);
     };
+    backClose.addEventListener("click", close);
+    backClose.addEventListener("pointerup", close);
+    backClose.addEventListener("touchend", close, { passive: true });
     // Click for desktop, pointerup/touchend for mobile reliability.
     qrBox.addEventListener("click", close);
     qrBox.addEventListener("pointerup", close);
@@ -1616,13 +3859,18 @@
       // Keep the deck hinted visually (2 cards behind).
       // Keep background cards below 0.5 opacity so strict UI checks
       // still treat the stack as showing a single visible card.
-      var op = i === 0 ? 1 : i === 1 ? 0.35 : 0.2;
-      var sc = i === 0 ? 1 : i === 1 ? 0.99 : 0.98;
-      var sy = i === 0 ? 0 : i === 1 ? 8 : 14;
+      var op = i === 0 ? 1 : i === 1 ? 0.62 : 0.4;
+      var sc = i === 0 ? 1 : i === 1 ? 0.984 : 0.965;
+      var sy = i === 0 ? 0 : i === 1 ? 12 : 24;
+      var tz = i === 0 ? 0 : i === 1 ? -6 : -12;
+      var ry = i === 0 ? 0 : i === 1 ? -1.4 : -2.8;
 
       node.style.setProperty("--wheel-tx", "0px");
       node.style.setProperty("--stack-swipe-y", "0px");
       node.style.setProperty("--wheel-rz", "0deg");
+      node.style.setProperty("--wheel-ry", String(ry) + "deg");
+      node.style.setProperty("--wheel-tz", String(tz) + "px");
+      node.style.transition = "";
       node.style.setProperty("--wheel-opacity", String(op));
       node.style.setProperty("--wheel-scale", String(sc));
       node.style.setProperty("--stack-y", String(sy) + "px");
@@ -1642,6 +3890,59 @@
     } catch (e) {}
   }
 
+  function updateWalletStackFollowers(scroller, dy) {
+    if (!scroller) return;
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      var second = cards && cards[1] ? cards[1] : null;
+      var third = cards && cards[2] ? cards[2] : null;
+      var dist = Math.abs(dy);
+      var progress = Math.min(1, dist / 140);
+      var swayX = 0;
+      var tilt = 0;
+      var liftY2 = 12 - progress * 6;
+      var liftY3 = 24 - progress * 9;
+
+      if (second) {
+        second.style.setProperty("--wheel-tx", swayX.toFixed(2) + "px");
+        second.style.setProperty("--stack-y", liftY2.toFixed(2) + "px");
+        second.style.setProperty("--wheel-ry", tilt.toFixed(2) + "deg");
+        second.style.setProperty(
+          "--wheel-tz",
+          String((-6 + progress * 4).toFixed(2)) + "px",
+        );
+        second.style.setProperty(
+          "--wheel-scale",
+          String((0.984 + progress * 0.012).toFixed(3)),
+        );
+        second.style.setProperty(
+          "--wheel-opacity",
+          String((0.62 + progress * 0.08).toFixed(3)),
+        );
+      }
+      if (third) {
+        third.style.setProperty("--wheel-tx", (swayX * 0.45).toFixed(2) + "px");
+        third.style.setProperty("--stack-y", liftY3.toFixed(2) + "px");
+        third.style.setProperty(
+          "--wheel-ry",
+          (tilt * 0.72).toFixed(2) + "deg",
+        );
+        third.style.setProperty(
+          "--wheel-tz",
+          String((-12 + progress * 5).toFixed(2)) + "px",
+        );
+        third.style.setProperty(
+          "--wheel-scale",
+          String((0.965 + progress * 0.011).toFixed(3)),
+        );
+        third.style.setProperty(
+          "--wheel-opacity",
+          String((0.4 + progress * 0.06).toFixed(3)),
+        );
+      }
+    } catch (e) {}
+  }
+
   function sendTopCardToBack(scroller, opts) {
     if (!scroller) return;
     var cardEl = scroller.querySelector(".passCard");
@@ -1650,15 +3951,36 @@
     var tx = opts && isFinite(opts.tx) ? Number(opts.tx) : 0;
     var ty = opts && isFinite(opts.ty) ? Number(opts.ty) : 0;
     var dir = opts && opts.dir ? opts.dir : tx >= 0 ? 1 : -1;
+    var speed = opts && isFinite(opts.speed) ? Number(opts.speed) : 0.7;
+    var duration = Math.round(clamp(260 + speed * 90, 260, 340));
 
     cardEl.classList.add("isSwapping");
 
-    // Push it a bit further in the swipe direction, fade it out, then reorder.
-    cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
-    cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
-    cardEl.style.setProperty("--wheel-rz", String(dir * 4.8) + "deg");
-    cardEl.style.setProperty("--wheel-opacity", "0");
-    cardEl.style.setProperty("--wheel-scale", "0.965");
+    try {
+      cardEl.style.transition =
+        "transform " +
+        duration +
+        "ms cubic-bezier(0.22, 0.82, 0.24, 1), filter " +
+        Math.max(220, duration - 20) +
+        "ms ease";
+    } catch (ePrep) {}
+
+    window.requestAnimationFrame(function () {
+      // Slide the top card deeper into the stack without fading it away.
+      cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
+      cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
+      cardEl.style.setProperty("--wheel-rz", String(clamp(tx / 32, -0.8, 0.8)) + "deg");
+      cardEl.style.setProperty("--wheel-ry", "0deg");
+      cardEl.style.setProperty(
+        "--wheel-tz",
+        String(clamp(6 + Math.abs(ty) * 0.02, 6, 12)) + "px",
+      );
+      cardEl.style.setProperty("--wheel-opacity", "1");
+      cardEl.style.setProperty("--wheel-scale", "0.989");
+      cardEl.style.setProperty("--wheel-sat", "1");
+      cardEl.style.setProperty("--wheel-bright", "1");
+      updateWalletStackFollowers(scroller, ty * 0.9);
+    });
 
     window.setTimeout(function () {
       try {
@@ -1669,18 +3991,23 @@
         // Always reset to the front when it goes to the back.
         closePass(cardEl);
         cardEl.classList.remove("isSwapping");
+        cardEl.style.transition = "";
         cardEl.style.setProperty("--wheel-tx", "0px");
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
         cardEl.style.setProperty("--wheel-rz", "0deg");
+        cardEl.style.setProperty("--wheel-ry", "0deg");
+        cardEl.style.setProperty("--wheel-tz", "0px");
         cardEl.style.setProperty("--wheel-scale", "1");
+        cardEl.style.setProperty("--wheel-sat", "1");
+        cardEl.style.setProperty("--wheel-bright", "1");
         cardEl.style.setProperty("--stack-y", "0px");
       } catch (e2) {}
 
       // And ensure the newly revealed card is also on the front.
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
-    }, 170);
+    }, duration);
   }
 
   function cycleTopToBottom(scroller, direction) {
@@ -1691,12 +4018,23 @@
     var dir = direction || 1;
 
     // Animate into the back of the deck (so the user sees it going to the end).
-    cardEl.style.setProperty("--wheel-tx", String(dir * 28) + "px");
-    cardEl.style.setProperty("--stack-swipe-y", "0px");
-    cardEl.style.setProperty("--wheel-rz", String(dir * 3.2) + "deg");
-    cardEl.style.setProperty("--wheel-opacity", "0.55");
-    cardEl.style.setProperty("--wheel-scale", "0.97");
-    cardEl.style.setProperty("--stack-y", "18px");
+    try {
+      cardEl.style.transition =
+        "transform 280ms cubic-bezier(0.22, 0.82, 0.24, 1), opacity 220ms ease, filter 220ms ease";
+    } catch (ePrep) {}
+    window.requestAnimationFrame(function () {
+      cardEl.style.setProperty("--wheel-tx", "0px");
+      cardEl.style.setProperty("--stack-swipe-y", String(dir * 28) + "px");
+      cardEl.style.setProperty("--wheel-rz", "0deg");
+      cardEl.style.setProperty("--wheel-ry", "0deg");
+      cardEl.style.setProperty("--wheel-tz", "10px");
+      cardEl.style.setProperty("--wheel-opacity", "1");
+      cardEl.style.setProperty("--wheel-scale", "0.99");
+      cardEl.style.setProperty("--wheel-sat", "1");
+      cardEl.style.setProperty("--wheel-bright", "1");
+      cardEl.style.setProperty("--stack-y", "14px");
+      updateWalletStackFollowers(scroller, dir * 20);
+    });
 
     window.setTimeout(function () {
       try {
@@ -1706,17 +4044,22 @@
       try {
         closePass(cardEl);
         cardEl.classList.remove("isSwapping");
+        cardEl.style.transition = "";
         cardEl.style.setProperty("--wheel-tx", "0px");
         cardEl.style.setProperty("--stack-swipe-y", "0px");
         cardEl.style.setProperty("--wheel-opacity", "1");
         cardEl.style.setProperty("--wheel-rz", "0deg");
+        cardEl.style.setProperty("--wheel-ry", "0deg");
+        cardEl.style.setProperty("--wheel-tz", "0px");
         cardEl.style.setProperty("--wheel-scale", "1");
+        cardEl.style.setProperty("--wheel-sat", "1");
+        cardEl.style.setProperty("--wheel-bright", "1");
         cardEl.style.setProperty("--stack-y", "0px");
       } catch (e2) {}
 
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
-    }, 220);
+    }, 360);
   }
 
   function enableWalletStackMode(scroller) {
@@ -1731,7 +4074,7 @@
       scroller.__stampStackWired = true;
     } catch (eFlag) {}
 
-    function onPointerDown(ev) {
+    function beginStackDrag(pointerId, clientX, clientY, target) {
       var top = scroller.querySelector(".passCard");
       if (!top) return;
 
@@ -1747,41 +4090,61 @@
 
       // If the event originated from the back-side interactive area, ignore.
       try {
-        var t = ev.target;
+        var t = target;
         if (t && t.closest) {
           if (t.closest(".passQr") || t.closest(".passQrBox")) return;
         }
       } catch (e1) {}
 
       walletState.stackDrag = {
-        id: ev.pointerId,
-        startX: ev.clientX,
-        startY: ev.clientY,
-        lastX: ev.clientX,
-        lastY: ev.clientY,
+        id: pointerId,
+        startX: clientX,
+        startY: clientY,
+        lastX: clientX,
+        lastY: clientY,
+        lastMoveAt: nowMs(),
+        vx: 0,
+        vy: 0,
+        ax: 0,
+        ay: 0,
         moved: false,
         activeEl: top,
         captured: false,
       };
+      try {
+        top.style.transition = "none";
+      } catch (e2) {}
     }
 
-    function onPointerMove(ev) {
+    function moveStackDrag(pointerId, clientX, clientY, allowCapture) {
       var d = walletState.stackDrag;
-      if (!d || d.id !== ev.pointerId) return;
-      var dx = ev.clientX - d.startX;
-      var dy = ev.clientY - d.startY;
-      d.lastX = ev.clientX;
-      d.lastY = ev.clientY;
+      if (!d || d.id !== pointerId) return false;
+      var dx = clientX - d.startX;
+      var dy = clientY - d.startY;
+      var ddx = clientX - d.lastX;
+      var ddy = clientY - d.lastY;
+      var tNow = nowMs();
+      var dt = Math.max(1, tNow - (d.lastMoveAt || tNow));
+      var instVx = ddx / dt;
+      var instVy = ddy / dt;
+      d.vx = d.vx * 0.58 + instVx * 0.42;
+      d.vy = d.vy * 0.58 + instVy * 0.42;
+      d.ax = d.ax * 0.7 + (instVx - d.vx) * 0.3;
+      d.ay = d.ay * 0.7 + (instVy - d.vy) * 0.3;
+      d.lastX = clientX;
+      d.lastY = clientY;
+      d.lastMoveAt = tNow;
 
       if (!d.moved) {
-        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dy) < Math.abs(dx) * 1.05) return;
         d.moved = true;
         scroller.classList.add("isDragging");
 
         // Only capture once it is clearly a drag gesture.
-        if (!d.captured && d.activeEl) {
+        if (allowCapture && !d.captured && d.activeEl) {
           try {
-            d.activeEl.setPointerCapture(ev.pointerId);
+            d.activeEl.setPointerCapture(pointerId);
             d.captured = true;
           } catch (eCap) {}
         }
@@ -1789,185 +4152,252 @@
 
       var card = d.activeEl;
       if (!card) return;
-      var tx = clamp(dx, -260, 260);
-      var ty = clamp(dy, -220, 220);
-      var dist = Math.sqrt(tx * tx + ty * ty);
-      var rz = clamp(tx / 18, -10, 10);
-      var op = 1 - Math.min(0.68, dist / 520);
+      var tx = clamp(dx * 0.025, -4, 4);
+      var ty = clamp(dy * 0.98, -180, 180);
+      var rz = clamp(dx / 110, -0.9, 0.9);
+      var ry = 0;
+      var op = 1;
+      var lift = clamp(Math.abs(ty) * 0.012, 0, 4);
 
-      var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var trigger = Math.min(165, Math.max(95, w * 0.32));
-      if (dist >= trigger) {
-        // Trigger immediately once it's far enough away.
-        walletState.ignoreClickUntil = nowMs() + 340;
-        walletState.stackDrag = null;
-        scroller.classList.remove("isDragging");
-        try {
-          if (walletState.dragRaf)
-            window.cancelAnimationFrame(walletState.dragRaf);
-        } catch (e0) {}
-        walletState.dragRaf = 0;
-        walletState.dragTxCur = 0;
-        walletState.dragTyCur = 0;
-        walletState.dragRzCur = 0;
-        walletState.dragOpCur = 1;
-
-        var dir =
-          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
-        sendTopCardToBack(scroller, {
-          tx: tx * 1.25,
-          ty: ty * 1.15,
-          dir: dir,
-        });
-        return;
-      }
-
-      // Throttle style updates to rAF for smoother motion.
-      walletState.dragTx = tx;
-      walletState.dragTy = ty;
-      walletState.dragRz = rz;
-      walletState.dragOp = op;
-      if (walletState.dragRaf) return;
-
-      var step = function () {
-        walletState.dragRaf = 0;
-        try {
-          var dd = walletState.stackDrag;
-          var card2 = dd && dd.activeEl ? dd.activeEl : null;
-          if (!card2) return;
-
-          // Smooth interpolation (reduces jitter on mobile).
-          walletState.dragTxCur +=
-            (walletState.dragTx - walletState.dragTxCur) * 0.35;
-          walletState.dragTyCur +=
-            (walletState.dragTy - walletState.dragTyCur) * 0.35;
-          walletState.dragRzCur +=
-            (walletState.dragRz - walletState.dragRzCur) * 0.35;
-          walletState.dragOpCur +=
-            (walletState.dragOp - walletState.dragOpCur) * 0.45;
-
-          card2.style.setProperty(
-            "--wheel-tx",
-            walletState.dragTxCur.toFixed(2) + "px",
-          );
-          card2.style.setProperty(
-            "--stack-swipe-y",
-            walletState.dragTyCur.toFixed(2) + "px",
-          );
-          card2.style.setProperty(
-            "--wheel-rz",
-            walletState.dragRzCur.toFixed(2) + "deg",
-          );
-          card2.style.setProperty(
-            "--wheel-opacity",
-            String(walletState.dragOpCur.toFixed(3)),
-          );
-        } catch (e) {}
-
-        if (walletState.stackDrag) {
-          walletState.dragRaf = window.requestAnimationFrame(step);
-        }
-      };
-
-      walletState.dragRaf = window.requestAnimationFrame(step);
+      card.style.setProperty("--wheel-tx", tx.toFixed(2) + "px");
+      card.style.setProperty("--stack-swipe-y", ty.toFixed(2) + "px");
+      card.style.setProperty("--wheel-rz", rz.toFixed(2) + "deg");
+      card.style.setProperty("--wheel-ry", String(ry.toFixed(2)) + "deg");
+      card.style.setProperty("--wheel-opacity", String(op.toFixed(3)));
+      card.style.setProperty("--wheel-sat", "1");
+      card.style.setProperty("--wheel-bright", "1");
+      card.style.setProperty("--wheel-tz", String(lift.toFixed(2)) + "px");
+      updateWalletStackFollowers(scroller, ty);
+      return !!d.moved;
     }
 
-    function onPointerUp(ev) {
+    function endStackDrag(pointerId, clientX, clientY) {
       var d = walletState.stackDrag;
-      if (!d || d.id !== ev.pointerId) return;
+      if (!d || d.id !== pointerId) return;
       walletState.stackDrag = null;
       scroller.classList.remove("isDragging");
 
-      try {
-        if (walletState.dragRaf)
-          window.cancelAnimationFrame(walletState.dragRaf);
-      } catch (e0) {}
-      walletState.dragRaf = 0;
-      walletState.dragTxCur = 0;
-      walletState.dragTyCur = 0;
-      walletState.dragRzCur = 0;
-      walletState.dragOpCur = 1;
-
-      var dx = ev.clientX - d.startX;
-      var dy = ev.clientY - d.startY;
+      var dx = clientX - d.startX;
+      var dy = clientY - d.startY;
       var moved = !!d.moved;
       var card = d.activeEl;
       if (!card) return;
 
-      var w = Math.max(1, card.getBoundingClientRect().width || 0);
-      var threshold = Math.min(110, Math.max(70, w * 0.22));
+      var h = Math.max(1, card.getBoundingClientRect().height || 0);
+      var threshold = Math.min(96, Math.max(56, h * 0.16));
 
-      var tx = clamp(dx, -260, 260);
-      var ty = clamp(dy, -220, 220);
-      var dist = Math.sqrt(tx * tx + ty * ty);
-      if (moved && dist > threshold) {
+      var ty = clamp(dy * 0.98, -180, 180);
+      var dist = Math.abs(ty);
+      var releaseSpeed = Math.abs(d.vy || 0);
+      if (moved && (dist > threshold || (releaseSpeed > 0.32 && dist > 26))) {
         walletState.ignoreClickUntil = nowMs() + 340;
-        var dir =
-          Math.abs(tx) >= Math.abs(ty) ? (tx >= 0 ? 1 : -1) : ty >= 0 ? 1 : -1;
+        var dir = ty >= 0 ? 1 : -1;
         sendTopCardToBack(scroller, {
-          tx: tx * 1.25,
-          ty: ty * 1.15,
+          tx: 0,
+          ty: dir * clamp(dist + 40 + releaseSpeed * 18, 92, 148),
           dir: dir,
+          speed: releaseSpeed,
         });
         return;
       }
 
+      try {
+        card.style.transition =
+          "transform 300ms cubic-bezier(0.22, 0.82, 0.24, 1), opacity 220ms ease, filter 220ms ease";
+      } catch (e1) {}
+      updateWalletStackFollowers(scroller, 0);
       card.style.setProperty("--wheel-tx", "0px");
       card.style.setProperty("--stack-swipe-y", "0px");
       card.style.setProperty("--wheel-rz", "0deg");
+      card.style.setProperty("--wheel-ry", "0deg");
+      card.style.setProperty("--wheel-tz", "0px");
       card.style.setProperty("--wheel-opacity", "1");
+      card.style.setProperty("--wheel-scale", "1");
+      card.style.setProperty("--wheel-sat", "1");
+      card.style.setProperty("--wheel-bright", "1");
       if (moved) walletState.ignoreClickUntil = nowMs() + 180;
+    }
+
+    function findTouchById(list, id) {
+      if (!list) return null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] && list[i].identifier === id) return list[i];
+      }
+      return null;
+    }
+
+    function onPointerDown(ev) {
+      beginStackDrag(ev.pointerId, ev.clientX, ev.clientY, ev.target);
+    }
+
+    function onPointerMove(ev) {
+      moveStackDrag(ev.pointerId, ev.clientX, ev.clientY, true);
+    }
+
+    function onPointerUp(ev) {
+      endStackDrag(ev.pointerId, ev.clientX, ev.clientY);
+    }
+
+    function onTouchStart(ev) {
+      if (!ev.touches || !ev.touches.length) return;
+      var t = ev.touches[0];
+      beginStackDrag(t.identifier, t.clientX, t.clientY, ev.target);
+    }
+
+    function onTouchMove(ev) {
+      var d = walletState.stackDrag;
+      if (!d) return;
+      var t = findTouchById(ev.touches, d.id) || findTouchById(ev.changedTouches, d.id);
+      if (!t) return;
+      var moved = moveStackDrag(t.identifier, t.clientX, t.clientY, false);
+      if (moved) {
+        try {
+          ev.preventDefault();
+        } catch (ePrevent) {}
+      }
+    }
+
+    function onTouchEnd(ev) {
+      var d = walletState.stackDrag;
+      if (!d) return;
+      var t = findTouchById(ev.changedTouches, d.id);
+      if (!t) return;
+      endStackDrag(t.identifier, t.clientX, t.clientY);
     }
 
     scroller.addEventListener("pointerdown", onPointerDown, { passive: true });
     scroller.addEventListener("pointermove", onPointerMove, { passive: true });
     scroller.addEventListener("pointerup", onPointerUp, { passive: true });
     scroller.addEventListener("pointercancel", onPointerUp, { passive: true });
+    scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroller.addEventListener("touchmove", onTouchMove, { passive: false });
+    scroller.addEventListener("touchend", onTouchEnd, { passive: true });
+    scroller.addEventListener("touchcancel", onTouchEnd, { passive: true });
   }
 
   function refreshWallet() {
     if (!el.walletList) return;
 
     var fav = getFavorites();
-    var cards = [];
+    var favNorm = [];
     for (var i = 0; i < fav.length; i++) {
       var a = normalizeAddr(fav[i]);
       if (!a) continue;
-      var cafe = cafesByCafeAddress[a] || null;
-      cards.push({
-        cafeAddress: a,
-        name: cafe && cafe.name ? cafe.name : a.slice(0, 10) + "…",
-        address: cafe && cafe.address ? cafe.address : "",
-        about: cafe && cafe.about ? cafe.about : "",
-        netStamps: 0,
-        cardTheme: (cafe && cafe.cardTheme) || "clean",
-        logoDataUrl: cafe && cafe.logoDataUrl ? cafe.logoDataUrl : null,
-        cardBackgroundDataUrl:
-          cafe && cafe.cardBackgroundDataUrl
-            ? cafe.cardBackgroundDataUrl
-            : null,
-        cardBackText: cafe && cafe.cardBackText ? cafe.cardBackText : null,
-      });
+      favNorm.push(a);
     }
 
+    // Stable cache key: order matters (we preserve user ordering).
+    var favKey = favNorm.join("|");
+
+    // If nothing changed and cards already exist, avoid tearing down the DOM.
+    // This prevents flicker/layout shifts when switching tabs or when boot refresh runs twice.
+    try {
+      var existingCards = el.walletList.querySelectorAll(".passCard");
+      if (
+        favKey &&
+        walletState.lastFavKey === favKey &&
+        existingCards &&
+        existingCards.length === walletState.lastCardCount &&
+        existingCards.length === favNorm.length &&
+        walletState.lastCafesVersion === cafesVersion &&
+        walletState.lastStampIconOk === !!stampIconState.ok &&
+        walletState.lastServerCardsDigest === walletServerCardsDigest
+      ) {
+        setWalletEmptyVisible(false);
+        if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
+        if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
+        if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
+        scheduleWalletStampsRefresh(80);
+        return;
+      }
+    } catch (eCache) {}
+
+    // Full rebuild (favorites changed)
     el.walletList.innerHTML = "";
 
-    if (!cards.length) {
+    if (!favNorm.length) {
+      walletState.lastFavKey = "";
+      walletState.lastCardCount = 0;
       setWalletEmptyVisible(true);
+      renderWelcomeCards();
       return;
     }
 
     setWalletEmptyVisible(false);
 
-    for (var j = 0; j < cards.length; j++) {
-      el.walletList.appendChild(buildPassCard(cards[j]));
+    var frag = document.createDocumentFragment();
+    for (var j = 0; j < favNorm.length; j++) {
+      var addr = favNorm[j];
+      var cafe = cafesByCafeAddress[addr] || null;
+      var serverCard = getServerCard(addr);
+      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
+      var meta = resolveCafeDisplayMeta(addr, serverCard, cafe);
+      frag.appendChild(
+        buildPassCard({
+          cafeAddress: addr,
+          name: meta.name,
+          address: meta.address,
+          about: (cafe && cafe.about) || "",
+          netStamps:
+            Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0,
+          program: serverCard && serverCard.program ? serverCard.program : null,
+          cardTheme:
+            cafe && cafe.cardTheme && String(cafe.cardTheme) === "ink"
+              ? "clean"
+              : (cafe && cafe.cardTheme) || "clean",
+          logoDataUrl: cafe && cafe.logoDataUrl ? cafe.logoDataUrl : null,
+          cardBackgroundDataUrl:
+            cafe && cafe.cardBackgroundDataUrl
+              ? cafe.cardBackgroundDataUrl
+              : null,
+          cardBackText:
+            cafe && cafe.cardBackText
+              ? cafe.cardBackText
+              : meta.loading
+                ? "Caf\u00e9 wird geladen\u2026"
+                : null,
+        }),
+      );
     }
 
-    if (WALLET_MODE === "stack") {
-      enableWalletStackMode(el.walletList);
+    el.walletList.appendChild(frag);
+    walletState.lastFavKey = favKey;
+    walletState.lastCardCount = favNorm.length;
+    walletState.lastCafesVersion = cafesVersion;
+    walletState.lastStampIconOk = !!stampIconState.ok;
+    walletState.lastServerCardsDigest = walletServerCardsDigest;
+
+    if (WALLET_MODE === "stack") enableWalletStackMode(el.walletList);
+    if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
+    if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
+
+    renderWelcomeCards();
+    scheduleWalletStampsRefresh(40);
+  }
+
+  function scheduleWalletStampsRefresh(delayMs) {
+    // Coalesce bursts (SSE + tab switches + boot) into a single refresh.
+    var delay = clamp(Number(delayMs || 0) || 0, 0, 2000);
+    var now = nowMs();
+
+    // If we ran very recently, bias towards a short delay to keep UI responsive.
+    var minGap = 260;
+    var since = now - (walletState.stampsLastRunAt || 0);
+    if (since < minGap) delay = Math.max(delay, minGap - since);
+
+    try {
+      walletState.stampsRefreshQueuedAt = now;
+      if (walletState.stampsRefreshTimer) {
+        window.clearTimeout(walletState.stampsRefreshTimer);
+      }
+    } catch (e0) {
+      walletState.stampsRefreshTimer = 0;
     }
 
-    refreshWalletStamps();
+    walletState.stampsRefreshTimer = window.setTimeout(function () {
+      walletState.stampsRefreshTimer = 0;
+      refreshWalletStamps();
+    }, delay);
   }
 
   function wireAuth() {
@@ -1990,17 +4420,84 @@
     el.logoutBtn.addEventListener("click", function () {
       clearSession();
       disconnectEventsStream();
-      if (el.historyPanel) el.historyPanel.style.display = "none";
       if (el.walletList) el.walletList.innerHTML = "";
       setWalletEmptyVisible(true);
+
+      try {
+        walletState.lastFavKey = "";
+        walletState.lastCardCount = 0;
+        walletState.lastCafesVersion = 0;
+        walletState.lastStampIconOk = false;
+        walletState.lastServerCardsDigest = "";
+      } catch (e0) {}
+      try {
+        if (walletState.stampsRefreshTimer)
+          window.clearTimeout(walletState.stampsRefreshTimer);
+      } catch (e1) {}
+      walletState.stampsRefreshTimer = 0;
+      walletState.stampsInFlight = {};
+      walletServerCardsByCafe = {};
+      walletServerCardsDigest = "";
+      closeWalletOverlay({ silent: true });
+
       setAuthedUI();
-      navSetActive("home");
+      currentPageMode = "map";
+      navSetActive("map");
     });
   }
 
+  function wireVisibility() {
+    function onHidden() {
+      try {
+        disconnectEventsStream();
+      } catch (e0) {}
+      try {
+        if (walletState && walletState.stampsRefreshTimer) {
+          window.clearTimeout(walletState.stampsRefreshTimer);
+          walletState.stampsRefreshTimer = 0;
+        }
+      } catch (e1) {}
+    }
+
+    function onVisible() {
+      try {
+        if (session && session.address) {
+          connectEventsStream();
+          syncFavoritesFromServerCards()
+            .then(function (changed) {
+              if (changed) refreshWallet();
+            })
+            .catch(function () {});
+          scheduleWalletStampsRefresh(120);
+          try {
+            if (currentPageMode === "history") {
+              refreshHistory();
+            }
+          } catch (eH) {}
+        }
+      } catch (e2) {}
+    }
+
+    try {
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) onHidden();
+        else onVisible();
+      });
+    } catch (e3) {}
+
+    // iOS Safari/WebView sometimes prefers pagehide/pageshow.
+    try {
+      window.addEventListener("pagehide", function () {
+        onHidden();
+      });
+      window.addEventListener("pageshow", function () {
+        onVisible();
+      });
+    } catch (e4) {}
+  }
+
   function wireAccount() {
-    if (!el.sessionBadge) return;
-    el.sessionBadge.addEventListener("click", function () {
+    function onAccountClick() {
       var isAuthed = !!(session && session.address);
       if (isAuthed) {
         try {
@@ -2032,30 +4529,80 @@
         if (el.email && el.email.focus) el.email.focus();
         else if (el.username && el.username.focus) el.username.focus();
       } catch (e5) {}
-    });
+    }
+
+    if (el.sessionBadge) el.sessionBadge.addEventListener("click", onAccountClick);
   }
 
   function wireNavigation() {
-    if (el.mainModeHome) {
-      el.mainModeHome.addEventListener("click", function () {
-        navigateToMode("wallet");
+    function bindModeButton(node, mode) {
+      if (!node) return;
+      node.addEventListener("click", function () {
+        navigateToMode(mode);
       });
     }
-    if (el.mainModeMap) {
-      el.mainModeMap.addEventListener("click", function () {
-        navigateToMode("map");
+
+    bindModeButton(el.bottomModeWallet, "wallet");
+    bindModeButton(el.mainModeMap, "map");
+    bindModeButton(el.mainModeWallet, "wallet");
+    bindModeButton(el.mainModeHistory, "history");
+    if (el.mainModeAccount) {
+      el.mainModeAccount.addEventListener("click", function () {
+        location.href = "/customer-profile";
       });
     }
-    if (el.mainModeWallet) {
-      el.mainModeWallet.addEventListener("click", function () {
-        navigateToMode("wallet");
-      });
-    }
-    if (el.mainModeHistory) {
-      el.mainModeHistory.addEventListener("click", function () {
-        navigateToMode("history");
-      });
-    }
+  }
+
+  function resetPassCardMotion(node) {
+    if (!node) return;
+    node.style.display = "block";
+    node.style.pointerEvents = "auto";
+    node.style.transition = "";
+    node.style.setProperty("--wheel-tx", "0px");
+    node.style.setProperty("--stack-swipe-y", "0px");
+    node.style.setProperty("--wheel-rz", "0deg");
+    node.style.setProperty("--wheel-ry", "0deg");
+    node.style.setProperty("--wheel-tz", "0px");
+    node.style.setProperty("--wheel-opacity", "1");
+    node.style.setProperty("--wheel-scale", "1");
+    node.style.setProperty("--wheel-sat", "1");
+    node.style.setProperty("--wheel-bright", "1");
+    node.style.setProperty("--stack-y", "0px");
+    try {
+      node.style.zIndex = "";
+    } catch (eZ) {}
+  }
+
+  function enableWalletSnapMode(scroller) {
+    if (!scroller) return;
+    scroller.classList.remove("isCarousel");
+    scroller.classList.remove("isStack");
+    scroller.classList.remove("isDragging");
+    scroller.classList.add("isSnap");
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].classList && cards[i].classList.contains("open")) {
+          closePass(cards[i]);
+        }
+        resetPassCardMotion(cards[i]);
+      }
+    } catch (e) {}
+  }
+
+  function enableWalletCarouselMode(scroller) {
+    if (!scroller) return;
+    scroller.classList.remove("isStack");
+    scroller.classList.remove("isDragging");
+    scroller.classList.remove("isSnap");
+    scroller.classList.add("isCarousel");
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      for (var i = 0; i < cards.length; i++) {
+        resetPassCardMotion(cards[i]);
+        cards[i].style.pointerEvents = "auto";
+      }
+    } catch (e) {}
   }
 
   function apiFetch(path, init) {
@@ -2063,7 +4610,14 @@
     return fetch(url, init).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (t) {
-          throw new Error(t || "HTTP " + res.status);
+          var err = new Error("api_error");
+          try {
+            err.status = res.status;
+          } catch (e0) {}
+          try {
+            err.responseText = t || "";
+          } catch (e1) {}
+          throw err;
         });
       }
       return res.json();
@@ -2073,6 +4627,7 @@
   function setPassCardStamps(passCardEl, stamps) {
     if (!passCardEl) return;
     var stampCount = clamp(Number(stamps || 0) || 0, 0, 999);
+    var rewardThreshold = getPassRewardThreshold(passCardEl);
 
     var prevCount = null;
     try {
@@ -2086,11 +4641,15 @@
       passCardEl.setAttribute("data-stamps", String(stampCount));
     } catch (e0) {}
 
-    var isFull = stampCount >= REWARD_THRESHOLD;
-    var extra = Math.max(0, stampCount - REWARD_THRESHOLD);
+    var isFull = stampCount >= rewardThreshold;
+    var extra = Math.max(0, stampCount - rewardThreshold);
+    var remaining = Math.max(
+      0,
+      rewardThreshold - clamp(stampCount, 0, rewardThreshold),
+    );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
-      hint.textContent = isFull ? "Tippe für Einlösen-QR" : "Tippe für QR";
+      hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
 
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
@@ -2111,7 +4670,7 @@
         // Best-effort bootstrap for older cards: strip any existing full-info header.
         base = existing;
         if (
-          base.indexOf("🎁 Karte voll!") === 0 ||
+          base.indexOf("?? Karte voll!") === 0 ||
           base.indexOf("Karte voll!") === 0
         ) {
           var nl = base.indexOf("\n");
@@ -2133,7 +4692,7 @@
           cafeTitle = "";
         }
         var info =
-          "Karte voll! Einlösen" +
+          "Karte voll! Einl\u00f6sen" +
           (cafeTitle ? " bei: " + cafeTitle : "") +
           ". Extra Stempel bleiben erhalten.";
 
@@ -2144,39 +4703,78 @@
     }
 
     var sub = passCardEl.querySelector(".passSub");
-    if (sub) {
-      sub.textContent =
-        clamp(stampCount, 0, REWARD_THRESHOLD) +
-        " / " +
-        REWARD_THRESHOLD +
-        " Stempel" +
-        (extra > 0 ? " (+" + extra + " extra)" : "");
+    if (sub) sub.setAttribute("data-card-static", "1");
+
+    var countLine = passCardEl.querySelector(".passCountLine");
+    if (countLine) {
+      countLine.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
     }
 
-    var badge = passCardEl.querySelector(".badge");
-    if (badge) {
-      badge.textContent = isFull
-        ? extra > 0
-          ? "Voll +" + extra
-          : "Voll"
-        : clamp(stampCount, 0, REWARD_THRESHOLD) + "/" + REWARD_THRESHOLD;
+    var stampNeed = passCardEl.querySelector(".passStampNeed");
+    if (stampNeed) {
+      stampNeed.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
+    }
+
+    var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
+    if (progressHeadline) {
+      progressHeadline.textContent = formatRewardProgressLine(
+        remaining,
+        isFull,
+        passCardEl.getAttribute("data-reward-label") || "",
+      );
+    }
+
+    var progressSub = passCardEl.querySelector(".passProgressSub");
+    if (progressSub) {
+      progressSub.textContent = formatNextStampLine(remaining, isFull);
+    }
+
+    var rewardNote = passCardEl.querySelector(".passRewardNote");
+    if (rewardNote) {
+      rewardNote.textContent = getRewardSideNote(
+        passCardEl.getAttribute("data-reward-label") || "",
+        isFull,
+      );
+    }
+
+    var footerVisit = passCardEl.querySelector(".passFooterVisit");
+    if (footerVisit) {
+      footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
     if (grid) {
       renderStampGrid(grid, stampCount, prevCount);
     }
+
+    if (
+      prevCount != null &&
+      Number(prevCount) < rewardThreshold &&
+      stampCount >= rewardThreshold
+    ) {
+      launchRewardCelebration();
+    }
   }
 
   function refreshWalletStamps() {
     if (!session || !session.address) return;
     if (!el.walletList) return;
+    walletState.stampsLastRunAt = nowMs();
     var cards = el.walletList.querySelectorAll(".passCard");
     for (var i = 0; i < cards.length; i++) {
       (function (passEl) {
         try {
           var cafeAddress = passEl.getAttribute("data-cafe") || "";
           if (!cafeAddress) return;
+
+          var key = normalizeAddr(cafeAddress);
+          try {
+            if (walletState.stampsInFlight && walletState.stampsInFlight[key]) {
+              return;
+            }
+            if (walletState.stampsInFlight) walletState.stampsInFlight[key] = 1;
+          } catch (eFlag) {}
+
           apiFetch(
             "/stamps/" +
               encodeURIComponent(session.address) +
@@ -2194,7 +4792,21 @@
             })
             .catch(function () {
               // non-fatal
-            });
+            })
+            .then(
+              function () {
+                try {
+                  if (walletState.stampsInFlight)
+                    delete walletState.stampsInFlight[key];
+                } catch (eDel) {}
+              },
+              function () {
+                try {
+                  if (walletState.stampsInFlight)
+                    delete walletState.stampsInFlight[key];
+                } catch (eDel2) {}
+              },
+            );
         } catch (e) {}
       })(cards[i]);
     }
@@ -2269,7 +4881,7 @@
               showToast(
                 "Stempel angekommen" +
                   (delta ? " (+" + delta + ")" : "") +
-                  (cafeLabel ? " · " + cafeLabel : ""),
+                  (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
               try {
@@ -2282,23 +4894,32 @@
               } catch (eOpt) {}
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
+              launchRedeemCelebration();
               showToast(
-                "Einlösen bestätigt" + (cafeLabel ? " · " + cafeLabel : ""),
+                "Belohnung eingel\u00f6st. Lass dir dein Getr\u00e4nk schmecken." +
+                  (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
             } else if (type === "card_start") {
               showToast(
-                "Neue Karte gestartet" + (cafeLabel ? " · " + cafeLabel : ""),
+                "Neue Karte gestartet" + (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
             }
           }
 
           try {
-            refreshWalletStamps();
+            syncFavoritesFromServerCards()
+              .then(function (changed) {
+                if (changed) refreshWallet();
+              })
+              .catch(function () {});
+          } catch (eSync) {}
+          try {
+            scheduleWalletStampsRefresh(120);
           } catch (eW) {}
           try {
-            if (el.historyPanel && el.historyPanel.style.display !== "none") {
+            if (currentPageMode === "history") {
               refreshHistory();
             }
           } catch (eH) {}
@@ -2332,19 +4953,30 @@
     var confirmPassword = el.confirmPassword
       ? String(el.confirmPassword.value || "").trim()
       : "";
+    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
+    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
     if (!email || !password) {
-      showMsg("danger", "Bitte E-Mail und Passwort ausfüllen.");
+      showMsg("danger", "Bitte E-Mail und Passwort ausf\u00fcllen.");
       return;
     }
 
     if (authMode === "register") {
       if (!username) {
-        showMsg("danger", "Bitte Username ausfüllen.");
+        showMsg("danger", "Bitte Username ausf\u00fcllen.");
         return;
       }
       if (confirmPassword !== password) {
-        showMsg("danger", "Passwörter stimmen nicht überein.");
+        showMsg("danger", "Passw\u00f6rter stimmen nicht \u00fcberein.");
+        return;
+      }
+
+      if (!acceptPrivacy) {
+        showMsg("danger", "Bitte best\u00e4tige die Datenschutzerkl\u00e4rung.");
+        return;
+      }
+      if (!acceptTerms) {
+        showMsg("danger", "Bitte akzeptiere die AGB.");
         return;
       }
 
@@ -2355,22 +4987,30 @@
           username: username,
           email: email,
           password: password,
+          acceptPrivacy: acceptPrivacy,
+          acceptTerms: acceptTerms,
         }),
       })
         .then(function (data) {
-          if (!data || !data.address) throw new Error("Ungültige Antwort");
-          saveSession({
-            address: data.address,
-            email: email,
-            username: username,
-            customer_id: data.customer_id || null,
-          });
+          if (!data || !data.verificationRequired) {
+            throw new Error("Ungueltige Antwort");
+          }
+          if (el.email) el.email.value = email;
+          if (el.password) el.password.value = "";
+          if (el.confirmPassword) el.confirmPassword.value = "";
+          clearSession();
           setAuthedUI();
-          bootAuthed();
-          applyPageMode(getPageMode());
+          setAuthMode("login");
+          showMsg(
+            "success",
+            "Fast geschafft. Bitte bestaetige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
+          );
         })
         .catch(function (e) {
-          showMsg("danger", String(e && e.message ? e.message : e));
+          var msg = window.stampUI
+            ? stampUI.userSafeErrorMessage(e, "Registrierung fehlgeschlagen.")
+            : "Registrierung fehlgeschlagen.";
+          showMsg("danger", msg);
         });
       return;
     }
@@ -2381,7 +5021,7 @@
       body: JSON.stringify({ email: email, password: password }),
     })
       .then(function (data2) {
-        if (!data2 || !data2.address) throw new Error("Ungültige Antwort");
+        if (!data2 || !data2.address) throw new Error("Ung\u00fcltige Antwort");
         saveSession({
           address: data2.address,
           email: email,
@@ -2393,10 +5033,12 @@
         applyPageMode(getPageMode());
       })
       .catch(function (e2) {
-        showMsg("danger", String(e2 && e2.message ? e2.message : e2));
+        var msg2 = window.stampUI
+          ? stampUI.userSafeErrorMessage(e2, "Anmelden fehlgeschlagen.")
+          : "Anmelden fehlgeschlagen.";
+        showMsg("danger", msg2);
       });
   }
-
   function refreshHistory() {
     if (!el.historyList) return;
     if (!session || !session.address) return;
@@ -2468,7 +5110,7 @@
           var cafeLabel = String(cafeName || "");
           if (/^0x[0-9a-f]{40}$/i.test(cafeLabel))
             cafeLabel = shortAddr(cafeLabel);
-          if (!cafeLabel) cafeLabel = "Café";
+          if (!cafeLabel) cafeLabel = "Caf\u00e9";
 
           var cafe = document.createElement("div");
           cafe.className = "historyCafe";
@@ -2480,13 +5122,13 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "Belohnung eingelöst"
+              ? "\ud83c\udf81 Gratiskaffee eingel\u00f6st"
               : t === "card_start"
-                ? "Neue Karte"
+                ? "Neue Karte geholt"
                 : t === "stamp"
-                  ? "Stempel"
+                  ? "\u2615 Stempel gesammelt"
                   : "Event";
-          meta.textContent = (when ? when + " · " : "") + verb;
+          meta.textContent = (when ? when + " \u00b7 " : "") + verb;
 
           main.appendChild(cafe);
           main.appendChild(meta);
@@ -2495,9 +5137,10 @@
           var right = document.createElement("div");
           right.className = "historyTx";
           if (t === "stamp") {
-            right.textContent = "+" + Math.max(0, Number(ev.delta || 0));
+            right.textContent =
+              "+" + Math.max(0, Number(ev.delta || 0)) + " Stempel";
           } else if (t === "redeem") {
-            right.textContent = "-10";
+            right.textContent = "Gratiskaffee";
           } else {
             right.textContent = ev.delta ? String(ev.delta) : "";
           }
@@ -2510,14 +5153,139 @@
       .catch(function (e) {
         if (el.historyError) {
           el.historyError.style.display = "block";
-          el.historyError.textContent = String(e && e.message ? e.message : e);
+          el.historyError.textContent = window.stampUI
+            ? stampUI.userSafeErrorMessage(e, "Historie konnte nicht geladen werden.")
+            : "Historie konnte nicht geladen werden.";
+      }
+    });
+  }
+
+  function wireForgotPasswordInline() {
+    if (!el.authForgotToggle || !el.authForgotPanel) return;
+
+    function resetForgotNotice() {
+      if (!el.authForgotMsg) return;
+      el.authForgotMsg.style.display = "none";
+      el.authForgotMsg.textContent = "";
+      el.authForgotMsg.className = "notice";
+    }
+
+    function setForgotOpen(open) {
+      el.authForgotPanel.style.display = open ? "flex" : "none";
+      el.authForgotToggle.textContent = open
+        ? "Schlie\u00dfen"
+        : "Passwort vergessen?";
+      if (!open) resetForgotNotice();
+    }
+
+    el.authForgotToggle.addEventListener("click", function () {
+      var isOpen = el.authForgotPanel.style.display !== "none";
+      setForgotOpen(!isOpen);
+      if (!isOpen) {
+        try {
+          if (el.email && el.email.focus) el.email.focus();
+        } catch (e) {}
+      }
+    });
+
+    if (el.authForgotSubmit) {
+      el.authForgotSubmit.addEventListener("click", function () {
+        var email = el.email ? String(el.email.value || "").trim() : "";
+        if (!el.authForgotMsg) return;
+        el.authForgotMsg.style.display = "block";
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          el.authForgotMsg.className = "notice danger";
+          el.authForgotMsg.textContent =
+            "Bitte zuerst eine g\u00fcltige E-Mail eingeben.";
+          return;
         }
+        el.authForgotSubmit.disabled = true;
+        el.authForgotSubmit.textContent = "Wird gesendet...";
+        apiFetch("/customers/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        })
+          .then(function () {
+            el.authForgotMsg.className = "notice";
+            el.authForgotMsg.textContent =
+              "Wenn die Adresse existiert, wurde ein Reset-Link versendet.";
+          })
+          .catch(function (e) {
+            el.authForgotMsg.className = "notice danger";
+            el.authForgotMsg.textContent =
+              window.stampUI && window.stampUI.userSafeErrorMessage
+                ? window.stampUI.userSafeErrorMessage(
+                    e,
+                    "Reset-Link konnte nicht gesendet werden.",
+                  )
+                : "Reset-Link konnte nicht gesendet werden.";
+          })
+          .finally(function () {
+            el.authForgotSubmit.disabled = false;
+            el.authForgotSubmit.textContent = "OK";
+          });
       });
+    }
+
+    if (el.authResendVerificationBtn) {
+      el.authResendVerificationBtn.addEventListener("click", function () {
+        var email = el.email ? String(el.email.value || "").trim() : "";
+        clearMsg();
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showMsg("danger", "Bitte zuerst oben eine gueltige E-Mail eingeben.");
+          return;
+        }
+        el.authResendVerificationBtn.disabled = true;
+        el.authResendVerificationBtn.textContent = "Wird gesendet...";
+        apiFetch("/customers/resend-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        })
+          .then(function (data) {
+            if (data && data.alreadyVerified) {
+              showMsg(
+                "success",
+                "Diese E-Mail-Adresse ist bereits bestaetigt. Du kannst dich direkt anmelden.",
+              );
+              return;
+            }
+            showMsg(
+              "success",
+              "Wenn die Adresse zu einem unbestaetigten Konto gehoert, haben wir dir gerade einen neuen Bestaetigungslink geschickt.",
+            );
+          })
+          .catch(function (e) {
+            showMsg(
+              "danger",
+              window.stampUI
+                ? stampUI.userSafeErrorMessage(
+                    e,
+                    "Bestaetigungslink konnte nicht neu gesendet werden.",
+                  )
+                : "Bestaetigungslink konnte nicht neu gesendet werden.",
+            );
+          })
+          .then(function () {
+            el.authResendVerificationBtn.disabled = false;
+            el.authResendVerificationBtn.textContent =
+              "Bestaetigungslink erneut senden";
+          });
+      });
+    }
   }
 
   function bootAuthed() {
     refreshWallet();
     connectEventsStream();
+    syncFavoritesFromServerCards()
+      .then(function (changed) {
+        if (changed) refreshWallet();
+      })
+      .catch(function () {
+        // non-fatal
+      });
     apiFetch("/cafes/public")
       .then(function (data) {
         var list = Array.isArray(data)
@@ -2526,22 +5294,36 @@
             ? data.cafes
             : [];
         cafes = dedupeCafes(list);
+        cafesLoaded = true;
         cafesByCafeAddress = {};
         for (var i = 0; i < cafes.length; i++) {
           var c = cafes[i] || {};
           var addr = normalizeAddr(c.cafeAddress || c.address);
           if (!addr) continue;
           cafesByCafeAddress[addr] = c;
+          rememberCafeMeta(addr, {
+            name: c.name || "",
+            address: c.address || "",
+          });
         }
+
+        cafesVersion = (cafesVersion || 0) + 1;
 
         // The map page uses the searchable list (#cafeResults). A second list would duplicate items.
         wireCafeSearch();
+        syncMapMarkers();
         ensureMapInit();
       })
       .catch(function () {
+        cafesLoaded = true;
         // non-fatal
       })
       .then(function () {
+        try {
+          syncFavoritesFromServerCards().then(function (changed) {
+            if (changed) refreshWallet();
+          });
+        } catch (eSync) {}
         // Avoid Promise.prototype.finally for older Safari/WebView builds.
         refreshWallet();
         try {
@@ -2557,6 +5339,31 @@
       } catch (e) {}
     }
 
+    try {
+      if (el.walletSubtitle) {
+        el.walletSubtitle.textContent =
+          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR-Code.";
+      }
+      if (el.utilityMapBtn) {
+        el.utilityMapBtn.textContent = "Caf\u00e9s";
+      }
+      if (el.mainModeMap) {
+        var lbl = el.mainModeMap.querySelector(".lbl");
+        if (lbl) lbl.textContent = "Entdecken";
+      }
+      if (el.mainModeWallet) {
+        var walletLbl = el.mainModeWallet.querySelector(".lbl");
+        if (walletLbl) walletLbl.textContent = "Karten";
+      }
+      if (el.authPanel) {
+        var authHint = el.authPanel.querySelector(".hint:last-of-type");
+        if (authHint) {
+          authHint.textContent =
+            "Kein Schl\u00fcssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch f\u00fcr dich an.";
+        }
+      }
+    } catch (eText) {}
+
     setBuildBadge();
     // Try to load an exact stamp image; if present, re-render the wallet so
     // the icon becomes pixel-identical to the provided reference.
@@ -2570,13 +5377,86 @@
     } catch (ePrime) {}
 
     wireAuth();
+    wireForgotPasswordInline();
     wireAccount();
     wireLogout();
+    wireShellMenu();
+    bindBrandLinksToWelcome();
     wireNavigation();
+    wireScreenPager();
+    wireVisibility();
+    try {
+      window.addEventListener("popstate", function () {
+        currentPageMode = null;
+        applyPageMode(getPageMode());
+      });
+    } catch (ePop) {}
+
+    // CafÃƒÂ© details modal
+    if (el.cafeModalClose)
+      el.cafeModalClose.addEventListener("click", function () {
+        closeCafeModal();
+      });
+    if (el.cafeModalBackdrop)
+      el.cafeModalBackdrop.addEventListener("click", function (ev) {
+        // Click outside modal closes
+        try {
+          if (ev && ev.target === el.cafeModalBackdrop) closeCafeModal();
+        } catch (e) {}
+      });
+    if (el.cafeModalAddBtn)
+      el.cafeModalAddBtn.addEventListener("click", function () {
+        var addr = cafeModalState.cafeAddress || "";
+        if (!addr) return;
+        openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+      });
+    if (el.cafeModalWalletBtn)
+      el.cafeModalWalletBtn.addEventListener("click", function () {
+        var addr = cafeModalState.cafeAddress || "";
+        if (!addr) return;
+        openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+      });
+    if (el.cafeModalQrBtn)
+      el.cafeModalQrBtn.addEventListener("click", function () {
+        var addr = cafeModalState.cafeAddress || "";
+        if (!addr) return;
+        openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+      });
 
     if (el.discoverPickAddBtn) {
       el.discoverPickAddBtn.addEventListener("click", function () {
         onAddPickedCafe();
+      });
+    }
+    if (el.walletEmptyMapBtn) {
+      el.walletEmptyMapBtn.addEventListener("click", function () {
+        closeWalletOverlay({ silent: true });
+        navigateToMode("map");
+      });
+    }
+    if (el.welcomePrimaryAction) {
+      el.welcomePrimaryAction.addEventListener("click", function () {
+        var hasCards = false;
+        try {
+          hasCards = getFavorites().length > 0;
+        } catch (eFav) {
+          hasCards = false;
+        }
+        if (hasCards) {
+          openWalletOverlay();
+          return;
+        }
+        navigateToMode("map");
+      });
+    }
+    if (el.walletOverlayBackdrop) {
+      el.walletOverlayBackdrop.addEventListener("click", function () {
+        closeWalletOverlay();
+      });
+    }
+    if (el.walletOverlayClose) {
+      el.walletOverlayClose.addEventListener("click", function () {
+        closeWalletOverlay();
       });
     }
 
@@ -2598,8 +5478,9 @@
     var s = loadSession();
     if (s) saveSession(s);
     setAuthedUI();
-    setAuthMode("register");
+    setAuthMode("login");
     applyPageMode(getPageMode());
+    processCustomerVerifyToken();
 
     if (session && session.address) {
       bootAuthed();
@@ -2614,5 +5495,40 @@
     setBootOk();
   }
 
-  main();
+  try {
+    main();
+  } catch (e) {
+    try {
+      window.__STAMP_BOOT_CRASH = String(
+        (e && (e.stack || e.message)) || e || "unknown",
+      ).slice(0, 800);
+    } catch (e2) {}
+
+    // Avoid leaving the user stuck behind the boot overlay.
+    try {
+      setBootOk();
+    } catch (e3) {}
+
+    try {
+      var msg = window.stampUI
+        ? stampUI.userSafeErrorMessage(
+            e,
+            "Die App konnte nicht geladen werden. Bitte neu laden.",
+          )
+        : "Die App konnte nicht geladen werden. Bitte neu laden.";
+      showMsg("danger", msg);
+    } catch (e4) {}
+
+    try {
+      console.error("Customer app boot crashed", e);
+    } catch (e5) {}
+  }
 })();
+
+
+
+
+
+
+
+

@@ -1,6 +1,24 @@
 version: "3.9"
 
 services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - apps
+    environment:
+      PROD_DOMAIN: ${PROD_DOMAIN}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      ADMIN_BASIC_USER: ${ADMIN_BASIC_USER:-}
+      ADMIN_BASIC_HASH: ${ADMIN_BASIC_HASH:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - prod_caddy_data:/data
+      - prod_caddy_config:/config
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -47,6 +65,7 @@ services:
       EMAIL_SECURE: ${EMAIL_SECURE:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
 
   apps:
     build:
@@ -64,3 +83,5 @@ services:
 
 volumes:
   prod_pgdata:
+  prod_caddy_data:
+  prod_caddy_config:

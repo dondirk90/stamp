@@ -1741,6 +1741,32 @@
     sse = null;
   }
 
+  function wireVisibility() {
+    function onHidden() {
+      try {
+        stopEventStream();
+      } catch (e0) {}
+    }
+
+    function onVisible() {
+      try {
+        if (session && session.address) startEventStream();
+      } catch (e1) {}
+    }
+
+    try {
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) onHidden();
+        else onVisible();
+      });
+    } catch (e2) {}
+
+    try {
+      window.addEventListener("pagehide", () => onHidden());
+      window.addEventListener("pageshow", () => onVisible());
+    } catch (e3) {}
+  }
+
   function startEventStream() {
     if (sse) return;
     if (!session || !session.address) return;
@@ -2186,6 +2212,7 @@
     setupFlip();
     setupHistory();
     wireEvents();
+    wireVisibility();
     setMode("register");
 
     // Capture cafe preselect from URL early (before loadCafes)

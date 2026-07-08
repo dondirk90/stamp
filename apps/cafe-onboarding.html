@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <title>Café Registrierung - Stampcard</title>
+    <title>Café Registrierung - Suelzer Kaffeekarte</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       /* Inverted cafe theme is provided by `theme.css` via `.theme-invert`. */
@@ -22,8 +22,8 @@
         color: var(--text);
         min-height: 100vh;
         display: flex;
-        justify-content: center;
-        align-items: center;
+        justify-content: flex-start;
+        align-items: stretch;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
@@ -34,14 +34,18 @@
         content: none;
       }
       .container {
-        background: transparent;
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
+        background:
+          linear-gradient(180deg, rgba(42, 29, 24, 0.96), rgba(32, 22, 18, 0.98));
+        border-radius: 30px;
+        border: 1px solid rgba(255, 241, 233, 0.12);
+        box-shadow:
+          0 28px 70px rgba(0, 0, 0, 0.24),
+          0 1px 0 rgba(255, 250, 244, 0.06) inset;
         padding: calc(var(--space-6) + var(--space-2));
         max-width: 600px;
         width: 100%;
         position: relative;
+        margin: 0 auto;
       }
       h1 {
         color: var(--brand);
@@ -54,6 +58,58 @@
         color: var(--text-muted);
         margin-bottom: 30px;
         font-size: 0.95rem;
+      }
+
+      .legalFooter {
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 241, 233, 0.12);
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .legalFooterLinks {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .legalFooterLinks a {
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 241, 233, 0.14);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .brandIntro {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 22px;
+      }
+
+      .brandIntro .kk-brand {
+        justify-content: center;
+      }
+
+      .brandIntro .kk-brandText {
+        align-items: flex-start;
+      }
+
+      .brandIntro .kk-brandWord {
+        font-size: clamp(34px, 5vw, 42px);
       }
 
       /* Step Indicators */
@@ -193,6 +249,33 @@
         font-weight: 600;
       }
 
+      .legalChecks {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--brand);
+      }
+
+      .legalCheck a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
       /* Product list */
       .product-list {
         margin-top: 15px;
@@ -244,18 +327,23 @@
         display: flex;
         gap: 15px;
         margin-top: 30px;
+        align-items: stretch;
       }
       .btn {
         flex: 1;
-        padding: 15px;
+        padding: 14px 18px;
         border: none;
-        border-radius: 0;
+        border-radius: 999px;
         font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        min-height: 44px;
+        min-height: 52px;
         touch-action: manipulation;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
       }
       .btn-primary {
         background: var(--brand);
@@ -267,13 +355,16 @@
         background: var(--brand-700);
       }
       .btn-secondary {
-        background: transparent;
-        color: var(--text);
-        border: none;
-        border-bottom: 1px solid var(--border);
+        background: var(--coffee-paper);
+        color: #2b1c14;
+        border: 1px solid var(--coffee-line);
+        box-shadow:
+          0 12px 28px rgba(0, 0, 0, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.4) inset;
       }
       .btn-secondary:hover {
-        filter: brightness(0.98);
+        background: var(--coffee-paper-deep);
+        color: #2b1c14;
       }
 
       /* Success screen */
@@ -290,10 +381,9 @@
         color: #fff;
       }
       .credentials-box {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        border-top: 1px solid var(--border);
+        background: rgba(255, 248, 241, 0.03);
+        border: 1px solid rgba(255, 241, 233, 0.1);
+        border-radius: 18px;
         padding: 20px;
         margin: 20px 0;
         font-family: var(--font-mono);
@@ -308,7 +398,7 @@
         margin-bottom: 5px;
       }
       .credential-value {
-        background: transparent;
+        background: rgba(255, 248, 241, 0.02);
         padding: 10px 0;
         border-radius: 0;
         word-break: break-all;
@@ -317,10 +407,9 @@
         border-bottom: 1px solid var(--border);
       }
       .warning-box {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        border-top: 1px solid var(--border);
+        background: rgba(255, 248, 241, 0.03);
+        border: 1px solid rgba(255, 241, 233, 0.1);
+        border-radius: 18px;
         padding: 15px;
         margin: 20px 0;
         color: var(--text);
@@ -332,10 +421,14 @@
       }
 
       .error-message {
-        background: var(--danger-bg);
+        background: rgba(254, 243, 242, 0.98);
         color: var(--danger);
-        padding: 12px;
-        border-radius: 0;
+        border: 1px solid rgba(180, 35, 24, 0.18);
+        box-shadow:
+          0 16px 34px rgba(0, 0, 0, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.56) inset;
+        padding: 14px 16px;
+        border-radius: 18px;
         margin-bottom: 15px;
         display: none;
       }
@@ -381,11 +474,46 @@
           transform: rotate(360deg);
         }
       }
+
+      @media (max-width: 720px) {
+        body {
+          padding: calc(var(--space-3) + var(--safe-top, 0px))
+            calc(var(--space-3) + var(--safe-right, 0px))
+            calc(var(--space-4) + var(--safe-bottom, 0px))
+            calc(var(--space-3) + var(--safe-left, 0px));
+        }
+
+        .container {
+          padding: 22px 18px;
+          border-radius: 24px;
+        }
+
+        .button-group {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body class="theme-invert">
     <div class="container">
-      <h1>☕ Café Registrierung</h1>
+      <div class="brandIntro">
+        <a class="kk-brand" href="/">
+          <span class="kk-brandMark" aria-hidden="true">
+            <img src="/assets/kaffekarte-mark.svg" alt="" />
+          </span>
+          <span class="kk-brandText">
+            <span class="kk-brandKicker">Kaffee im Veedel</span>
+            <span class="kk-brandWord">Suelzer Kaffeekarte</span>
+            <span class="kk-brandSub">Cafés, Stempel und Reward-Momente</span>
+          </span>
+        </a>
+      </div>
+      <h1>Café Registrierung</h1>
       <p class="subtitle">Erstelle dein Café-Konto in 2 Schritten</p>
 
       <div class="button-group" style="margin-top: 0; margin-bottom: 20px">
@@ -428,7 +556,7 @@
         <div id="loginBox" style="display: none">
           <div class="warning-box" style="margin-top: 0">
             <strong>Schon ein Konto?</strong>
-            Melde dich mit deiner E-Mail und deinem Passwort an.
+            Dann bitte hier entlang. E-Mail und Passwort reichen völlig.
           </div>
 
           <div class="form-group">
@@ -472,6 +600,17 @@
             </button>
           </div>
 
+          <div style="margin-top: 10px">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              onclick="resendCafeVerification()"
+              style="width: 100%"
+            >
+              Bestaetigungslink erneut senden
+            </button>
+          </div>
+
           <div
             id="cafeForgotBox"
             class="warning-box"
@@ -480,7 +619,7 @@
             <strong>Passwort zurücksetzen</strong>
             <div style="color: var(--text-muted); font-size: 0.95rem">
               Gib deine E-Mail ein. Wenn das Konto existiert, senden wir einen
-              Reset-Link.
+              Reset-Link. Ohne Aufhebens, aber mit guter Manier.
             </div>
 
             <div class="form-group" style="margin-top: 12px">
@@ -651,7 +790,7 @@
           </div>
 
           <div class="form-group">
-            <label for="email">E-Mail Adresse *</label>
+          <label for="email">E-Mail-Adresse *</label>
             <input
               type="email"
               id="email"
@@ -688,87 +827,45 @@
         </div>
       </div>
 
-      <!-- Step 2: Success (Setup moved to separate page) -->
+      <!-- Step 2: Review and legal -->
       <div class="step-section" id="step2">
         <h2 style="margin-bottom: 25px; color: var(--text)">
-          Stempel-System konfigurieren
+            Fast startklar
         </h2>
 
-        <div class="form-group">
-          <label>Stempel-Modus *</label>
-          <div class="radio-group">
-            <div class="radio-option">
-              <input
-                type="radio"
-                id="modeGeneral"
-                name="stampMode"
-                value="general"
-                checked
-              />
-              <label for="modeGeneral">
-                <div style="font-size: 1.3rem; margin-bottom: 5px">📋</div>
-                Allgemein<br />
-                <small style="color: var(--text-muted)">Für alle Käufe</small>
-              </label>
-            </div>
-            <div class="radio-option">
-              <input
-                type="radio"
-                id="modeSpecific"
-                name="stampMode"
-                value="specific"
-              />
-              <label for="modeSpecific">
-                <div style="font-size: 1.3rem; margin-bottom: 5px">☕</div>
-                Spezifisch<br />
-                <small style="color: var(--text-muted)"
-                  >Für bestimmte Produkte</small
-                >
-              </label>
-            </div>
+        <div class="warning-box" style="margin-top: 0; margin-bottom: 22px">
+          <strong>Zum Start legen wir dein Stempelsystem ganz schlicht an.</strong>
+          <div style="margin-top: 8px; color: var(--text-muted)">
+            Die erste Version startet mit 10 Stempeln pro Belohnung. Alles weitere
+            kannst du danach in Ruhe in der Verwaltung anpassen.
           </div>
         </div>
 
-        <div class="form-group" id="productsGroup" style="display: none">
-          <label>Produkte für Stempel *</label>
-          <div class="product-list" id="productList">
-            <div class="product-item">
-              <input
-                type="text"
-                class="product-input"
-                placeholder="z.B. Cappuccino"
-                required
-              />
-              <button class="btn-remove" onclick="removeProduct(this)">
-                ✕
-              </button>
-            </div>
+        <div class="credentials-box" style="margin-bottom: 24px">
+          <div class="credential-item">
+            <div class="credential-label">Standard zum Start</div>
+            <div class="credential-value">10 Stempel bis zur Belohnung</div>
           </div>
-          <button class="btn-add-product" onclick="addProduct()">
-            + Produkt hinzufügen
-          </button>
+          <div class="credential-item">
+            <div class="credential-label">Danach</div>
+            <div class="credential-value">Belohnung, Texte und Details sp�ter anpassen</div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="stampsForReward">Stempel für Belohnung *</label>
-          <input
-            type="number"
-            id="stampsForReward"
-            value="10"
-            min="1"
-            max="20"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="rewardDescription">Belohnungs-Beschreibung *</label>
-          <textarea
-            id="rewardDescription"
-            rows="3"
-            placeholder="z.B. Ein Freigetränk deiner Wahl"
-            required
-          ></textarea>
+        <div class="legalChecks">
+          <label class="legalCheck" for="acceptPrivacy">
+            <input type="checkbox" id="acceptPrivacy" />
+            <span>
+              Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerklärung</a>
+              gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
+            </span>
+          </label>
+          <label class="legalCheck" for="acceptTerms">
+            <input type="checkbox" id="acceptTerms" />
+            <span>
+              Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffeekarte.
+            </span>
+          </label>
         </div>
 
         <div class="button-group">
@@ -787,7 +884,7 @@
         <h2
           style="text-align: center; color: var(--success); margin-bottom: 15px"
         >
-          Registrierung erfolgreich!
+          Fast geschafft.
         </h2>
         <p
           style="
@@ -796,8 +893,9 @@
             margin-bottom: 30px;
           "
         >
-          Dein Café wurde erfolgreich eingerichtet. Die Zugangsdaten wurden an
-          <strong id="successEmail"></strong> gesendet.
+          Dein Café ist angelegt. Bitte bestätige jetzt die E-Mail-Adresse
+          <strong id="successEmail"></strong>. Danach kannst du dich direkt
+          anmelden und loslegen.
         </p>
 
         <div class="credentials-box" id="credentialsBox">
@@ -814,9 +912,9 @@
         <div class="button-group">
           <button
             class="btn btn-primary"
-            onclick="window.location.href = '/cafe-scanner'"
+            onclick="finishCafeVerificationStep()"
           >
-            Zum Scanner →
+            Zum Login →
           </button>
         </div>
       </div>
@@ -826,8 +924,19 @@
         <div class="spinner"></div>
         <p>Erstelle dein Café-System...</p>
       </div>
+
+      <div class="legalFooter">
+        Mit der Nutzung von Kaffeekarte bewegst du dich in einem echten Live-System
+        für Wallet, Scanner und Café-Verwaltung. Es soll leicht wirken, ist aber kein Spielzeug.
+        <div class="legalFooterLinks">
+          <a href="/impressum">Impressum</a>
+          <a href="/datenschutz">Datenschutz</a>
+          <a href="/agb">AGB</a>
+        </div>
+      </div>
     </div>
 
+    <script src="/ui.js"></script>
     <script>
       const apiBase =
         location.protocol === "file:"
@@ -892,7 +1001,18 @@
 
           const data = await loginRes.json().catch(() => ({}));
           if (!loginRes.ok || !data.ok) {
-            throw new Error(data.error || "Login fehlgeschlagen");
+            const err = new Error("api_error");
+            err.status = loginRes.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
           }
 
           const cafeSession = {
@@ -908,7 +1028,9 @@
         } catch (e) {
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step1").style.display = "block";
-          showError(e && e.message ? e.message : "Ein Fehler ist aufgetreten");
+          showError(
+            stampUI.userSafeErrorMessage(e, "Anmelden fehlgeschlagen."),
+          );
         }
       }
 
@@ -918,6 +1040,115 @@
           return u.searchParams.get("resetToken") || "";
         } catch (e) {
           return "";
+        }
+      }
+
+      function getCafeVerifyTokenFromUrl() {
+        try {
+          const u = new URL(location.href);
+          return u.searchParams.get("verifyToken") || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function clearCafeQueryToken(paramName) {
+        try {
+          const u = new URL(location.href);
+          if (!u.searchParams.has(paramName)) return;
+          u.searchParams.delete(paramName);
+          history.replaceState(null, "", u.pathname + u.search + u.hash);
+        } catch (e) {}
+      }
+      async function resendCafeVerification() {
+        const email = String(
+          (document.getElementById("loginEmail") || {}).value || "",
+        ).trim();
+
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          showError("Bitte gib zuerst deine E-Mail-Adresse im Login-Feld ein.");
+          return;
+        }
+
+        try {
+          const resp = await fetch(`${apiBase}/cafes/resend-verification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.ok) {
+            const err = new Error("api_error");
+            err.status = resp.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
+          }
+
+          if (data && data.alreadyVerified) {
+            showSuccess(
+              "Diese E-Mail-Adresse ist bereits bestaetigt. Du kannst dich direkt anmelden.",
+            );
+            return;
+          }
+
+          showSuccess(
+            "Wenn die Adresse zu einem unbestaetigten Konto gehoert, haben wir dir gerade einen neuen Bestaetigungslink geschickt.",
+          );
+        } catch (e) {
+          showError(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Bestaetigungslink konnte nicht neu gesendet werden.",
+            ),
+          );
+        }
+      }
+
+      async function processCafeVerifyToken() {
+        const verifyToken = getCafeVerifyTokenFromUrl();
+        if (!verifyToken) return false;
+        try {
+          const res = await fetch(`${apiBase}/cafes/verify-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: verifyToken }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            const err = new Error("api_error");
+            err.status = res.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
+          }
+          clearCafeQueryToken("verifyToken");
+          goToStep1();
+          setMode("login");
+          showSuccess(
+            "Deine E-Mail-Adresse ist bestaetigt. Du kannst dich jetzt direkt anmelden.",
+          );
+          return true;
+        } catch (e) {
+          clearCafeQueryToken("verifyToken");
+          goToStep1();
+          setMode("login");
+          showError("Der Bestaetigungslink ist ungueltig oder abgelaufen. Du kannst dir im Login direkt einen neuen senden lassen.");
+          return false;
         }
       }
 
@@ -1116,20 +1347,35 @@
         } catch (e) {}
       }
 
-      // Toggle product list visibility based on stamp mode
-      document.querySelectorAll('input[name="stampMode"]').forEach((radio) => {
-        radio.addEventListener("change", (e) => {
-          const productsGroup = document.getElementById("productsGroup");
-          productsGroup.style.display =
-            e.target.value === "specific" ? "block" : "none";
-        });
-      });
 
       function showError(message) {
         const errorEl = document.getElementById("errorMessage");
         errorEl.textContent = message;
+        errorEl.style.background = "";
+        errorEl.style.color = "";
+        errorEl.style.borderColor = "";
         errorEl.classList.add("show");
         setTimeout(() => errorEl.classList.remove("show"), 5000);
+      }
+
+      function showSuccess(message) {
+        const errorEl = document.getElementById("errorMessage");
+        errorEl.textContent = message;
+        errorEl.classList.add("show");
+        errorEl.style.background = "rgba(142, 107, 74, 0.16)";
+        errorEl.style.color = "var(--text)";
+        errorEl.style.borderColor = "rgba(142, 107, 74, 0.35)";
+        setTimeout(() => {
+          errorEl.classList.remove("show");
+          errorEl.style.background = "";
+          errorEl.style.color = "";
+          errorEl.style.borderColor = "";
+        }, 6000);
+      }
+
+      function finishCafeVerificationStep() {
+        goToStep1();
+        setMode("login");
       }
 
       function updateStepIndicators(step) {
@@ -1155,6 +1401,7 @@
 
       function goToStep1() {
         document.getElementById("step2").classList.remove("active");
+        document.getElementById("step3").classList.remove("active");
         document.getElementById("step1").classList.add("active");
         currentStep = 1;
         updateStepIndicators(1);
@@ -1228,19 +1475,12 @@
         const country = document.getElementById("country").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
+        const stampMode = "general";
+        const stampsForReward = 10;
+        const rewardDescription = "1 Kaffee aufs Haus";
+        const acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
+        const acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
-        const stampMode =
-          document.querySelector('input[name="stampMode"]:checked')?.value ||
-          "general";
-        const stampsForReward = Number(
-          document.getElementById("stampsForReward").value || 10,
-        );
-        const rewardDescription = document
-          .getElementById("rewardDescription")
-          .value.trim();
-        const products = Array.from(document.querySelectorAll(".product-input"))
-          .map((el) => String(el.value || "").trim())
-          .filter(Boolean);
 
         if (!cafeName || !street || !postalCode || !city || !country) {
           showError("Bitte fülle alle Pflichtfelder aus");
@@ -1254,8 +1494,13 @@
           showError("Das Passwort muss mindestens 8 Zeichen lang sein");
           return;
         }
-        if (!rewardDescription) {
-          showError("Bitte gib eine Belohnungs-Beschreibung ein");
+
+        if (!acceptPrivacy) {
+          showError("Bitte bestätige die Datenschutzerklärung");
+          return;
+        }
+        if (!acceptTerms) {
+          showError("Bitte akzeptiere die AGB");
           return;
         }
 
@@ -1279,29 +1524,31 @@
               stampMode,
               stampsForReward,
               rewardDescription,
-              products,
+              acceptPrivacy,
+              acceptTerms,
             }),
           });
 
           const data = await response.json();
 
           if (!response.ok || !data.ok) {
-            throw new Error(data.error || "Registrierung fehlgeschlagen");
+            const err = new Error("api_error");
+            err.status = response.status;
+            err.code =
+              data && (data.error || data.code)
+                ? String(data.error || data.code)
+                : "";
+            try {
+              err.responseText = JSON.stringify(data || {});
+            } catch (e0) {
+              err.responseText = "";
+            }
+            throw err;
           }
-
-          // Store session (bearer token)
-          try {
-            const cafeSession = {
-              token: data.token,
-              cafeId: data.cafe?.id,
-              cafeAddress: data.cafe?.cafeAddress || null,
-              name: data.cafe?.name || null,
-            };
-            localStorage.setItem("cafe_session", JSON.stringify(cafeSession));
-          } catch (e) {}
 
           // Show success screen
           document.getElementById("loading").classList.remove("show");
+          document.getElementById("step2").classList.remove("active");
           document.getElementById("step3").classList.add("active");
           currentStep = 3;
           updateStepIndicators(3);
@@ -1316,18 +1563,33 @@
         } catch (error) {
           document.getElementById("loading").classList.remove("show");
           document.getElementById("step2").style.display = "block";
-          showError(error.message || "Ein Fehler ist aufgetreten");
+          showError(
+            stampUI.userSafeErrorMessage(
+              error,
+              "Registrierung fehlgeschlagen. Bitte erneut versuchen.",
+            ),
+          );
         }
       }
 
       // Default state
-      (function initMode() {
+      (async function initMode() {
         try {
+          const verifyToken = getCafeVerifyTokenFromUrl();
+          if (verifyToken) {
+            await processCafeVerifyToken();
+            return;
+          }
+
           const resetToken = getCafeResetTokenFromUrl();
           if (resetToken) {
             setMode("login");
             const rp = document.getElementById("cafeResetPanel");
             if (rp) rp.style.display = "block";
+            const forgotBox = document.getElementById("cafeForgotBox");
+            if (forgotBox) forgotBox.style.display = "none";
+            const forgotBtn = document.querySelector('button[onclick="toggleCafeForgotPassword(true)"]');
+            if (forgotBtn) forgotBtn.style.display = "none";
             // Prefill email in reset request box for convenience
             try {
               toggleCafeForgotPassword(false);
@@ -1380,5 +1642,6 @@
         }
       })();
     </script>
+    <script src="/cafe-onboarding-auth-fixes.js?v=3"></script>
   </body>
 </html>

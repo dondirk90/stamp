@@ -1,6 +1,24 @@
 version: "3.9"
 
 services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - apps
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      ADMIN_BASIC_USER: ${ADMIN_BASIC_USER:-}
+      ADMIN_BASIC_HASH: ${ADMIN_BASIC_HASH:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile.staging:/etc/caddy/Caddyfile:ro
+      - staging_caddy_data:/data
+      - staging_caddy_config:/config
+
   api:
     build:
       context: ../../api
@@ -16,8 +34,10 @@ services:
       EMAIL_SECURE: ${EMAIL_SECURE:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     volumes:
-      - staging_data:/app/data
+      - staging_data:/data
 
   apps:
     build:
@@ -35,3 +55,5 @@ services:
 
 volumes:
   staging_data:
+  staging_caddy_data:
+  staging_caddy_config:

@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const url = require("url");
 const os = require("os");
+const { pipeline } = require("stream");
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 const APPS_DIR = __dirname;
@@ -23,7 +24,12 @@ function proxyApi(req, res, parsedUrl) {
   const upstreamUrl = upstreamPath + (parsedUrl.search || "");
 
   const incomingHost = req && req.headers ? String(req.headers.host || "") : "";
-  const forwardedProto = "http";
+  const forwardedProtoHeader =
+    req && req.headers ? String(req.headers["x-forwarded-proto"] || "") : "";
+  const forwardedProto = forwardedProtoHeader
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
 
   // Handle OPTIONS quickly
   if (req.method === "OPTIONS") {
@@ -49,7 +55,7 @@ function proxyApi(req, res, parsedUrl) {
       headers: {
         ...req.headers,
         "x-forwarded-host": incomingHost,
-        "x-forwarded-proto": forwardedProto,
+        "x-forwarded-proto": forwardedProto === "https" ? "https" : "http",
         host: `${API_TARGET_HOST}:${API_TARGET_PORT}`,
       },
     },
@@ -61,24 +67,80 @@ function proxyApi(req, res, parsedUrl) {
         Pragma: "no-cache",
         "Access-Control-Allow-Origin": "*",
       };
-      res.writeHead(upstreamRes.statusCode || 502, headers);
-      upstreamRes.pipe(res);
+
+      // If upstream emits an error (common with SSE disconnects), don't crash the process.
+      upstreamRes.on("error", (err) => {
+        try {
+          if (!res.headersSent && !res.writableEnded) {
+            res.writeHead(502, {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+              Pragma: "no-cache",
+              "Access-Control-Allow-Origin": "*",
+            });
+            res.end(
+              JSON.stringify({
+                error: "api_upstream_error",
+                message: String(err && err.message ? err.message : err),
+              }),
+            );
+          }
+        } catch {}
+      });
+
+      // Client disconnected mid-stream: make sure we stop reading from upstream.
+      res.on("close", () => {
+        try {
+          upstreamRes.destroy();
+        } catch {}
+      });
+
+      try {
+        res.writeHead(upstreamRes.statusCode || 502, headers);
+      } catch {
+        // If headers were already sent, just pipe what we can.
+      }
+
+      pipeline(upstreamRes, res, () => {
+        // Intentionally ignore pipeline errors here.
+        // Typical causes: client disconnects (ECONNRESET) or upstream closes SSE.
+      });
     },
   );
 
+  // If the client goes away, stop the upstream request.
+  res.on("close", () => {
+    try {
+      upstreamReq.destroy();
+    } catch {}
+  });
+  req.on("aborted", () => {
+    try {
+      upstreamReq.destroy();
+    } catch {}
+  });
+  req.on("error", () => {
+    try {
+      upstreamReq.destroy();
+    } catch {}
+  });
+
   upstreamReq.on("error", (err) => {
-    res.writeHead(502, {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      Pragma: "no-cache",
-      "Access-Control-Allow-Origin": "*",
-    });
-    res.end(
-      JSON.stringify({
-        error: "api_proxy_error",
-        message: String(err && err.message ? err.message : err),
-      }),
-    );
+    try {
+      if (res.headersSent || res.writableEnded) return;
+      res.writeHead(502, {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        Pragma: "no-cache",
+        "Access-Control-Allow-Origin": "*",
+      });
+      res.end(
+        JSON.stringify({
+          error: "api_proxy_error",
+          message: String(err && err.message ? err.message : err),
+        }),
+      );
+    } catch {}
   });
 
   req.pipe(upstreamReq);
@@ -266,7 +328,11 @@ const server = http.createServer((req, res) => {
   // Allow trailing slash access for single-page routes
   if (pathname === "/customer-profile/index.html")
     pathname = "/customer-profile.html";
-  if (pathname === "/cafe/index.html") pathname = "/cafe-public.html";
+  if (pathname === "/cafe/index.html") pathname = "/cafe-scanner-new.html";
+  if (pathname === "/wallet/index.html") pathname = "/customer-qr-modern.html";
+  if (pathname === "/impressum/index.html") pathname = "/impressum.html";
+  if (pathname === "/datenschutz/index.html") pathname = "/datenschutz.html";
+  if (pathname === "/agb/index.html") pathname = "/agb.html";
 
   // Aliase ohne .html Endung für wichtige Seiten
   if (pathname === "/customer-register") pathname = "/customer-qr-modern.html";
@@ -279,10 +345,15 @@ const server = http.createServer((req, res) => {
     pathname = "/customer-qr-modern.html";
   if (pathname === "/customer-wallet" || pathname === "/customer-wallet.html")
     pathname = "/customer-qr-modern.html";
+  if (pathname === "/wallet" || pathname === "/wallet.html")
+    pathname = "/customer-qr-modern.html";
+  if (pathname === "/impressum") pathname = "/impressum.html";
+  if (pathname === "/datenschutz") pathname = "/datenschutz.html";
+  if (pathname === "/agb") pathname = "/agb.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
-  if (pathname === "/cafe" || pathname === "/cafe-public")
-    pathname = "/cafe-public.html";
+  if (pathname === "/cafe" || pathname === "/cafe.html" || pathname === "/cafe-public")
+    pathname = "/cafe-scanner-new.html";
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
     pathname = "/cafe-scanner-new.html";
@@ -332,6 +403,8 @@ const server = http.createServer((req, res) => {
     else if (ext === ".js")
       contentType = "application/javascript; charset=utf-8";
     else if (ext === ".json") contentType = "application/json; charset=utf-8";
+    else if (ext === ".webmanifest")
+      contentType = "application/manifest+json; charset=utf-8";
     else if (ext === ".css") contentType = "text/css; charset=utf-8";
     else if (ext === ".png") contentType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";

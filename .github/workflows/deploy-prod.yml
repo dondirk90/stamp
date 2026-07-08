@@ -1,4 +1,7 @@
-name: Deploy (prod)
+name: Deploy Production
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
   workflow_dispatch:
@@ -13,9 +16,65 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ secrets.STAMP_SSH_HOST != '' && secrets.STAMP_SSH_USER != '' && secrets.STAMP_SSH_KEY != '' }}
     steps:
-      - name: Deploy via SSH
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate required secrets
+        env:
+          STAMP_SSH_HOST: ${{ secrets.STAMP_SSH_HOST }}
+          STAMP_SSH_USER: ${{ secrets.STAMP_SSH_USER }}
+          STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
+          PROD_APPS_BASE_URL: ${{ secrets.PROD_APPS_BASE_URL }}
+          PROD_DOMAIN: ${{ secrets.PROD_DOMAIN }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
+          ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
+        run: |
+          test -n "$STAMP_SSH_HOST"
+          test -n "$STAMP_SSH_USER"
+          test -n "$STAMP_SSH_KEY"
+          test -n "$PROD_APPS_BASE_URL"
+          test -n "$PROD_DOMAIN"
+          test -n "$POSTGRES_USER"
+          test -n "$POSTGRES_PASSWORD"
+          test -n "$POSTGRES_DB"
+          test -n "$DATABASE_URL"
+          test -n "$ADMIN_TOKEN"
+          test -n "$ADMIN_BASIC_USER"
+          test -n "$ADMIN_BASIC_HASH"
+
+      - name: Create deployment archive
+        run: |
+          mkdir -p .deploy
+          tar \
+            --exclude-vcs \
+            --exclude='.github' \
+            --exclude='.deploy' \
+            --exclude='stamp-cafe-os' \
+            --exclude='stamp-coffee-guide' \
+            --exclude='node_modules' \
+            --exclude='api/.api.*.log' \
+            --exclude='apps/.apps-server.*.log' \
+            -czf .deploy/stamp-prod.tgz .
+
+      - name: Upload archive to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAMP_SSH_HOST }}
+          username: ${{ secrets.STAMP_SSH_USER }}
+          key: ${{ secrets.STAMP_SSH_KEY }}
+          port: ${{ secrets.STAMP_SSH_PORT || '22' }}
+          source: ".deploy/stamp-prod.tgz"
+          target: "/tmp"
+
+      - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.STAMP_SSH_HOST }}
@@ -26,26 +85,23 @@ jobs:
             set -euo pipefail
 
             APP_DIR="/opt/stamp"
-            if [ ! -d "$APP_DIR/.git" ]; then
-              sudo mkdir -p "$APP_DIR"
-              sudo chown -R "$USER":"$USER" "$APP_DIR"
-              git clone https://github.com/${{ github.repository }}.git "$APP_DIR"
-            fi
+            ARCHIVE="$(find /tmp -type f -name 'stamp-prod.tgz' | head -n 1)"
 
-            cd "$APP_DIR"
-            git fetch --all --prune
+            test -n "$ARCHIVE"
 
-            # Deploy the exact tag (if present), otherwise main
-            if [ "${{ github.ref_type }}" = "tag" ]; then
-              git checkout -f "${{ github.ref_name }}"
-            else
-              git checkout main
-              git reset --hard origin/main
-            fi
+            mkdir -p "$APP_DIR"
+            find "$APP_DIR" -mindepth 1 -maxdepth 1 \
+              ! -name '.env.staging' \
+              ! -name '.env.prod' \
+              -exec rm -rf {} +
 
-            cat > .env.prod << 'EOF'
+            tar -xzf "$ARCHIVE" -C "$APP_DIR"
+            rm -f "$ARCHIVE"
+
+            cat > "$APP_DIR/.env.prod" << 'EOF'
             PROD_APPS_PORT=${{ secrets.PROD_APPS_PORT || '8080' }}
-            PROD_APPS_BASE_URL=${{ secrets.PROD_APPS_BASE_URL || 'http://localhost:8080' }}
+            PROD_APPS_BASE_URL=${{ secrets.PROD_APPS_BASE_URL }}
+            PROD_DOMAIN=${{ secrets.PROD_DOMAIN }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
@@ -55,11 +111,15 @@ jobs:
             EMAIL_SECURE=${{ secrets.EMAIL_SECURE }}
             EMAIL_USER=${{ secrets.EMAIL_USER }}
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+            EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
+            ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
+            ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
             EOF
 
-            # Ensure DB is up, then run migrations, then bring up the stack
+            cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
 
-            echo "Prod deployed. Apps: http://<server-ip>:${{ secrets.PROD_APPS_PORT || '8080' }}"
+            echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"

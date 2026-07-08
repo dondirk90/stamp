@@ -6,8 +6,26 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Customer — Stamp</title>
+    <title>Customer - Suelzer Kaffeekarte</title>
     <link rel="icon" href="data:," />
+    <meta
+      name="description"
+      content="Die Suelzer Kaffeekarte fuer Lieblingscafes, Rewards und digitale Stempelkarten auf dem Handy."
+    />
+    <meta name="theme-color" content="#6b452c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Wallet" />
+    <meta name="application-name" content="Wallet - Kaffeekarte" />
+    <link rel="manifest" href="/pwa/manifest-customer.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/pwa/icons/icon-192.png"
+    />
+    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       /* Page-specific tweaks only; theme comes from /theme.css */
@@ -17,6 +35,9 @@
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
+        background:
+          radial-gradient(circle at top, rgba(205, 166, 125, 0.22), rgba(205, 166, 125, 0) 34%),
+          linear-gradient(180deg, #fbf6f0 0%, #f4ede6 28%, #efe6dd 100%) !important;
       }
 
       /* Boot fallback: visible only when JS boot takes too long. */
@@ -66,6 +87,122 @@
         opacity: 0.92;
       }
 
+      body.installHintOpen {
+        overflow: hidden;
+      }
+
+      .installHintBackdrop {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: calc(var(--space-4) + var(--safe-top, 0px))
+          calc(var(--space-4) + var(--safe-right, 0px))
+          calc(var(--space-4) + var(--safe-bottom, 0px))
+          calc(var(--space-4) + var(--safe-left, 0px));
+        background: rgba(32, 20, 11, 0.18);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        z-index: 90;
+      }
+
+      .installHintBackdrop[hidden] {
+        display: none;
+      }
+
+      .installHintBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .installHintCard {
+        width: min(520px, 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(245, 237, 227, 0.96));
+        box-shadow:
+          0 24px 70px rgba(59, 36, 18, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.72) inset;
+        padding: 22px 22px 18px;
+        transform: translateY(18px);
+        transition: transform 220ms ease;
+      }
+
+      .installHintBackdrop.open .installHintCard {
+        transform: translateY(0);
+      }
+
+      .installHintEyebrow {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 10px;
+      }
+
+      .installHintTitle {
+        font-size: clamp(24px, 6vw, 30px);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin: 0 0 10px;
+      }
+
+      .installHintLead {
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        margin: 0 0 16px;
+      }
+
+      .installHintSteps {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .installHintStep {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .installHintStepNo {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(107, 69, 44, 0.12);
+        color: var(--brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .installHintStepText {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .installHintStepText strong {
+        color: var(--text);
+      }
+
+      .installHintActions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
       /* Phones (portrait): reduce outer padding so the pass fits on screen */
       @media (max-width: 520px) and (orientation: portrait) {
         body {
@@ -86,75 +223,218 @@
       }
 
       .shell {
-        max-width: 980px;
+        max-width: 1180px;
         margin: 0 auto;
+        position: relative;
+      }
+
+      .shell::before {
+        content: "";
+        position: fixed;
+        inset: auto -12vw -10vh auto;
+        width: min(44vw, 360px);
+        height: min(44vw, 360px);
+        background:
+          radial-gradient(circle, rgba(107, 69, 44, 0.1), rgba(107, 69, 44, 0) 72%);
+        pointer-events: none;
+        z-index: 0;
       }
 
       .topbar {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-4);
-        flex-wrap: wrap;
-
-        padding: var(--space-4) 0;
-        border-radius: 0;
-        border: none;
-        border-bottom: none;
-        background: var(--bg);
+        padding: 14px 20px;
+        min-height: 76px;
+        border-radius: 28px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.72);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.68) inset;
+        position: relative;
+        z-index: 1;
       }
 
-      /* Clean top menu (Holm-like) */
-      .topMenu {
-        flex: 1 0 100%;
+      .brandHead {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 26px;
-        margin-top: var(--space-3);
-        padding-top: var(--space-3);
-        border-top: none;
+        width: 100%;
+        min-height: 48px;
+      }
+
+      .menuToggle {
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        appearance: none;
+        -webkit-appearance: none;
+        border: none !important;
+        border-radius: 0 !important;
+        background: rgba(255, 251, 246, 0.9) !important;
+        background-image: none !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        box-shadow:
+          0 8px 18px rgba(68, 41, 22, 0.06),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset !important;
+        outline: none;
+        filter: none !important;
+      }
+
+      .menuToggleLines {
+        position: relative;
+        width: 20px;
+        height: 14px;
+        display: block;
+      }
+
+      .menuToggleLines::before,
+      .menuToggleLines::after,
+      .menuToggleLines span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #b1815c;
+        transition:
+          transform 180ms ease,
+          opacity 180ms ease;
+      }
+
+      .menuToggleLines::before {
+        top: 0;
+      }
+
+      .menuToggleLines span {
+        top: 6px;
+      }
+
+      .menuToggleLines::after {
+        top: 12px;
+      }
+
+      body.menuOpen .menuToggleLines::before {
+        transform: translateY(6px) rotate(45deg);
+      }
+
+      body.menuOpen .menuToggleLines span {
+        opacity: 0;
+      }
+
+      body.menuOpen .menuToggleLines::after {
+        transform: translateY(-6px) rotate(-45deg);
+      }
+
+      .menuBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(24, 16, 11, 0.18);
+        backdrop-filter: blur(6px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+        z-index: 30;
+      }
+
+      .menuBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .menuDrawer {
+        position: absolute;
+        top: 18px;
+        left: 20px;
+        width: min(320px, calc(100vw - 32px));
+        padding: 16px;
+        border-radius: 24px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.92);
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 24px 48px rgba(68, 41, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.8) inset;
+        opacity: 0;
+        transform: translateY(-8px) scale(0.985);
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          transform 220ms cubic-bezier(0.2, 0.92, 0.24, 1);
+        z-index: 31;
+      }
+
+      .menuDrawer.open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .menuDrawerHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .menuDrawerTitle {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(47, 32, 23, 0.72);
+      }
+
+      .topMenu {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
       }
 
       .topMenuBtn {
-        flex: 0 0 auto;
-        width: auto;
+        width: 100%;
         min-width: 0;
         background: transparent !important;
         border: none !important;
-        padding: 8px 0;
+        border-radius: 14px;
+        padding: 12px 12px;
         cursor: pointer;
         touch-action: manipulation;
-        color: var(--text) !important;
+        color: #3b2a1f !important;
         font-size: 12px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.16em;
         box-shadow: none !important;
+        opacity: 0.76;
       }
 
-      /* Global theme styles `button.ghost` with a border; ensure top menu is borderless. */
+      /* Global theme styles `button.ghost` with a border; ensure drawer menu is borderless. */
       button.topMenuBtn.ghost {
         border: none !important;
       }
 
-      /* Avoid horizontal overflow on small phones */
-      @media (max-width: 420px) {
-        .topMenu {
-          justify-content: center;
-          gap: 18px;
-          flex-wrap: wrap;
-        }
-
-        .topMenuBtn {
-          width: auto;
-          flex: 0 0 auto;
-        }
-      }
-
       .topMenuBtn .ico {
-        display: none;
+        display: inline-flex;
+        width: 24px;
+        align-items: center;
+        justify-content: center;
+        color: rgba(47, 32, 23, 0.5);
       }
 
       .topMenuBtn .lbl {
@@ -170,28 +450,482 @@
       }
 
       .topMenuBtn.active {
-        border-bottom: 2px solid var(--text);
+        background: rgba(107, 69, 44, 0.08) !important;
+        opacity: 1;
       }
 
       .topMenuBtn.active .lbl {
-        color: var(--text);
+        color: #241710;
+      }
+
+      .topMenuBtn.active .ico {
+        color: #6b452c;
+      }
+
+      .topMenuBtnContent {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bottomTabs {
+        display: none;
+      }
+
+      .bottomTabBtn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 56px;
+        border: none !important;
+        border-radius: 16px;
+        background: transparent !important;
+        color: rgba(47, 32, 23, 0.72) !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 8px;
+        box-shadow: none !important;
+      }
+
+      .bottomTabBtn .topMenuBtnContent {
+        width: 100%;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .bottomTabBtn .lbl {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-align: center;
+      }
+
+      .bottomTabBtn .ico {
+        width: auto;
+      }
+
+      .bottomTabBtn.walletHeroBtn {
+        position: relative;
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 188px;
+        min-height: 64px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -18px;
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
+        color: #fffaf5 !important;
+        box-shadow:
+          0 18px 30px rgba(68, 41, 22, 0.24),
+          0 1px 0 rgba(255, 255, 255, 0.16) inset;
+      }
+
+      .bottomTabBtn.walletHeroBtn .topMenuBtnContent {
+        gap: 8px;
+      }
+
+      .bottomTabBtn.walletHeroBtn .ico,
+      .bottomTabBtn.walletHeroBtn .lbl {
+        color: inherit;
+      }
+
+      .bottomTabBtn.walletHeroBtn .lbl {
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: none;
+      }
+
+      .bottomTabBtn.active {
+        background: rgba(107, 69, 44, 0.1) !important;
+        color: #241710 !important;
+        opacity: 1;
+      }
+
+      .bottomTabBtn.walletHeroBtn.active {
+        background:
+          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
+        color: #fffaf5 !important;
+      }
+
+      .menuToggle,
+      .menuBackdrop,
+      .menuDrawer {
+        display: none !important;
       }
 
       .brand {
         display: flex;
         flex-direction: column;
         gap: 2px;
+        width: 100%;
       }
 
-      .brand h1 {
-        margin: 0;
-        font-size: 18px;
-        line-height: 1.15;
-        font-weight: 950;
+      .topbar .kk-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 0 auto;
       }
 
-      .brand .subtitle {
+      .topbar .kk-brandMark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(107, 69, 44, 0.12);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+      }
+
+      .topbar .kk-brandText {
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar .kk-brandKicker {
+        display: none;
+      }
+
+      .topbar .kk-brandWord {
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #241710;
+      }
+
+      .topUtilityBtn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0;
+        border: 1px solid rgba(81, 58, 40, 0.08) !important;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
+        color: #93684a !important;
+        box-shadow:
+          0 12px 22px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .topUtilityIcon {
+        position: relative;
+        width: 18px;
+        height: 14px;
+        display: block;
+      }
+
+      .topUtilityIcon::before,
+      .topUtilityIcon::after,
+      .topUtilityIcon span {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: #b1815c;
+      }
+
+      .topUtilityIcon::before {
+        top: 0;
+      }
+
+      .topUtilityIcon span {
+        top: 6px;
+      }
+
+      .topUtilityIcon::after {
+        top: 12px;
+      }
+
+      .utilityMenu {
+        position: fixed;
+        top: calc(58px + var(--safe-top, 0px));
+        right: calc(12px + var(--safe-right, 0px));
+        width: min(220px, calc(100vw - 24px));
+        padding: 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97));
+        box-shadow:
+          0 20px 42px rgba(47, 31, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        display: none;
+        z-index: 72;
+      }
+
+      .utilityMenu.open {
+        display: block;
+      }
+
+      .utilityMenuBtn,
+      button.utilityMenuBtn,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain) {
+        width: 100%;
+        min-height: 48px;
+        border: none !important;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.97)) !important;
+        background-color: rgba(255, 252, 247, 0.98) !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        border-radius: 14px;
+        color: #241710 !important;
         font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .utilityMenuBtn:hover,
+      button.utilityMenuBtn:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain):hover {
+        background: rgba(107, 69, 44, 0.08) !important;
+      }
+
+      @media (max-width: 420px) {
+        .brandHead {
+          gap: 10px;
+        }
+
+        .menuDrawer {
+          width: min(300px, calc(100vw - 24px));
+          left: 12px;
+        }
+      }
+
+      @media (max-width: 520px) and (orientation: portrait) {
+        body {
+          padding:
+            calc(8px + var(--safe-top, 0px))
+            calc(8px + var(--safe-right, 0px))
+            calc(10px + var(--safe-bottom, 0px))
+            calc(8px + var(--safe-left, 0px));
+        }
+
+        .shell {
+          max-width: none;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+        }
+
+        .shell::before {
+          width: min(58vw, 320px);
+          height: min(58vw, 320px);
+          inset: auto -18vw -12vh auto;
+        }
+
+        .topbar {
+          position: fixed;
+          top: calc(8px + var(--safe-top, 0px));
+          left: calc(8px + var(--safe-left, 0px));
+          right: calc(8px + var(--safe-right, 0px));
+          margin: 0;
+          padding: 0;
+          border: none;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          backdrop-filter: none;
+          justify-content: flex-start;
+          z-index: 70;
+          pointer-events: none;
+        }
+
+        .topbar .brand,
+        .topbar .row {
+          pointer-events: auto;
+        }
+
+        .topbar .row {
+          display: flex;
+          position: fixed;
+          top: calc(18px + var(--safe-top, 0px));
+          right: calc(14px + var(--safe-right, 0px));
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          z-index: 71;
+        }
+
+        .brand {
+          gap: 0;
+        }
+
+        .brand #liveBadge {
+          display: none;
+        }
+
+        .bottomTabs {
+          position: fixed;
+          left: calc(10px + var(--safe-left, 0px));
+          right: calc(10px + var(--safe-right, 0px));
+          bottom: calc(10px + var(--safe-bottom, 0px));
+          display: flex;
+          align-items: stretch;
+          justify-content: center;
+          gap: 0;
+          padding: 0;
+          border-radius: 0;
+          border: none;
+          background: transparent;
+          backdrop-filter: none;
+          box-shadow: none;
+          z-index: 28;
+          pointer-events: none;
+        }
+
+        .bottomTabBtn.walletHeroBtn {
+          margin-top: -24px;
+          min-height: 70px;
+          pointer-events: auto;
+        }
+
+        .topbar .kk-brandMark {
+          width: 44px;
+          height: 44px;
+        }
+
+        .topbar .kk-brandWord {
+          font-size: 24px;
+        }
+
+        .topUtilityBtn {
+          min-height: 34px;
+          min-width: 34px;
+          font-size: 20px;
+        }
+
+        .grid {
+          gap: 0;
+        }
+
+        .grid.authed,
+        #mainPanel {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px);
+          touch-action: auto;
+          overscroll-behavior-x: contain;
+        }
+
+        #mainPanel {
+          padding: 18px 0 calc(94px + var(--safe-bottom, 0px));
+        }
+
+        .home {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 0;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 58px);
+        }
+
+        .screenPager {
+          overflow-x: hidden;
+          touch-action: auto;
+          overscroll-behavior-x: none;
+        }
+
+        #welcomePanel,
+        .mapHero,
+        #historyPanel,
+        #authPanel {
+          width: min(420px, calc(100vw - 18px - var(--safe-left, 0px) - var(--safe-right, 0px))) !important;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px);
+          margin: auto;
+          padding: 96px 16px 28px;
+          border-radius: 30px;
+          background: rgba(251, 246, 240, 0.52);
+          border: 1px solid rgba(17, 17, 17, 0.05);
+          box-shadow:
+            0 12px 28px rgba(68, 41, 22, 0.04),
+            0 1px 0 rgba(255, 255, 255, 0.58) inset;
+          backdrop-filter: blur(10px);
+        }
+
+        #welcomePanel {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+          backdrop-filter: none;
+        }
+
+        #authPanel .panelHeader,
+        #authPanel .panelBody,
+        #historyPanel .panelHeader,
+        #historySubtitle,
+        #historyEmpty,
+        #historyList {
+          max-width: 332px;
+          margin-left: auto;
+          margin-right: auto;
+          width: 100%;
+        }
+
+        #authPanel .panelHeader {
+          position: relative;
+          z-index: 2;
+        }
+
+        .mapHero {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        .walletDockHead {
+          padding: 0 !important;
+        }
+
+        .walletDockHead .badge,
+        #mapHint {
+          display: none;
+        }
+
+        .mapStage {
+          flex: 1 1 auto;
+          min-height: 0;
+          margin-top: 10px;
+        }
+
+        .mapBox {
+          height: min(44svh, 420px);
+          border-radius: 24px;
+        }
+
+        #cafeResults {
+          margin-top: 10px;
+        }
+
+        #historyPanel {
+          justify-content: flex-start;
+          align-items: stretch;
+        }
+
+        .walletOverlay {
+          inset:
+            calc(12px + var(--safe-top, 0px))
+            calc(10px + var(--safe-right, 0px))
+            calc(94px + var(--safe-bottom, 0px))
+            calc(10px + var(--safe-left, 0px));
+        }
+
+        .walletOverlayInner {
+          width: 100%;
+          min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 116px);
+        }
       }
 
       #buildBadge {
@@ -199,6 +933,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        background: rgba(255, 255, 255, 0.68);
+        border-color: rgba(17, 17, 17, 0.08);
       }
 
       .grid {
@@ -266,21 +1002,47 @@
 
       .seg button {
         border-radius: 0;
-        padding: 10px 14px;
-        min-height: 44px;
+        padding: 8px 0;
+        min-height: auto;
         font-weight: 800;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
-        border-bottom: 1px solid transparent;
+        border-bottom: none;
         cursor: pointer;
         pointer-events: auto;
         touch-action: manipulation;
       }
 
-      .seg button.active {
+      /* theme.css forces most <button> backgrounds to --brand (black) via a high-specificity
+         selector. Make sure the auth-mode switch stays frameless + transparent. */
+      #authPanel .seg button {
         background: transparent !important;
-        border-bottom-color: var(--brand);
+        color: var(--text) !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      #authPanel .seg button:hover {
+        background: transparent !important;
+      }
+
+      /* Only show the switch action (inactive tab):
+         - in Login mode: show ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œNeuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â
+         - in Register mode: show ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œLoginÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */
+      .seg button.active {
+        display: none;
+      }
+
+      .seg button:hover {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .seg button:focus-visible {
+        outline: none;
+        text-decoration: underline;
+        text-underline-offset: 4px;
       }
 
       .actions {
@@ -291,6 +1053,100 @@
 
       .actions button {
         flex: 1;
+      }
+
+      .authIntro {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 18px;
+        padding: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 243, 237, 0.92));
+      }
+
+      .authEyebrow {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .authTitle {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.02;
+        letter-spacing: -0.04em;
+      }
+
+      .authLead {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .authPerks {
+        display: grid;
+        gap: 10px;
+      }
+
+      .authPerk {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .authPerkNo {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #6b452c;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .authPerkText {
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-muted);
+      }
+
+      .authPerkText strong {
+        color: var(--text);
+      }
+
+      .fieldHint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .legalChecks {
+        display: grid;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--text-muted);
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--brand);
       }
 
       .navRow {
@@ -558,22 +1414,22 @@
         border: none;
         padding: 0;
         border-radius: 0;
+        gap: 12px 14px;
       }
 
       /* Wallet pass: simple empty circles; filled stamps get an ink mark */
       .passCard .stamp,
       .face .stamp {
-        /* iOS Safari can sometimes fail to honor aspect-ratio for grid items;
-           ensure a stable square box so 999px radius renders as a circle. */
         aspect-ratio: auto;
         grid-template: 1fr / 1fr;
-        border-radius: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
         background: transparent;
-        border: 1px solid
-          var(--pass-stamp-ring, var(--pass-border, var(--border)));
+        border: 1.5px solid currentColor;
         color: var(--pass-ink, var(--brand-700));
         --stamp-seam: var(--pass-bg, var(--surface));
-        --stamp-icon-size: 92%;
+        --stamp-icon-size: 88%;
         position: relative;
         overflow: hidden;
         -webkit-clip-path: none;
@@ -596,14 +1452,21 @@
 
       .passCard .stamp.empty,
       .face .stamp.empty {
-        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.14));
-        background: transparent;
+        color: color-mix(
+          in srgb,
+          var(--pass-stamp-ring, rgba(32, 24, 20, 0.2)) 88%,
+          rgba(255, 255, 255, 0.08) 12%
+        );
       }
 
       .passCard .stamp.filled,
       .face .stamp.filled {
-        border-color: var(--pass-stamp-ring, rgba(32, 24, 20, 0.24));
-        background: transparent;
+        background: color-mix(
+          in srgb,
+          var(--pass-ink, var(--brand-700)) 8%,
+          transparent 92%
+        );
+        color: var(--pass-ink, var(--brand-700));
       }
 
       @keyframes inkStampIn {
@@ -908,6 +1771,457 @@
         min-width: 0;
       }
 
+      .screenPager {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+      }
+
+      .screenPager::-webkit-scrollbar {
+        display: none;
+      }
+
+      .screenSlide {
+        flex: 0 0 100%;
+        width: 100%;
+        min-width: 100%;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        min-height: 0;
+      }
+
+      .screenSlide > * {
+        min-width: 0;
+      }
+
+      #welcomePanel {
+        width: min(560px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        margin: auto;
+        display: grid;
+        gap: 20px;
+        padding: 72px 24px 108px;
+        min-height: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        align-content: start;
+        justify-items: start;
+      }
+
+      .welcomeIntro {
+        display: grid;
+        gap: 10px;
+        max-width: 30ch;
+      }
+
+      .welcomePrimaryAction {
+        width: auto;
+        min-width: 168px;
+        margin: 0;
+      }
+
+      .welcomeKicker {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .welcomeLeadText {
+        color: rgba(59, 42, 31, 0.8);
+        line-height: 1.5;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+        max-width: 30ch;
+      }
+
+      .welcomeSummary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        width: 100%;
+        max-width: none;
+      }
+
+      .welcomeStat {
+        display: grid;
+        gap: 4px;
+        padding: 12px 0 0;
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .welcomeStatValue {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: -0.04em;
+        color: var(--text);
+      }
+
+      .welcomeStatLabel {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.56);
+      }
+
+      .welcomeDeck {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+      }
+
+      .welcomeSectionHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .welcomeSectionTitle {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .welcomeCardsList {
+        display: grid;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .welcomeOverviewCard {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+        padding: 16px 16px 18px;
+        border-radius: 26px;
+        border: 1px solid rgba(81, 58, 40, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
+        box-shadow:
+          0 16px 34px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .welcomeOverviewHead {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .welcomeOverviewTitle {
+        font-size: 22px;
+        font-weight: 950;
+        letter-spacing: -0.04em;
+        color: #241710;
+      }
+
+      .welcomeOverviewMeta {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.58);
+      }
+
+      .welcomeCafeRows {
+        display: grid;
+        gap: 6px;
+      }
+
+      .welcomeCafeRow {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 0;
+        border-top: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .welcomeCafeRow:first-child {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .welcomeCafeLogo {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background: rgba(255, 255, 255, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        flex: 0 0 auto;
+      }
+
+      .welcomeCafeLogo img,
+      .welcomeCafeLogo .passLogoInitial {
+        width: 100%;
+        height: 100%;
+      }
+
+      .welcomeCafeMeta {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .welcomeCafeName {
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #241710;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .welcomeCafeCount {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.6);
+      }
+
+      .welcomeCafeStampRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .welcomeCafeStamp {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.16);
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+      }
+
+      .welcomeCafeStamp.filled {
+        border-color: rgba(96, 65, 43, 0.48);
+        background:
+          radial-gradient(circle at 35% 35%, rgba(245, 215, 175, 0.95), rgba(150, 98, 58, 0.96));
+      }
+
+      .welcomeCafeAction {
+        min-width: 88px;
+        width: auto;
+        padding: 10px 14px;
+        justify-self: end;
+        align-self: start;
+        grid-column: 3;
+        grid-row: 1;
+        margin-top: 0;
+      }
+
+      .welcomeEmptyState {
+        width: 100%;
+        padding: 18px 18px 20px;
+        border-radius: 26px;
+        border: 1px dashed rgba(81, 58, 40, 0.18);
+        background: rgba(255, 251, 246, 0.78);
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .welcomePreviewCard {
+        display: grid;
+        gap: 12px;
+        width: 100%;
+        padding: 16px 16px 18px;
+        border-radius: 24px;
+        border: 1px solid rgba(81, 58, 40, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
+        box-shadow:
+          0 16px 34px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+        cursor: pointer;
+        transition:
+          transform 220ms ease-out,
+          box-shadow 220ms ease-out,
+          border-color 220ms ease-out;
+      }
+
+      .welcomePreviewCard:hover {
+        transform: translateY(-2px);
+        border-color: rgba(81, 58, 40, 0.18);
+        box-shadow:
+          0 22px 40px rgba(47, 31, 22, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .welcomePreviewCard:focus-visible {
+        outline: 2px solid rgba(109, 78, 50, 0.34);
+        outline-offset: 2px;
+      }
+
+      .welcomePreviewHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .welcomePreviewHeadMain {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .welcomePreviewLogo {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        background: rgba(255, 255, 255, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        flex: 0 0 auto;
+      }
+
+      .welcomePreviewLogo img,
+      .welcomePreviewLogo .passLogoInitial {
+        width: 100%;
+        height: 100%;
+      }
+
+      .welcomePreviewMeta {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .welcomePreviewTitle {
+        font-size: 21px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #241710;
+      }
+
+      .welcomePreviewCount {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .welcomePreviewMessage {
+        color: rgba(59, 42, 31, 0.86);
+        line-height: 1.45;
+        font-size: 14px;
+      }
+
+      .welcomePreviewStampRow {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .welcomePreviewStamp {
+        aspect-ratio: 1;
+        border-radius: 999px;
+        border: 1px solid rgba(81, 58, 40, 0.14);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+      }
+
+      .welcomePreviewStamp.filled {
+        border-color: rgba(72, 47, 30, 0.42);
+        background: linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
+      }
+
+      .welcomePreviewFooter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .welcomePreviewHint {
+        font-size: 12px;
+        color: rgba(59, 42, 31, 0.66);
+        max-width: 26ch;
+      }
+
+      .welcomePreviewBtn {
+        width: auto;
+        min-width: 116px;
+        align-self: flex-end;
+      }
+
+      @media (max-width: 520px) {
+        .welcomePreviewHead {
+          align-items: flex-start;
+        }
+
+        .welcomePreviewHeadMain {
+          min-width: 0;
+        }
+
+        .welcomePreviewFooter {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .welcomePreviewBtn {
+          width: 100%;
+        }
+
+        .welcomeOverviewHead {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .welcomeCafeRow {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .welcomeCafeAction {
+          grid-column: 3;
+          grid-row: 1;
+          width: auto;
+          justify-self: end;
+        }
+      }
+
+      .welcomeNextHint {
+        max-width: 36ch;
+        font-size: 14px;
+        line-height: 1.55;
+        color: rgba(59, 42, 31, 0.68);
+      }
+
       .mapHero {
         padding: var(--space-4);
       }
@@ -915,6 +2229,15 @@
       .mapStage {
         position: relative;
         margin-top: var(--space-3);
+        touch-action: pan-x pan-y;
+      }
+
+      #cafeMap,
+      #cafeMap .leaflet-container,
+      #cafeMap .leaflet-pane,
+      #cafeMap .leaflet-map-pane {
+        touch-action: pan-x pan-y !important;
+        pointer-events: auto;
       }
 
       #mapList {
@@ -964,6 +2287,21 @@
         box-shadow: none;
         backdrop-filter: none;
         overflow: visible;
+        position: relative;
+      }
+
+      #walletPanel.walletDock::before {
+        content: "";
+        position: absolute;
+        inset: 88px 4% auto;
+        height: 280px;
+        border-radius: 38px;
+        background:
+          radial-gradient(circle at top, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0) 58%),
+          linear-gradient(180deg, rgba(94, 60, 38, 0.18), rgba(94, 60, 38, 0) 72%);
+        filter: blur(18px);
+        pointer-events: none;
+        opacity: 0.9;
       }
 
       #walletPanel.walletDock h3 {
@@ -974,23 +2312,26 @@
         color: rgba(32, 24, 20, 0.62);
       }
 
-      /* In Wallet tab, reduce padding so the card "floats" on black. */
+      /* Wallet-first mode should still feel like a paper dialog, not a blank stage. */
       html.walletMode #walletPanel.walletDock {
-        padding: 0;
+        padding: 68px 14px 16px;
       }
 
       html.walletMode .walletDockHead {
-        padding: 0 var(--space-1);
+        padding: 0 var(--space-2);
       }
 
-      /* Wallet label away: show only the card on black. */
       html.walletMode #walletPanel .walletDockHead {
-        display: none;
+        display: flex;
       }
 
       html.walletMode .walletCarousel {
-        padding-left: 0;
-        padding-right: 0;
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      html.walletMode #walletPanel.walletDock::before {
+        display: none;
       }
 
       /* Mobile/WebView: slightly flatter for smoother motion */
@@ -1026,7 +2367,7 @@
       }
 
       .walletCarousel {
-        --cardW: min(360px, 84vw, 62svh);
+        --cardW: min(376px, 86vw, 62svh);
         display: flex;
         flex-direction: row;
         gap: 0;
@@ -1040,7 +2381,7 @@
         scroll-padding-left: 50%;
         scroll-padding-right: 50%;
         max-width: 100%;
-        /* Safari: keep the scroller itself “flat”, use parent perspective */
+        /* Safari: keep the scroller itself ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œflatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â, use parent perspective */
         perspective: none;
         -webkit-perspective: none;
         transform-style: preserve-3d;
@@ -1073,17 +2414,76 @@
 
       /* iOS Wallet-like stack: only the top card is visible; swipe switches cards */
       .walletCarousel.isStack {
-        --cardW: min(420px, calc(100% - 2px), 62svh);
+        --cardW: min(430px, calc(100% - 4px), 62svh);
         display: grid;
         grid-template-columns: 1fr;
         gap: 0;
         overflow-x: hidden;
         overflow-y: visible;
         scroll-snap-type: none;
-        padding: 18px 0 10px;
+        padding: 24px 0 18px;
         justify-items: center;
-        /* iOS deck: JS handles free-direction swipe-to-cycle. */
-        touch-action: none;
+        /* Stack mode only reacts to vertical swipes; keep horizontal movement out of the gesture. */
+        touch-action: pan-x;
+      }
+
+      .walletCarousel.isSnap {
+        --cardW: min(390px, calc(100% - 8px), 62svh);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scroll-snap-type: y mandatory;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 0 26px;
+        max-height: min(78svh, 760px);
+        justify-items: stretch;
+        touch-action: pan-y;
+      }
+
+      .walletCarousel.isSnap::before,
+      .walletCarousel.isSnap::after {
+        display: none;
+      }
+
+      .walletCarousel.isSnap .passCard + .passCard {
+        margin-left: 0;
+      }
+
+      .walletCarousel.isSnap .passCard {
+        margin: 0 auto;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        pointer-events: auto;
+      }
+
+      .walletCarousel.isCarousel {
+        --cardW: min(340px, 86vw);
+        gap: 14px;
+        overflow-x: auto;
+        overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        scroll-padding-left: 14px;
+        scroll-padding-right: 14px;
+        padding: 14px 14px 18px;
+        touch-action: pan-x;
+      }
+
+      .walletCarousel.isCarousel::before,
+      .walletCarousel.isCarousel::after {
+        display: none;
+      }
+
+      .walletCarousel.isCarousel .passCard + .passCard {
+        margin-left: -46px;
+      }
+
+      .walletCarousel.isCarousel .passCard {
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        pointer-events: auto;
       }
 
       .walletCarousel.isStack::before,
@@ -1125,13 +2525,20 @@
         scroll-snap-align: center;
         scroll-snap-stop: always;
         flex: 0 0 auto;
+        --pass-card-ratio: 1.34;
         width: var(--cardW);
+        aspect-ratio: var(--pass-card-ratio);
         position: relative;
         overflow: visible;
-        box-shadow: var(--shadow-sm);
+        perspective: 1600px;
+        -webkit-perspective: 1600px;
+        box-shadow:
+          0 20px 34px rgba(41, 29, 21, 0.12),
+          0 8px 18px rgba(41, 29, 21, 0.08);
         --pass-accent: var(--brand);
         --pass-border: rgba(32, 24, 20, 0.14);
         --pass-stamp-ring: rgba(32, 24, 20, 0.18);
+        --pass-rule: rgba(79, 51, 33, 0.14);
         transform-style: preserve-3d;
         -webkit-transform-style: preserve-3d;
         transform: translateY(var(--stack-swipe-y, 0px))
@@ -1141,8 +2548,9 @@
           scale(var(--wheel-scale, 1));
         opacity: var(--wheel-opacity, 1);
         transition:
-          transform 220ms ease,
-          opacity 220ms ease;
+          transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1),
+          opacity 320ms ease,
+          filter 360ms ease;
         will-change: transform;
         transform-origin: center center;
         -webkit-transform: translateY(var(--stack-swipe-y, 0px))
@@ -1150,18 +2558,49 @@
           translateX(var(--wheel-tx, 0px)) translateZ(var(--wheel-tz, 0px))
           rotateZ(var(--wheel-rz, 0deg)) rotateY(var(--wheel-ry, 0deg))
           scale(var(--wheel-scale, 1));
+        filter: saturate(var(--wheel-sat, 1)) brightness(var(--wheel-bright, 1));
+      }
+
+      .passCard::before {
+        content: none;
+      }
+
+      .passCard::after {
+        content: "";
+        position: absolute;
+        inset: auto 24px -12px 24px;
+        height: 18px;
+        border-radius: 999px;
+        background: radial-gradient(ellipse at center, rgba(41, 29, 21, 0.12), rgba(41, 29, 21, 0) 72%);
+        opacity: 0.46;
+        pointer-events: none;
+        filter: blur(9px);
       }
 
       /* Physical edge shading (paper feel) */
       .passFlip {
-        border-radius: 0;
-        border: 1px solid var(--pass-border, var(--border));
+        border-radius: 32px;
+        width: 100%;
+        height: 100%;
+        min-height: 0 !important;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--pass-border, var(--border)) 88%,
+            rgba(255, 255, 255, 0.18) 12%
+          );
         overflow: hidden;
         isolation: isolate;
         background-color: var(--pass-bg, var(--brand-50));
-        background-image: none;
+        background-image:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.26) 36%, rgba(255, 255, 255, 0.06) 100%),
+          linear-gradient(0deg, rgba(112, 84, 61, 0.018), rgba(112, 84, 61, 0.018));
         color: var(--pass-ink, var(--brand-700));
         background-clip: padding-box;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.9) inset,
+          0 -1px 0 rgba(54, 36, 22, 0.03) inset,
+          0 0 0 1px rgba(255, 248, 239, 0.62) inset;
       }
 
       .passFlip > * {
@@ -1171,20 +2610,33 @@
 
       /* Physical edge shading (paper feel) */
       .passFlip::before {
-        content: none;
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 14% 20%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 18%),
+          linear-gradient(180deg, rgba(68, 46, 28, 0.018), rgba(68, 46, 28, 0) 30%),
+          repeating-linear-gradient(
+            -12deg,
+            rgba(112, 84, 61, 0.018) 0 1px,
+            rgba(255, 255, 255, 0) 1px 8px
+          );
+        z-index: 0;
+        pointer-events: none;
       }
 
-      /* Built-in card templates (selected by cafés) */
+      /* Built-in card templates (selected by cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©s) */
       .passCard[data-pass-theme="paper"] {
-        --pass-bg: var(--brand-50);
-        --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.14);
-        --pass-stamp-ring: rgba(32, 24, 20, 0.18);
-        --stamp-seam: var(--surface);
-        --pass-badge-bg: rgba(255, 255, 255, 0.55);
-        --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.26);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-bg: #fffdf8;
+        --pass-ink: #171412;
+        --pass-border: rgba(23, 20, 18, 0.14);
+        --pass-stamp-ring: rgba(23, 20, 18, 0.2);
+        --stamp-seam: #fffdf8;
+        --pass-badge-bg: rgba(23, 20, 18, 0.05);
+        --pass-badge-ink: #171412;
+        --pass-hi: rgba(255, 255, 255, 0.76);
+        --pass-lo: rgba(0, 0, 0, 0.04);
+        --pass-rule: rgba(23, 20, 18, 0.12);
       }
 
       .passCard[data-pass-theme="paper"] .passFlip::before {
@@ -1192,20 +2644,22 @@
       }
 
       .passCard[data-pass-theme="paper"] .passFlip::after {
-        opacity: 0.22;
+        opacity: 0.1;
+        background-size: 62% auto, auto, auto, auto;
+        background-position: center 56%, center, center, center;
       }
 
       .passCard[data-pass-theme="clean"] {
-        /* Fully opaque + readable on the black app background */
         --pass-bg: #ffffff;
-        --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.14);
-        --pass-stamp-ring: rgba(32, 24, 20, 0.16);
-        --stamp-seam: var(--surface);
-        --pass-badge-bg: var(--brand-50);
-        --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.18);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-ink: #131313;
+        --pass-border: rgba(19, 19, 19, 0.12);
+        --pass-stamp-ring: rgba(19, 19, 19, 0.18);
+        --stamp-seam: #ffffff;
+        --pass-badge-bg: rgba(19, 19, 19, 0.04);
+        --pass-badge-ink: #131313;
+        --pass-hi: rgba(255, 255, 255, 0.84);
+        --pass-lo: rgba(0, 0, 0, 0.04);
+        --pass-rule: rgba(19, 19, 19, 0.1);
       }
 
       .passCard[data-pass-theme="ink"] {
@@ -1220,7 +2674,7 @@
         --pass-lo: rgba(0, 0, 0, 0.18);
       }
 
-      /* Extra themes (café selectable) */
+      /* Extra themes (cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© selectable) */
       .passCard[data-pass-theme="brand"] {
         --pass-bg: var(--brand);
         --pass-ink: #ffffff;
@@ -1234,33 +2688,40 @@
       }
 
       .passCard[data-pass-theme="latte"] {
-        --pass-bg: var(--brand-50);
-        --pass-ink: var(--brand-700);
-        --pass-border: rgba(32, 24, 20, 0.18);
-        --pass-stamp-ring: rgba(32, 24, 20, 0.16);
-        --stamp-seam: var(--surface);
-        --pass-badge-bg: rgba(255, 255, 255, 0.65);
-        --pass-badge-ink: var(--brand-700);
-        --pass-hi: rgba(255, 255, 255, 0.28);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-bg: #fbf6ef;
+        --pass-ink: #211a15;
+        --pass-border: rgba(33, 26, 21, 0.14);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.18);
+        --stamp-seam: #fbf6ef;
+        --pass-badge-bg: rgba(33, 26, 21, 0.05);
+        --pass-badge-ink: #211a15;
+        --pass-hi: rgba(255, 255, 255, 0.7);
+        --pass-lo: rgba(0, 0, 0, 0.04);
       }
 
       .passCard[data-pass-theme="mono"] {
-        --pass-bg: rgba(255, 255, 255, 0.92);
+        --pass-bg: #fffefe;
         --pass-ink: rgba(0, 0, 0, 0.86);
         --pass-border: rgba(0, 0, 0, 0.12);
         --pass-stamp-ring: rgba(0, 0, 0, 0.14);
-        --stamp-seam: var(--surface);
+        --stamp-seam: #fffefe;
         --pass-badge-bg: rgba(0, 0, 0, 0.06);
         --pass-badge-ink: rgba(0, 0, 0, 0.86);
-        --pass-hi: rgba(255, 255, 255, 0.12);
-        --pass-lo: rgba(0, 0, 0, 0.08);
+        --pass-hi: rgba(255, 255, 255, 0.78);
+        --pass-lo: rgba(0, 0, 0, 0.06);
       }
 
       .passCard .badge {
         border-color: var(--pass-border, var(--border));
-        background: var(--pass-badge-bg, var(--surface-muted));
+        background: transparent;
         color: var(--pass-badge-ink, var(--text));
+        border-radius: 4px;
+        border-style: dashed;
+        padding: 6px 10px 5px;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        box-shadow: none;
       }
 
       /* Paper/ink texture (iOS friendly; uses theme variables only) */
@@ -1271,12 +2732,21 @@
         z-index: 0;
         pointer-events: none;
         border-radius: inherit;
-        opacity: 0.16;
-        background-image: var(--pass-card-bg, none);
-        background-size: cover;
-        background-position: center;
+        opacity: 0.2;
+        background-image:
+          var(--pass-card-bg, none),
+          radial-gradient(circle at 18% 82%, rgba(120, 86, 58, 0.06), rgba(120, 86, 58, 0) 22%),
+          radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 20%),
+          repeating-linear-gradient(
+            90deg,
+            rgba(102, 72, 48, 0.02) 0 1px,
+            rgba(255, 255, 255, 0) 1px 5px
+          );
+        background-size: cover, auto, auto, auto;
+        background-position: center, center, center, center;
         background-repeat: no-repeat;
-        filter: none;
+        filter: saturate(0.96) contrast(1.01);
+        mix-blend-mode: multiply;
       }
 
       .passCard[data-pass-theme="clean"] .passFlip::after {
@@ -1297,7 +2767,7 @@
         -webkit-transform-style: preserve-3d;
         transform: rotateY(0deg);
         -webkit-transform: rotateY(0deg);
-        transition: transform 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 620ms cubic-bezier(0.2, 0.9, 0.2, 1);
         will-change: transform;
       }
 
@@ -1309,6 +2779,10 @@
       .passMain,
       .passQr {
         grid-area: 1 / 1;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        box-sizing: border-box;
       }
 
       .passMain,
@@ -1316,6 +2790,16 @@
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+        transition:
+          opacity 180ms ease,
+          visibility 180ms ease;
+      }
+
+      .passMain *,
+      .passQr * {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
       }
 
       .passMain {
@@ -1324,40 +2808,55 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: var(--space-4);
+        padding: 22px 24px 28px;
         min-height: 44px;
         cursor: pointer;
         touch-action: pan-x;
         transform: rotateY(0deg) translateZ(1px);
         position: relative;
         z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        isolation: isolate;
+      }
+
+      .passMain::before {
+        content: none;
       }
 
       .passHead {
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3);
-      }
-
-      .passRight {
-        display: flex;
         align-items: center;
-        gap: 10px;
-        flex: 0 0 auto;
+        justify-content: center;
+        gap: 0;
+        text-align: center;
       }
 
-      .passLogoWrap {
-        width: 30px;
-        height: 30px;
-        border-radius: 0;
-        border: 1px solid var(--pass-border, var(--border));
-        background: var(--pass-badge-bg, var(--surface-muted));
+      .passBrandLockup {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 3px;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .passTitleBlock {
+        min-width: 0;
+      }
+
+      .passLogoWrap {
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        border: 1px solid var(--pass-border, var(--border));
+        background: rgba(255, 255, 255, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
         flex: 0 0 auto;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
       }
 
       .passLogo {
@@ -1370,75 +2869,351 @@
         object-position: center;
       }
 
+      .passLogoInitial {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        color: var(--pass-ink, var(--brand-700));
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .passBackMeta {
+        position: relative;
+        margin-bottom: 0;
+        min-width: 0;
+        padding-right: 52px;
+      }
+
+      .passBackClose {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        z-index: 5;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(44, 31, 22, 0.08);
+        border-radius: 14px;
+        background: rgba(44, 31, 22, 0.96);
+        color: #f7efe6;
+        font-size: 0;
+        box-shadow:
+          0 10px 18px rgba(41, 29, 21, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.08) inset;
+        cursor: pointer;
+      }
+
+      .passBackClose::before {
+        content: "\00d7";
+        color: inherit;
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1;
+        transform: translateY(-1px);
+      }
+
       .passTitle {
         margin: 0;
-        font-size: 16px;
-        font-weight: 950;
+        font-size: 24px;
+        font-weight: 600;
         color: var(--pass-ink, var(--brand-700));
-        line-height: 1.15;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        line-height: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 100%;
+        font-family: var(--font-display);
       }
 
       .passSub {
         margin-top: 6px;
-        font-size: 12px;
-        font-weight: 700;
+        font-size: 11px;
+        font-weight: 800;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.78;
+        opacity: 0.62;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 100%;
+        font-family: var(--font-mono);
+      }
+
+      .passEyebrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        margin-bottom: 14px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.78;
+        font-family: var(--font-mono);
+      }
+
+      .passEyebrow::before {
+        content: none;
       }
 
       .passHint {
-        margin-top: 8px;
-        font-size: 12px;
+        display: none;
+      }
+
+      .passStampField {
+        position: relative;
+        width: min(100%, 392px);
+        margin: 0 auto;
+        padding: 12px 44px 10px 0;
+        background: transparent;
+      }
+
+      .passStampGuide {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+      }
+
+      .passStampLead {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        opacity: 0.7;
+        white-space: nowrap;
+      }
+
+      .passStampNeed {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-align: right;
+        opacity: 0.86;
+      }
+
+      .passStampField::before,
+      .passStampField::after {
+        content: none;
+      }
+
+      .passRewardNote {
+        position: absolute;
+        right: 0;
+        bottom: 8px;
+        width: 46px;
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.78;
+      }
+
+      .passInfoBlock {
+        display: grid;
+        gap: 12px;
+        width: min(100%, 392px);
+        margin: 2px auto 0;
+      }
+
+      .passCardNote {
+        font-size: 11px;
+        line-height: 1.45;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.72;
-        font-weight: 750;
-        letter-spacing: 0.02em;
+        white-space: pre-wrap;
+        text-align: left;
+      }
+
+      .passLinkRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .passInfoLink {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 11px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--pass-border, var(--border)) 76%, rgba(255, 255, 255, 0.24) 24%);
+        background: rgba(255, 252, 248, 0.58);
+        color: var(--pass-ink, var(--brand-700));
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-decoration: none;
+        font-family: var(--font-mono);
+      }
+
+      .passInfoLink:hover {
+        background: rgba(255, 252, 248, 0.74);
+      }
+
+      .passMetaRow,
+      .passProgressText,
+      .passRewardChip,
+      .passRight {
+        display: none;
+      }
+
+      .passMetaRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 2px;
+      }
+
+      .passProgressText {
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.78;
+        flex: 1 1 170px;
+        font-family: var(--font-mono);
+      }
+
+      .passProgressText strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 900;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .passRewardChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px 6px;
+        border-radius: 4px;
+        border: 1px dashed var(--pass-border, var(--border));
+        background: rgba(255, 250, 244, 0.16);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        white-space: nowrap;
+        font-family: var(--font-mono);
+        transform: rotate(-1.5deg);
+      }
+
+      .passRewardChip::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.7;
+      }
+
+      .passFooter {
+        margin-top: auto;
+        padding-top: 14px;
+        padding-bottom: 6px;
+        border-top: 1px solid
+          color-mix(in srgb, var(--pass-rule, var(--pass-border, var(--border))) 90%, rgba(255, 255, 255, 0.1) 10%);
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.72;
+        font-family: var(--font-mono);
+      }
+
+      .passFooterMeta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .passFooterMeta span {
+        white-space: nowrap;
+      }
+
+      .passSerial {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .passFooterVisit {
+        text-align: right;
+        white-space: normal;
+      }
+
+      .passCountLine {
+        opacity: 0.64;
+        font-size: 9px;
       }
 
       .passQr {
+        opacity: 0;
+        visibility: hidden;
         border-top: 1px solid var(--pass-border, var(--border));
-        background: transparent;
-        padding: var(--space-4);
-        transform: rotateY(180deg) translateZ(1px);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9)),
+          var(--pass-bg, var(--surface));
+        padding: 22px;
+        transform: rotateY(180deg) translateZ(2px);
+        -webkit-transform: rotateY(180deg) translateZ(2px);
         pointer-events: none;
         touch-action: pan-x;
 
         /* Keep as grid item so it contributes to height (prevents clipping). */
         position: relative;
         z-index: 2;
-      }
-
-      /* Prevent iOS/Safari backface bleed-through: only show QR on the backside */
-      .passMain,
-      .passQr {
-        transition: opacity 120ms ease;
-      }
-
-      .passQr {
-        opacity: 0;
-        visibility: hidden;
+        isolation: isolate;
       }
 
       .passCard.open .passMain {
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
       }
 
       .passCard.open .passQr {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
       }
 
-      /* Fallback for environments where 3D/backface causes invisible faces.
-         When active, we skip the 3D flip and explicitly show the backside. */
+      /* Stable fallback: explicitly show the backside without relying on 3D backface behavior.
+         This avoids mirrored text / mirrored front bleed-through on some mobile browsers. */
       .passCard.forceBack .passFlip {
         transform: none !important;
         -webkit-transform: none !important;
@@ -1456,24 +3231,13 @@
         pointer-events: auto !important;
       }
 
-      .passCard.open .passMain {
-        pointer-events: none;
-      }
-
-      .passCard.open .passQr {
-        pointer-events: auto;
-      }
-
       /* Backside layout: keep QR visually centered on the card */
       .passQr {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .passBackMeta {
-        margin-bottom: var(--space-2);
-        min-width: 0;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+        border-radius: inherit;
       }
 
       .passBackTitle {
@@ -1498,16 +3262,31 @@
       }
 
       .passBackText {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 750;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.82;
-        margin-bottom: var(--space-3);
+        margin-bottom: 0;
         white-space: pre-wrap;
-        line-height: 1.35;
+        line-height: 1.3;
       }
 
-      /* Mobile: reduce card height a bit so it fits below the large top bar */
+      .passBackNote {
+        display: none;
+      }
+
+      .passQrCaption {
+        margin-top: 0;
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.35;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.62;
+      }
+
+      /* Mobile: keep the card taller so the 10 stamp slots stay fully visible. */
       @media (max-width: 420px) {
         .walletDock {
           padding: var(--space-3);
@@ -1522,13 +3301,61 @@
           --cardW: min(360px, calc(100% - 18px));
         }
 
+        .walletCarousel.isCarousel {
+          --cardW: min(336px, 84vw);
+          gap: 12px;
+        }
+
+        .walletCarousel.isSnap {
+          --cardW: min(344px, calc(100% - 20px));
+          max-height: min(74svh, 720px);
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.08;
+        }
+
         .passMain,
         .passQr {
-          padding: var(--space-3);
+          padding: 16px 16px 14px;
         }
 
         .passTitle {
-          font-size: 15px;
+          font-size: 17px;
+        }
+
+        .passEyebrow {
+          margin-bottom: 10px;
+          font-size: 10px;
+        }
+
+        .passSub {
+          margin-top: 4px;
+          font-size: 10px;
+          letter-spacing: 0.18em;
+        }
+
+        .passStampField {
+          width: min(100%, 304px);
+          padding: 8px 32px 8px 0;
+        }
+
+        .passStampGuide {
+          margin-bottom: 6px;
+          gap: 8px;
+        }
+
+        .passStampLead,
+        .passStampNeed {
+          font-size: 9px;
+          letter-spacing: 0.1em;
+        }
+
+        .passRewardNote {
+          bottom: 6px;
+          width: 28px;
+          font-size: 9px;
+          line-height: 1.05;
         }
 
         .passHint {
@@ -1536,17 +3363,28 @@
         }
 
         .passCard .stampGrid {
-          gap: 8px;
+          gap: 6px 8px;
           padding: 0;
           border-radius: 0;
         }
 
         .passCard .stamp {
-          border-radius: 0;
+          border-radius: 999px;
+        }
+
+        .passFooter {
+          padding-top: 8px;
+          font-size: 8px;
+          letter-spacing: 0.1em;
+        }
+
+        .passCountLine {
+          font-size: 8px;
         }
 
         .passQrBox {
-          max-width: 320px;
+          min-height: 0;
+          max-width: 196px;
           padding: var(--space-3);
         }
       }
@@ -1573,35 +3411,85 @@
         }
 
         .walletCarousel {
-          /* Tie card width to viewport height as well (Safari URL bar steals vertical space). */
-          --cardW: min(300px, 82vw, 38svh);
+          --cardW: min(324px, 88vw);
           padding: 10px 0;
         }
 
         .walletCarousel.isStack {
-          --cardW: min(320px, calc(100% - 26px), 38svh);
+          --cardW: min(338px, calc(100% - 18px));
+        }
+
+        .walletCarousel.isCarousel {
+          --cardW: min(318px, 84vw);
+          gap: 10px;
+          padding: 10px 12px 16px;
+        }
+
+        .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -34px;
+        }
+
+        .walletCarousel.isSnap {
+          --cardW: min(322px, calc(100% - 14px));
+          gap: 14px;
+          padding: 8px 0 22px;
+          max-height: min(72svh, 680px);
         }
 
         /* iOS: size by available width so the card feels like Wallet */
         .ios .walletCarousel {
-          --cardW: min(calc(100% - 18px), 94vw);
+          --cardW: min(calc(100% - 14px), 96vw);
         }
 
         .ios .walletCarousel.isStack {
-          --cardW: min(calc(100% - 14px), 96vw);
+          --cardW: min(calc(100% - 10px), 98vw);
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.08;
         }
 
         .passMain,
         .passQr {
-          padding: var(--space-2);
+          padding: 15px 15px 16px;
         }
 
         .passTitle {
-          font-size: 14px;
+          font-size: 16px;
+        }
+
+        .passEyebrow {
+          margin-bottom: 8px;
+          font-size: 10px;
         }
 
         .passSub {
-          margin-top: 4px;
+          margin-top: 3px;
+          font-size: 10px;
+          letter-spacing: 0.16em;
+        }
+
+        .passStampField {
+          width: min(100%, 292px);
+          padding: 8px 30px 8px 0;
+        }
+
+        .passStampGuide {
+          margin-bottom: 5px;
+          gap: 6px;
+        }
+
+        .passStampLead,
+        .passStampNeed {
+          font-size: 8px;
+          letter-spacing: 0.09em;
+        }
+
+        .passRewardNote {
+          bottom: 6px;
+          width: 26px;
+          font-size: 8px;
+          line-height: 1.05;
         }
 
         .passHint {
@@ -1610,51 +3498,95 @@
         }
 
         .passCard .stampGrid {
-          gap: 6px;
+          gap: 5px 7px;
           padding: 0;
           border-radius: 0;
         }
 
         .passCard .stamp {
-          border-radius: 0;
+          border-radius: 999px;
           border-width: 1.5px;
+        }
+
+        .passFooter {
+          gap: 6px;
+          padding-top: 9px;
+          padding-bottom: 2px;
+          font-size: 8px;
+          letter-spacing: 0.09em;
+        }
+
+        .passCountLine {
+          font-size: 8px;
+        }
+
+        .passBackText,
+        .passQrCaption {
+          font-size: 10px;
+          line-height: 1.25;
         }
       }
 
       /* Very short viewports: tighten one more notch (browser chrome visible). */
       @media (max-width: 520px) and (max-height: 760px) {
         .walletCarousel {
-          --cardW: min(285px, 78vw, 36svh);
+          --cardW: min(306px, 84vw);
         }
 
         .walletCarousel.isStack {
-          --cardW: min(305px, calc(100% - 28px), 36svh);
+          --cardW: min(320px, calc(100% - 22px));
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.02;
+        }
+
+        .walletCarousel.isCarousel {
+          --cardW: min(300px, 82vw);
+        }
+
+        .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -28px;
+        }
+
+        .walletCarousel.isSnap {
+          --cardW: min(304px, calc(100% - 18px));
+          max-height: min(68svh, 620px);
         }
 
         .ios .walletCarousel {
-          --cardW: min(calc(100% - 26px), 92vw);
+          --cardW: min(calc(100% - 18px), 94vw);
         }
 
         .ios .walletCarousel.isStack {
-          --cardW: min(calc(100% - 22px), 94vw);
+          --cardW: min(calc(100% - 14px), 96vw);
+        }
+
+        .passCard {
+          --pass-card-ratio: 1.04;
         }
       }
 
       .passQrBox {
-        display: grid;
-        place-items: center;
-        width: 100%;
-        min-height: 180px;
-        max-width: 340px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(100%, 220px);
+        min-height: 0;
+        max-width: 220px;
         margin: 0 auto;
         border-radius: 0;
         border: 1px dashed var(--pass-border, var(--border));
-        background: transparent;
-        padding: var(--space-4);
+        background: rgba(255, 255, 255, 0.82);
+        padding: 8px;
         cursor: pointer;
         touch-action: manipulation;
         flex: 0 0 auto;
+        align-self: center;
+        justify-self: center;
         position: relative;
+        line-height: 0;
+        overflow: hidden;
       }
 
       /* Robust placeholder/error rendering: stays visible even if innerHTML is cleared
@@ -1689,15 +3621,14 @@
         opacity: 0.95;
       }
 
-      /* Only force a square QR area when the back is actually shown.
-         Otherwise it would also force the *closed* card to become square
-         because both sides contribute to layout size. */
-      .passCard.open .passQrBox {
-        aspect-ratio: 1 / 1;
+      /* Keep the QR itself square, but never let the card container jump to a square shape. */
+      .passCard.open .passQrBox,
+      .passCard.forceBack .passQrBox {
+        aspect-ratio: auto;
       }
 
       .ios .passCard.isSwapping {
-        animation: iosPassSwap 320ms ease-in-out;
+        animation: iosPassSwap 460ms cubic-bezier(0.18, 0.88, 0.22, 1);
       }
 
       @keyframes iosPassSwap {
@@ -1711,10 +3642,10 @@
             rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
         }
         45% {
-          opacity: 0.72;
-          filter: blur(0.6px);
+          opacity: 0.82;
+          filter: blur(0.35px);
           transform: translateY(var(--stack-swipe-y, 0px))
-            translateY(var(--stack-y, 0px)) translateX(-10px)
+            translateY(var(--stack-y, 0px)) translateX(-6px)
             rotateX(var(--wheel-rx, 6deg)) translateX(var(--wheel-tx, 0px))
             translateZ(var(--wheel-tz, 0px)) rotateZ(var(--wheel-rz, 0deg))
             rotateY(var(--wheel-ry, 0deg)) scale(var(--wheel-scale, 1));
@@ -1737,30 +3668,33 @@
       }
 
       .passQr canvas {
-        width: min(260px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 260px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
+        margin: auto;
       }
 
       .passQr img {
-        width: min(260px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 260px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
+        margin: auto;
       }
 
       .passQr svg {
-        width: min(260px, 100%);
+        width: min(136px, 100%);
         height: auto;
-        max-width: 260px;
+        max-width: 136px;
         aspect-ratio: 1 / 1;
         display: block;
+        margin: auto;
       }
 
-      /* Café detail modal ("Fenster") */
+      /* CafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© detail modal ("Fenster") */
       .modalBackdrop {
         position: fixed;
         inset: 0;
@@ -1771,23 +3705,52 @@
           calc(18px + var(--safe-right, 0px))
           calc(18px + var(--safe-bottom, 0px))
           calc(18px + var(--safe-left, 0px));
-        background: rgba(0, 0, 0, 0.28);
-        backdrop-filter: blur(10px);
+        background:
+          linear-gradient(rgba(87, 62, 39, 0.16), rgba(87, 62, 39, 0.16)),
+          rgba(255, 249, 241, 0.84);
         z-index: 9999;
       }
 
       .modal {
-        width: min(720px, 96vw);
-        border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        box-shadow: var(--shadow-lg);
+        position: relative;
+        width: min(620px, 96vw);
+        border-radius: 30px;
+        border: 1px solid rgba(133, 102, 73, 0.18);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 251, 245, 0.98),
+            rgba(250, 243, 233, 0.985)
+          );
+        box-shadow:
+          0 28px 68px rgba(53, 35, 23, 0.18),
+          0 10px 22px rgba(53, 35, 23, 0.08);
         overflow: hidden;
-        transform: translateY(10px) scale(0.98);
+        transform: translateY(16px) scale(0.985);
         opacity: 0;
         transition:
-          transform 180ms ease,
-          opacity 180ms ease;
+          transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          opacity 180ms ease,
+          box-shadow 220ms ease;
+      }
+
+      .modal::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.42),
+            rgba(255, 255, 255, 0) 38%
+          ),
+          repeating-linear-gradient(
+            -11deg,
+            rgba(126, 96, 70, 0.028) 0 2px,
+            transparent 2px 12px
+          );
+        opacity: 0.7;
+        pointer-events: none;
       }
 
       .modalBackdrop.open .modal {
@@ -1797,91 +3760,170 @@
 
       .modalHero {
         position: relative;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        padding: var(--space-5);
+        padding: 26px 26px 18px;
+      }
+
+      .modalHero::after {
+        content: "";
+        display: block;
+        margin-top: 18px;
+        border-bottom: 1px solid rgba(119, 91, 65, 0.14);
       }
 
       .modalHeroRow {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: var(--space-3);
+        gap: 16px;
+      }
+
+      .modalIdentity {
+        min-width: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .modalLogo {
+        width: 54px;
+        height: 54px;
+        flex: 0 0 54px;
+        display: none;
+        place-items: center;
+        border-radius: 18px;
+        border: 1px solid rgba(133, 102, 73, 0.16);
+        background: rgba(255, 252, 247, 0.92);
+        box-shadow: 0 10px 18px rgba(66, 44, 28, 0.08);
+        overflow: hidden;
+      }
+
+      .modalLogo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .modalKicker {
+        margin: 0 0 8px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(109, 83, 60, 0.68);
       }
 
       .modalTitle {
         margin: 0;
-        font-weight: 950;
-        font-size: 18px;
-        line-height: 1.1;
+        font-weight: 900;
+        font-size: clamp(28px, 4.2vw, 38px);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+        color: #2f2218;
       }
 
       .modalAddr {
-        margin-top: 6px;
+        margin-top: 10px;
+        max-width: 38ch;
+        font-size: 13px;
+        line-height: 1.45;
+        color: rgba(82, 61, 44, 0.78);
+      }
+
+      .modalMetaRow {
+        display: none;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .modalMetaPill,
+      .modalStatusPill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
         font-size: 12px;
-        color: var(--text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-weight: 800;
+        letter-spacing: 0.03em;
         white-space: nowrap;
       }
 
+      .modalMetaPill {
+        border: 1px dashed rgba(128, 98, 70, 0.24);
+        color: rgba(92, 68, 48, 0.82);
+        background: rgba(255, 252, 247, 0.7);
+      }
+
+      .modalStatusPill {
+        border: 1px solid rgba(108, 80, 57, 0.14);
+        color: rgba(73, 53, 37, 0.92);
+        background: rgba(245, 234, 219, 0.86);
+      }
+
       .modalImage {
-        margin-top: var(--space-4);
+        margin-top: 18px;
         display: grid;
         place-items: center;
-        border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border-radius: 22px;
+        border: 1px solid rgba(129, 100, 73, 0.14);
+        background: rgba(255, 252, 247, 0.84);
         overflow: hidden;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
 
       .modalGallery {
         display: none;
-        gap: var(--space-2);
+        gap: 10px;
         overflow-x: auto;
-        padding-top: var(--space-3);
+        padding-top: 14px;
         -webkit-overflow-scrolling: touch;
       }
 
       .modalThumb {
         width: 92px;
         height: 64px;
-        border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid rgba(132, 102, 74, 0.14);
+        background: rgba(255, 252, 247, 0.85);
         object-fit: cover;
         flex: 0 0 auto;
         cursor: pointer;
+        box-shadow: 0 8px 18px rgba(66, 44, 28, 0.08);
       }
 
       .modalImage img {
         width: 100%;
-        height: 220px;
+        height: 228px;
         object-fit: cover;
         display: block;
       }
 
       @media (min-width: 860px) {
         .modalImage img {
-          height: 260px;
+          height: 272px;
         }
       }
 
       .modalBody {
-        padding: var(--space-5);
+        position: relative;
+        padding: 0 26px 26px;
         display: flex;
         flex-direction: column;
-        gap: var(--space-4);
+        gap: 18px;
       }
 
       .modalAbout {
-        border-radius: 0;
-        border: 1px solid var(--border);
-        background: var(--surface-muted);
-        padding: 12px 14px;
-        font-size: 13px;
-        line-height: 1.45;
-        color: var(--text);
+        border-radius: 20px;
+        border: 1px dashed rgba(128, 98, 71, 0.22);
+        background: rgba(255, 253, 249, 0.62);
+        padding: 16px 18px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: rgba(56, 39, 26, 0.88);
+        white-space: pre-line;
       }
 
       .rt-h1 {
@@ -1907,19 +3949,718 @@
 
       .modalActions {
         display: flex;
-        gap: var(--space-2);
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .modalLinkRow {
+        display: none;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .modalLinkPill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(128, 98, 70, 0.16);
+        background: rgba(255, 252, 247, 0.9);
+        color: rgba(92, 68, 48, 0.9);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+        box-shadow: 0 8px 16px rgba(69, 45, 29, 0.05);
+      }
+
+      .modalLinkPill:hover {
+        background: rgba(255, 252, 247, 0.98);
       }
 
       .modalActions button {
         flex: 1;
+        min-width: 0;
+      }
+
+      .qrSheetBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(21, 14, 10, 0.28);
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        z-index: 60;
+      }
+
+      .qrSheetBackdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .qrSheet {
+        position: fixed;
+        left: 50%;
+        bottom: max(10px, env(safe-area-inset-bottom, 0px));
+        transform: translate(-50%, 24px);
+        width: min(500px, calc(100vw - 10px));
+        border-radius: 34px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 252, 248, 0.97);
+        box-shadow:
+          0 32px 58px rgba(41, 29, 21, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          opacity 220ms ease;
+        z-index: 61;
+      }
+
+      .qrSheet.open {
+        transform: translate(-50%, 0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .qrSheetInner {
+        padding: 16px 16px calc(22px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .qrSheetHandle {
+        width: 42px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(48, 34, 24, 0.16);
+        margin: 0 auto 2px;
+      }
+
+      .qrSheetHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .qrSheetTitle {
+        font-size: 24px;
+        font-weight: 950;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: #241710;
+      }
+
+      .qrSheetMeta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .qrSheetSub,
+      .qrSheetHint {
+        font-size: 13px;
+        line-height: 1.45;
+        color: rgba(59, 42, 31, 0.72);
+      }
+
+      .qrSheetClose {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none !important;
+        border-radius: 14px;
+        background: rgba(255, 251, 246, 0.96) !important;
+        border: 1px solid rgba(129, 96, 69, 0.12) !important;
+        box-shadow:
+          0 8px 18px rgba(68, 41, 22, 0.05),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset !important;
+        color: #9a6c4a !important;
+        font-size: 0;
+        line-height: 1;
+      }
+
+      .qrSheetClose::before {
+        content: "\00d7";
+        display: block;
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1;
+        transform: translateY(-1px);
+      }
+
+      .qrSheetClose::before {
+        content: "\00d7" !important;
+      }
+
+      .qrSheetBox {
+        min-height: 360px;
+        border-radius: 30px;
+        border: 1px dashed rgba(32, 24, 20, 0.16);
+        background: rgba(255, 255, 255, 0.84);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .qrSheetBox svg,
+      .qrSheetBox img,
+      .qrSheetBox canvas {
+        display: block;
+        width: min(352px, 100%);
+        height: auto;
+        max-width: 352px;
+        margin: 0 auto;
+      }
+
+      .walletOverlayBackdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: rgba(21, 14, 10, 0.42);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        z-index: 50;
+      }
+
+      .walletOverlayBackdrop.open {
+        display: block;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .walletOverlay {
+        position: fixed;
+        display: none;
+        inset:
+          calc(26px + var(--safe-top, 0px))
+          calc(18px + var(--safe-right, 0px))
+          calc(108px + var(--safe-bottom, 0px))
+          calc(18px + var(--safe-left, 0px));
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(18px) scale(0.985);
+        transition:
+          opacity 240ms ease,
+          transform 280ms cubic-bezier(0.2, 0.9, 0.2, 1);
+        z-index: 51;
+      }
+
+      .walletOverlay.open {
+        display: flex;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+
+      .walletOverlayInner {
+        width: min(396px, calc(100vw - 36px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        max-height: min(690px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 160px));
+        min-height: min(560px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 192px));
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .walletOverlayInner::before {
+        content: none;
+      }
+
+      .walletOverlayInner::after {
+        content: none;
+      }
+
+      .walletOverlay .walletDock {
+        width: 100% !important;
+        min-height: auto;
+        height: 100%;
+        margin: 0;
+        padding: 68px 14px 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 252, 247, 0.985), rgba(247, 238, 228, 0.975)),
+          repeating-linear-gradient(
+            -11deg,
+            rgba(124, 92, 64, 0.02) 0,
+            rgba(124, 92, 64, 0.02) 2px,
+            rgba(255, 255, 255, 0) 2px,
+            rgba(255, 255, 255, 0) 12px
+          );
+        border: 1px solid rgba(81, 58, 40, 0.1);
+        border-radius: 34px;
+        box-shadow:
+          0 34px 58px rgba(47, 31, 22, 0.17),
+          0 10px 20px rgba(47, 31, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset,
+          0 -1px 0 rgba(131, 96, 68, 0.05) inset;
+        backdrop-filter: none;
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+      }
+
+      .walletOverlay .walletDock::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 96px;
+        border-radius: 34px 34px 0 0;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0) 62%),
+          linear-gradient(180deg, rgba(118, 82, 54, 0.1), rgba(118, 82, 54, 0) 78%);
+        opacity: 0.96;
+        pointer-events: none;
+      }
+
+      .walletOverlay .walletDock::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        width: 116px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(95, 67, 46, 0.16);
+        pointer-events: none;
+      }
+
+      .walletOverlay .walletDockHead {
+        position: relative;
+        text-align: center;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 2px;
+      }
+
+      .walletOverlayClose {
+        position: absolute;
+        top: -46px;
+        right: 0;
+        border: 1px solid rgba(81, 58, 40, 0.14);
+        background: rgba(255, 252, 247, 0.98);
+        color: #8f6547;
+        border-radius: 999px;
+        min-height: 38px;
+        padding: 0 14px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        box-shadow: 0 10px 22px rgba(41, 29, 21, 0.14);
+        cursor: pointer;
+        z-index: 3;
+      }
+
+      .walletOverlay .walletDockHead::before {
+        content: "Wallet";
+        display: block;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(82, 59, 41, 0.42);
+      }
+
+      .walletOverlay .walletDockHead::after {
+        content: "";
+        display: block;
+        width: 54px;
+        height: 1px;
+        margin: 4px auto 0;
+        background: rgba(102, 73, 50, 0.18);
+      }
+
+      .walletOverlay .walletDockHead h3 {
+        font-size: 27px;
+        font-weight: 950;
+        letter-spacing: -0.045em;
+        color: #241710;
+        box-shadow: none !important;
+      }
+
+      .walletOverlay .walletDockHead .hint,
+      .walletOverlay #walletEmpty {
+        max-width: 278px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+        color: rgba(59, 42, 31, 0.66);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .walletOverlay #walletEmpty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 280px;
+        padding: 18px 0 10px;
+      }
+
+      .walletEmptyLead {
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #241710;
+      }
+
+      .walletEmptyBody {
+        max-width: 26ch;
+      }
+
+      .walletOverlay .walletCarousel {
+        padding-top: 10px;
+        padding-bottom: 18px;
+      }
+
+      .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
+        margin-left: -44px;
+      }
+
+      html.walletMode #screenPager {
+        opacity: 0.08;
+        pointer-events: none;
+        filter: blur(6px);
+        transform: scale(0.992);
+        transition:
+          opacity 180ms ease,
+          filter 220ms ease,
+          transform 220ms ease;
+      }
+
+      html.walletMode #mainPanel {
+        overflow: hidden;
+      }
+
+      @media (min-width: 860px) {
+        .walletOverlay {
+          align-items: flex-start;
+          overflow-y: auto;
+          inset:
+            calc(30px + var(--safe-top, 0px))
+            calc(28px + var(--safe-right, 0px))
+            calc(42px + var(--safe-bottom, 0px))
+            calc(28px + var(--safe-left, 0px));
+        }
+
+        .walletOverlayInner {
+          width: min(980px, calc(100vw - 96px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+          max-height: min(760px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 92px));
+          min-height: min(620px, calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 132px));
+          margin: 0 auto;
+          padding-top: 12px;
+        }
+
+        .walletOverlay .walletDock {
+          padding: 108px 28px 28px;
+          overflow: visible;
+        }
+
+        .walletOverlay .walletDockHead {
+          align-items: flex-end;
+          margin-bottom: 10px;
+        }
+
+        .walletOverlayClose {
+          top: -58px;
+          right: 6px;
+        }
+
+        .walletOverlay .walletDockHead .hint,
+        .walletOverlay #walletEmpty {
+          max-width: 520px;
+        }
+
+        .walletOverlay .walletCarousel {
+          --cardW: min(420px, 42vw, 460px);
+          padding: 24px 22px 22px;
+          gap: 16px;
+        }
+
+        .walletOverlay .walletCarousel.isCarousel .passCard + .passCard {
+          margin-left: -52px;
+        }
+
+        .walletOverlay .passCard.isFocused {
+          transform: scale(1.02);
+        }
+      }
+
+      .walletOverlay .passCard {
+        box-shadow:
+          0 24px 40px rgba(41, 29, 21, 0.16),
+          0 10px 18px rgba(41, 29, 21, 0.08);
+        transition:
+          transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          box-shadow 220ms ease,
+          opacity 180ms ease;
+      }
+
+      .walletOverlay .passCard::after {
+        inset: auto 28px -14px 28px;
+        height: 22px;
+        opacity: 0.52;
+      }
+
+      .walletOverlay .passCard.isFocused {
+        transform: translateY(-10px) scale(1.04);
+        box-shadow:
+          0 30px 52px rgba(41, 29, 21, 0.2),
+          0 12px 22px rgba(41, 29, 21, 0.11);
+        z-index: 5;
+      }
+
+      .walletOverlay .walletCarousel.isCarousel .passCard:not(.isFocused),
+      .walletOverlay .walletCarousel.isStack .passCard:not(.isFocused) {
+        opacity: 0.92;
+      }
+
+      .walletOverlay .passMain,
+      .walletOverlay .passQr {
+        border-radius: 32px;
+      }
+
+      /* Cafe modal: no framed secondary buttons */
+      #cafeModal .btn.secondary {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      #cafeModal .btn.secondary:hover {
+        background: transparent;
+      }
+
+      #cafeModal .btn.secondary:focus-visible {
+        outline: none;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      #cafeModalClose {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(128, 98, 70, 0.16);
+        background: rgba(255, 252, 247, 0.88);
+        color: rgba(92, 68, 48, 0.82);
+        box-shadow: 0 8px 16px rgba(69, 45, 29, 0.06);
+      }
+
+      #cafeModalClose:hover {
+        background: rgba(255, 252, 247, 0.96);
+      }
+
+      #cafeModalAddBtn {
+        min-height: 54px;
+        border-radius: 18px;
+        font-size: 15px;
+      }
+
+      #cafeModalAboutEmpty {
+        padding: 4px 2px 0;
+        color: rgba(95, 71, 51, 0.72);
+      }
+
+      .rewardBalloons {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 120;
+      }
+
+      .rewardBalloon {
+        position: absolute;
+        bottom: -18vh;
+        width: 30px;
+        height: 40px;
+        border-radius: 50% 50% 46% 46%;
+        background: var(--balloon-color, #d7b98e);
+        box-shadow:
+          inset -6px -8px 0 rgba(0, 0, 0, 0.08),
+          inset 4px 6px 0 rgba(255, 255, 255, 0.18);
+        transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+        animation: rewardBalloonFloat 5.4s ease-in forwards;
+      }
+
+      .rewardBalloon::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 10px;
+        height: 10px;
+        background: inherit;
+        transform: translateX(-50%) rotate(45deg);
+        border-radius: 2px;
+      }
+
+      .rewardBalloon::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 2px);
+        width: 1.5px;
+        height: 64px;
+        background: rgba(107, 69, 44, 0.35);
+        transform: translateX(-50%);
+      }
+
+      .rewardBean,
+      .rewardSpark {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .rewardBean {
+        width: 18px;
+        height: 26px;
+        border-radius: 50%;
+        background: #6b452c;
+        box-shadow:
+          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
+        animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
+      }
+
+      .rewardBean::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        border-radius: 999px;
+        background: rgba(242, 230, 215, 0.78);
+        transform: translateX(-50%) rotate(12deg);
+      }
+
+      .rewardSpark {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 246, 187, 1) 0%, rgba(255, 215, 125, 0.95) 38%, rgba(255, 215, 125, 0) 72%);
+        animation: rewardSparkBurst 1.8s ease-out forwards;
+      }
+
+      @keyframes rewardBeanBurst {
+        0% {
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.3);
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--burst-x, 0px), var(--burst-y, -180px), 0)
+            rotate(var(--burst-rot, 0deg))
+            scale(var(--burst-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardSparkBurst {
+        0% {
+          transform: translate3d(0, 0, 0) scale(0.2);
+          opacity: 0;
+        }
+        18% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(calc(var(--burst-x, 0px) * 0.8), calc(var(--burst-y, -160px) * 0.82), 0)
+            scale(calc(var(--burst-scale, 1) * 1.15));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardBalloonFloat {
+        0% {
+          transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--balloon-drift, 0px), -120vh, 0)
+            scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .rewardBalloons {
+          display: none !important;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .modal {
+          width: min(100%, 94vw);
+          border-radius: 26px;
+        }
+
+        .modalHero {
+          padding: 22px 20px 16px;
+        }
+
+        .modalBody {
+          padding: 0 20px 22px;
+        }
+
+        .modalTitle {
+          font-size: 29px;
+        }
+
+        .modalAddr {
+          max-width: none;
+          font-size: 12px;
+        }
+
+        .modalHeroRow {
+          gap: 12px;
+        }
+
+        #cafeModalClose {
+          min-height: 38px;
+          padding: 0 14px;
+          font-size: 13px;
+        }
       }
     </style>
   </head>
   <body>
     <div id="bootOverlay" class="bootOverlay" role="status" aria-live="polite">
       <div class="bootCard">
-        <div class="bootTitle">Lade…</div>
-        <div class="bootSub" id="bootSub">Initialisiere App…</div>
+        <div class="bootTitle">Lade&hellip;</div>
+        <div class="bootSub" id="bootSub">Initialisiere App&hellip;</div>
         <pre class="bootDiag" id="bootDiag" style="display: none"></pre>
       </div>
     </div>
@@ -1932,18 +4673,77 @@
       </div>
     </noscript>
 
+    <div class="qrSheetBackdrop" id="qrSheetBackdrop" aria-hidden="true"></div>
+    <div class="qrSheet" id="qrSheet" aria-hidden="true" aria-label="QR Code">
+      <div class="qrSheetInner">
+        <div class="qrSheetHandle" aria-hidden="true"></div>
+        <div class="qrSheetHead">
+          <div class="qrSheetMeta">
+            <div class="qrSheetTitle" id="qrSheetTitle">Karte</div>
+            <div class="qrSheetSub" id="qrSheetSub">QR wird geladen&hellip;</div>
+          </div>
+          <button
+            class="qrSheetClose"
+            id="qrSheetClose"
+            type="button"
+            aria-label="QR-Fenster schlie&szlig;en"
+          ></button>
+        </div>
+        <div class="qrSheetBox" id="qrSheetBox"></div>
+        <div class="qrSheetHint" id="qrSheetHint">Im Caf&eacute; scannen lassen.</div>
+      </div>
+    </div>
+
     <div class="shell">
       <div class="topbar">
         <div class="brand">
-          <h1>Deine Stempelkarte</h1>
-          <div class="badge muted" id="buildBadge">build</div>
+          <div class="brandHead">
+            <button
+              class="menuToggle"
+              id="menuToggle"
+              type="button"
+              aria-label="Men&uuml; &ouml;ffnen"
+              aria-expanded="false"
+              aria-controls="menuDrawer"
+            >
+              <span class="menuToggleLines"><span></span></span>
+            </button>
+            <a class="kk-brand" href="/wallet">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Kaffeekarte</span>
+              </span>
+            </a>
+          </div>
           <div class="badge muted" id="liveBadge" style="display: none">
             Live
           </div>
         </div>
         <div class="row">
+          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
+            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
+        <button class="utilityMenuBtn" id="utilityMapBtn" type="button">Caf&eacute;s</button>
+        <button class="utilityMenuBtn" id="utilityHistoryBtn" type="button">Verlauf</button>
+        <button class="utilityMenuBtn" id="utilityAccountBtn" type="button">Konto</button>
+        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Logout</button>
+      </div>
+
+      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
+      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
+        <div class="menuDrawerHead">
+          <div class="menuDrawerTitle">Kaffeekarte</div>
+        </div>
+        <div class="stack" style="gap: 10px; margin-bottom: 12px">
           <button class="btn secondary" id="sessionBadge" type="button">
-            Account
+            Anmelden
           </button>
           <button
             class="btn secondary"
@@ -1954,44 +4754,113 @@
             Logout
           </button>
         </div>
-
         <div class="topMenu" aria-label="Navigation">
-          <button class="topMenuBtn ghost" id="mainModeMap" type="button">
-            <span class="ico" aria-hidden="true">C</span>
-            <span class="lbl">Cafés</span>
+          <button class="topMenuBtn ghost active" id="mainModeMap" type="button">
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">C</span>
+              <span class="lbl">Caf&eacute;s</span>
+            </span>
           </button>
           <button
-            class="topMenuBtn ghost active"
+            class="topMenuBtn ghost"
             id="mainModeWallet"
             type="button"
           >
-            <span class="ico" aria-hidden="true">W</span>
-            <span class="lbl">Wallet</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">W</span>
+              <span class="lbl">Karten</span>
+            </span>
           </button>
           <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verlauf</span>
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">V</span>
+              <span class="lbl">Verlauf</span>
+            </span>
+          </button>
+          <button class="topMenuBtn ghost" id="mainModeAccount" type="button">
+            <span class="topMenuBtnContent">
+              <span class="ico" aria-hidden="true">K</span>
+              <span class="lbl">Konto</span>
+            </span>
           </button>
         </div>
+      </div>
+
+      <div class="bottomTabs" aria-label="Hauptnavigation">
+        <button
+          class="bottomTabBtn ghost walletHeroBtn"
+          id="bottomModeWallet"
+          type="button"
+        >
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">&#9749;</span>
+            <span class="lbl">Karten &ouml;ffnen</span>
+          </span>
+        </button>
       </div>
 
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2>Account</h2>
+            <h2>Willkommen zurueck</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
-              <button id="modeRegister" class="active" type="button">
-                Neu
-              </button>
-              <button id="modeLogin" type="button">Login</button>
+              <button id="modeRegister" type="button">Neu</button>
+              <button id="modeLogin" class="active" type="button">Login</button>
             </div>
           </div>
 
           <div class="stack panelBody">
+            <div class="authIntro">
+              <div class="authEyebrow">Suelzer Kaffeekarte</div>
+                <h3 class="authTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
+              <p class="authLead">
+                Melde dich an und behalte Stempel, Rewards und deine naechsten
+                Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
+                betretenes Schweigen an der Kasse.
+              </p>
+              <div class="authPerks">
+                <div class="authPerk">
+                  <div class="authPerkNo">1</div>
+                  <div class="authPerkText">
+                    <strong>Alles an einem Ort:</strong> mehrere Caf&eacute;s, mehrere Karten,
+                    aber nur ein klarer Einstieg.
+                  </div>
+                </div>
+                <div class="authPerk">
+                  <div class="authPerkNo">2</div>
+                  <div class="authPerkText">
+                    <strong>Reward im Blick:</strong> du siehst sofort, wie nah
+                    du an deiner naechsten Belohnung bist.
+                  </div>
+                </div>
+                <div class="authPerk">
+                  <div class="authPerkNo">3</div>
+                  <div class="authPerkText">
+                    <strong>Schnell im Caf&eacute;:</strong> Karten &ouml;ffnen, QR zeigen, Kaffee genie&szlig;en.
+                  </div>
+                </div>
+              </div>
+            </div>
             <div id="registerFields" class="stack">
               <div class="stack" style="gap: 6px">
                 <label for="username">Username</label>
                 <input id="username" type="text" autocomplete="nickname" />
+                <div class="fieldHint">Nur fuer deinen Account, nicht fuer die grosse Buehne gedacht.</div>
+              </div>
+              <div class="legalChecks">
+                <label class="legalCheck" for="acceptPrivacy">
+                  <input type="checkbox" id="acceptPrivacy" />
+                  <span>
+                    Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerklaerung</a>
+                    gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
+                  </span>
+                </label>
+                <label class="legalCheck" for="acceptTerms">
+                  <input type="checkbox" id="acceptTerms" />
+                  <span>
+                    Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffeekarte.
+                  </span>
+                </label>
               </div>
             </div>
             <div class="stack" style="gap: 6px">
@@ -2002,6 +4871,7 @@
                 inputmode="email"
                 autocomplete="email"
               />
+              <div class="fieldHint">Darueber loggst du dich spaeter wieder ein. Nuechtern, aber zuverlaessig.</div>
             </div>
 
             <div class="stack" style="gap: 6px">
@@ -2011,10 +4881,11 @@
                 type="password"
                 autocomplete="current-password"
               />
+              <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst dafuer weder etwas einrichten noch etwas studieren.</div>
             </div>
 
             <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
-              <label for="confirmPassword">Passwort bestätigen</label>
+              <label for="confirmPassword">Passwort best&auml;tigen</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -2029,14 +4900,76 @@
             </div>
 
             <div class="hint" style="margin-top: 6px">
-              <a href="/customer-profile">Passwort vergessen?</a>
+              <button
+                id="authForgotToggle"
+                type="button"
+                class="btn secondary"
+                style="
+                  width: auto;
+                  min-height: 0;
+                  margin: 0;
+                  padding: 0;
+                  background: transparent !important;
+                  border: none !important;
+                  color: var(--brand) !important;
+                "
+              >
+                Passwort vergessen?
+              </button>
+              <span style="opacity: 0.35; margin: 0 8px">|</span>
+              <button
+                id="authResendVerificationBtn"
+                type="button"
+                class="btn secondary"
+                style="
+                  width: auto;
+                  min-height: 0;
+                  margin: 0;
+                  padding: 0;
+                  background: transparent !important;
+                  border: none !important;
+                  color: var(--brand) !important;
+                "
+              >
+                Bestaetigungslink erneut senden
+              </button>
+            </div>
+
+            <div
+              id="authForgotPanel"
+              class="stack"
+              style="display: none; gap: 10px; margin-top: 4px"
+            >
+              <div class="fieldHint">
+                Gib oben deine E-Mail-Adresse ein. Wenn sie bei uns hinterlegt
+                ist, schicken wir dir direkt einen sicheren Reset-Link.
+              </div>
+              <button class="btn secondary" id="authForgotSubmit" type="button">
+                OK
+              </button>
+              <div id="authForgotMsg" class="notice" style="display: none"></div>
             </div>
 
             <div id="authMsg" class="notice" style="display: none"></div>
             <div id="credsPanel" class="notice" style="display: none"></div>
+            <div
+              class="fieldHint"
+              style="
+                margin-top: 14px;
+                padding-top: 14px;
+                border-top: 1px solid rgba(17, 17, 17, 0.08);
+              "
+            >
+              Mit deinem Konto nutzt du Wallet, Kartenansicht und QR-Flow von Kaffeekarte.
+              <span style="display: block; margin-top: 8px">
+                <a href="/impressum">Impressum</a> &middot;
+                <a href="/datenschutz">Datenschutz</a> &middot;
+                <a href="/agb">AGB</a>
+              </span>
+            </div>
             <div class="hint">
-              Kein Schlüssel eintippen. Im Hintergrund wird automatisch eine
-              Kunden-Adresse erstellt.
+              Kein Schluessel eintippen. Im Hintergrund entsteht automatisch die
+              technische Adresse fuer deine Karte.
             </div>
           </div>
         </div>
@@ -2044,23 +4977,63 @@
         <div class="stack" id="mainPanel" style="display: none">
           <select id="cafeSelect" style="display: none"></select>
 
-          <div class="home" aria-label="Start">
+          <div class="home screenPager" id="screenPager" aria-label="Start">
+            <div class="screenSlide" data-mode="welcome">
+            <div class="card panel" id="welcomePanel">
+              <div class="welcomeIntro">
+                <div class="welcomeKicker">Deine Kaffeekarte</div>
+                <div class="panelHeader">
+                  <h3 id="welcomeTitle">Hallo</h3>
+                </div>
+                <div class="welcomeLeadText" id="welcomeLead">
+                  Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
+                </div>
+              </div>
+              <div class="welcomeSummary" aria-label="Startstatus">
+                <div class="welcomeStat">
+                  <div class="welcomeStatValue" id="welcomeCardCount">0</div>
+                  <div class="welcomeStatLabel">Kaffeekarten</div>
+                </div>
+                <div class="welcomeStat">
+                  <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
+                  <div class="welcomeStatLabel">N&auml;chster Schritt</div>
+                </div>
+              </div>
+              <div class="welcomeDeck">
+                <div class="welcomeSectionHead">
+                  <div class="welcomeSectionTitle">Caf&eacute;-&Uuml;berblick</div>
+                  <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
+                    Wallet ansehen
+                  </button>
+                </div>
+                <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
+                  Noch keine Kaffeekarten. Entdecke ein Caf&eacute; und hol dir deine erste Karte.
+                </div>
+                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Caf&eacute;-&Uuml;berblick"></div>
+                <div class="welcomeNextHint" id="welcomeNextHint">
+                  Zeig im Caf&eacute; einfach den QR-Code, dann kommt der n&auml;chste Stempel direkt dazu.
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <div class="screenSlide" data-mode="map">
             <div class="card panel mapHero" id="mapPanel">
               <div class="walletDockHead">
                 <div class="stack tight">
                   <div class="badge" id="welcomeBadge">Willkommen</div>
                   <div class="hint" id="mapHint">
-                    Tippe auf einen Marker und hole dir die Stempelkarte.
+                    Tippe auf einen Marker und schau kurz hinein.
                   </div>
                   <div
                     class="stack"
                     style="gap: 8px; margin-top: var(--space-3)"
                   >
-                    <div class="muted" style="font-size: 12px">Café suchen</div>
+                    <div class="muted" style="font-size: 12px">Lieblingscaf&eacute; finden</div>
                     <input
                       id="cafeSearch"
                       type="search"
-                      placeholder="Name eingeben…"
+                      placeholder="Name eingeben..."
                       autocomplete="off"
                     />
                   </div>
@@ -2073,7 +5046,7 @@
               </div>
 
               <div class="mapStage">
-                <div id="cafeMap" class="mapBox" aria-label="Café Karte"></div>
+                <div id="cafeMap" class="mapBox" aria-label="Caf&eacute; Karte"></div>
 
                 <div
                   id="discoverPick"
@@ -2082,7 +5055,7 @@
                 >
                   <div class="row between">
                     <div class="stack" style="gap: 2px; min-width: 0">
-                      <div id="discoverPickName">Café</div>
+                      <div id="discoverPickName">Caf&eacute;</div>
                       <div id="discoverPickAddr" class="muted"></div>
                     </div>
                     <button
@@ -2098,35 +5071,15 @@
 
               <div id="cafeResults" class="mapList"></div>
             </div>
-
-            <div class="card panel walletDock" id="walletPanel">
-              <div class="walletDockHead">
-                <h3 style="margin: 0">Wallet</h3>
-                <div class="hint" id="walletSubtitle">
-                  Wische durch deine Karten. Tippe eine Karte für den QR.
-                </div>
-              </div>
-              <div
-                id="walletEmpty"
-                class="hint"
-                style="display: none; margin-top: var(--space-3)"
-              >
-                Noch keine Karten. Wähle ein Café auf der Karte und tippe
-                „Stempelkarte holen“.
-              </div>
-              <div
-                id="walletList"
-                class="walletCarousel"
-                aria-label="Wallet Karten"
-              ></div>
             </div>
 
-            <div class="card panel" id="historyPanel" style="display: none">
+            <div class="screenSlide" data-mode="history">
+            <div class="card panel" id="historyPanel">
               <div class="panelHeader">
                 <h3>Stempel-Historie</h3>
               </div>
               <div class="hint" id="historySubtitle">
-                Letzte Transaktionen (mehrere Stempel werden zusammengefasst).
+                Deine letzten Kaffee-Momente auf einen Blick.
               </div>
               <div
                 id="historyError"
@@ -2134,16 +5087,83 @@
                 style="display: none"
               ></div>
               <div id="historyEmpty" class="hint" style="display: none">
-                Noch keine Einträge.
+                Noch keine Eintr&auml;ge.
               </div>
               <div id="historyList" class="historyList"></div>
             </div>
+            </div>
 
-            <div class="notice" id="noCafesNotice" style="display: none">
-              Es sind noch keine Cafés registriert. Bitte zuerst ein Café
-              anlegen (z.B. über die Café-Tools).
+          </div>
+          <div class="walletOverlayBackdrop" id="walletOverlayBackdrop" aria-hidden="true"></div>
+          <div class="walletOverlay" id="walletOverlay" aria-hidden="true" aria-label="Wallet">
+            <div class="walletOverlayInner">
+              <div class="card panel walletDock" id="walletPanel">
+                <div class="walletDockHead">
+                  <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schlie&szlig;en">Schlie&szlig;en</button>
+                  <h3 style="margin: 0">Deine Lieblingscafés</h3>
+                  <div class="hint" id="walletSubtitle">
+                    W&auml;hle eine Karte und zeig im Caf&eacute; direkt deinen QR-Code.
+                  </div>
+                </div>
+                <div
+                  id="walletEmpty"
+                  class="hint"
+                  style="display: none; margin-top: var(--space-3)"
+                >
+                  <div class="walletEmptyLead"></div>
+                  <div class="walletEmptyBody"></div>
+                  <button
+                    class="btn secondary"
+                    id="walletEmptyMapBtn"
+                    type="button"
+                    style="width: auto; margin-top: 12px"
+                  >Caf&eacute;s entdecken</button>
+                  Noch keine Karten. W&auml;hle ein Caf&eacute; auf der Karte und tippe &bdquo;Stempelkarte holen&ldquo;.</div>
+                <div
+                  id="walletList"
+                  class="walletCarousel"
+                  aria-label="Wallet Karten"
+                ></div>
+              </div>
             </div>
           </div>
+          <div class="notice" id="noCafesNotice" style="display: none">
+            Es sind noch keine Caf&eacute;s registriert. Bitte zuerst ein Caf&eacute; anlegen (z.B. &uuml;ber die Caf&eacute;-Tools).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="installHintBackdrop"
+      class="installHintBackdrop"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kaffeekarte installieren"
+    >
+      <div class="installHintCard">
+        <div class="installHintEyebrow">Beim n&auml;chsten Mal schneller da</div>
+        <h3 class="installHintTitle">Kaffeekarte aufs Handy legen</h3>
+        <p class="installHintLead">
+          Wenn du Kaffeekarte auf deinem Homescreen ablegst, &ouml;ffnet sie sich beim n&auml;chsten Kaffee direkter und f&uuml;hlt sich mehr nach App als nach Browser an.
+        </p>
+        <div class="installHintSteps" id="installHintSteps"></div>
+        <div class="installHintActions">
+          <button class="btn secondary" id="installHintLater" type="button">
+            Nicht jetzt
+          </button>
+          <button
+            class="btn primary"
+            id="installHintInstall"
+            type="button"
+            style="display: none; width: auto"
+          >
+            App installieren
+          </button>
+          <button class="btn primary" id="installHintDone" type="button" style="width: auto">
+            Verstanden
+          </button>
         </div>
       </div>
     </div>
@@ -2153,27 +5173,38 @@
       class="modalBackdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Café Details"
+      aria-label="Caf&eacute; Details"
     >
       <div class="modal" id="cafeModal">
         <div class="modalHero">
           <div class="modalHeroRow">
-            <div style="min-width: 0">
-              <h3 class="modalTitle" id="cafeModalName">Café</h3>
-              <div class="modalAddr" id="cafeModalAddr"></div>
+            <div class="modalIdentity">
+              <div class="modalLogo" id="cafeModalLogoWrap" style="display: none">
+                <img id="cafeModalLogo" alt="" />
+              </div>
+              <div style="min-width: 0">
+                <div class="modalKicker">Cafe im Veedel</div>
+                <h3 class="modalTitle" id="cafeModalName">Caf&eacute;</h3>
+                <div class="modalAddr" id="cafeModalAddr"></div>
+                <div class="modalMetaRow" id="cafeModalMetaRow">
+                  <div class="modalStatusPill" id="cafeModalStatus" style="display: none"></div>
+                  <div class="modalMetaPill" id="cafeModalRewardCycle" style="display: none"></div>
+                  <div class="modalMetaPill" id="cafeModalRewardHint" style="display: none"></div>
+                </div>
+            </div>
             </div>
             <button
               class="btn secondary"
               id="cafeModalClose"
               type="button"
-              aria-label="Schließen"
+              aria-label="Schlie&szlig;en"
             >
-              Schließen
+              Schlie&szlig;en
             </button>
           </div>
 
           <div class="modalImage" id="cafeModalImageWrap" style="display: none">
-            <img id="cafeModalImage" alt="Café Bild" />
+            <img id="cafeModalImage" alt="Caf&eacute; Bild" />
           </div>
 
           <div class="modalGallery" id="cafeModalGallery"></div>
@@ -2186,15 +5217,51 @@
             style="display: none"
           ></div>
           <div class="hint" id="cafeModalAboutEmpty" style="display: none">
-            Noch keine Beschreibung.
+            Noch keine Beschreibung. Vielleicht spricht das Caf&eacute; lieber durch den Espresso.
+          </div>
+
+          <div class="modalLinkRow" id="cafeModalLinks">
+            <a
+              class="modalLinkPill"
+              id="cafeModalWebsite"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display: none"
+            >
+              Website
+            </a>
+            <a
+              class="modalLinkPill"
+              id="cafeModalInstagram"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display: none"
+            >
+              Instagram
+            </a>
           </div>
 
           <div class="modalActions">
-            <a class="btn secondary" id="cafeModalProfileLink" href="#">
-              Profil öffnen
-            </a>
             <button class="btn primary" id="cafeModalAddBtn" type="button">
               Stempelkarte holen
+            </button>
+            <button
+              class="btn secondary"
+              id="cafeModalWalletBtn"
+              type="button"
+              style="display: none"
+            >
+              Zur Karte
+            </button>
+            <button
+              class="btn secondary"
+              id="cafeModalQrBtn"
+              type="button"
+              style="display: none"
+            >
+              QR zeigen
             </button>
           </div>
         </div>
@@ -2202,7 +5269,8 @@
     </div>
 
     <script src="/vendor/qrcode.min.js"></script>
-    <script src="/customer-qr-modern.js"></script>
+    <script src="/ui.js"></script>
+    <script src="/customer-qr-modern.js?v=20260703a"></script>
 
     <script>
       (function () {
@@ -2210,6 +5278,42 @@
         var sub = document.getElementById("bootSub");
         var diag = document.getElementById("bootDiag");
         if (!overlay) return;
+
+        // Capture runtime errors early (helps when the main JS crashes before sending boot-ok)
+        try {
+          window.addEventListener(
+            "error",
+            function (ev) {
+              try {
+                var msg = ev && ev.message ? String(ev.message) : "error";
+                var src = ev && ev.filename ? String(ev.filename) : "";
+                var ln = ev && ev.lineno ? String(ev.lineno) : "";
+                var col = ev && ev.colno ? String(ev.colno) : "";
+                window.__STAMP_BOOT_ERR =
+                  msg +
+                  (src
+                    ? " (" +
+                      src +
+                      (ln ? ":" + ln : "") +
+                      (col ? ":" + col : "") +
+                      ")"
+                    : "");
+              } catch (e) {}
+            },
+            true,
+          );
+        } catch (e) {}
+
+        try {
+          window.addEventListener("unhandledrejection", function (ev) {
+            try {
+              var r = ev && ev.reason ? ev.reason : null;
+              var msg =
+                r && r.message ? String(r.message) : String(r || "rejection");
+              window.__STAMP_BOOT_REJ = msg;
+            } catch (e) {}
+          });
+        } catch (e) {}
 
         function hideOverlay() {
           try {
@@ -2313,6 +5417,24 @@
               } else {
                 lines.push("/api/health: ok");
               }
+
+              try {
+                if (window.__STAMP_BOOT_ERR)
+                  lines.push("JS-Fehler: " + String(window.__STAMP_BOOT_ERR));
+              } catch (e) {}
+              try {
+                if (window.__STAMP_BOOT_REJ)
+                  lines.push(
+                    "JS-Rejection: " + String(window.__STAMP_BOOT_REJ),
+                  );
+              } catch (e2) {}
+              try {
+                if (window.__STAMP_BOOT_CRASH)
+                  lines.push(
+                    "Boot-Crash: " + String(window.__STAMP_BOOT_CRASH),
+                  );
+              } catch (e3) {}
+
               lines.push("Tipp: Teste direkt /__diag.");
               setDiag(lines);
             });
@@ -2333,5 +5455,144 @@
       crossorigin=""
       defer
     ></script>
+    <script>
+      (function () {
+        var STORAGE_KEY = "kk_install_hint_wallet_v1";
+        var deferredInstallPrompt = null;
+
+        function isStandalone() {
+          try {
+            return (
+              (window.matchMedia &&
+                window.matchMedia("(display-mode: standalone)").matches) ||
+              window.navigator.standalone === true
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isMobileBrowser() {
+          try {
+            var ua = String(navigator.userAgent || "");
+            if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+            return (
+              window.matchMedia &&
+              window.matchMedia("(max-width: 900px)").matches &&
+              (navigator.maxTouchPoints > 0 || "ontouchstart" in window)
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isIos() {
+          try {
+            return /iPhone|iPad|iPod/i.test(String(navigator.userAgent || ""));
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function wasSeen() {
+          try {
+            return localStorage.getItem(STORAGE_KEY) === "1";
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function markSeen() {
+          try {
+            localStorage.setItem(STORAGE_KEY, "1");
+          } catch (e) {}
+        }
+
+        function buildStepsHtml() {
+          if (isIos()) {
+            return (
+              '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Teilen</strong> im Browser antippen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>Zum Home-Bildschirm</strong> ausw&auml;hlen.</div></div>' +
+              '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Hinzuf&uuml;gen</strong> best&auml;tigen und Kaffeekarte wie eine App &ouml;ffnen.</div></div>'
+            );
+          }
+          return (
+            '<div class="installHintStep"><div class="installHintStepNo">1</div><div class="installHintStepText"><strong>Browser-Men&uuml;</strong> &ouml;ffnen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">2</div><div class="installHintStepText"><strong>App installieren</strong> oder <strong>Zum Startbildschirm hinzuf&uuml;gen</strong> w&auml;hlen.</div></div>' +
+            '<div class="installHintStep"><div class="installHintStepNo">3</div><div class="installHintStepText"><strong>Best&auml;tigen</strong> und Kaffeekarte k&uuml;nftig direkt vom Homescreen starten.</div></div>'
+          );
+        }
+
+        function syncInstallButton() {
+          var btn = document.getElementById("installHintInstall");
+          if (!btn) return;
+          btn.style.display = deferredInstallPrompt ? "" : "none";
+        }
+
+        function closeInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          if (!backdrop) return;
+          markSeen();
+          backdrop.classList.remove("open");
+          document.body.classList.remove("installHintOpen");
+          window.setTimeout(function () {
+            backdrop.hidden = true;
+          }, 180);
+        }
+
+        function openInstallHint() {
+          var backdrop = document.getElementById("installHintBackdrop");
+          var steps = document.getElementById("installHintSteps");
+          if (!backdrop || !steps) return;
+          steps.innerHTML = buildStepsHtml();
+          syncInstallButton();
+          backdrop.hidden = false;
+          document.body.classList.add("installHintOpen");
+          window.requestAnimationFrame(function () {
+            backdrop.classList.add("open");
+          });
+        }
+
+        window.addEventListener("beforeinstallprompt", function (event) {
+          try {
+            event.preventDefault();
+          } catch (e) {}
+          deferredInstallPrompt = event;
+          syncInstallButton();
+        });
+
+        window.addEventListener("load", function () {
+          var laterBtn = document.getElementById("installHintLater");
+          var doneBtn = document.getElementById("installHintDone");
+          var installBtn = document.getElementById("installHintInstall");
+
+          if (laterBtn) laterBtn.addEventListener("click", closeInstallHint);
+          if (doneBtn) doneBtn.addEventListener("click", closeInstallHint);
+          if (installBtn) {
+            installBtn.addEventListener("click", async function () {
+              if (!deferredInstallPrompt) {
+                closeInstallHint();
+                return;
+              }
+              try {
+                deferredInstallPrompt.prompt();
+                await deferredInstallPrompt.userChoice;
+              } catch (e) {}
+              deferredInstallPrompt = null;
+              closeInstallHint();
+            });
+          }
+
+          window.setTimeout(function () {
+            if (!isMobileBrowser()) return;
+            if (isStandalone()) return;
+            if (wasSeen()) return;
+            openInstallHint();
+          }, 900);
+        });
+      })();
+    </script>
+    <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
+
