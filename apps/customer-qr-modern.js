@@ -661,7 +661,30 @@
 
     el.welcomeCardsEmpty.style.display = "none";
 
-    var frag = document.createDocumentFragment();
+    var overview = document.createElement("article");
+    overview.className = "welcomeOverviewCard";
+
+    var overviewHead = document.createElement("div");
+    overviewHead.className = "welcomeOverviewHead";
+
+    var overviewTitleWrap = document.createElement("div");
+    var overviewTitle = document.createElement("div");
+    overviewTitle.className = "welcomeOverviewTitle";
+    overviewTitle.textContent = "Deine Caf\u00e9s im \u00dcberblick";
+
+    var overviewMeta = document.createElement("div");
+    overviewMeta.className = "welcomeOverviewMeta";
+    overviewMeta.textContent =
+      favNorm.length === 1 ? "1 aktive Karte" : String(favNorm.length) + " aktive Karten";
+
+    overviewTitleWrap.appendChild(overviewTitle);
+    overviewTitleWrap.appendChild(overviewMeta);
+    overviewHead.appendChild(overviewTitleWrap);
+    overview.appendChild(overviewHead);
+
+    var rows = document.createElement("div");
+    rows.className = "welcomeCafeRows";
+
     for (var j = 0; j < favNorm.length; j++) {
       var cafeAddress = favNorm[j];
       var cafe = cafesByCafeAddress[cafeAddress] || null;
@@ -683,6 +706,7 @@
       } catch (eReward) {
         rewardLabel = "";
       }
+
       var stampCount =
         Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
       var isFull = stampCount >= rewardThreshold;
@@ -690,18 +714,34 @@
         0,
         rewardThreshold - clamp(stampCount, 0, rewardThreshold),
       );
-      var countLine = formatStampCountLine(stampCount, rewardThreshold, Math.max(0, stampCount - rewardThreshold));
-      var article = document.createElement("article");
-      article.className = "welcomePreviewCard";
-      article.tabIndex = 0;
-      article.setAttribute("role", "button");
-      article.setAttribute("aria-label", meta.name + " öffnen");
+      var countLine = formatStampCountLine(
+        stampCount,
+        rewardThreshold,
+        Math.max(0, stampCount - rewardThreshold),
+      );
 
-      var head = document.createElement("div");
-      head.className = "welcomePreviewHead";
+      var row = document.createElement("div");
+      row.className = "welcomeCafeRow";
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-label", meta.name + " \u00f6ffnen");
+      row.addEventListener("click", (function (addr) {
+        return function () {
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+        };
+      })(cafeAddress));
+      row.addEventListener("keydown", (function (addr) {
+        return function (ev) {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          try {
+            ev.preventDefault();
+          } catch (e) {}
+          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
+        };
+      })(cafeAddress));
 
       var logoWrap = document.createElement("div");
-      logoWrap.className = "welcomePreviewLogo";
+      logoWrap.className = "welcomeCafeLogo";
       logoWrap.setAttribute("data-cafe-name", meta.name);
       if (cafe && cafe.logoDataUrl) {
         var img = document.createElement("img");
@@ -727,44 +767,26 @@
       }
 
       var metaWrap = document.createElement("div");
-      metaWrap.className = "welcomePreviewMeta";
+      metaWrap.className = "welcomeCafeMeta";
 
       var title = document.createElement("div");
-      title.className = "welcomePreviewTitle";
+      title.className = "welcomeCafeName";
       title.textContent = meta.name;
 
       var count = document.createElement("div");
-      count.className = "welcomePreviewCount";
+      count.className = "welcomeCafeCount";
       count.textContent = countLine;
+
+      var reward = document.createElement("div");
+      reward.className = "welcomeCafeReward";
+      reward.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
 
       metaWrap.appendChild(title);
       metaWrap.appendChild(count);
-      head.appendChild(logoWrap);
-      head.appendChild(metaWrap);
-
-      var message = document.createElement("div");
-      message.className = "welcomePreviewMessage";
-      message.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
-
-      var track = document.createElement("div");
-      track.className = "welcomePreviewStampRow";
-      for (var stampIndex = 0; stampIndex < rewardThreshold; stampIndex++) {
-        var stampDot = document.createElement("span");
-        stampDot.className =
-          "welcomePreviewStamp" +
-          (stampIndex < Math.min(stampCount, rewardThreshold) ? " filled" : "");
-        track.appendChild(stampDot);
-      }
-
-      var footer = document.createElement("div");
-      footer.className = "welcomePreviewFooter";
-
-      var hint = document.createElement("div");
-      hint.className = "welcomePreviewHint";
-      hint.textContent = formatNextStampLine(remaining, isFull);
+      metaWrap.appendChild(reward);
 
       var btn = document.createElement("button");
-      btn.className = "btn secondary welcomePreviewBtn";
+      btn.className = "btn secondary welcomeCafeAction";
       btn.type = "button";
       btn.textContent = "QR zeigen";
       btn.addEventListener("click", (function (addr) {
@@ -777,24 +799,14 @@
         };
       })(cafeAddress));
 
-      footer.appendChild(hint);
-      footer.appendChild(btn);
-
-      article.appendChild(head);
-      article.appendChild(message);
-      article.appendChild(track);
-      article.appendChild(footer);
-
-      article.addEventListener("click", (function (addr) {
-        return function () {
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
-        };
-      })(cafeAddress));
-
-      frag.appendChild(article);
+      row.appendChild(logoWrap);
+      row.appendChild(metaWrap);
+      row.appendChild(btn);
+      rows.appendChild(row);
     }
 
-    el.welcomeCardsList.appendChild(frag);
+    overview.appendChild(rows);
+    el.welcomeCardsList.appendChild(overview);
   }
 
   function setWalletOverlayOpen(open) {
