@@ -1948,9 +1948,9 @@
 
       .welcomeCafeRow {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr);
         gap: 12px;
-        align-items: center;
+        align-items: start;
         padding: 12px 0;
         border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
@@ -1961,16 +1961,17 @@
       }
 
       .welcomeCafeLogo {
-        width: 44px;
-        height: 44px;
+        width: 56px;
+        height: 56px;
         border-radius: 999px;
         border: 1px solid rgba(81, 58, 40, 0.1);
         background: rgba(255, 255, 255, 0.92);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 5px;
+        padding: 6px;
         flex: 0 0 auto;
+        grid-row: 1 / span 2;
       }
 
       .welcomeCafeLogo img,
@@ -1983,6 +1984,7 @@
         display: grid;
         gap: 5px;
         min-width: 0;
+        padding-top: 3px;
       }
 
       .welcomeCafeName {
@@ -2026,9 +2028,13 @@
       }
 
       .welcomeCafeAction {
-        min-width: 98px;
+        min-width: 88px;
         width: auto;
-        padding-inline: 16px;
+        padding: 10px 14px;
+        justify-self: end;
+        align-self: start;
+        grid-column: 2;
+        margin-top: 2px;
       }
 
       .welcomeEmptyState {
@@ -2203,8 +2209,9 @@
         }
 
         .welcomeCafeAction {
-          grid-column: 1 / -1;
-          width: 100%;
+          grid-column: 2;
+          width: auto;
+          justify-self: end;
         }
       }
 
