@@ -1,0 +1,31 @@
+{$PROD_DOMAIN} {
+  encode zstd gzip
+
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options SAMEORIGIN
+    Referrer-Policy strict-origin-when-cross-origin
+  }
+
+  @adminUi path /admin-dashboard.html
+  handle @adminUi {
+    basic_auth {
+      {$ADMIN_BASIC_USER} {$ADMIN_BASIC_HASH}
+    }
+    reverse_proxy apps:8080
+  }
+
+  @adminApi path /api/admin/*
+  handle @adminApi {
+    basic_auth {
+      {$ADMIN_BASIC_USER} {$ADMIN_BASIC_HASH}
+    }
+    reverse_proxy apps:8080 {
+      header_up x-admin-key {$ADMIN_TOKEN}
+    }
+  }
+
+  handle {
+    reverse_proxy apps:8080
+  }
+}

@@ -28,19 +28,27 @@ jobs:
           STAMP_SSH_USER: ${{ secrets.STAMP_SSH_USER }}
           STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
           PROD_APPS_BASE_URL: ${{ secrets.PROD_APPS_BASE_URL }}
+          PROD_DOMAIN: ${{ secrets.PROD_DOMAIN }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
+          ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
         run: |
           test -n "$STAMP_SSH_HOST"
           test -n "$STAMP_SSH_USER"
           test -n "$STAMP_SSH_KEY"
           test -n "$PROD_APPS_BASE_URL"
+          test -n "$PROD_DOMAIN"
           test -n "$POSTGRES_USER"
           test -n "$POSTGRES_PASSWORD"
           test -n "$POSTGRES_DB"
           test -n "$DATABASE_URL"
+          test -n "$ADMIN_TOKEN"
+          test -n "$ADMIN_BASIC_USER"
+          test -n "$ADMIN_BASIC_HASH"
 
       - name: Create deployment archive
         run: |
@@ -93,6 +101,7 @@ jobs:
             cat > "$APP_DIR/.env.prod" << 'EOF'
             PROD_APPS_PORT=${{ secrets.PROD_APPS_PORT || '8080' }}
             PROD_APPS_BASE_URL=${{ secrets.PROD_APPS_BASE_URL }}
+            PROD_DOMAIN=${{ secrets.PROD_DOMAIN }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
@@ -103,11 +112,14 @@ jobs:
             EMAIL_USER=${{ secrets.EMAIL_USER }}
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
+            ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
+            ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
             EOF
 
             cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
 
-            echo "Production deployed."
+            echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"

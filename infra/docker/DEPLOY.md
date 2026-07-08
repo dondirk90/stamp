@@ -170,10 +170,14 @@ Prod:
 
 - `PROD_APPS_PORT` (z.B. `8080`)
 - `PROD_APPS_BASE_URL` (später Domain; aktuell z.B. `http://<SERVER_IP>:8080`)
+- `PROD_DOMAIN` (z.B. `app.cafestamp.app`)
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
 - `DATABASE_URL` (muss in Docker erreichbar sein, z.B. `postgres://USER:PASS@db:5432/DBNAME`)
+- `ADMIN_TOKEN`
+- `ADMIN_BASIC_USER`
+- `ADMIN_BASIC_HASH`
 
 Email (optional, sonst wird Email-Inhalt nur geloggt):
 

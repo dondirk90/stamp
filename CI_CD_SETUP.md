@@ -52,10 +52,20 @@ Production:
 
 - `PROD_APPS_PORT`
 - `PROD_APPS_BASE_URL`
+- `PROD_DOMAIN`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
 - `DATABASE_URL`
+- `ADMIN_TOKEN`
+- `ADMIN_BASIC_USER`
+- `ADMIN_BASIC_HASH`
+- `EMAIL_HOST`
+- `EMAIL_PORT`
+- `EMAIL_SECURE`
+- `EMAIL_USER`
+- `EMAIL_PASS`
+- `EMAIL_FROM`
 
 ## Recommended current values
 
@@ -90,6 +100,12 @@ The VPS should already have:
 - Docker Compose plugin
 - ports `80`, `443`, and `8081` reachable as needed
 
+Important:
+
+- If staging and production run on the same VPS, only one stack can bind public `80/443`.
+- The recommended setup is a dedicated production server or one shared edge proxy that routes both domains.
+- Do not start the production Caddy service on the same host while staging Caddy is already bound to `80/443` unless you have planned that cutover.
+
 ## Release behavior
 
 Staging:
@@ -103,6 +119,7 @@ Production:
 - merge approved changes to `main`
 - optionally create a version tag like `v1.0.0`
 - run manual deploy or push tag
+- production terminates at Caddy over HTTPS and forwards internally to the Apps container
 
 ## Notes
 
