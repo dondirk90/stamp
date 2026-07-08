@@ -101,6 +101,13 @@ Recommended public URL shape:
 
 - `https://app.cafestamp.app`
 
+If staging and production share one VPS, plan the public edge carefully:
+
+- only one reverse proxy stack can own ports `80` and `443`
+- either production gets its own VPS
+- or one shared edge proxy must route both `staging` and `production` domains
+- do not assume the staging Caddy container and production Caddy container can both bind the same public ports at once
+
 This is especially important because:
 
 - scanner camera support is more reliable over HTTPS
