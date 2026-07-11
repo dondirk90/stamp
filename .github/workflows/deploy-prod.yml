@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   deploy:
-    environment: production
+    environment: prod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
