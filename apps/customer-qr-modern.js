@@ -925,7 +925,7 @@
     if (el.utilityLogoutBtn) {
       el.utilityLogoutBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
-        if (!window.confirm("Moechtest du dich wirklich ausloggen?")) return;
+        if (!window.confirm("Möchtest du dich wirklich ausloggen?")) return;
         clearSession();
         disconnectEventsStream();
         if (el.walletList) el.walletList.innerHTML = "";
@@ -1121,7 +1121,7 @@
         setAuthMode("login");
         showMsg(
           "success",
-          "Deine E-Mail-Adresse ist jetzt bestaetigt. Du kannst dich direkt anmelden.",
+          "Deine E-Mail-Adresse ist jetzt bestätigt. Du kannst dich direkt anmelden.",
         );
         return true;
       })
@@ -1132,7 +1132,7 @@
         setAuthMode("login");
         showMsg(
           "danger",
-          "Der Bestaetigungslink ist ungueltig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
+          "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
         );
         return false;
       });
@@ -1399,7 +1399,7 @@
       el.cafeModalStatus.style.display = "inline-flex";
       el.cafeModalStatus.textContent = alreadyInWallet
         ? "Schon in deiner Wallet"
-        : "Neu fuer deine Wallet";
+        : "Neu für deine Wallet";
       el.cafeModalRewardCycle.style.display = "inline-flex";
       el.cafeModalRewardCycle.textContent =
         "Jeder " + rewardThreshold + ". Kaffee";
@@ -2057,7 +2057,7 @@
       var cafeLabel =
         String(card.name || card.cafeName || "").trim() ||
         String(card.address || "").trim() ||
-        "deinem Cafe";
+        "deinem Café";
       var rewardGoal = getCardRewardThreshold(card);
       var netStamps = Math.max(
         0,
@@ -3526,7 +3526,7 @@
     mainBtn.className = "passMain";
     mainBtn.setAttribute("role", "button");
     mainBtn.setAttribute("tabindex", "0");
-    mainBtn.setAttribute("aria-label", "Karte oeffnen");
+    mainBtn.setAttribute("aria-label", "QR-Code öffnen");
 
     var head = document.createElement("div");
     head.className = "passHead";
@@ -3775,7 +3775,7 @@
     var backNote = document.createElement("div");
     backNote.className = "passBackNote";
     backNote.textContent =
-      "Tippe irgendwo auf die Rueckseite, um wieder zur Karte zu wechseln.";
+      "Tippe irgendwo auf die Rückseite, um wieder zur Karte zu wechseln.";
     qr.appendChild(backNote);
 
     flip.appendChild(mainBtn);
@@ -3790,15 +3790,12 @@
     mainBtn.addEventListener("click", function () {
       if (nowMs() < walletState.ignoreClickUntil) return;
       try {
-        if (passCard.classList && passCard.classList.contains("open")) {
-          closePass(passCard);
-        } else if (passCard.classList && passCard.classList.contains("isFocused")) {
-          openQrSheet(passCard);
-        } else {
-          focusPass(passCard);
-        }
-      } catch (e0) {
         focusPass(passCard);
+        openQrSheet(passCard);
+      } catch (e0) {
+        try {
+          openQrSheet(passCard);
+        } catch (e1) {}
       }
     });
     mainBtn.addEventListener("keydown", function (ev) {
@@ -4993,7 +4990,7 @@
       })
         .then(function (data) {
           if (!data || !data.verificationRequired) {
-            throw new Error("Ungueltige Antwort");
+            throw new Error("Ungültige Antwort");
           }
           if (el.email) el.email.value = email;
           if (el.password) el.password.value = "";
@@ -5003,7 +5000,7 @@
           setAuthMode("login");
           showMsg(
             "success",
-            "Fast geschafft. Bitte bestaetige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
+            "Fast geschafft. Bitte bestätige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
           );
         })
         .catch(function (e) {
@@ -5233,7 +5230,7 @@
         var email = el.email ? String(el.email.value || "").trim() : "";
         clearMsg();
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-          showMsg("danger", "Bitte zuerst oben eine gueltige E-Mail eingeben.");
+          showMsg("danger", "Bitte zuerst oben eine gültige E-Mail eingeben.");
           return;
         }
         el.authResendVerificationBtn.disabled = true;
@@ -5247,13 +5244,13 @@
             if (data && data.alreadyVerified) {
               showMsg(
                 "success",
-                "Diese E-Mail-Adresse ist bereits bestaetigt. Du kannst dich direkt anmelden.",
+                "Diese E-Mail-Adresse ist bereits bestätigt. Du kannst dich direkt anmelden.",
               );
               return;
             }
             showMsg(
               "success",
-              "Wenn die Adresse zu einem unbestaetigten Konto gehoert, haben wir dir gerade einen neuen Bestaetigungslink geschickt.",
+              "Wenn die Adresse zu einem unbestätigten Konto gehört, haben wir dir gerade einen neuen Bestätigungslink geschickt.",
             );
           })
           .catch(function (e) {
@@ -5262,15 +5259,15 @@
               window.stampUI
                 ? stampUI.userSafeErrorMessage(
                     e,
-                    "Bestaetigungslink konnte nicht neu gesendet werden.",
+                    "Bestätigungslink konnte nicht neu gesendet werden.",
                   )
-                : "Bestaetigungslink konnte nicht neu gesendet werden.",
+                : "Bestätigungslink konnte nicht neu gesendet werden.",
             );
           })
           .then(function () {
             el.authResendVerificationBtn.disabled = false;
             el.authResendVerificationBtn.textContent =
-              "Bestaetigungslink erneut senden";
+              "Bestätigungslink erneut senden";
           });
       });
     }
@@ -5524,7 +5521,6 @@
     } catch (e5) {}
   }
 })();
-
 
 
 
