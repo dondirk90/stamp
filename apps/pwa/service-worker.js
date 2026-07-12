@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v12-20260712-favicon-reset";
+const CACHE_VERSION = "stamp-shell-v13-20260712-stamp-bean";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -15,7 +15,6 @@ const APP_SHELL_URLS = [
   "/pwa/manifest.webmanifest",
   "/pwa/manifest-customer.webmanifest",
   "/pwa/manifest-cafe.webmanifest",
-  "/assets/kaffekarte-mark.svg",
   "/pwa/icons/icon-32.png",
   "/pwa/icons/icon-192.png",
   "/pwa/icons/icon-512.png",
