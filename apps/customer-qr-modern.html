@@ -4802,18 +4802,18 @@
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2>Willkommen zur&uuml;ck</h2>
+            <h2 id="authPanelTitle">Neu bei Kaffeekarte?</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
-              <button id="modeRegister" type="button">Neu</button>
-              <button id="modeLogin" class="active" type="button">Login</button>
+              <button id="modeRegister" class="active" type="button">Registrieren</button>
+              <button id="modeLogin" type="button">Login</button>
             </div>
           </div>
 
           <div class="stack panelBody">
             <div class="authIntro">
               <div class="authEyebrow">S&uuml;lzer Kaffeekarte</div>
-                <h3 class="authTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
-              <p class="authLead">
+                <h3 class="authTitle" id="authIntroTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
+              <p class="authLead" id="authIntroLead">
                 Melde dich an und behalte Stempel, Rewards und deine n&auml;chsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
                 betretenes Schweigen an der Kasse.
@@ -5595,4 +5595,3 @@
     <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
-

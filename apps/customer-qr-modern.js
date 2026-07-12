@@ -47,6 +47,9 @@
     walletOverlayClose: document.getElementById("walletOverlayClose"),
 
     authPanel: document.getElementById("authPanel"),
+    authPanelTitle: document.getElementById("authPanelTitle"),
+    authIntroTitle: document.getElementById("authIntroTitle"),
+    authIntroLead: document.getElementById("authIntroLead"),
     mainPanel: document.getElementById("mainPanel"),
     layoutGrid: document.getElementById("layoutGrid"),
 
@@ -539,6 +542,22 @@
     if (el.authSubmit)
       el.authSubmit.textContent =
         authMode === "register" ? "Account erstellen" : "Einloggen";
+
+    if (el.authPanelTitle)
+      el.authPanelTitle.textContent =
+        authMode === "register"
+          ? "Neu bei Kaffeekarte?"
+          : "Willkommen zur\u00fcck";
+    if (el.authIntroTitle)
+      el.authIntroTitle.textContent =
+        authMode === "register"
+          ? "Erstelle dein Konto und sammle digital."
+          : "Sch\u00f6n, dass du wieder da bist.";
+    if (el.authIntroLead)
+      el.authIntroLead.innerHTML =
+        authMode === "register"
+          ? "Registriere dich in wenigen Sekunden und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
+          : "Logge dich ein und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
     if (el.authForgotToggle)
       el.authForgotToggle.style.display =
@@ -4503,9 +4522,9 @@
         return;
       }
 
-      // Not authed: bring the auth panel into view and default to login.
+      // Not authed: bring the auth panel into view and default to registration.
       try {
-        setAuthMode("login");
+        setAuthMode("register");
       } catch (e1) {}
       try {
         if (el.authPanel) el.authPanel.style.display = "block";
@@ -5475,7 +5494,7 @@
     var s = loadSession();
     if (s) saveSession(s);
     setAuthedUI();
-    setAuthMode("login");
+    setAuthMode("register");
     applyPageMode(getPageMode());
     processCustomerVerifyToken();
 
@@ -5521,10 +5540,5 @@
     } catch (e5) {}
   }
 })();
-
-
-
-
-
 
 
