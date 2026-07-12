@@ -6,11 +6,11 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Customer - Suelzer Kaffeekarte</title>
+    <title>Customer - S&uuml;lzer Kaffeekarte</title>
     <link rel="icon" href="data:," />
     <meta
       name="description"
-      content="Die Suelzer Kaffeekarte fuer Lieblingscafes, Rewards und digitale Stempelkarten auf dem Handy."
+      content="Die S&uuml;lzer Kaffeekarte f&uuml;r Lieblingscaf&eacute;s, Rewards und digitale Stempelkarten auf dem Handy."
     />
     <meta name="theme-color" content="#6b452c" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -4802,19 +4802,19 @@
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2>Willkommen zurueck</h2>
+            <h2 id="authPanelTitle">Neu bei Kaffeekarte?</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
-              <button id="modeRegister" type="button">Neu</button>
-              <button id="modeLogin" class="active" type="button">Login</button>
+              <button id="modeRegister" class="active" type="button">Registrieren</button>
+              <button id="modeLogin" type="button">Login</button>
             </div>
           </div>
 
           <div class="stack panelBody">
             <div class="authIntro">
-              <div class="authEyebrow">Suelzer Kaffeekarte</div>
-                <h3 class="authTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
-              <p class="authLead">
-                Melde dich an und behalte Stempel, Rewards und deine naechsten
+              <div class="authEyebrow">S&uuml;lzer Kaffeekarte</div>
+                <h3 class="authTitle" id="authIntroTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
+              <p class="authLead" id="authIntroLead">
+                Melde dich an und behalte Stempel, Rewards und deine n&auml;chsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
                 betretenes Schweigen an der Kasse.
               </p>
@@ -4830,7 +4830,7 @@
                   <div class="authPerkNo">2</div>
                   <div class="authPerkText">
                     <strong>Reward im Blick:</strong> du siehst sofort, wie nah
-                    du an deiner naechsten Belohnung bist.
+                    du an deiner n&auml;chsten Belohnung bist.
                   </div>
                 </div>
                 <div class="authPerk">
@@ -4845,13 +4845,13 @@
               <div class="stack" style="gap: 6px">
                 <label for="username">Username</label>
                 <input id="username" type="text" autocomplete="nickname" />
-                <div class="fieldHint">Nur fuer deinen Account, nicht fuer die grosse Buehne gedacht.</div>
+                <div class="fieldHint">Nur f&uuml;r deinen Account, nicht f&uuml;r die gro&szlig;e B&uuml;hne gedacht.</div>
               </div>
               <div class="legalChecks">
                 <label class="legalCheck" for="acceptPrivacy">
                   <input type="checkbox" id="acceptPrivacy" />
                   <span>
-                    Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerklaerung</a>
+                    Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerkl&auml;rung</a>
                     gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
                   </span>
                 </label>
@@ -4871,7 +4871,7 @@
                 inputmode="email"
                 autocomplete="email"
               />
-              <div class="fieldHint">Darueber loggst du dich spaeter wieder ein. Nuechtern, aber zuverlaessig.</div>
+              <div class="fieldHint">Dar&uuml;ber loggst du dich sp&auml;ter wieder ein. N&uuml;chtern, aber zuverl&auml;ssig.</div>
             </div>
 
             <div class="stack" style="gap: 6px">
@@ -4881,7 +4881,7 @@
                 type="password"
                 autocomplete="current-password"
               />
-              <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst dafuer weder etwas einrichten noch etwas studieren.</div>
+              <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
             </div>
 
             <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
@@ -4931,7 +4931,7 @@
                   color: var(--brand) !important;
                 "
               >
-                Bestaetigungslink erneut senden
+                Best&auml;tigungslink erneut senden
               </button>
             </div>
 
@@ -4968,8 +4968,8 @@
               </span>
             </div>
             <div class="hint">
-              Kein Schluessel eintippen. Im Hintergrund entsteht automatisch die
-              technische Adresse fuer deine Karte.
+              Keinen Schl&uuml;ssel eintippen. Im Hintergrund entsteht automatisch die
+              technische Adresse f&uuml;r deine Karte.
             </div>
           </div>
         </div>
@@ -5183,7 +5183,7 @@
                 <img id="cafeModalLogo" alt="" />
               </div>
               <div style="min-width: 0">
-                <div class="modalKicker">Cafe im Veedel</div>
+                <div class="modalKicker">Caf&eacute; im Veedel</div>
                 <h3 class="modalTitle" id="cafeModalName">Caf&eacute;</h3>
                 <div class="modalAddr" id="cafeModalAddr"></div>
                 <div class="modalMetaRow" id="cafeModalMetaRow">
@@ -5595,4 +5595,3 @@
     <script src="/pwa/sw-register.js" defer></script>
   </body>
 </html>
-

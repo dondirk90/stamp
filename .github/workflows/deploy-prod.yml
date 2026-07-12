@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   deploy:
+    environment: prod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,28 +25,42 @@ jobs:
 
       - name: Validate required secrets
         env:
-          STAMP_SSH_HOST: ${{ secrets.STAMP_SSH_HOST }}
-          STAMP_SSH_USER: ${{ secrets.STAMP_SSH_USER }}
-          STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
           PROD_APPS_BASE_URL: ${{ secrets.PROD_APPS_BASE_URL }}
           PROD_DOMAIN: ${{ secrets.PROD_DOMAIN }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          EMAIL_SECURE: ${{ secrets.EMAIL_SECURE }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
           ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
         run: |
-          test -n "$STAMP_SSH_HOST"
-          test -n "$STAMP_SSH_USER"
-          test -n "$STAMP_SSH_KEY"
+          test -n "$SSH_HOST"
+          test -n "$SSH_PORT"
+          test -n "$SSH_USER"
+          test -n "$SSH_KEY"
           test -n "$PROD_APPS_BASE_URL"
           test -n "$PROD_DOMAIN"
           test -n "$POSTGRES_USER"
           test -n "$POSTGRES_PASSWORD"
           test -n "$POSTGRES_DB"
           test -n "$DATABASE_URL"
+          test -n "$EMAIL_HOST"
+          test -n "$EMAIL_PORT"
+          test -n "$EMAIL_SECURE"
+          test -n "$EMAIL_USER"
+          test -n "$EMAIL_PASS"
+          test -n "$EMAIL_FROM"
           test -n "$ADMIN_TOKEN"
           test -n "$ADMIN_BASIC_USER"
           test -n "$ADMIN_BASIC_HASH"
@@ -67,20 +82,20 @@ jobs:
       - name: Upload archive to server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.STAMP_SSH_HOST }}
-          username: ${{ secrets.STAMP_SSH_USER }}
-          key: ${{ secrets.STAMP_SSH_KEY }}
-          port: ${{ secrets.STAMP_SSH_PORT || '22' }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
           source: ".deploy/stamp-prod.tgz"
           target: "/tmp"
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.STAMP_SSH_HOST }}
-          username: ${{ secrets.STAMP_SSH_USER }}
-          key: ${{ secrets.STAMP_SSH_KEY }}
-          port: ${{ secrets.STAMP_SSH_PORT || '22' }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
           script: |
             set -euo pipefail
 
