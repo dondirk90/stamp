@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v7-20260624-split-manifests";
+const CACHE_VERSION = "stamp-shell-v9-20260712-icon-split";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -14,6 +14,12 @@ const APP_SHELL_URLS = [
   "/pwa/icons/icon-192.png",
   "/pwa/icons/icon-512.png",
   "/pwa/icons/apple-touch-icon.png",
+  "/pwa/icons/customer-icon-192.png",
+  "/pwa/icons/customer-icon-512.png",
+  "/pwa/icons/customer-apple-touch-icon.png",
+  "/pwa/icons/cafe-icon-192.png",
+  "/pwa/icons/cafe-icon-512.png",
+  "/pwa/icons/cafe-apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
