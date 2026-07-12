@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v11-20260712-wallet-brand";
+const CACHE_VERSION = "stamp-shell-v12-20260712-favicon-reset";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -8,6 +8,7 @@ const APP_SHELL_URLS = [
   "/cafe-profile",
   "/cafe-dashboard",
   "/favicon.svg",
+  "/favicon.ico",
   "/favicon-32x32.png",
   "/apple-touch-icon.png",
   "/theme.css",
@@ -15,6 +16,7 @@ const APP_SHELL_URLS = [
   "/pwa/manifest-customer.webmanifest",
   "/pwa/manifest-cafe.webmanifest",
   "/assets/kaffekarte-mark.svg",
+  "/pwa/icons/icon-32.png",
   "/pwa/icons/icon-192.png",
   "/pwa/icons/icon-512.png",
   "/pwa/icons/apple-touch-icon.png",
