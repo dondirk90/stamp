@@ -56,6 +56,7 @@
     modeRegister: document.getElementById("modeRegister"),
     modeLogin: document.getElementById("modeLogin"),
     registerFields: document.getElementById("registerFields"),
+    registerFieldsLegal: document.getElementById("registerFieldsLegal"),
     username: document.getElementById("username"),
     email: document.getElementById("email"),
     password: document.getElementById("password"),
@@ -63,6 +64,7 @@
     confirmPasswordWrap: document.getElementById("confirmPasswordWrap"),
     authSubmit: document.getElementById("authSubmit"),
     authGoogle: document.getElementById("authGoogle"),
+    authGoogleLabel: document.getElementById("authGoogleLabel"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
@@ -537,14 +539,17 @@
 
     if (el.registerFields)
       el.registerFields.style.display = authMode === "register" ? "" : "none";
+    if (el.registerFieldsLegal)
+      el.registerFieldsLegal.style.display =
+        authMode === "register" ? "" : "none";
     if (el.confirmPasswordWrap)
       el.confirmPasswordWrap.style.display =
         authMode === "register" ? "" : "none";
     if (el.authSubmit)
       el.authSubmit.textContent =
         authMode === "register" ? "Account erstellen" : "Einloggen";
-    if (el.authGoogle)
-      el.authGoogle.textContent =
+    if (el.authGoogleLabel)
+      el.authGoogleLabel.textContent =
         authMode === "register"
           ? "Mit Google registrieren"
           : "Mit Google anmelden";
