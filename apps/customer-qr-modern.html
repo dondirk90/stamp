@@ -4051,6 +4051,12 @@
         gap: 10px;
       }
 
+      .modalInfoActions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
       .modalLinkRow {
         display: none;
         flex-wrap: wrap;
@@ -4077,9 +4083,17 @@
         background: rgba(255, 252, 247, 0.98);
       }
 
-      .modalActions button {
-        flex: 1;
-        min-width: 0;
+      .modalActions button,
+      .modalInfoActions button {
+        flex: 1 1 calc(50% - 5px);
+        min-width: 140px;
+      }
+
+      @media (max-width: 640px) {
+        .modalActions button,
+        .modalInfoActions button {
+          flex-basis: 100%;
+        }
       }
 
       .qrSheetBackdrop {
@@ -5385,6 +5399,17 @@
             </a>
           </div>
 
+          <div class="modalInfoActions">
+            <button
+              class="btn ghost"
+              id="cafeModalProfileBtn"
+              type="button"
+              style="display: none"
+            >
+              Caféprofil ansehen
+            </button>
+          </div>
+
           <div class="modalActions">
             <button class="btn primary" id="cafeModalAddBtn" type="button">
               Stempelkarte holen
@@ -5404,13 +5429,6 @@
               style="display: none"
             >
               QR zeigen
-            </button>
-            <button
-              class="btn ghost"
-              id="cafeModalProfileBtn"
-              type="button"
-            >
-              Profil ansehen
             </button>
           </div>
         </div>

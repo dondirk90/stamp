@@ -352,7 +352,9 @@ const server = http.createServer((req, res) => {
   if (pathname === "/agb") pathname = "/agb.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
-  if (pathname === "/cafe" || pathname === "/cafe.html" || pathname === "/cafe-public")
+  if (pathname === "/cafe-public" || pathname === "/cafe-public.html")
+    pathname = "/cafe-public.html";
+  if (pathname === "/cafe" || pathname === "/cafe.html")
     pathname = "/cafe-scanner-new.html";
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
