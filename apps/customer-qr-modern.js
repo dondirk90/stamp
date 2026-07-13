@@ -62,6 +62,7 @@
     confirmPassword: document.getElementById("confirmPassword"),
     confirmPasswordWrap: document.getElementById("confirmPasswordWrap"),
     authSubmit: document.getElementById("authSubmit"),
+    authGoogle: document.getElementById("authGoogle"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
@@ -542,6 +543,11 @@
     if (el.authSubmit)
       el.authSubmit.textContent =
         authMode === "register" ? "Account erstellen" : "Einloggen";
+    if (el.authGoogle)
+      el.authGoogle.textContent =
+        authMode === "register"
+          ? "Mit Google registrieren"
+          : "Mit Google anmelden";
 
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
@@ -1125,6 +1131,34 @@
     } catch (e) {}
   }
 
+  function clearOauthParamsFromUrl() {
+    try {
+      var u = new URL(location.href);
+      var changed = false;
+      ["oauthToken", "oauthProvider", "oauthError"].forEach(function (key) {
+        if (u.searchParams.has(key)) {
+          u.searchParams.delete(key);
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      history.replaceState(
+        history && history.state ? history.state : null,
+        "",
+        u.pathname + (u.search ? u.search : "") + (u.hash || ""),
+      );
+    } catch (e) {}
+  }
+
+  function getOauthParam(name) {
+    try {
+      var u = new URL(location.href);
+      return u.searchParams.get(name) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   function processCustomerVerifyToken() {
     var token = getCustomerVerifyTokenFromUrl();
     if (!token) return Promise.resolve(false);
@@ -1152,6 +1186,64 @@
         showMsg(
           "danger",
           "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
+        );
+        return false;
+      });
+  }
+
+  function processCustomerOauthRedirect() {
+    var oauthError = getOauthParam("oauthError");
+    if (oauthError) {
+      clearOauthParamsFromUrl();
+      setAuthMode("login");
+      var msg = "Google-Anmeldung fehlgeschlagen.";
+      if (oauthError === "google_no_account") {
+        msg =
+          "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst oder nutze den normalen Login.";
+      } else if (oauthError === "google_legal_required") {
+        msg =
+          "Bitte bestätige vor der Google-Registrierung Datenschutz und AGB.";
+      } else if (oauthError === "google_email_not_verified") {
+        msg =
+          "Google hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte Google-Adresse.";
+      }
+      showMsg("danger", msg);
+      return Promise.resolve(false);
+    }
+
+    var token = getOauthParam("oauthToken");
+    if (!token) return Promise.resolve(false);
+
+    return apiFetch("/customers/oauth/consume", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: token }),
+    })
+      .then(function (data) {
+        clearOauthParamsFromUrl();
+        if (!data || !data.address) throw new Error("Ungültige Antwort");
+        saveSession({
+          address: data.address,
+          email: data.email || null,
+          username: data.username || null,
+          customer_id: data.customer_id || null,
+        });
+        setAuthedUI();
+        bootAuthed();
+        applyPageMode(getPageMode());
+        showMsg("success", "Du bist jetzt mit Google angemeldet.");
+        return true;
+      })
+      .catch(function (e) {
+        clearOauthParamsFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg(
+          "danger",
+          window.stampUI
+            ? stampUI.userSafeErrorMessage(e, "Google-Anmeldung fehlgeschlagen.")
+            : "Google-Anmeldung fehlgeschlagen.",
         );
         return false;
       });
@@ -4429,6 +4521,10 @@
       el.authSubmit.addEventListener("click", function () {
         handleAuthSubmit();
       });
+    if (el.authGoogle)
+      el.authGoogle.addEventListener("click", function () {
+        handleGoogleAuthStart();
+      });
   }
 
   function wireLogout() {
@@ -5055,6 +5151,28 @@
         showMsg("danger", msg2);
       });
   }
+
+  function handleGoogleAuthStart() {
+    clearMsg();
+    var username = el.username ? String(el.username.value || "").trim() : "";
+    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
+    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
+    if (authMode === "register") {
+      if (!acceptPrivacy) {
+        showMsg("danger", "Bitte bestätige die Datenschutzerklärung.");
+        return;
+      }
+      if (!acceptTerms) {
+        showMsg("danger", "Bitte akzeptiere die AGB.");
+        return;
+      }
+    }
+    var qs = new URLSearchParams();
+    qs.set("mode", authMode === "register" ? "register" : "login");
+    if (authMode === "register") qs.set("acceptLegal", "1");
+    if (username) qs.set("username", username);
+    window.location.assign("/api/auth/google/start?" + qs.toString());
+  }
   function refreshHistory() {
     if (!el.historyList) return;
     if (!session || !session.address) return;
@@ -5497,6 +5615,7 @@
     setAuthMode("register");
     applyPageMode(getPageMode());
     processCustomerVerifyToken();
+    processCustomerOauthRedirect();
 
     if (session && session.address) {
       bootAuthed();
@@ -5540,5 +5659,3 @@
     } catch (e5) {}
   }
 })();
-
-

@@ -131,6 +131,15 @@
     if (raw.indexOf("email_not_verified") >= 0) {
       return "Bitte bestaetige zuerst deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.";
     }
+    if (raw.indexOf("google_no_account") >= 0) {
+      return "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst.";
+    }
+    if (raw.indexOf("google_legal_required") >= 0) {
+      return "Bitte bestaetige vor der Google-Registrierung Datenschutz und AGB.";
+    }
+    if (raw.indexOf("google_auth_not_configured") >= 0) {
+      return "Google-Anmeldung ist gerade noch nicht freigeschaltet.";
+    }
     if (raw.indexOf("password_not_set") >= 0) {
       return "Fuer dieses Konto ist noch kein Passwort gesetzt.";
     }
@@ -142,6 +151,12 @@
     }
     if (raw.indexOf("not_found") >= 0 || raw.indexOf("customer_not_found") >= 0) {
       return "Konto nicht gefunden.";
+    }
+    if (
+      raw.indexOf("invalid_oauth_token") >= 0 ||
+      raw.indexOf("invalid_or_expired_oauth_token") >= 0
+    ) {
+      return "Die Google-Anmeldung ist abgelaufen. Bitte versuche es noch einmal.";
     }
 
     // Session/auth

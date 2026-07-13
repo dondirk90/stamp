@@ -121,6 +121,65 @@ function getAppsBaseUrlFromRequest(req) {
   return "http://localhost:8080";
 }
 
+function getApiBaseUrlFromRequest(req) {
+  const appsBase = getAppsBaseUrlFromRequest(req);
+  return `${appsBase.replace(/\/$/, "")}/api`;
+}
+
+function base64UrlEncodeUtf8(input) {
+  return Buffer.from(String(input), "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function base64UrlEncodeBuffer(input) {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function base64UrlDecodeUtf8(input) {
+  const normalized = String(input || "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const pad = normalized.length % 4;
+  const padded = normalized + (pad ? "=".repeat(4 - pad) : "");
+  return Buffer.from(padded, "base64").toString("utf8");
+}
+
+function signOauthState(payload) {
+  if (!OAUTH_STATE_SECRET) {
+    throw new Error("oauth_state_secret_missing");
+  }
+  const body = base64UrlEncodeUtf8(JSON.stringify(payload));
+  const sig = base64UrlEncodeBuffer(
+    crypto.createHmac("sha256", OAUTH_STATE_SECRET).update(body).digest(),
+  );
+  return `${body}.${sig}`;
+}
+
+function verifyOauthState(raw) {
+  const token = String(raw || "").trim();
+  const parts = token.split(".");
+  if (parts.length !== 2) throw new Error("invalid_oauth_state");
+  const [body, sig] = parts;
+  const expected = base64UrlEncodeBuffer(
+    crypto.createHmac("sha256", OAUTH_STATE_SECRET).update(body).digest(),
+  );
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) throw new Error("invalid_oauth_state");
+  if (!crypto.timingSafeEqual(sigBuf, expBuf)) {
+    throw new Error("invalid_oauth_state");
+  }
+  const payload = JSON.parse(base64UrlDecodeUtf8(body));
+  return payload && typeof payload === "object" ? payload : null;
+}
+
 const ENV = (() => {
   const schema = z
     .object({
@@ -175,6 +234,14 @@ const ADMIN_TOKEN =
   sanitizeEnv("ADMIN_TOKEN") ||
   sanitizeEnv("ADMIN_API_KEY") ||
   sanitizeEnv("ADMIN_DASHBOARD_KEY");
+const GOOGLE_CLIENT_ID = sanitizeEnv("GOOGLE_CLIENT_ID");
+const GOOGLE_CLIENT_SECRET = sanitizeEnv("GOOGLE_CLIENT_SECRET");
+const OAUTH_STATE_SECRET =
+  sanitizeEnv("OAUTH_STATE_SECRET") || GOOGLE_CLIENT_SECRET || ADMIN_TOKEN;
+const CUSTOMER_AUTH_GRANT_TTL_MS = 1000 * 60 * 10;
+const GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
 function randomHex(bytes) {
   return "0x" + crypto.randomBytes(bytes).toString("hex");
@@ -184,6 +251,96 @@ function randomAddress() {
   // Generates an Ethereum-looking address used purely as an identifier.
   // No private keys are stored; the system runs fully off-chain.
   return "0x" + crypto.randomBytes(20).toString("hex");
+}
+
+function pickCustomerUsername(preferredUsername, email, profileName) {
+  const preferred = String(preferredUsername || "").trim().slice(0, 64);
+  if (preferred) return preferred;
+  const fromProfile = String(profileName || "").trim().slice(0, 64);
+  if (fromProfile) return fromProfile;
+  const em = String(email || "").trim();
+  const local = em.includes("@") ? em.split("@")[0] : em;
+  return String(local || "kaffeekarte").trim().slice(0, 64) || "kaffeekarte";
+}
+
+async function upsertCustomerOauthIdentity({
+  customerId,
+  provider,
+  providerSubject,
+  email,
+  now,
+}) {
+  const existing = await getCustomerOauthIdentity.get(provider, providerSubject);
+  if (existing && existing.id) {
+    await updateCustomerOauthIdentityLastUsed.run(
+      customerId,
+      email || null,
+      now,
+      provider,
+      providerSubject,
+    );
+    return existing.id;
+  }
+  const inserted = await insertCustomerOauthIdentity.run(
+    customerId,
+    provider,
+    providerSubject,
+    email || null,
+    now,
+    now,
+  );
+  return inserted && inserted.id ? inserted.id : null;
+}
+
+async function issueCustomerAuthGrant(customerId, provider) {
+  const rawToken = crypto.randomBytes(24).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const now = Date.now();
+  await insertCustomerAuthGrant.run(
+    customerId,
+    tokenHash,
+    provider || null,
+    now,
+    now + CUSTOMER_AUTH_GRANT_TTL_MS,
+  );
+  return rawToken;
+}
+
+async function exchangeGoogleCodeForTokens({ code, redirectUri }) {
+  const params = new URLSearchParams();
+  params.set("code", code);
+  params.set("client_id", GOOGLE_CLIENT_ID);
+  params.set("client_secret", GOOGLE_CLIENT_SECRET);
+  params.set("redirect_uri", redirectUri);
+  params.set("grant_type", "authorization_code");
+
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data || !data.access_token) {
+    const reason =
+      (data && (data.error_description || data.error)) ||
+      `http_${response.status}`;
+    throw new Error(`google_token_exchange_failed:${reason}`);
+  }
+  return data;
+}
+
+async function fetchGoogleUserProfile(accessToken) {
+  const response = await fetch(GOOGLE_USERINFO_URL, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data || !data.sub || !data.email) {
+    const reason =
+      (data && (data.error_description || data.error || data.message)) ||
+      `http_${response.status}`;
+    throw new Error(`google_userinfo_failed:${reason}`);
+  }
+  return data;
 }
 
 function normalizeExternalUrl(raw) {
@@ -769,6 +926,27 @@ CREATE TABLE IF NOT EXISTS customer_email_verifications (
   used_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS customer_oauth_identities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  provider TEXT NOT NULL,
+  provider_subject TEXT NOT NULL,
+  email TEXT,
+  created_at INTEGER NOT NULL,
+  last_used_at INTEGER,
+  UNIQUE(provider, provider_subject)
+);
+
+CREATE TABLE IF NOT EXISTS customer_auth_grants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  provider TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS cafe_email_verifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   cafe_id INTEGER NOT NULL,
@@ -787,6 +965,10 @@ CREATE INDEX IF NOT EXISTS idx_cafe_password_resets_cafe ON cafe_password_resets
 
 CREATE INDEX IF NOT EXISTS idx_customer_email_verifications_hash ON customer_email_verifications(token_hash);
 CREATE INDEX IF NOT EXISTS idx_customer_email_verifications_customer ON customer_email_verifications(customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_customer_oauth_identities_customer ON customer_oauth_identities(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_auth_grants_hash ON customer_auth_grants(token_hash);
+CREATE INDEX IF NOT EXISTS idx_customer_auth_grants_customer ON customer_auth_grants(customer_id);
 
 CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_hash ON cafe_email_verifications(token_hash);
 CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_cafe ON cafe_email_verifications(cafe_id);
@@ -1212,11 +1394,32 @@ const getCustomerByEmail = db.prepare(
 const getCustomerAuthByEmail = db.prepare(
   "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
 );
+const getCustomerById = db.prepare(
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, created_at FROM customers WHERE id = ? LIMIT 1",
+);
 const setCustomerPasswordHashById = db.prepare(
   "UPDATE customers SET password_hash = ? WHERE id = ?",
 );
 const setCustomerEmailVerifiedAtById = db.prepare(
   "UPDATE customers SET email_verified_at = ? WHERE id = ?",
+);
+const getCustomerOauthIdentity = db.prepare(
+  "SELECT * FROM customer_oauth_identities WHERE provider = ? AND provider_subject = ? LIMIT 1",
+);
+const insertCustomerOauthIdentity = db.prepare(
+  "INSERT INTO customer_oauth_identities (customer_id, provider, provider_subject, email, created_at, last_used_at) VALUES (?, ?, ?, ?, ?, ?)",
+);
+const updateCustomerOauthIdentityLastUsed = db.prepare(
+  "UPDATE customer_oauth_identities SET customer_id = ?, email = ?, last_used_at = ? WHERE provider = ? AND provider_subject = ?",
+);
+const insertCustomerAuthGrant = db.prepare(
+  "INSERT INTO customer_auth_grants (customer_id, token_hash, provider, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+);
+const getCustomerAuthGrantByHash = db.prepare(
+  "SELECT * FROM customer_auth_grants WHERE token_hash = ? LIMIT 1",
+);
+const markCustomerAuthGrantUsedById = db.prepare(
+  "UPDATE customer_auth_grants SET used_at = ? WHERE id = ? AND used_at IS NULL",
 );
 
 const insertCustomerPasswordReset = db.prepare(
@@ -4486,6 +4689,187 @@ app.post("/customers/login", async (req, res) => {
   }
 });
 
+app.get("/auth/google/start", async (req, res) => {
+  try {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !OAUTH_STATE_SECRET) {
+      return res.status(503).json({ error: "google_auth_not_configured" });
+    }
+
+    const modeRaw = String(req.query?.mode || "login").trim().toLowerCase();
+    const mode = modeRaw === "register" ? "register" : "login";
+    const acceptedLegal =
+      String(req.query?.acceptLegal || "").trim() === "1" ? 1 : 0;
+    const preferredUsername = String(req.query?.username || "")
+      .trim()
+      .slice(0, 64);
+    const payload = {
+      mode,
+      acceptedLegal,
+      preferredUsername,
+      ts: Date.now(),
+      nonce: crypto.randomBytes(12).toString("hex"),
+    };
+    const redirectUri = `${getApiBaseUrlFromRequest(req)}/auth/google/callback`;
+    const state = signOauthState(payload);
+    const url = new URL(GOOGLE_AUTH_BASE);
+    url.searchParams.set("client_id", GOOGLE_CLIENT_ID);
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", "openid email profile");
+    url.searchParams.set("access_type", "offline");
+    url.searchParams.set("prompt", "select_account");
+    url.searchParams.set("state", state);
+    return res.redirect(url.toString());
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+  function redirectWithError(code) {
+    return res.redirect(
+      `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent(code || "google_auth_failed")}`,
+    );
+  }
+
+  try {
+    if (req.query?.error) {
+      return redirectWithError(String(req.query.error || "google_auth_rejected"));
+    }
+
+    const code = String(req.query?.code || "").trim();
+    const stateRaw = String(req.query?.state || "").trim();
+    if (!code || !stateRaw) return redirectWithError("google_auth_invalid");
+
+    const state = verifyOauthState(stateRaw);
+    if (!state || !state.ts || Date.now() - Number(state.ts) > 10 * 60 * 1000) {
+      return redirectWithError("google_auth_expired");
+    }
+
+    const redirectUri = `${getApiBaseUrlFromRequest(req)}/auth/google/callback`;
+    const tokens = await exchangeGoogleCodeForTokens({ code, redirectUri });
+    const profile = await fetchGoogleUserProfile(tokens.access_token);
+
+    const email = String(profile.email || "").trim().toLowerCase();
+    const provider = "google";
+    const providerSubject = String(profile.sub || "").trim();
+    const emailVerified = !!profile.email_verified;
+    if (!email || !providerSubject || !emailVerified) {
+      return redirectWithError("google_email_not_verified");
+    }
+
+    const now = Date.now();
+    let customer = null;
+
+    const identity = await getCustomerOauthIdentity.get(provider, providerSubject);
+    if (identity && identity.customer_id) {
+      customer = await getCustomerById.get(identity.customer_id);
+    }
+
+    if (!customer) {
+      const existing = await getCustomerAuthByEmail.get(email);
+      if (existing && existing.id) {
+        customer = existing;
+        if (!existing.email_verified_at) {
+          await setCustomerEmailVerifiedAtById.run(now, existing.id);
+          customer = await getCustomerById.get(existing.id);
+        }
+      }
+    }
+
+    if (!customer) {
+      if (state.mode !== "register") {
+        return redirectWithError("google_no_account");
+      }
+      if (!state.acceptedLegal) {
+        return redirectWithError("google_legal_required");
+      }
+
+      const username = pickCustomerUsername(
+        state.preferredUsername,
+        email,
+        profile.given_name || profile.name,
+      );
+      const info = {
+        customer_id: randomHex(8),
+        username,
+        email,
+        address: randomAddress(),
+        encrypted_key: null,
+        password_hash: null,
+        accepted_privacy_at: now,
+        accepted_terms_at: now,
+        privacy_version: LEGAL_VERSION,
+        terms_version: LEGAL_VERSION,
+        email_verified_at: now,
+        created_at: now,
+      };
+      await insertCustomer.run(info);
+      customer = await getCustomerAuthByEmail.get(email);
+    }
+
+    if (!customer || !customer.id) {
+      return redirectWithError("google_account_failed");
+    }
+
+    await upsertCustomerOauthIdentity({
+      customerId: customer.id,
+      provider,
+      providerSubject,
+      email,
+      now,
+    });
+
+    const grant = await issueCustomerAuthGrant(customer.id, provider);
+    return res.redirect(
+      `${appsBaseUrl}/wallet?oauthProvider=google&oauthToken=${encodeURIComponent(grant)}`,
+    );
+  } catch (e) {
+    console.error(
+      "Error in /auth/google/callback:",
+      e && e.stack ? e.stack : e,
+    );
+    return redirectWithError("google_auth_failed");
+  }
+});
+
+app.post("/customers/oauth/consume", async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!token) return res.status(400).json({ error: "invalid_oauth_token" });
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const grant = await getCustomerAuthGrantByHash.get(tokenHash);
+    const now = Date.now();
+    if (!grant || grant.used_at || now > Number(grant.expires_at || 0)) {
+      return res.status(400).json({ error: "invalid_or_expired_oauth_token" });
+    }
+    const updated = await markCustomerAuthGrantUsedById.run(now, grant.id);
+    if (updated && updated.changes != null && Number(updated.changes) < 1) {
+      return res.status(400).json({ error: "invalid_or_expired_oauth_token" });
+    }
+    const customer = await getCustomerById.get(grant.customer_id);
+    if (!customer || !customer.address) {
+      return res.status(404).json({ error: "customer_not_found" });
+    }
+    return res.json({
+      ok: true,
+      provider: grant.provider || null,
+      customer_id: customer.customer_id,
+      username: customer.username || null,
+      email: customer.email || null,
+      address: customer.address,
+      createdAt: customer.created_at || null,
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/customers/verify-email", async (req, res) => {
   try {
     const token = req.body?.token != null ? String(req.body.token).trim() : "";
@@ -4855,4 +5239,3 @@ function shutdown(signal) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
