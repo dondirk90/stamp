@@ -2123,15 +2123,42 @@
           radial-gradient(circle at 35% 35%, rgba(245, 215, 175, 0.95), rgba(150, 98, 58, 0.96));
       }
 
-      .welcomeCafeAction {
-        min-width: 88px;
-        width: auto;
-        padding: 10px 14px;
-        justify-self: end;
+      .welcomeCafeActions {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
         align-self: start;
         grid-column: 3;
         grid-row: 1;
+      }
+
+      .welcomeCafeAction {
+        min-width: 126px;
+        width: auto;
+        padding: 10px 14px;
+        justify-self: end;
         margin-top: 0;
+      }
+
+      @media (max-width: 720px) {
+        .welcomeCafeRow {
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: start;
+        }
+
+        .welcomeCafeActions {
+          grid-column: 1 / -1;
+          grid-row: auto;
+          width: 100%;
+          justify-items: stretch;
+          margin-top: 4px;
+          padding-left: 68px;
+        }
+
+        .welcomeCafeAction {
+          width: 100%;
+          justify-self: stretch;
+        }
       }
 
       .welcomeEmptyState {

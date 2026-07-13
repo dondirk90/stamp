@@ -841,6 +841,9 @@
       metaWrap.appendChild(count);
       metaWrap.appendChild(stampRow);
 
+      var actions = document.createElement("div");
+      actions.className = "welcomeCafeActions";
+
       var btn = document.createElement("button");
       btn.className = "btn secondary welcomeCafeAction";
       btn.type = "button";
@@ -854,10 +857,29 @@
           openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
         };
       })(cafeAddress));
+      actions.appendChild(btn);
+
+      var profileUrl = buildCafeProfileUrl(meta.cafeId, cafeAddress);
+      if (profileUrl) {
+        var profileBtn = document.createElement("button");
+        profileBtn.className = "btn ghost welcomeCafeAction";
+        profileBtn.type = "button";
+        profileBtn.textContent = "Caf\u00e9profil";
+        profileBtn.addEventListener("click", (function (href) {
+          return function (ev) {
+            try {
+              ev.preventDefault();
+              ev.stopPropagation();
+            } catch (e) {}
+            if (href) window.location.href = href;
+          };
+        })(profileUrl));
+        actions.appendChild(profileBtn);
+      }
 
       row.appendChild(logoWrap);
       row.appendChild(metaWrap);
-      row.appendChild(btn);
+      row.appendChild(actions);
       rows.appendChild(row);
     }
 
@@ -3870,23 +3892,6 @@
         linkRow.appendChild(instagramLink);
       }
       infoBlock.appendChild(linkRow);
-    }
-
-    var profileUrl = buildCafeProfileUrl(cafeId, cafeAddress);
-    if (profileUrl) {
-      var profileRow = document.createElement("div");
-      profileRow.className = "passLinkRow";
-      var profileLink = document.createElement("a");
-      profileLink.className = "passInfoLink";
-      profileLink.href = profileUrl;
-      profileLink.textContent = "Caféprofil";
-      profileLink.addEventListener("click", function (ev) {
-        try {
-          ev.stopPropagation();
-        } catch (e) {}
-      });
-      profileRow.appendChild(profileLink);
-      infoBlock.appendChild(profileRow);
     }
 
     var metaRow = document.createElement("div");
