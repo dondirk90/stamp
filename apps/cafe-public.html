@@ -136,6 +136,36 @@
       .section + .section {
         border-top: 1px solid var(--border);
       }
+      .factsGrid {
+        display: grid;
+        gap: var(--space-3);
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .factCard {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.6);
+        display: grid;
+        gap: 6px;
+      }
+      .factLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .factValue {
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      .factValue a {
+        color: inherit;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+      }
       .actions {
         display: flex;
         gap: var(--space-2);
@@ -192,6 +222,21 @@
         </div>
 
         <div class="section">
+          <div class="factsGrid" style="margin-bottom: var(--space-3)">
+            <div class="factCard" id="rewardCard" style="display: none">
+              <div class="factLabel">Belohnung</div>
+              <div class="factValue" id="rewardValue"></div>
+            </div>
+            <div class="factCard" id="locationCard" style="display: none">
+              <div class="factLabel">Standort</div>
+              <div class="factValue" id="locationValue"></div>
+            </div>
+            <div class="factCard" id="linksCard" style="display: none">
+              <div class="factLabel">Mehr vom Café</div>
+              <div class="factValue" id="linksValue"></div>
+            </div>
+          </div>
+
           <div id="redeem" class="notice" style="display: none"></div>
 
           <div class="actions" style="margin-top: var(--space-3)">
@@ -356,6 +401,62 @@
           if (title) title.textContent = cafe.name || "Café";
           if (addr) addr.textContent = cafe.address || "";
 
+          const rewardCard = document.getElementById("rewardCard");
+          const rewardValue = document.getElementById("rewardValue");
+          const rewardGoal =
+            cafe &&
+            cafe.program &&
+            Number.isFinite(Number(cafe.program.stampsForReward))
+              ? Number(cafe.program.stampsForReward)
+              : null;
+          const rewardText =
+            cafe && cafe.program && cafe.program.rewardDescription
+              ? String(cafe.program.rewardDescription).trim()
+              : "";
+          if (rewardCard && rewardValue) {
+            if (rewardGoal || rewardText) {
+              rewardValue.textContent = rewardText
+                ? `${rewardGoal || 10} Stempel � ${rewardText}`
+                : `${rewardGoal || 10} Stempel bis zur Belohnung`;
+              rewardCard.style.display = "grid";
+            } else {
+              rewardCard.style.display = "none";
+            }
+          }
+
+          const locationCard = document.getElementById("locationCard");
+          const locationValue = document.getElementById("locationValue");
+          if (locationCard && locationValue) {
+            if (cafe.address) {
+              locationValue.textContent = String(cafe.address);
+              locationCard.style.display = "grid";
+            } else {
+              locationCard.style.display = "none";
+            }
+          }
+
+          const linksCard = document.getElementById("linksCard");
+          const linksValue = document.getElementById("linksValue");
+          if (linksCard && linksValue) {
+            const links = [];
+            if (cafe.websiteUrl) {
+              links.push(
+                `<a href="${escapeHtml(String(cafe.websiteUrl))}" target="_blank" rel="noopener noreferrer">Website</a>`,
+              );
+            }
+            if (cafe.instagramUrl) {
+              links.push(
+                `<a href="${escapeHtml(String(cafe.instagramUrl))}" target="_blank" rel="noopener noreferrer">Instagram</a>`,
+              );
+            }
+            if (links.length) {
+              linksValue.innerHTML = links.join("<br />");
+              linksCard.style.display = "grid";
+            } else {
+              linksCard.style.display = "none";
+            }
+          }
+
           // Logo in header (separate from hero/gallery)
           const logoWrap = document.getElementById("logoWrap");
           const logoImg = document.getElementById("logoImg");
@@ -450,3 +551,4 @@
     </script>
   </body>
 </html>
+

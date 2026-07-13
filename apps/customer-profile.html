@@ -276,6 +276,57 @@
         gap: 12px;
       }
 
+      .profileIdentityCard {
+        display: grid;
+        gap: 16px;
+      }
+
+      .profileIdentityRow {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .profileAvatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 999px;
+        border: 1px solid rgba(107, 69, 44, 0.14);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+
+      .profileAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .profileAvatarFallback {
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #7a5236;
+      }
+
+      .profileAvatarActions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .profileFileInput {
+        display: none;
+      }
+
       .profileField {
         display: grid;
         gap: 4px;
@@ -435,6 +486,30 @@
           </div>
 
           <div id="authedOnly" class="stack" style="display: none; gap: 16px; margin-top: 16px">
+            <div class="sectionCard">
+              <div class="sectionTitle">Profilbild</div>
+              <div class="sectionLead">Gib deinem Konto ein Gesicht. Das Bild erscheint in deiner Wallet auf diesem Gerät.</div>
+              <div class="profileIdentityCard">
+                <div class="profileIdentityRow">
+                  <div class="profileAvatar" id="profileAvatarWrap" aria-hidden="true">
+                    <img id="profileAvatarImg" alt="" style="display: none" />
+                    <div class="profileAvatarFallback" id="profileAvatarFallback">K</div>
+                  </div>
+                  <div class="stack" style="gap: 8px; min-width: 0; flex: 1">
+                    <div class="smallHint">
+                      Am besten funktioniert ein quadratisches Bild. Wir verkleinern es automatisch f&uuml;r die Wallet.
+                    </div>
+                    <div class="profileAvatarActions">
+                      <button class="btn secondary" id="profileAvatarChooseBtn" type="button">Bild ausw&auml;hlen</button>
+                      <button class="btn ghost" id="profileAvatarRemoveBtn" type="button">Bild entfernen</button>
+                    </div>
+                    <input class="profileFileInput" id="profileAvatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                    <div id="profileAvatarMsg" class="notice" style="display: none"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="sectionCard">
               <div class="sectionTitle">Account</div>
               <div class="sectionLead">Benutzername und E-Mail liegen hier klar an einem Ort.</div>

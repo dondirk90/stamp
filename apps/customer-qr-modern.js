@@ -91,6 +91,8 @@
 
     welcomePanel: document.getElementById("welcomePanel"),
     welcomeTitle: document.getElementById("welcomeTitle"),
+    welcomeAvatarImg: document.getElementById("welcomeAvatarImg"),
+    welcomeAvatarFallback: document.getElementById("welcomeAvatarFallback"),
     welcomeLead: document.getElementById("welcomeLead"),
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
@@ -146,6 +148,7 @@
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
+    cafeModalProfileBtn: document.getElementById("cafeModalProfileBtn"),
   };
 
   var apiBase =
@@ -515,6 +518,15 @@
   }
 
   function saveSession(s) {
+    var prev = session || loadSession() || null;
+    if (
+      s &&
+      !s.avatarDataUrl &&
+      prev &&
+      prev.avatarDataUrl
+    ) {
+      s.avatarDataUrl = prev.avatarDataUrl;
+    }
     session = s;
     try {
       localStorage.setItem(STORAGE_KEY_V1, JSON.stringify(s));
@@ -641,6 +653,28 @@
     }
     if (el.welcomeTitle) {
       el.welcomeTitle.textContent = uname ? "Hallo, " + uname + " ☕" : "Hallo ☕";
+    }
+    if (el.welcomeAvatarFallback) {
+      var avatarInitial = String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
+      el.welcomeAvatarFallback.textContent = avatarInitial;
+    }
+    if (el.welcomeAvatarImg || el.welcomeAvatarFallback) {
+      var avatarSrc =
+        session && session.avatarDataUrl ? String(session.avatarDataUrl) : "";
+      if (el.welcomeAvatarImg) {
+        if (avatarSrc) {
+          el.welcomeAvatarImg.src = avatarSrc;
+          el.welcomeAvatarImg.style.display = "block";
+        } else {
+          try {
+            el.welcomeAvatarImg.removeAttribute("src");
+          } catch (eAvatar0) {}
+          el.welcomeAvatarImg.style.display = "none";
+        }
+      }
+      if (el.welcomeAvatarFallback) {
+        el.welcomeAvatarFallback.style.display = avatarSrc ? "none" : "block";
+      }
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
@@ -1606,6 +1640,15 @@
       el.cafeModalQrBtn.style.display = already3 ? "inline-flex" : "none";
       el.cafeModalQrBtn.disabled = !already3 || !cafeAddr;
     }
+    if (el.cafeModalProfileBtn) {
+      var profileUrl = buildCafeProfileUrl(
+        cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
+        cafeAddr,
+      );
+      el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
+      el.cafeModalProfileBtn.disabled = !profileUrl;
+      el.cafeModalProfileBtn.dataset.href = profileUrl || "";
+    }
   }
 
   function openCafeModal(cafe) {
@@ -1934,12 +1977,15 @@
     if (!key) return;
     var name = meta && meta.name ? String(meta.name).trim() : "";
     var address = meta && meta.address ? String(meta.address).trim() : "";
+    var cafeId =
+      meta && Number.isFinite(Number(meta.id)) ? Number(meta.id) : null;
     if (isAddressLike(name)) name = "";
     if (!name && !address) return;
     var map = getCafeMetaCache();
     map[key] = {
       name: name || "",
       address: address || "",
+      id: cafeId,
     };
     setCafeMetaCache(map);
   }
@@ -1973,6 +2019,14 @@
       address = String(remembered.address || "").trim();
 
     return {
+      cafeId:
+        (serverCard && Number.isFinite(Number(serverCard.cafeId))
+          ? Number(serverCard.cafeId)
+          : null) ||
+        (cafe && Number.isFinite(Number(cafe.id)) ? Number(cafe.id) : null) ||
+        (remembered && Number.isFinite(Number(remembered.id))
+          ? Number(remembered.id)
+          : null),
       name: name || "Kaffeekarte",
       address: address || "",
       loading: !name && !cafesLoaded,
@@ -2276,6 +2330,7 @@
           addrs.push(addr);
           nextMap[addr] = card;
           rememberCafeMeta(addr, {
+            id: card.cafeId || null,
             name: card.name || card.cafeName || "",
             address: card.address || "",
           });
@@ -3013,6 +3068,37 @@
     }
   }
 
+  function buildCafeProfileUrl(cafeId, cafeAddress) {
+    try {
+      var id = Number(cafeId);
+      if (Number.isFinite(id) && id > 0) {
+        var u = new URL(
+          location.protocol === "file:"
+            ? "http://127.0.0.1:8080/cafe-public"
+            : location.origin + "/cafe-public",
+        );
+        u.searchParams.set("id", String(id));
+        return u.toString();
+      }
+    } catch (e0) {}
+    try {
+      if (cafeAddress) {
+        var remembered = getRememberedCafeMeta(cafeAddress) || {};
+        var rememberId = Number(remembered && remembered.id);
+        if (Number.isFinite(rememberId) && rememberId > 0) {
+          var u2 = new URL(
+            location.protocol === "file:"
+              ? "http://127.0.0.1:8080/cafe-public"
+              : location.origin + "/cafe-public",
+          );
+          u2.searchParams.set("id", String(rememberId));
+          return u2.toString();
+        }
+      }
+    } catch (e1) {}
+    return null;
+  }
+
   function buildRedeemLink(cafeAddress) {
     if (!session || !session.address) return null;
     try {
@@ -3584,6 +3670,7 @@
 
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
+    var cafeId = Number(card.cafeId);
     var title = String(card.name || "Caf\u00e9");
     var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
@@ -3618,6 +3705,9 @@
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
+    if (Number.isFinite(cafeId) && cafeId > 0) {
+      passCard.setAttribute("data-cafe-id", String(cafeId));
+    }
     passCard.setAttribute("data-pass-theme", theme);
     passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
     passCard.setAttribute("data-reward-label", rewardLabel || "");
@@ -3780,6 +3870,23 @@
         linkRow.appendChild(instagramLink);
       }
       infoBlock.appendChild(linkRow);
+    }
+
+    var profileUrl = buildCafeProfileUrl(cafeId, cafeAddress);
+    if (profileUrl) {
+      var profileRow = document.createElement("div");
+      profileRow.className = "passLinkRow";
+      var profileLink = document.createElement("a");
+      profileLink.className = "passInfoLink";
+      profileLink.href = profileUrl;
+      profileLink.textContent = "Caféprofil";
+      profileLink.addEventListener("click", function (ev) {
+        try {
+          ev.stopPropagation();
+        } catch (e) {}
+      });
+      profileRow.appendChild(profileLink);
+      infoBlock.appendChild(profileRow);
     }
 
     var metaRow = document.createElement("div");
@@ -4450,6 +4557,7 @@
       frag.appendChild(
         buildPassCard({
           cafeAddress: addr,
+          cafeId: meta.cafeId,
           name: meta.name,
           address: meta.address,
           about: (cafe && cafe.about) || "",
@@ -5468,6 +5576,7 @@
           if (!addr) continue;
           cafesByCafeAddress[addr] = c;
           rememberCafeMeta(addr, {
+            id: c.id || null,
             name: c.name || "",
             address: c.address || "",
           });
@@ -5587,6 +5696,15 @@
         var addr = cafeModalState.cafeAddress || "";
         if (!addr) return;
         openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
+      });
+    if (el.cafeModalProfileBtn)
+      el.cafeModalProfileBtn.addEventListener("click", function () {
+        var href =
+          (el.cafeModalProfileBtn.dataset &&
+            el.cafeModalProfileBtn.dataset.href) ||
+          "";
+        if (!href) return;
+        location.href = href;
       });
 
     if (el.discoverPickAddBtn) {
