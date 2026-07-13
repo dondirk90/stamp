@@ -35,6 +35,9 @@ services:
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      OAUTH_STATE_SECRET: ${OAUTH_STATE_SECRET:-}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     volumes:
       - staging_data:/data

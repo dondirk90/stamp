@@ -542,6 +542,8 @@
     if (el.registerFieldsLegal)
       el.registerFieldsLegal.style.display =
         authMode === "register" ? "" : "none";
+    if (el.registerFieldsLegal)
+      el.registerFieldsLegal.classList.remove("attention");
     if (el.confirmPasswordWrap)
       el.confirmPasswordWrap.style.display =
         authMode === "register" ? "" : "none";
@@ -5162,13 +5164,38 @@
     var username = el.username ? String(el.username.value || "").trim() : "";
     var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
     var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
+    function requireLegalNotice(message, checkboxEl) {
+      showMsg("danger", message);
+      if (el.registerFieldsLegal) {
+        el.registerFieldsLegal.classList.add("attention");
+        try {
+          el.registerFieldsLegal.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        } catch (_) {}
+      }
+      if (checkboxEl && typeof checkboxEl.focus === "function") {
+        try {
+          checkboxEl.focus({ preventScroll: true });
+        } catch (_) {
+          checkboxEl.focus();
+        }
+      }
+    }
     if (authMode === "register") {
       if (!acceptPrivacy) {
-        showMsg("danger", "Bitte bestätige die Datenschutzerklärung.");
+        requireLegalNotice(
+          "Bitte bestätige die Datenschutzerklärung.",
+          document.getElementById("acceptPrivacy"),
+        );
         return;
       }
       if (!acceptTerms) {
-        showMsg("danger", "Bitte akzeptiere die AGB.");
+        requireLegalNotice(
+          "Bitte akzeptiere die AGB.",
+          document.getElementById("acceptTerms"),
+        );
         return;
       }
     }
