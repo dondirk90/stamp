@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v13-20260712-stamp-bean";
+const CACHE_VERSION = "stamp-shell-v14-20260713-stamp-ring";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
