@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Café Profil</title>
+    <title>Cafe Profil</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -197,8 +197,8 @@
             </div>
           </div>
           <div class="brandText">
-            <h1 id="title">Café Profil</h1>
-            <div class="subtitle" id="addr">—</div>
+            <h1 id="title">Cafe Profil</h1>
+            <div class="subtitle" id="addr">-</div>
           </div>
         </div>
         <div class="actions">
@@ -210,14 +210,14 @@
         <div id="error" class="notice danger" style="display: none"></div>
 
         <div class="hero" id="heroWrap" style="display: none">
-          <img id="heroImg" alt="Café Bild" />
+          <img id="heroImg" alt="Cafe Bild" />
         </div>
         <div class="gallery" id="gallery"></div>
 
         <div class="section" style="margin-top: var(--space-3)">
           <div id="about" class="about" style="display: none"></div>
           <div id="aboutEmpty" class="hint" style="display: none">
-            Noch keine Beschreibung. Vielleicht spricht das Café lieber durch den Espresso.
+            Noch keine Beschreibung. Vielleicht spricht das Cafe lieber durch den Espresso.
           </div>
         </div>
 
@@ -232,7 +232,7 @@
               <div class="factValue" id="locationValue"></div>
             </div>
             <div class="factCard" id="linksCard" style="display: none">
-              <div class="factLabel">Mehr vom Café</div>
+              <div class="factLabel">Mehr vom Cafe</div>
               <div class="factValue" id="linksValue"></div>
             </div>
           </div>
@@ -373,7 +373,7 @@
         for (const src of arr) {
           const img = document.createElement("img");
           img.className = "thumb";
-          img.alt = "Café Bild";
+          img.alt = "Cafe Bild";
           img.src = src;
           img.addEventListener("click", () => setHero(src));
           g.appendChild(img);
@@ -386,7 +386,7 @@
           const params = new URLSearchParams(location.search);
           const id = params.get("id");
           if (!id) {
-            setError("Fehlende Café-ID (Parameter 'id').");
+            setError("Fehlende Cafe-ID (Parameter 'id').");
             return;
           }
 
@@ -398,7 +398,7 @@
 
           const title = document.getElementById("title");
           const addr = document.getElementById("addr");
-          if (title) title.textContent = cafe.name || "Café";
+          if (title) title.textContent = cafe.name || "Cafe";
           if (addr) addr.textContent = cafe.address || "";
 
           const rewardCard = document.getElementById("rewardCard");
@@ -416,7 +416,7 @@
           if (rewardCard && rewardValue) {
             if (rewardGoal || rewardText) {
               rewardValue.textContent = rewardText
-                ? `${rewardGoal || 10} Stempel � ${rewardText}`
+                ? `${rewardGoal || 10} Stempel - ${rewardText}`
                 : `${rewardGoal || 10} Stempel bis zur Belohnung`;
               rewardCard.style.display = "grid";
             } else {
@@ -494,14 +494,12 @@
           }
           if (aboutEmpty) aboutEmpty.style.display = about ? "none" : "block";
 
-          const redeem = cafe.redeemMessage
-            ? String(cafe.redeemMessage).trim()
-            : "";
           const redeemEl = document.getElementById("redeem");
           if (redeemEl) {
-            redeemEl.textContent = redeem;
-            redeemEl.style.display = redeem ? "block" : "none";
+            redeemEl.textContent = "";
+            redeemEl.style.display = "none";
           }
+
 
           // Hero/gallery prefer real photos; avoid using the logo as the hero image.
           const images = [];
@@ -543,7 +541,7 @@
           setError(
             stampUI.userSafeErrorMessage(
               e,
-              "Café-Seite konnte nicht geladen werden.",
+              "Cafe-Seite konnte nicht geladen werden.",
             ),
           );
         }
