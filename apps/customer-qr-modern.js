@@ -891,6 +891,11 @@
               ev.preventDefault();
               ev.stopPropagation();
             } catch (e) {}
+            var href = buildCafeProfileUrl(info.cafeId, info.cafeAddress);
+            if (href) {
+              window.location.href = href;
+              return;
+            }
             openCafeModal({
               id: info.cafeId,
               name: info.name,
