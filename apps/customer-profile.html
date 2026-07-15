@@ -542,6 +542,35 @@
               <button class="btn primary" id="changePwBtn" type="button">Passwort &auml;ndern</button>
               <div id="changePwMsg" class="notice" style="display: none"></div>
             </div>
+
+            <div class="sectionCard" style="border-color: rgba(180, 35, 24, 0.22); background: rgba(254, 243, 242, 0.7)">
+              <div class="sectionTitle" style="color: var(--danger)">Profil l&ouml;schen</div>
+              <div class="sectionLead">
+                Damit entfernst du dein Kundenkonto inklusive Verlauf und verkn&uuml;pfter Logindaten dauerhaft.
+              </div>
+              <div class="formRow">
+                <div class="stack" style="gap: 6px">
+                  <label for="deletePassword">Aktuelles Passwort (falls gesetzt)</label>
+                  <input id="deletePassword" type="password" autocomplete="current-password" />
+                </div>
+                <div class="stack" style="gap: 6px">
+                  <label for="deleteConfirmText">Zur Best&auml;tigung `DELETE` eingeben</label>
+                  <input id="deleteConfirmText" type="text" autocomplete="off" spellcheck="false" />
+                </div>
+              </div>
+              <div class="smallHint">
+                Bei Passwort-Logins wird das Passwort gepr&uuml;ft. Bei reinen Google-Konten reicht die aktive Session zusammen mit `DELETE`.
+              </div>
+              <button
+                class="btn"
+                id="deleteAccountBtn"
+                type="button"
+                style="margin-top: 12px; background: var(--danger); color: white; border-color: var(--danger)"
+              >
+                Profil endg&uuml;ltig l&ouml;schen
+              </button>
+              <div id="deleteAccountMsg" class="notice" style="display: none"></div>
+            </div>
           </div>
 
           <div id="forgotPanel" class="sectionCard" style="margin-top: 16px">

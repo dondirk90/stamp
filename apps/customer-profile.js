@@ -27,6 +27,10 @@
     newPassword2: document.getElementById("newPassword2"),
     changePwBtn: document.getElementById("changePwBtn"),
     changePwMsg: document.getElementById("changePwMsg"),
+    deletePassword: document.getElementById("deletePassword"),
+    deleteConfirmText: document.getElementById("deleteConfirmText"),
+    deleteAccountBtn: document.getElementById("deleteAccountBtn"),
+    deleteAccountMsg: document.getElementById("deleteAccountMsg"),
 
     resetEmail: document.getElementById("resetEmail"),
     forgotPwBtn: document.getElementById("forgotPwBtn"),
@@ -384,6 +388,69 @@
     }
   }
 
+  async function handleDeleteAccount() {
+    const session = loadSession();
+    hideNotice(el.deleteAccountMsg);
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        "Bitte zuerst regulär einloggen.",
+      );
+      return;
+    }
+
+    const currentPassword = String(el.deletePassword?.value || "");
+    const confirmText = String(el.deleteConfirmText?.value || "").trim();
+    if (confirmText !== "DELETE") {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        "Bitte zur Bestätigung genau DELETE eingeben.",
+      );
+      return;
+    }
+
+    if (!window.confirm("Willst du dein Kundenprofil wirklich endgültig löschen?")) {
+      return;
+    }
+
+    if (el.deleteAccountBtn) el.deleteAccountBtn.disabled = true;
+    try {
+      await apiFetch("/customers/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          currentPassword,
+          confirmText,
+          customerId: session.customer_id,
+          address: session.address,
+        }),
+      });
+      clearSession();
+      renderProfile(null);
+      if (el.deletePassword) el.deletePassword.value = "";
+      if (el.deleteConfirmText) el.deleteConfirmText.value = "";
+      showNotice(
+        el.forgotPwMsg,
+        "success",
+        "Dein Profil wurde gelöscht.",
+      );
+      window.setTimeout(() => {
+        location.href = "/wallet";
+      }, 900);
+    } catch (e) {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        safeUiErrorMessage(e, "Profil konnte nicht gelöscht werden."),
+      );
+    } finally {
+      if (el.deleteAccountBtn) el.deleteAccountBtn.disabled = false;
+    }
+  }
+
   async function handleResetPassword(token) {
     hideNotice(el.resetPwMsg);
 
@@ -517,6 +584,10 @@
 
     if (el.changePwBtn) {
       el.changePwBtn.addEventListener("click", () => void handleChangePassword());
+    }
+
+    if (el.deleteAccountBtn) {
+      el.deleteAccountBtn.addEventListener("click", () => void handleDeleteAccount());
     }
 
     if (el.profileAvatarChooseBtn && el.profileAvatarInput) {

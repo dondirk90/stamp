@@ -1359,6 +1359,25 @@ const markCafeEmailVerificationUsedById = db.prepare(
 const deleteUnusedCafePasswordResetsByCafeId = db.prepare(
   "DELETE FROM cafe_password_resets WHERE cafe_id = ? AND used_at IS NULL",
 );
+const deleteCafeSessionsByCafeId = db.prepare(
+  "DELETE FROM cafe_sessions WHERE cafe_id = ?",
+);
+const deleteCafeEmailVerificationsByCafeId = db.prepare(
+  "DELETE FROM cafe_email_verifications WHERE cafe_id = ?",
+);
+const deleteCafePasswordResetsByCafeId = db.prepare(
+  "DELETE FROM cafe_password_resets WHERE cafe_id = ?",
+);
+const deleteQrNoncesByCafeId = db.prepare(
+  "DELETE FROM qr_nonces WHERE cafe_id = ?",
+);
+const deleteRedeemTokensByCafeAddress = db.prepare(
+  'DELETE FROM redeem_tokens WHERE LOWER(COALESCE(cafe, \'\')) = LOWER(?) OR LOWER(COALESCE(used_by_cafe, \'\')) = LOWER(?)',
+);
+const deleteStampEventsByCafeAddress = db.prepare(
+  "DELETE FROM stamp_events WHERE LOWER(cafe) = LOWER(?)",
+);
+const deleteCafeById = db.prepare("DELETE FROM cafes WHERE id = ?");
 const getCafePasswordResetByHash = db.prepare(
   "SELECT * FROM cafe_password_resets WHERE token_hash = ? LIMIT 1",
 );
@@ -1442,6 +1461,25 @@ const markCustomerEmailVerificationUsedById = db.prepare(
 const deleteUnusedCustomerPasswordResetsByCustomerId = db.prepare(
   "DELETE FROM customer_password_resets WHERE customer_id = ? AND used_at IS NULL",
 );
+const deleteCustomerEmailVerificationsByCustomerId = db.prepare(
+  "DELETE FROM customer_email_verifications WHERE customer_id = ?",
+);
+const deleteCustomerPasswordResetsByCustomerId = db.prepare(
+  "DELETE FROM customer_password_resets WHERE customer_id = ?",
+);
+const deleteCustomerOauthIdentitiesByCustomerId = db.prepare(
+  "DELETE FROM customer_oauth_identities WHERE customer_id = ?",
+);
+const deleteCustomerAuthGrantsByCustomerId = db.prepare(
+  "DELETE FROM customer_auth_grants WHERE customer_id = ?",
+);
+const deleteRedeemTokensByCustomerAddress = db.prepare(
+  'DELETE FROM redeem_tokens WHERE LOWER(COALESCE("user", \'\')) = LOWER(?)',
+);
+const deleteStampEventsByCustomerAddress = db.prepare(
+  'DELETE FROM stamp_events WHERE LOWER("user") = LOWER(?)',
+);
+const deleteCustomerById = db.prepare("DELETE FROM customers WHERE id = ?");
 const getCustomerPasswordResetByHash = db.prepare(
   "SELECT * FROM customer_password_resets WHERE token_hash = ? LIMIT 1",
 );
@@ -3820,6 +3858,58 @@ app.post("/cafes/logout", requireCafeAuth, async (req, res) => {
   }
 });
 
+app.post("/cafes/me/delete-account", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ ok: false, error: "missing_cafe_context" });
+    }
+
+    const currentPassword =
+      req.body?.currentPassword != null ? String(req.body.currentPassword) : "";
+    const confirmText =
+      req.body?.confirmText != null ? String(req.body.confirmText).trim() : "";
+
+    if (confirmText !== "DELETE") {
+      return res.status(400).json({ ok: false, error: "delete_confirmation_required" });
+    }
+    if (!cafeRow.password_hash) {
+      return res.status(400).json({ ok: false, error: "password_not_set" });
+    }
+    if (!currentPassword) {
+      return res.status(400).json({ ok: false, error: "invalid_current_password" });
+    }
+
+    const okPw = await bcrypt.compare(currentPassword, cafeRow.password_hash);
+    if (!okPw) {
+      return res.status(401).json({ ok: false, error: "wrong_password" });
+    }
+
+    const cafeAddress = cafeRow.address != null ? String(cafeRow.address).trim() : "";
+    const cafeIdText = String(cafeRow.id);
+
+    await deleteCafeSessionsByCafeId.run(cafeRow.id);
+    await deleteCafeEmailVerificationsByCafeId.run(cafeRow.id);
+    await deleteCafePasswordResetsByCafeId.run(cafeRow.id);
+    await deleteQrNoncesByCafeId.run(cafeIdText);
+    if (cafeAddress) {
+      await deleteRedeemTokensByCafeAddress.run(cafeAddress, cafeAddress);
+      await deleteStampEventsByCafeAddress.run(cafeAddress);
+    }
+    await deleteCafeById.run(cafeRow.id);
+
+    return res.json({ ok: true, deleted: { cafeId: cafeRow.id } });
+  } catch (e) {
+    console.error(
+      "Error in /cafes/me/delete-account:",
+      e && e.stack ? e.stack : e,
+    );
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/cafes/forgot-password", async (req, res) => {
   try {
     const { email, cafeId, cafeAddress } = req.body || {};
@@ -4991,6 +5081,69 @@ app.post("/customers/change-password", async (req, res) => {
     return res
       .status(500)
       .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/delete-account", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const currentPassword =
+      req.body?.currentPassword != null ? String(req.body.currentPassword) : "";
+    const confirmText =
+      req.body?.confirmText != null ? String(req.body.confirmText).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ ok: false, error: "invalid_email" });
+    }
+    if (confirmText !== "DELETE") {
+      return res.status(400).json({ ok: false, error: "delete_confirmation_required" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+
+    if (!customerId || String(row.customer_id || "").trim() !== customerId) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+    if (!address || String(row.address || "").trim().toLowerCase() !== address.toLowerCase()) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+
+    if (row.password_hash) {
+      if (!currentPassword) {
+        return res.status(400).json({ ok: false, error: "invalid_current_password" });
+      }
+      const okPw = await bcrypt.compare(currentPassword, row.password_hash);
+      if (!okPw) {
+        return res.status(401).json({ ok: false, error: "wrong_password" });
+      }
+    }
+
+    await deleteCustomerEmailVerificationsByCustomerId.run(row.id);
+    await deleteCustomerPasswordResetsByCustomerId.run(row.id);
+    await deleteCustomerOauthIdentitiesByCustomerId.run(row.id);
+    await deleteCustomerAuthGrantsByCustomerId.run(row.id);
+    if (row.address) {
+      await deleteRedeemTokensByCustomerAddress.run(row.address);
+      await deleteStampEventsByCustomerAddress.run(row.address);
+    }
+    await deleteCustomerById.run(row.id);
+
+    return res.json({ ok: true, deleted: { customerId } });
+  } catch (e) {
+    console.error(
+      "Error in /customers/delete-account:",
+      e && e.stack ? e.stack : e,
+    );
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 
