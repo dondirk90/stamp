@@ -144,6 +144,13 @@ jobs:
             cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
+              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -v ON_ERROR_STOP=1 -c \
+              "SELECT to_regclass('public.customer_oauth_identities') AS customer_oauth_identities, to_regclass('public.customer_auth_grants') AS customer_auth_grants;"
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
+              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -tA -v ON_ERROR_STOP=1 -c \
+              "SELECT CASE WHEN to_regclass('public.customer_oauth_identities') IS NOT NULL AND to_regclass('public.customer_auth_grants') IS NOT NULL THEN 'ok' ELSE 'missing' END;" \
+              | grep -qx 'ok'
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
 
             echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"

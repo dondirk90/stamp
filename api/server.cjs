@@ -263,6 +263,8 @@ function pickCustomerUsername(preferredUsername, email, profileName) {
   return String(local || "kaffeekarte").trim().slice(0, 64) || "kaffeekarte";
 }
 
+const LEGAL_VERSION = "2026-06-mvp";
+
 async function upsertCustomerOauthIdentity({
   customerId,
   provider,
@@ -4512,7 +4514,6 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
 
 app.post("/customers/register", async (req, res) => {
   try {
-    const LEGAL_VERSION = "2026-06-mvp";
     const { username, email, password, acceptPrivacy, acceptTerms } = req.body || {};
     const uname = username != null ? String(username).trim() : "";
     const em = email != null ? String(email).trim() : "";
@@ -4692,7 +4693,10 @@ app.post("/customers/login", async (req, res) => {
 app.get("/auth/google/start", async (req, res) => {
   try {
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !OAUTH_STATE_SECRET) {
-      return res.status(503).json({ error: "google_auth_not_configured" });
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+      return res.redirect(
+        `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent("google_auth_not_configured")}`,
+      );
     }
 
     const modeRaw = String(req.query?.mode || "login").trim().toLowerCase();

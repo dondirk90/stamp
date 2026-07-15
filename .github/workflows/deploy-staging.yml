@@ -114,5 +114,6 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
+            curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null
 
             echo "Staging deployed to https://${{ secrets.STAGING_DOMAIN }}"
