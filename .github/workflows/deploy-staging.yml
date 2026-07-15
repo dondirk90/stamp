@@ -114,6 +114,15 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
-            curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null
+            for i in $(seq 1 30); do
+              if curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null; then
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Staging healthcheck failed after retries"
+                exit 1
+              fi
+              sleep 2
+            done
 
             echo "Staging deployed to https://${{ secrets.STAGING_DOMAIN }}"
