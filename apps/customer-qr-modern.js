@@ -24,6 +24,8 @@
     open: false,
   };
 
+  var favoritesSyncTimer = 0;
+
   var qrSheetState = {
     open: false,
     passEl: null,
@@ -65,6 +67,7 @@
     authSubmit: document.getElementById("authSubmit"),
     authGoogle: document.getElementById("authGoogle"),
     authGoogleLabel: document.getElementById("authGoogleLabel"),
+    authDetails: document.getElementById("authDetails"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
@@ -145,6 +148,13 @@
     cafeModalLinks: document.getElementById("cafeModalLinks"),
     cafeModalWebsite: document.getElementById("cafeModalWebsite"),
     cafeModalInstagram: document.getElementById("cafeModalInstagram"),
+    cafeModalExtraDetails: document.getElementById("cafeModalExtraDetails"),
+    cafeModalDetailRewardRow: document.getElementById("cafeModalDetailRewardRow"),
+    cafeModalDetailReward: document.getElementById("cafeModalDetailReward"),
+    cafeModalDetailAddressRow: document.getElementById("cafeModalDetailAddressRow"),
+    cafeModalDetailAddress: document.getElementById("cafeModalDetailAddress"),
+    cafeModalDetailDirectionsRow: document.getElementById("cafeModalDetailDirectionsRow"),
+    cafeModalDirections: document.getElementById("cafeModalDirections"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
@@ -498,6 +508,18 @@
     el.authMsg.textContent = "";
   }
 
+  function deriveUsernameFromEmail(email) {
+    var raw = String(email || "").trim().toLowerCase();
+    var local = raw.split("@")[0] || "";
+    var cleaned = local.replace(/[^a-z0-9._-]+/g, "").slice(0, 32);
+    return cleaned || "kaffeekarte";
+  }
+
+  function setAuthDetailsVisible(visible) {
+    if (!el.authDetails) return;
+    el.authDetails.style.display = visible ? "" : "none";
+  }
+
   function loadSession() {
     var raw = null;
     try {
@@ -521,7 +543,7 @@
     var prev = session || loadSession() || null;
     if (
       s &&
-      !s.avatarDataUrl &&
+      !Object.prototype.hasOwnProperty.call(s, "avatarDataUrl") &&
       prev &&
       prev.avatarDataUrl
     ) {
@@ -560,13 +582,9 @@
       el.confirmPasswordWrap.style.display =
         authMode === "register" ? "" : "none";
     if (el.authSubmit)
-      el.authSubmit.textContent =
-        authMode === "register" ? "Account erstellen" : "Einloggen";
+      el.authSubmit.textContent = "Mit E-Mail fortfahren";
     if (el.authGoogleLabel)
-      el.authGoogleLabel.textContent =
-        authMode === "register"
-          ? "Mit Google registrieren"
-          : "Mit Google anmelden";
+      el.authGoogleLabel.textContent = "Mit Google fortfahren";
 
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
@@ -581,8 +599,10 @@
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Registriere dich in wenigen Sekunden und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
-          : "Logge dich ein und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
+          ? "Starte mit Google oder deiner E-Mail und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
+          : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
+
+    setAuthDetailsVisible(false);
 
     if (el.authForgotToggle)
       el.authForgotToggle.style.display =
@@ -859,23 +879,47 @@
       })(cafeAddress));
       actions.appendChild(btn);
 
-      var profileUrl = buildCafeProfileUrl(meta.cafeId, cafeAddress);
-      if (profileUrl) {
-        var profileBtn = document.createElement("button");
-        profileBtn.className = "btn ghost welcomeCafeAction";
-        profileBtn.type = "button";
-        profileBtn.textContent = "Caf\u00e9profil";
-        profileBtn.addEventListener("click", (function (href) {
+      var profileBtn = document.createElement("button");
+      profileBtn.className = "btn ghost welcomeCafeAction";
+      profileBtn.type = "button";
+      profileBtn.textContent = "Weitere Informationen";
+      profileBtn.addEventListener(
+        "click",
+        (function (info) {
           return function (ev) {
             try {
               ev.preventDefault();
               ev.stopPropagation();
             } catch (e) {}
-            if (href) window.location.href = href;
+            openCafeModal({
+              id: info.cafeId,
+              name: info.name,
+              address: info.address,
+              cafeAddress: info.cafeAddress,
+              about: info.about || "",
+              program: info.program || null,
+              websiteUrl: info.websiteUrl || "",
+              instagramUrl: info.instagramUrl || "",
+              logoDataUrl: info.logoDataUrl || null,
+              cardBackgroundDataUrl: info.cardBackgroundDataUrl || null,
+              images: info.images || null,
+            });
           };
-        })(profileUrl));
-        actions.appendChild(profileBtn);
-      }
+        })({
+          cafeId: meta.cafeId,
+          name: meta.name,
+          address: meta.address,
+          cafeAddress: cafeAddress,
+          about: meta.about,
+          program: meta.program,
+          websiteUrl: meta.websiteUrl,
+          instagramUrl: meta.instagramUrl,
+          logoDataUrl: meta.logoDataUrl,
+          cardBackgroundDataUrl: meta.cardBackgroundDataUrl,
+          images: meta.images,
+        }),
+      );
+      actions.appendChild(profileBtn);
 
       row.appendChild(logoWrap);
       row.appendChild(metaWrap);
@@ -1263,6 +1307,9 @@
       if (oauthError === "google_no_account") {
         msg =
           "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst oder nutze den normalen Login.";
+      } else if (oauthError === "google_auth_not_configured") {
+        msg =
+          "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
       } else if (oauthError === "google_legal_required") {
         msg =
           "Bitte bestätige vor der Google-Registrierung Datenschutz und AGB.";
@@ -1290,6 +1337,7 @@
           email: data.email || null,
           username: data.username || null,
           customer_id: data.customer_id || null,
+          avatarDataUrl: data.avatarDataUrl || null,
         });
         setAuthedUI();
         bootAuthed();
@@ -1400,6 +1448,8 @@
     cafeId: null,
     cafeAddress: null,
     reqSeq: 0,
+    detailsOpen: false,
+    cafe: null,
   };
 
   function setCafeModalVisible(show) {
@@ -1430,7 +1480,63 @@
     cafeModalState.open = false;
     cafeModalState.cafeId = null;
     cafeModalState.cafeAddress = null;
+    cafeModalState.detailsOpen = false;
+    cafeModalState.cafe = null;
     setCafeModalVisible(false);
+  }
+
+  function buildMapsUrl(address) {
+    var value = String(address || "").trim();
+    if (!value) return "";
+    return (
+      "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(value)
+    );
+  }
+
+  function cafeModalHasExtraDetails(cafe) {
+    if (!cafe) return false;
+    var addr = String(cafe.address || cafe.cafeAddress || "").trim();
+    var website = normalizeExternalUrl(cafe.websiteUrl || "");
+    var instagram = normalizeInstagramUrl(cafe.instagramUrl || "");
+    var rewardDescription = getRewardDescription(cafe);
+    return !!(addr || website || instagram || rewardDescription);
+  }
+
+  function syncCafeModalDetails() {
+    var cafe = cafeModalState.cafe;
+    var open = !!cafeModalState.detailsOpen;
+    if (el.cafeModalExtraDetails) {
+      el.cafeModalExtraDetails.style.display =
+        open && cafeModalHasExtraDetails(cafe) ? "grid" : "none";
+    }
+
+    var addr = cafe ? String(cafe.address || cafe.cafeAddress || "").trim() : "";
+    var rewardDescription = cafe ? getRewardDescription(cafe) : "";
+    var directionsUrl = buildMapsUrl(addr);
+
+    if (el.cafeModalDetailRewardRow && el.cafeModalDetailReward) {
+      el.cafeModalDetailRewardRow.style.display =
+        open && rewardDescription ? "grid" : "none";
+      el.cafeModalDetailReward.textContent = rewardDescription || "";
+    }
+    if (el.cafeModalDetailAddressRow && el.cafeModalDetailAddress) {
+      el.cafeModalDetailAddressRow.style.display = open && addr ? "grid" : "none";
+      el.cafeModalDetailAddress.textContent = addr || "";
+    }
+    if (el.cafeModalDetailDirectionsRow && el.cafeModalDirections) {
+      el.cafeModalDetailDirectionsRow.style.display =
+        open && directionsUrl ? "grid" : "none";
+      el.cafeModalDirections.href = directionsUrl || "#";
+    }
+    if (el.cafeModalProfileBtn) {
+      var hasDetails = cafeModalHasExtraDetails(cafe);
+      el.cafeModalProfileBtn.style.display = hasDetails ? "inline-flex" : "none";
+      el.cafeModalProfileBtn.disabled = !hasDetails;
+      el.cafeModalProfileBtn.textContent = open
+        ? "Weniger Informationen"
+        : "Weitere Informationen";
+    }
   }
 
   function isCafeInWallet(cafeAddr) {
@@ -1503,6 +1609,7 @@
 
   function renderCafeModal(cafe, opts) {
     var o = opts || {};
+    cafeModalState.cafe = cafe || null;
     var name = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
@@ -1662,15 +1769,7 @@
       el.cafeModalQrBtn.style.display = already3 ? "inline-flex" : "none";
       el.cafeModalQrBtn.disabled = !already3 || !cafeAddr;
     }
-    if (el.cafeModalProfileBtn) {
-      var profileUrl = buildCafeProfileUrl(
-        cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
-        cafeAddr,
-      );
-      el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
-      el.cafeModalProfileBtn.disabled = !profileUrl;
-      el.cafeModalProfileBtn.dataset.href = profileUrl || "";
-    }
+    syncCafeModalDetails();
   }
 
   function openCafeModal(cafe) {
@@ -1679,6 +1778,7 @@
     cafeModalState.open = true;
     cafeModalState.cafeId = cafe.id != null ? Number(cafe.id) : null;
     cafeModalState.cafeAddress = cafeAddr || null;
+    cafeModalState.detailsOpen = false;
 
     // Render immediately with what we have.
     renderCafeModal(
@@ -1902,6 +2002,39 @@
         JSON.stringify(Array.isArray(list) ? list : []),
       );
     } catch (e) {}
+    scheduleFavoritesSync();
+  }
+
+  function scheduleFavoritesSync() {
+    try {
+      if (favoritesSyncTimer) window.clearTimeout(favoritesSyncTimer);
+    } catch (e0) {}
+    favoritesSyncTimer = window.setTimeout(function () {
+      favoritesSyncTimer = 0;
+      syncFavoritesToServer();
+    }, 120);
+  }
+
+  function syncFavoritesToServer() {
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      return Promise.resolve(false);
+    }
+    return apiFetch("/customers/saved-cafes/sync", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        cafes: getFavorites(),
+      }),
+    })
+      .then(function () {
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
   }
 
   function getDefaultMapCenter() {
@@ -5185,30 +5318,28 @@
     var confirmPassword = el.confirmPassword
       ? String(el.confirmPassword.value || "").trim()
       : "";
-    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
-    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
-    if (!email || !password) {
-      showMsg("danger", "Bitte E-Mail und Passwort ausf\u00fcllen.");
+    if (!email) {
+      showMsg("danger", "Bitte gib deine E-Mail ein.");
+      return;
+    }
+
+    if (el.authDetails && el.authDetails.style.display === "none") {
+      setAuthDetailsVisible(true);
+      if (el.password) el.password.focus();
+      return;
+    }
+
+    if (!password) {
+      showMsg("danger", "Bitte erg\u00e4nze dein Passwort.");
+      if (el.password) el.password.focus();
       return;
     }
 
     if (authMode === "register") {
-      if (!username) {
-        showMsg("danger", "Bitte Username ausf\u00fcllen.");
-        return;
-      }
+      var resolvedUsername = username || deriveUsernameFromEmail(email);
       if (confirmPassword !== password) {
         showMsg("danger", "Passw\u00f6rter stimmen nicht \u00fcberein.");
-        return;
-      }
-
-      if (!acceptPrivacy) {
-        showMsg("danger", "Bitte best\u00e4tige die Datenschutzerkl\u00e4rung.");
-        return;
-      }
-      if (!acceptTerms) {
-        showMsg("danger", "Bitte akzeptiere die AGB.");
         return;
       }
 
@@ -5216,11 +5347,11 @@
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          username: username,
+          username: resolvedUsername,
           email: email,
           password: password,
-          acceptPrivacy: acceptPrivacy,
-          acceptTerms: acceptTerms,
+          acceptPrivacy: true,
+          acceptTerms: true,
         }),
       })
         .then(function (data) {
@@ -5259,6 +5390,7 @@
           email: email,
           username: data2.username || null,
           customer_id: data2.customer_id || null,
+          avatarDataUrl: data2.avatarDataUrl || null,
         });
         setAuthedUI();
         bootAuthed();
@@ -5275,8 +5407,9 @@
   function handleGoogleAuthStart() {
     clearMsg();
     var username = el.username ? String(el.username.value || "").trim() : "";
-    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
-    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
+    var email = el.email ? String(el.email.value || "").trim() : "";
+    var acceptPrivacy = true;
+    var acceptTerms = true;
     function requireLegalNotice(message, checkboxEl) {
       showMsg("danger", message);
       if (el.registerFieldsLegal) {
@@ -5315,7 +5448,8 @@
     var qs = new URLSearchParams();
     qs.set("mode", authMode === "register" ? "register" : "login");
     if (authMode === "register") qs.set("acceptLegal", "1");
-    if (username) qs.set("username", username);
+    if (username || email)
+      qs.set("username", username || deriveUsernameFromEmail(email));
     window.location.assign("/api/auth/google/start?" + qs.toString());
   }
   function refreshHistory() {
@@ -5704,12 +5838,9 @@
       });
     if (el.cafeModalProfileBtn)
       el.cafeModalProfileBtn.addEventListener("click", function () {
-        var href =
-          (el.cafeModalProfileBtn.dataset &&
-            el.cafeModalProfileBtn.dataset.href) ||
-          "";
-        if (!href) return;
-        location.href = href;
+        if (!cafeModalHasExtraDetails(cafeModalState.cafe)) return;
+        cafeModalState.detailsOpen = !cafeModalState.detailsOpen;
+        syncCafeModalDetails();
       });
 
     if (el.discoverPickAddBtn) {

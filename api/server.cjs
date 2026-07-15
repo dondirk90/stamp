@@ -263,6 +263,28 @@ function pickCustomerUsername(preferredUsername, email, profileName) {
   return String(local || "kaffeekarte").trim().slice(0, 64) || "kaffeekarte";
 }
 
+function customerAvatarDataUrlFromRow(row) {
+  if (!row || !row.avatar_data || !row.avatar_mime) return null;
+  return `data:${row.avatar_mime};base64,${row.avatar_data}`;
+}
+
+function parseCustomerAvatarDataUrl(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return { mime: null, data: null };
+  const match =
+    /^data:(image\/(png|jpeg|jpg|webp|gif));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+      value,
+    );
+  if (!match) throw new Error("invalid_avatar_format");
+  const mime =
+    String(match[1] || "").toLowerCase() === "image/jpg"
+      ? "image/jpeg"
+      : String(match[1] || "").toLowerCase();
+  const data = String(match[3] || "").replace(/\s+/g, "");
+  if (data.length > 420_000) throw new Error("avatar_too_large");
+  return { mime, data };
+}
+
 const LEGAL_VERSION = "2026-06-mvp";
 
 async function upsertCustomerOauthIdentity({
@@ -897,6 +919,8 @@ CREATE TABLE IF NOT EXISTS customers (
   accepted_terms_at INTEGER,
   privacy_version TEXT,
   terms_version TEXT,
+  avatar_mime TEXT,
+  avatar_data TEXT,
   created_at INTEGER
 );
 
@@ -949,6 +973,15 @@ CREATE TABLE IF NOT EXISTS customer_auth_grants (
   used_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS customer_saved_cafes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  cafe_address TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+  UNIQUE(customer_id, cafe_address)
+);
+
 CREATE TABLE IF NOT EXISTS cafe_email_verifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   cafe_id INTEGER NOT NULL,
@@ -971,6 +1004,8 @@ CREATE INDEX IF NOT EXISTS idx_customer_email_verifications_customer ON customer
 CREATE INDEX IF NOT EXISTS idx_customer_oauth_identities_customer ON customer_oauth_identities(customer_id);
 CREATE INDEX IF NOT EXISTS idx_customer_auth_grants_hash ON customer_auth_grants(token_hash);
 CREATE INDEX IF NOT EXISTS idx_customer_auth_grants_customer ON customer_auth_grants(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_saved_cafes_customer ON customer_saved_cafes(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_saved_cafes_cafe ON customer_saved_cafes(cafe_address);
 
 CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_hash ON cafe_email_verifications(token_hash);
 CREATE INDEX IF NOT EXISTS idx_cafe_email_verifications_cafe ON cafe_email_verifications(cafe_id);
@@ -1179,6 +1214,14 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE customers ADD COLUMN email_verified_at INTEGER",
   "Failed to add customers.email_verified_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN avatar_mime TEXT",
+  "Failed to add customers.avatar_mime column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN avatar_data TEXT",
+  "Failed to add customers.avatar_data column:",
 );
 
 // Ensure legacy databases pick up the additional columns for event tracking
@@ -1410,19 +1453,25 @@ const insertCustomer = db.prepare(
 );
 const listCustomers = db.prepare("SELECT * FROM customers ORDER BY id DESC");
 const getCustomerByEmail = db.prepare(
-  "SELECT id, customer_id, username, email, address, encrypted_key, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
+  "SELECT id, customer_id, username, email, address, encrypted_key, avatar_mime, avatar_data, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
 );
 const getCustomerAuthByEmail = db.prepare(
-  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, avatar_mime, avatar_data, created_at FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1",
 );
 const getCustomerById = db.prepare(
-  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, created_at FROM customers WHERE id = ? LIMIT 1",
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, avatar_mime, avatar_data, created_at FROM customers WHERE id = ? LIMIT 1",
+);
+const getCustomerByAddress = db.prepare(
+  "SELECT id, customer_id, username, email, address, encrypted_key, password_hash, email_verified_at, avatar_mime, avatar_data, created_at FROM customers WHERE LOWER(address) = LOWER(?) LIMIT 1",
 );
 const setCustomerPasswordHashById = db.prepare(
   "UPDATE customers SET password_hash = ? WHERE id = ?",
 );
 const setCustomerEmailVerifiedAtById = db.prepare(
   "UPDATE customers SET email_verified_at = ? WHERE id = ?",
+);
+const setCustomerAvatarById = db.prepare(
+  "UPDATE customers SET avatar_mime = ?, avatar_data = ? WHERE id = ?",
 );
 const getCustomerOauthIdentity = db.prepare(
   "SELECT * FROM customer_oauth_identities WHERE provider = ? AND provider_subject = ? LIMIT 1",
@@ -1472,6 +1521,17 @@ const deleteCustomerOauthIdentitiesByCustomerId = db.prepare(
 );
 const deleteCustomerAuthGrantsByCustomerId = db.prepare(
   "DELETE FROM customer_auth_grants WHERE customer_id = ?",
+);
+const listCustomerSavedCafeAddressesByCustomerId = db.prepare(
+  "SELECT cafe_address, created_at FROM customer_saved_cafes WHERE customer_id = ? ORDER BY created_at ASC, id ASC",
+);
+const deleteCustomerSavedCafesByCustomerId = db.prepare(
+  "DELETE FROM customer_saved_cafes WHERE customer_id = ?",
+);
+const insertCustomerSavedCafe = db.prepare(
+  db.client === "postgres"
+    ? "INSERT INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?) ON CONFLICT (customer_id, cafe_address) DO NOTHING"
+    : "INSERT OR IGNORE INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?)",
 );
 const deleteRedeemTokensByCustomerAddress = db.prepare(
   'DELETE FROM redeem_tokens WHERE LOWER(COALESCE("user", \'\')) = LOWER(?)',
@@ -4478,6 +4538,17 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       Math.max(Number(req.query?.eventsPerCafe) || 5, 1),
       20,
     );
+    const customerRow = await getCustomerByAddress.get(rawAddress);
+    const savedCafeRows =
+      customerRow && customerRow.id != null
+        ? await listCustomerSavedCafeAddressesByCustomerId.all(customerRow.id)
+        : [];
+    const savedCafeAddresses = [];
+    for (const row of Array.isArray(savedCafeRows) ? savedCafeRows : []) {
+      const savedAddr = row && row.cafe_address ? String(row.cafe_address) : "";
+      if (!/^0x[0-9a-f]{40}$/i.test(savedAddr)) continue;
+      savedCafeAddresses.push(savedAddr);
+    }
 
     const aggregates = await db
       .prepare(
@@ -4498,12 +4569,12 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       )
       .all(address);
 
-    if (!aggregates.length) {
+    if (!aggregates.length && !savedCafeAddresses.length) {
       return res.json({
         ok: true,
         customer: {
           address: rawAddress,
-          name: null,
+          name: customerRow?.username || null,
         },
         cards: [],
         meta: { eventsPerCafe, generatedAt: Date.now() },
@@ -4560,6 +4631,29 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       cardsByCafe.set(cafeAddr, card);
     }
 
+    for (const savedCafeAddress of savedCafeAddresses) {
+      const cafeAddr = String(savedCafeAddress || "").toLowerCase();
+      if (!cafeAddr || cardsByCafe.has(cafeAddr)) continue;
+      const cafeInfo = cafesByAddress.get(cafeAddr) || null;
+      cardsByCafe.set(cafeAddr, {
+        cafeAddress: savedCafeAddress,
+        cafeName: cafeInfo?.name || null,
+        cafeId: cafeInfo?.id || null,
+        program: getCafeProgramSettings(cafeInfo),
+        stats: {
+          stampsAwarded: 0,
+          stampsRedeemed: 0,
+          redemptions: 0,
+          netStamps: 0,
+          totalEvents: 0,
+          lastActivityTs: null,
+          lastStampTs: null,
+          lastRedeemTs: null,
+        },
+        recentEvents: [],
+      });
+    }
+
     for (const ev of rawEvents) {
       const cafeAddr = (ev.cafe || "").toLowerCase();
       const card = cardsByCafe.get(cafeAddr);
@@ -4579,7 +4673,9 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
     });
 
     const primaryName =
-      aggregates.find((agg) => agg.customer_name)?.customer_name || null;
+      aggregates.find((agg) => agg.customer_name)?.customer_name ||
+      customerRow?.username ||
+      null;
 
     res.json({
       ok: true,
@@ -4771,6 +4867,7 @@ app.post("/customers/login", async (req, res) => {
       username: row.username || null,
       email: row.email || em,
       address: row.address,
+      avatarDataUrl: customerAvatarDataUrlFromRow(row),
       createdAt: row.created_at || null,
     });
   } catch (e) {
@@ -4955,12 +5052,128 @@ app.post("/customers/oauth/consume", async (req, res) => {
       username: customer.username || null,
       email: customer.email || null,
       address: customer.address,
+      avatarDataUrl: customerAvatarDataUrlFromRow(customer),
       createdAt: customer.created_at || null,
     });
   } catch (e) {
     return res
       .status(500)
       .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.get("/customers/:customerAddress/public", async (req, res) => {
+  try {
+    const rawAddress = req.params?.customerAddress || "";
+    if (!/^0x[0-9a-f]{40}$/i.test(rawAddress)) {
+      return res.status(400).json({ ok: false, error: "invalid_customer_address" });
+    }
+    const customer = await getCustomerByAddress.get(rawAddress);
+    if (!customer || !customer.id) {
+      return res.status(404).json({ ok: false, error: "customer_not_found" });
+    }
+    return res.json({
+      ok: true,
+      customer: {
+        customer_id: customer.customer_id || null,
+        username: customer.username || null,
+        address: customer.address || rawAddress,
+        avatarDataUrl: customerAvatarDataUrlFromRow(customer),
+      },
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/profile-avatar", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ ok: false, error: "missing_customer_identity" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+
+    const parsed = parseCustomerAvatarDataUrl(req.body?.avatarDataUrl);
+    await setCustomerAvatarById.run(parsed.mime, parsed.data, row.id);
+    const updated = await getCustomerById.get(row.id);
+    return res.json({
+      ok: true,
+      customer: {
+        customer_id: updated?.customer_id || customerId,
+        username: updated?.username || null,
+        email: updated?.email || email,
+        address: updated?.address || address,
+        avatarDataUrl: customerAvatarDataUrlFromRow(updated),
+      },
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/saved-cafes/sync", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    const cafesRaw = Array.isArray(req.body?.cafes) ? req.body.cafes : [];
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ ok: false, error: "missing_customer_identity" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+
+    const seen = new Set();
+    const cafes = [];
+    for (const raw of cafesRaw) {
+      const addr = String(raw || "").trim().toLowerCase();
+      if (!/^0x[0-9a-f]{40}$/i.test(addr)) continue;
+      if (seen.has(addr)) continue;
+      seen.add(addr);
+      cafes.push(addr);
+    }
+
+    await deleteCustomerSavedCafesByCustomerId.run(row.id);
+    const now = Date.now();
+    for (let i = 0; i < cafes.length; i += 1) {
+      await insertCustomerSavedCafe.run(row.id, cafes[i], now + i);
+    }
+
+    return res.json({ ok: true, cafes });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
 });
 
@@ -5129,6 +5342,7 @@ app.post("/customers/delete-account", async (req, res) => {
     await deleteCustomerPasswordResetsByCustomerId.run(row.id);
     await deleteCustomerOauthIdentitiesByCustomerId.run(row.id);
     await deleteCustomerAuthGrantsByCustomerId.run(row.id);
+    await deleteCustomerSavedCafesByCustomerId.run(row.id);
     if (row.address) {
       await deleteRedeemTokensByCustomerAddress.run(row.address);
       await deleteStampEventsByCustomerAddress.run(row.address);

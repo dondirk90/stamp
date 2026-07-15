@@ -156,6 +156,32 @@
     return next;
   }
 
+  async function saveAvatarToServer(session, avatarDataUrl) {
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      throw new Error("missing_customer_identity");
+    }
+    const data = await apiFetch("/customers/profile-avatar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        avatarDataUrl: avatarDataUrl || null,
+      }),
+    });
+    const customer = data && data.customer ? data.customer : null;
+    const next = {
+      ...session,
+      avatarDataUrl:
+        customer && customer.avatarDataUrl ? String(customer.avatarDataUrl) : "",
+    };
+    if (!next.avatarDataUrl) delete next.avatarDataUrl;
+    saveSession(next);
+    renderProfile(next);
+    return next;
+  }
+
   function resizeAvatarFile(file) {
     return new Promise((resolve, reject) => {
       if (!file) {
@@ -506,7 +532,7 @@
     }
     try {
       const dataUrl = await resizeAvatarFile(file);
-      updateAvatar(session, dataUrl);
+      await saveAvatarToServer(session, dataUrl);
       showNotice(el.profileAvatarMsg, "success", "Profilbild aktualisiert.");
     } catch (e) {
       showNotice(
@@ -526,8 +552,17 @@
       showNotice(el.profileAvatarMsg, "danger", "Bitte zuerst einloggen.");
       return;
     }
-    updateAvatar(session, "");
-    showNotice(el.profileAvatarMsg, "info", "Profilbild entfernt.");
+    saveAvatarToServer(session, "")
+      .then(() => {
+        showNotice(el.profileAvatarMsg, "info", "Profilbild entfernt.");
+      })
+      .catch((e) => {
+        showNotice(
+          el.profileAvatarMsg,
+          "danger",
+          safeUiErrorMessage(e, "Profilbild konnte nicht entfernt werden."),
+        );
+      });
   }
 
   async function previewResetToken(token) {

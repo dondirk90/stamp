@@ -1378,16 +1378,48 @@
           font-size: 12px;
         }
 
-        #customerInfo {
-          margin-top: 10px;
-          padding: 14px;
-          max-height: none;
-          overflow: visible;
-        }
+      #customerInfo {
+        margin-top: 10px;
+        padding: 14px;
+        max-height: none;
+        overflow: visible;
+      }
 
-        #scannerScreen.customerLoaded {
-          justify-content: flex-start;
-          gap: 10px;
+      .customerProfileHead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .customerAvatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .customerAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+      }
+
+      .customerAvatarFallback {
+        font-weight: 900;
+        color: var(--text);
+        font-size: 18px;
+      }
+
+      #scannerScreen.customerLoaded {
+        justify-content: flex-start;
+        gap: 10px;
         }
 
         #scannerScreen.customerLoaded .scannerMain {
@@ -2069,6 +2101,12 @@
 
             <div id="customerInfo" class="customer-info" style="display: none">
               <div class="label">Kundeninformation</div>
+              <div class="customerProfileHead">
+                <div class="customerAvatar" aria-hidden="true">
+                  <img id="customerAvatarImg" alt="" />
+                  <div id="customerAvatarFallback" class="customerAvatarFallback">K</div>
+                </div>
+              </div>
               <div class="value">
                 <strong>Name:</strong> <span id="customerName">-</span>
               </div>
@@ -2204,6 +2242,10 @@
       const apiKeyInput = document.getElementById("apiKeyInput");
       const video = document.getElementById("video");
       const customerInfo = document.getElementById("customerInfo");
+      const customerAvatarImg = document.getElementById("customerAvatarImg");
+      const customerAvatarFallback = document.getElementById(
+        "customerAvatarFallback",
+      );
       const customerName = document.getElementById("customerName");
       const customerAddress = document.getElementById("customerAddress");
       const currentStamps = document.getElementById("currentStamps");
@@ -2303,6 +2345,45 @@
           return msg;
         } catch (e) {
           return fb;
+        }
+      }
+
+      function renderCustomerAvatar(displayName, avatarDataUrl) {
+        const initial =
+          String(displayName || "K")
+            .trim()
+            .slice(0, 1)
+            .toUpperCase() || "K";
+        if (customerAvatarFallback) customerAvatarFallback.textContent = initial;
+        const src = String(avatarDataUrl || "").trim();
+        if (customerAvatarImg) {
+          if (src) {
+            customerAvatarImg.src = src;
+            customerAvatarImg.style.display = "block";
+          } else {
+            try {
+              customerAvatarImg.removeAttribute("src");
+            } catch (e0) {}
+            customerAvatarImg.style.display = "none";
+          }
+        }
+        if (customerAvatarFallback) {
+          customerAvatarFallback.style.display = src ? "none" : "block";
+        }
+      }
+
+      async function loadCustomerPublicProfile(address) {
+        const addr = String(address || "").trim();
+        if (!/^0x[0-9a-f]{40}$/i.test(addr)) return null;
+        try {
+          const res = await fetch(
+            `${apiBase}/customers/${encodeURIComponent(addr)}/public`,
+          );
+          if (!res.ok) return null;
+          const data = await res.json().catch(() => null);
+          return data && data.customer ? data.customer : null;
+        } catch (e) {
+          return null;
         }
       }
 
@@ -3204,6 +3285,7 @@
         scannedCustomer = {
           address: pendingScan.address,
           name: pendingScan.name,
+          avatarDataUrl: null,
         };
 
         // Ensure UI reflects action (stamp vs redeem)
@@ -3229,8 +3311,21 @@
             `${apiBase}/stamps/${scannedCustomer.address}?fallback=1&cafe=${cafeForQuery}${cardParam}${strict}`,
           );
           const data = await res.json();
+          const publicProfile = await loadCustomerPublicProfile(
+            scannedCustomer.address,
+          );
+          if (publicProfile && publicProfile.username) {
+            scannedCustomer.name = String(publicProfile.username);
+          }
+          if (publicProfile && publicProfile.avatarDataUrl) {
+            scannedCustomer.avatarDataUrl = String(publicProfile.avatarDataUrl);
+          }
           customerName.textContent = scannedCustomer.name;
           customerAddress.textContent = scannedCustomer.address;
+          renderCustomerAvatar(
+            scannedCustomer.name,
+            scannedCustomer.avatarDataUrl || "",
+          );
           currentStamps.textContent = data.stamps ?? data.count ?? 0;
           customerInfo.style.display = "block";
           setCustomerLoadedUi(true);
@@ -3477,8 +3572,21 @@
             if (last && !pendingScan) {
               try {
                 scannedCustomer = JSON.parse(last);
+                const publicProfile = await loadCustomerPublicProfile(
+                  scannedCustomer.address,
+                );
+                if (publicProfile && publicProfile.username) {
+                  scannedCustomer.name = String(publicProfile.username);
+                }
+                if (publicProfile && publicProfile.avatarDataUrl) {
+                  scannedCustomer.avatarDataUrl = String(publicProfile.avatarDataUrl);
+                }
                 customerName.textContent = scannedCustomer.name;
                 customerAddress.textContent = scannedCustomer.address;
+                renderCustomerAvatar(
+                  scannedCustomer.name,
+                  scannedCustomer.avatarDataUrl || "",
+                );
                 customerInfo.style.display = "block";
                 setCustomerLoadedUi(true);
 
