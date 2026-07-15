@@ -1096,6 +1096,12 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
+        width: 100%;
+        min-height: 54px;
+        border: 1px solid rgba(17, 17, 17, 0.14) !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
       }
 
       .authGoogleLogo {
@@ -1177,24 +1183,44 @@
         margin-top: 2px;
       }
 
+      .authDetails {
+        display: none;
+        gap: 14px;
+      }
+
+      .authEmailField {
+        margin-top: 8px;
+      }
+
+      .authEmailField input {
+        min-height: 54px;
+        border-radius: 18px;
+        font-size: 18px;
+        padding-inline: 18px;
+      }
+
+      .authEmailField input::placeholder {
+        color: rgba(59, 42, 31, 0.48);
+      }
+
       .legalChecks {
         display: grid;
         gap: 10px;
-        margin-top: 8px;
-        padding: 14px 14px 0;
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
+        margin-top: 12px;
+        padding: 0 10px;
+        border-top: none;
       }
 
       .legalChecks.attention {
-        border-top-color: rgba(166, 71, 42, 0.35);
-        box-shadow: inset 0 1px 0 rgba(166, 71, 42, 0.2);
+        box-shadow: none;
       }
 
       .legalHint {
         margin: 0;
         color: rgba(59, 42, 31, 0.72);
-        font-size: 12px;
-        line-height: 1.45;
+        font-size: 13px;
+        line-height: 1.5;
+        text-align: center;
       }
 
       .legalCheck {
@@ -2130,6 +2156,7 @@
         align-self: start;
         grid-column: 3;
         grid-row: 1;
+        min-width: 0;
       }
 
       .welcomeCafeAction {
@@ -2138,6 +2165,8 @@
         padding: 10px 14px;
         justify-self: end;
         margin-top: 0;
+        white-space: normal;
+        text-align: center;
       }
 
       @media (max-width: 720px) {
@@ -2147,12 +2176,12 @@
         }
 
         .welcomeCafeActions {
-          grid-column: 1 / -1;
+          grid-column: 2;
           grid-row: auto;
           width: 100%;
           justify-items: stretch;
           margin-top: 4px;
-          padding-left: 68px;
+          padding-left: 0;
         }
 
         .welcomeCafeAction {
@@ -2305,7 +2334,7 @@
         align-self: flex-end;
       }
 
-      @media (max-width: 520px) {
+      @media (max-width: 640px) {
         .welcomePreviewHead {
           align-items: flex-start;
         }
@@ -2332,11 +2361,16 @@
           grid-template-columns: auto minmax(0, 1fr);
         }
 
+        .welcomeCafeActions {
+          grid-column: 1 / -1;
+          width: 100%;
+          justify-items: stretch;
+          margin-top: 4px;
+        }
+
         .welcomeCafeAction {
-          grid-column: 3;
-          grid-row: 1;
-          width: auto;
-          justify-self: end;
+          width: 100%;
+          justify-self: stretch;
         }
       }
 
@@ -4072,15 +4106,10 @@
         height: 10px;
       }
 
-      .modalActions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
+      .modalActions,
       .modalInfoActions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
@@ -4110,16 +4139,47 @@
         background: rgba(255, 252, 247, 0.98);
       }
 
+      .modalExtraDetails {
+        display: none;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(128, 98, 70, 0.12);
+        background: rgba(255, 252, 247, 0.78);
+      }
+
+      .modalDetailRow {
+        display: grid;
+        gap: 3px;
+      }
+
+      .modalDetailLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(92, 68, 48, 0.62);
+      }
+
+      .modalDetailValue,
+      .modalDetailValue a {
+        color: rgba(43, 28, 19, 0.9);
+        font-size: 14px;
+        line-height: 1.5;
+        text-decoration: none;
+      }
+
       .modalActions button,
       .modalInfoActions button {
-        flex: 1 1 calc(50% - 5px);
-        min-width: 140px;
+        min-width: 0;
+        width: 100%;
       }
 
       @media (max-width: 640px) {
-        .modalActions button,
-        .modalInfoActions button {
-          flex-basis: 100%;
+        .modalActions,
+        .modalInfoActions {
+          grid-template-columns: 1fr;
+          gap: 12px;
         }
       }
 
@@ -4784,13 +4844,39 @@
         }
 
         .modalHeroRow {
+          flex-wrap: wrap;
+          align-items: stretch;
           gap: 12px;
         }
 
+        .modalIdentity {
+          min-width: 0;
+          flex: 1 1 100%;
+        }
+
         #cafeModalClose {
+          width: 100%;
           min-height: 38px;
           padding: 0 14px;
           font-size: 13px;
+        }
+
+        .modalMetaRow {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .modalMetaPill,
+        .modalStatusPill,
+        .modalLinkPill {
+          width: 100%;
+          white-space: normal;
+          text-align: center;
+        }
+
+        .modalInfoActions,
+        .modalActions {
+          width: 100%;
         }
       }
     </style>
@@ -5009,71 +5095,61 @@
               </button>
             </div>
 
-            <div class="authDivider">oder mit E-Mail</div>
+            <div class="authDivider">ODER</div>
 
-            <div id="registerFields" class="stack">
-              <div class="stack" style="gap: 6px">
-                <label for="username">Username</label>
-                <input id="username" type="text" autocomplete="nickname" />
-                <div class="fieldHint">Nur f&uuml;r deinen Account, nicht f&uuml;r die gro&szlig;e B&uuml;hne gedacht.</div>
-              </div>
-            </div>
-            <div class="stack" style="gap: 6px">
-              <label for="email">E-Mail</label>
+            <div class="stack authEmailField" style="gap: 6px">
               <input
                 id="email"
                 type="email"
                 inputmode="email"
                 autocomplete="email"
-              />
-              <div class="fieldHint">Dar&uuml;ber loggst du dich sp&auml;ter wieder ein. N&uuml;chtern, aber zuverl&auml;ssig.</div>
-            </div>
-
-            <div class="stack" style="gap: 6px">
-              <label for="password">Passwort</label>
-              <input
-                id="password"
-                type="password"
-                autocomplete="current-password"
-              />
-              <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
-            </div>
-
-            <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
-              <label for="confirmPassword">Passwort best&auml;tigen</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                autocomplete="new-password"
+                placeholder="Gib deine E-Mail ein"
               />
             </div>
 
             <div class="actions">
-              <button class="btn secondary" id="authSubmit" type="button">
-                Account erstellen
+              <button class="btn primary" id="authSubmit" type="button">
+                Mit E-Mail fortfahren
               </button>
+            </div>
+
+            <div id="authDetails" class="stack authDetails">
+              <div id="registerFields" class="stack">
+                <div class="stack" style="gap: 6px">
+                  <label for="username">Username</label>
+                  <input id="username" type="text" autocomplete="nickname" />
+                  <div class="fieldHint">Optional. Wenn du nichts eintr&auml;gst, leiten wir ihn aus deiner E-Mail ab.</div>
+                </div>
+              </div>
+
+              <div class="stack" style="gap: 6px">
+                <label for="password">Passwort</label>
+                <input
+                  id="password"
+                  type="password"
+                  autocomplete="current-password"
+                />
+                <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
+              </div>
+
+              <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
+                <label for="confirmPassword">Passwort best&auml;tigen</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
             </div>
 
             <div id="registerFieldsLegal" class="legalChecks">
               <p class="legalHint">
-                F&uuml;r eine neue Registrierung brauchen wir einmal deine Zustimmung zu
-                <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutz</a>
+                Indem du fortf&auml;hrst, erkennst du Kaffeekartes
+                <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerkl&auml;rung</a>
                 und
-                <a href="/agb" target="_blank" rel="noreferrer">AGB</a>.
+                <a href="/agb" target="_blank" rel="noreferrer">AGB</a>
+                an.
               </p>
-              <label class="legalCheck" for="acceptPrivacy">
-                <input type="checkbox" id="acceptPrivacy" />
-                <span>
-                  Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerkl&auml;rung</a>
-                  gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
-                </span>
-              </label>
-              <label class="legalCheck" for="acceptTerms">
-                <input type="checkbox" id="acceptTerms" />
-                <span>
-                  Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffeekarte.
-                </span>
-              </label>
             </div>
 
             <div class="hint" style="margin-top: 6px">
@@ -5426,6 +5502,41 @@
             </a>
           </div>
 
+          <div class="modalExtraDetails" id="cafeModalExtraDetails">
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailRewardRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Belohnung</div>
+              <div class="modalDetailValue" id="cafeModalDetailReward"></div>
+            </div>
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailAddressRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Adresse</div>
+              <div class="modalDetailValue" id="cafeModalDetailAddress"></div>
+            </div>
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailDirectionsRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Route</div>
+              <div class="modalDetailValue">
+                <a
+                  id="cafeModalDirections"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >In Karten öffnen</a
+                >
+              </div>
+            </div>
+          </div>
+
           <div class="modalInfoActions">
             <button
               class="btn ghost"
@@ -5433,7 +5544,7 @@
               type="button"
               style="display: none"
             >
-              Caféprofil ansehen
+              Caféprofil öffnen
             </button>
           </div>
 
@@ -5463,8 +5574,8 @@
     </div>
 
     <script src="/vendor/qrcode.min.js"></script>
-    <script src="/ui.js?v=20260712b"></script>
-    <script src="/customer-qr-modern.js?v=20260712b"></script>
+    <script src="/ui.js?v=20260714a"></script>
+    <script src="/customer-qr-modern.js?v=20260714a"></script>
 
     <script>
       (function () {

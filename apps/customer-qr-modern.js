@@ -1505,10 +1505,14 @@
 
   function syncCafeModalDetails() {
     var cafe = cafeModalState.cafe;
-    var open = !!cafeModalState.detailsOpen;
+    var profileUrl = buildCafeProfileUrl(
+      cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
+      cafeModalState.cafeAddress || (cafe && cafe.cafeAddress) || "",
+    );
     if (el.cafeModalExtraDetails) {
-      el.cafeModalExtraDetails.style.display =
-        open && cafeModalHasExtraDetails(cafe) ? "grid" : "none";
+      el.cafeModalExtraDetails.style.display = cafeModalHasExtraDetails(cafe)
+        ? "grid"
+        : "none";
     }
 
     var addr = cafe ? String(cafe.address || cafe.cafeAddress || "").trim() : "";
@@ -1516,26 +1520,22 @@
     var directionsUrl = buildMapsUrl(addr);
 
     if (el.cafeModalDetailRewardRow && el.cafeModalDetailReward) {
-      el.cafeModalDetailRewardRow.style.display =
-        open && rewardDescription ? "grid" : "none";
+      el.cafeModalDetailRewardRow.style.display = rewardDescription ? "grid" : "none";
       el.cafeModalDetailReward.textContent = rewardDescription || "";
     }
     if (el.cafeModalDetailAddressRow && el.cafeModalDetailAddress) {
-      el.cafeModalDetailAddressRow.style.display = open && addr ? "grid" : "none";
+      el.cafeModalDetailAddressRow.style.display = addr ? "grid" : "none";
       el.cafeModalDetailAddress.textContent = addr || "";
     }
     if (el.cafeModalDetailDirectionsRow && el.cafeModalDirections) {
-      el.cafeModalDetailDirectionsRow.style.display =
-        open && directionsUrl ? "grid" : "none";
+      el.cafeModalDetailDirectionsRow.style.display = directionsUrl ? "grid" : "none";
       el.cafeModalDirections.href = directionsUrl || "#";
     }
     if (el.cafeModalProfileBtn) {
-      var hasDetails = cafeModalHasExtraDetails(cafe);
-      el.cafeModalProfileBtn.style.display = hasDetails ? "inline-flex" : "none";
-      el.cafeModalProfileBtn.disabled = !hasDetails;
-      el.cafeModalProfileBtn.textContent = open
-        ? "Weniger Informationen"
-        : "Weitere Informationen";
+      el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
+      el.cafeModalProfileBtn.disabled = !profileUrl;
+      el.cafeModalProfileBtn.dataset.href = profileUrl || "";
+      el.cafeModalProfileBtn.textContent = "Caf\u00e9profil \u00f6ffnen";
     }
   }
 
@@ -5838,9 +5838,12 @@
       });
     if (el.cafeModalProfileBtn)
       el.cafeModalProfileBtn.addEventListener("click", function () {
-        if (!cafeModalHasExtraDetails(cafeModalState.cafe)) return;
-        cafeModalState.detailsOpen = !cafeModalState.detailsOpen;
-        syncCafeModalDetails();
+        var href =
+          (el.cafeModalProfileBtn.dataset &&
+            el.cafeModalProfileBtn.dataset.href) ||
+          "";
+        if (!href) return;
+        location.href = href;
       });
 
     if (el.discoverPickAddBtn) {
