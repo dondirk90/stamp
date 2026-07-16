@@ -4086,12 +4086,7 @@
     progressText.appendChild(progressHeadline);
     progressText.appendChild(progressSub);
 
-    var rewardChip = document.createElement("div");
-    rewardChip.className = "passRewardChip";
-    rewardChip.textContent = rewardLabel || "Belohnung";
-
     metaRow.appendChild(progressText);
-    metaRow.appendChild(rewardChip);
 
     var hint = document.createElement("div");
     hint.className = "passHint";
