@@ -2704,28 +2704,41 @@
       }
       (function (cafe2) {
         var icon = buildCafePinIcon(cafe2);
+        var openMarkerCafe = function (ev) {
+          try {
+            if (ev) {
+              if (ev.preventDefault) ev.preventDefault();
+              if (ev.stopPropagation) ev.stopPropagation();
+            }
+            if (ev && ev.originalEvent) {
+              if (ev.originalEvent.preventDefault) ev.originalEvent.preventDefault();
+              if (ev.originalEvent.stopPropagation) ev.originalEvent.stopPropagation();
+            }
+          } catch (eStop0) {}
+          walletState.ignoreClickUntil = nowMs() + 420;
+          openCafeModal(cafe2);
+        };
         var marker = window.L.marker(
           [Number(cafe2.lat), Number(cafe2.lng)],
           icon ? { icon: icon } : undefined,
         );
         marker.__cafeAddress = normalizeAddr(cafe2.cafeAddress || cafe2.address || "");
         marker.addTo(leafletMap);
-        marker.on("click", function (ev) {
-          try {
-            if (ev && ev.originalEvent) {
-              if (ev.originalEvent.preventDefault)
-                ev.originalEvent.preventDefault();
-              if (ev.originalEvent.stopPropagation)
-                ev.originalEvent.stopPropagation();
-            }
-          } catch (eStop0) {}
-          walletState.ignoreClickUntil = nowMs() + 420;
-          openCafeModal(cafe2);
-        });
+        marker.on("click", openMarkerCafe);
         leafletMarkers.push(marker);
         try {
           var node = marker.getElement();
           var pin = node ? node.querySelector(".cafePin") : null;
+          if (node && !node.__cafeProfileBound) {
+            node.__cafeProfileBound = true;
+            node.addEventListener("click", openMarkerCafe);
+            node.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pin && !pin.__cafeProfileBound) {
+            pin.__cafeProfileBound = true;
+            pin.addEventListener("click", openMarkerCafe);
+            pin.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
           if (pin && marker.__cafeAddress && marker.__cafeAddress === activeCafeAddress) {
             pin.classList.add("isActive");
           }
