@@ -15,6 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -26,6 +27,9 @@ jobs:
           STAMP_SSH_KEY: ${{ secrets.STAMP_SSH_KEY }}
           STAGING_APPS_BASE_URL: ${{ secrets.STAGING_APPS_BASE_URL }}
           STAGING_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OAUTH_STATE_SECRET: ${{ secrets.OAUTH_STATE_SECRET }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
           ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
@@ -35,6 +39,9 @@ jobs:
           test -n "$STAMP_SSH_KEY"
           test -n "$STAGING_APPS_BASE_URL"
           test -n "$STAGING_DOMAIN"
+          test -n "$GOOGLE_CLIENT_ID"
+          test -n "$GOOGLE_CLIENT_SECRET"
+          test -n "$OAUTH_STATE_SECRET"
           test -n "$ADMIN_TOKEN"
           test -n "$ADMIN_BASIC_USER"
           test -n "$ADMIN_BASIC_HASH"
@@ -97,6 +104,9 @@ jobs:
             EMAIL_USER=${{ secrets.EMAIL_USER }}
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            OAUTH_STATE_SECRET=${{ secrets.OAUTH_STATE_SECRET }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
@@ -104,5 +114,15 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
+            for i in $(seq 1 30); do
+              if curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null; then
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Staging healthcheck failed after retries"
+                exit 1
+              fi
+              sleep 2
+            done
 
             echo "Staging deployed to https://${{ secrets.STAGING_DOMAIN }}"

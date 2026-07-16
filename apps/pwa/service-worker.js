@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v7-20260624-split-manifests";
+const CACHE_VERSION = "stamp-shell-v14-20260713-stamp-ring";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
@@ -7,13 +7,28 @@ const APP_SHELL_URLS = [
   "/cafe-scanner",
   "/cafe-profile",
   "/cafe-dashboard",
+  "/favicon.svg",
+  "/favicon.ico",
+  "/favicon-32x32.png",
+  "/apple-touch-icon.png",
   "/theme.css",
   "/pwa/manifest.webmanifest",
   "/pwa/manifest-customer.webmanifest",
   "/pwa/manifest-cafe.webmanifest",
+  "/pwa/icons/icon-32.png",
   "/pwa/icons/icon-192.png",
   "/pwa/icons/icon-512.png",
   "/pwa/icons/apple-touch-icon.png",
+  "/pwa/icons/customer-icon-192.png",
+  "/pwa/icons/customer-icon-512.png",
+  "/pwa/icons/customer-apple-touch-icon.png",
+  "/pwa/icons/customer-brand-32.png",
+  "/pwa/icons/customer-brand-192.png",
+  "/pwa/icons/customer-brand-512.png",
+  "/pwa/icons/customer-brand-apple-touch-icon.png",
+  "/pwa/icons/cafe-icon-192.png",
+  "/pwa/icons/cafe-icon-512.png",
+  "/pwa/icons/cafe-apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {

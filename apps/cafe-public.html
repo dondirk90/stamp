@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Café Profil</title>
+    <title>Cafe Profil</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -136,6 +136,36 @@
       .section + .section {
         border-top: 1px solid var(--border);
       }
+      .factsGrid {
+        display: grid;
+        gap: var(--space-3);
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .factCard {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: rgba(255, 255, 255, 0.6);
+        display: grid;
+        gap: 6px;
+      }
+      .factLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .factValue {
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      .factValue a {
+        color: inherit;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+      }
       .actions {
         display: flex;
         gap: var(--space-2);
@@ -153,7 +183,7 @@
         <div class="brand">
           <a class="kk-brand" href="/">
             <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/kaffekarte-mark.svg" alt="" />
+              <img src="/assets/stamp-bean.png?v=2" alt="" />
             </span>
             <span class="kk-brandText">
               <span class="kk-brandKicker">Kaffee im Veedel</span>
@@ -167,12 +197,12 @@
             </div>
           </div>
           <div class="brandText">
-            <h1 id="title">Café Profil</h1>
-            <div class="subtitle" id="addr">—</div>
+            <h1 id="title">Cafe Profil</h1>
+            <div class="subtitle" id="addr">-</div>
           </div>
         </div>
         <div class="actions">
-          <a class="btn secondary" href="/customer-map">Zur Map</a>
+          <a class="btn secondary" href="/customer-map?view=map">Zur Map</a>
         </div>
       </div>
 
@@ -180,18 +210,33 @@
         <div id="error" class="notice danger" style="display: none"></div>
 
         <div class="hero" id="heroWrap" style="display: none">
-          <img id="heroImg" alt="Café Bild" />
+          <img id="heroImg" alt="Cafe Bild" />
         </div>
         <div class="gallery" id="gallery"></div>
 
         <div class="section" style="margin-top: var(--space-3)">
           <div id="about" class="about" style="display: none"></div>
           <div id="aboutEmpty" class="hint" style="display: none">
-            Noch keine Beschreibung. Vielleicht spricht das Café lieber durch den Espresso.
+            Noch keine Beschreibung. Vielleicht spricht das Cafe lieber durch den Espresso.
           </div>
         </div>
 
         <div class="section">
+          <div class="factsGrid" style="margin-bottom: var(--space-3)">
+            <div class="factCard" id="rewardCard" style="display: none">
+              <div class="factLabel">Belohnung</div>
+              <div class="factValue" id="rewardValue"></div>
+            </div>
+            <div class="factCard" id="locationCard" style="display: none">
+              <div class="factLabel">Standort</div>
+              <div class="factValue" id="locationValue"></div>
+            </div>
+            <div class="factCard" id="linksCard" style="display: none">
+              <div class="factLabel">Mehr vom Cafe</div>
+              <div class="factValue" id="linksValue"></div>
+            </div>
+          </div>
+
           <div id="redeem" class="notice" style="display: none"></div>
 
           <div class="actions" style="margin-top: var(--space-3)">
@@ -328,7 +373,7 @@
         for (const src of arr) {
           const img = document.createElement("img");
           img.className = "thumb";
-          img.alt = "Café Bild";
+          img.alt = "Cafe Bild";
           img.src = src;
           img.addEventListener("click", () => setHero(src));
           g.appendChild(img);
@@ -341,7 +386,7 @@
           const params = new URLSearchParams(location.search);
           const id = params.get("id");
           if (!id) {
-            setError("Fehlende Café-ID (Parameter 'id').");
+            setError("Fehlende Cafe-ID (Parameter 'id').");
             return;
           }
 
@@ -353,8 +398,64 @@
 
           const title = document.getElementById("title");
           const addr = document.getElementById("addr");
-          if (title) title.textContent = cafe.name || "Café";
+          if (title) title.textContent = cafe.name || "Cafe";
           if (addr) addr.textContent = cafe.address || "";
+
+          const rewardCard = document.getElementById("rewardCard");
+          const rewardValue = document.getElementById("rewardValue");
+          const rewardGoal =
+            cafe &&
+            cafe.program &&
+            Number.isFinite(Number(cafe.program.stampsForReward))
+              ? Number(cafe.program.stampsForReward)
+              : null;
+          const rewardText =
+            cafe && cafe.program && cafe.program.rewardDescription
+              ? String(cafe.program.rewardDescription).trim()
+              : "";
+          if (rewardCard && rewardValue) {
+            if (rewardGoal || rewardText) {
+              rewardValue.textContent = rewardText
+                ? `${rewardGoal || 10} Stempel - ${rewardText}`
+                : `${rewardGoal || 10} Stempel bis zur Belohnung`;
+              rewardCard.style.display = "grid";
+            } else {
+              rewardCard.style.display = "none";
+            }
+          }
+
+          const locationCard = document.getElementById("locationCard");
+          const locationValue = document.getElementById("locationValue");
+          if (locationCard && locationValue) {
+            if (cafe.address) {
+              locationValue.textContent = String(cafe.address);
+              locationCard.style.display = "grid";
+            } else {
+              locationCard.style.display = "none";
+            }
+          }
+
+          const linksCard = document.getElementById("linksCard");
+          const linksValue = document.getElementById("linksValue");
+          if (linksCard && linksValue) {
+            const links = [];
+            if (cafe.websiteUrl) {
+              links.push(
+                `<a href="${escapeHtml(String(cafe.websiteUrl))}" target="_blank" rel="noopener noreferrer">Website</a>`,
+              );
+            }
+            if (cafe.instagramUrl) {
+              links.push(
+                `<a href="${escapeHtml(String(cafe.instagramUrl))}" target="_blank" rel="noopener noreferrer">Instagram</a>`,
+              );
+            }
+            if (links.length) {
+              linksValue.innerHTML = links.join("<br />");
+              linksCard.style.display = "grid";
+            } else {
+              linksCard.style.display = "none";
+            }
+          }
 
           // Logo in header (separate from hero/gallery)
           const logoWrap = document.getElementById("logoWrap");
@@ -393,14 +494,12 @@
           }
           if (aboutEmpty) aboutEmpty.style.display = about ? "none" : "block";
 
-          const redeem = cafe.redeemMessage
-            ? String(cafe.redeemMessage).trim()
-            : "";
           const redeemEl = document.getElementById("redeem");
           if (redeemEl) {
-            redeemEl.textContent = redeem;
-            redeemEl.style.display = redeem ? "block" : "none";
+            redeemEl.textContent = "";
+            redeemEl.style.display = "none";
           }
+
 
           // Hero/gallery prefer real photos; avoid using the logo as the hero image.
           const images = [];
@@ -442,7 +541,7 @@
           setError(
             stampUI.userSafeErrorMessage(
               e,
-              "Café-Seite konnte nicht geladen werden.",
+              "Cafe-Seite konnte nicht geladen werden.",
             ),
           );
         }
@@ -450,3 +549,4 @@
     </script>
   </body>
 </html>
+

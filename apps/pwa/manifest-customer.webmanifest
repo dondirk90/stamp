@@ -1,7 +1,7 @@
 {
   "id": "/wallet",
-  "name": "Wallet - Kaffeekarte",
-  "short_name": "Wallet",
+  "name": "Kaffeekarte - deine Wallet",
+  "short_name": "Kaffeekarte",
   "description": "Digitale Stempelkarten fuer Gaeste im Veedel.",
   "lang": "de",
   "dir": "ltr",
@@ -25,18 +25,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/pwa/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ],
   "shortcuts": [
     {
-      "name": "Wallet",
-      "short_name": "Wallet",
+      "name": "Kaffeekarte",
+      "short_name": "Kaffeekarte",
       "description": "Digitale Stempelkarte fuer Gaeste oeffnen.",
       "url": "/wallet",
       "icons": [

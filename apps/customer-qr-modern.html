@@ -6,8 +6,7 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Customer - S&uuml;lzer Kaffeekarte</title>
-    <link rel="icon" href="data:," />
+    <title>Kaffeekarte - deine Wallet</title>
     <meta
       name="description"
       content="Die S&uuml;lzer Kaffeekarte f&uuml;r Lieblingscaf&eacute;s, Rewards und digitale Stempelkarten auf dem Handy."
@@ -16,17 +15,34 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Wallet" />
-    <meta name="application-name" content="Wallet - Kaffeekarte" />
-    <link rel="manifest" href="/pwa/manifest-customer.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="Kaffeekarte" />
+    <meta name="application-name" content="Kaffeekarte - deine Wallet" />
+    <link rel="manifest" href="/pwa/manifest-customer.webmanifest?v=20260713a" />
+    <link rel="shortcut icon" href="/favicon.ico?v=20260713a" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/favicon-32x32.png?v=20260713a"
+    />
     <link
       rel="icon"
       type="image/png"
       sizes="192x192"
-      href="/pwa/icons/icon-192.png"
+      href="/pwa/icons/icon-192.png?v=20260713a"
     />
-    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/theme.css" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="/pwa/icons/icon-512.png?v=20260713a"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/apple-touch-icon.png?v=20260713a"
+    />
+    <link rel="stylesheet" href="/theme.css?v=20260712b" />
     <style>
       /* Page-specific tweaks only; theme comes from /theme.css */
 
@@ -1055,6 +1071,45 @@
         flex: 1;
       }
 
+      .authDivider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 6px 0 2px;
+        color: rgba(59, 42, 31, 0.5);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .authDivider::before,
+      .authDivider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(17, 17, 17, 0.08);
+      }
+
+      .authGoogleBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 54px;
+        border: 1px solid rgba(17, 17, 17, 0.14) !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
+      }
+
+      .authGoogleLogo {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+      }
+
       .authIntro {
         display: grid;
         gap: 14px;
@@ -1128,10 +1183,44 @@
         margin-top: 2px;
       }
 
+      .authDetails {
+        display: none;
+        gap: 14px;
+      }
+
+      .authEmailField {
+        margin-top: 8px;
+      }
+
+      .authEmailField input {
+        min-height: 54px;
+        border-radius: 18px;
+        font-size: 18px;
+        padding-inline: 18px;
+      }
+
+      .authEmailField input::placeholder {
+        color: rgba(59, 42, 31, 0.48);
+      }
+
       .legalChecks {
         display: grid;
         gap: 10px;
-        margin-top: 4px;
+        margin-top: 12px;
+        padding: 0 10px;
+        border-top: none;
+      }
+
+      .legalChecks.attention {
+        box-shadow: none;
+      }
+
+      .legalHint {
+        margin: 0;
+        color: rgba(59, 42, 31, 0.72);
+        font-size: 13px;
+        line-height: 1.5;
+        text-align: center;
       }
 
       .legalCheck {
@@ -1825,6 +1914,41 @@
         max-width: 30ch;
       }
 
+      .welcomeProfileRow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .welcomeAvatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        border: 1px solid rgba(107, 69, 44, 0.14);
+        background: linear-gradient(180deg, rgba(255, 251, 246, 0.96), rgba(247, 238, 228, 0.92));
+        box-shadow:
+          0 10px 24px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.84) inset;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .welcomeAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .welcomeAvatarFallback {
+        font-size: 16px;
+        font-weight: 900;
+        color: #7a5236;
+      }
+
       .welcomePrimaryAction {
         width: auto;
         min-width: 168px;
@@ -2025,15 +2149,45 @@
           radial-gradient(circle at 35% 35%, rgba(245, 215, 175, 0.95), rgba(150, 98, 58, 0.96));
       }
 
-      .welcomeCafeAction {
-        min-width: 88px;
-        width: auto;
-        padding: 10px 14px;
-        justify-self: end;
+      .welcomeCafeActions {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
         align-self: start;
         grid-column: 3;
         grid-row: 1;
+        min-width: 0;
+      }
+
+      .welcomeCafeAction {
+        min-width: 126px;
+        width: auto;
+        padding: 10px 14px;
+        justify-self: end;
         margin-top: 0;
+        white-space: normal;
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .welcomeCafeRow {
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: start;
+        }
+
+        .welcomeCafeActions {
+          grid-column: 2;
+          grid-row: auto;
+          width: 100%;
+          justify-items: stretch;
+          margin-top: 4px;
+          padding-left: 0;
+        }
+
+        .welcomeCafeAction {
+          width: 100%;
+          justify-self: stretch;
+        }
       }
 
       .welcomeEmptyState {
@@ -2180,7 +2334,7 @@
         align-self: flex-end;
       }
 
-      @media (max-width: 520px) {
+      @media (max-width: 640px) {
         .welcomePreviewHead {
           align-items: flex-start;
         }
@@ -2207,11 +2361,16 @@
           grid-template-columns: auto minmax(0, 1fr);
         }
 
+        .welcomeCafeActions {
+          grid-column: 1 / -1;
+          width: 100%;
+          justify-items: stretch;
+          margin-top: 4px;
+        }
+
         .welcomeCafeAction {
-          grid-column: 3;
-          grid-row: 1;
-          width: auto;
-          justify-self: end;
+          width: 100%;
+          justify-self: stretch;
         }
       }
 
@@ -3947,9 +4106,10 @@
         height: 10px;
       }
 
-      .modalActions {
-        display: flex;
-        flex-wrap: wrap;
+      .modalActions,
+      .modalInfoActions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
@@ -3979,9 +4139,48 @@
         background: rgba(255, 252, 247, 0.98);
       }
 
-      .modalActions button {
-        flex: 1;
+      .modalExtraDetails {
+        display: none;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(128, 98, 70, 0.12);
+        background: rgba(255, 252, 247, 0.78);
+      }
+
+      .modalDetailRow {
+        display: grid;
+        gap: 3px;
+      }
+
+      .modalDetailLabel {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(92, 68, 48, 0.62);
+      }
+
+      .modalDetailValue,
+      .modalDetailValue a {
+        color: rgba(43, 28, 19, 0.9);
+        font-size: 14px;
+        line-height: 1.5;
+        text-decoration: none;
+      }
+
+      .modalActions button,
+      .modalInfoActions button {
         min-width: 0;
+        width: 100%;
+      }
+
+      @media (max-width: 640px) {
+        .modalActions,
+        .modalInfoActions {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
       }
 
       .qrSheetBackdrop {
@@ -4645,13 +4844,39 @@
         }
 
         .modalHeroRow {
+          flex-wrap: wrap;
+          align-items: stretch;
           gap: 12px;
         }
 
+        .modalIdentity {
+          min-width: 0;
+          flex: 1 1 100%;
+        }
+
         #cafeModalClose {
+          width: 100%;
           min-height: 38px;
           padding: 0 14px;
           font-size: 13px;
+        }
+
+        .modalMetaRow {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .modalMetaPill,
+        .modalStatusPill,
+        .modalLinkPill {
+          width: 100%;
+          white-space: normal;
+          text-align: center;
+        }
+
+        .modalInfoActions,
+        .modalActions {
+          width: 100%;
         }
       }
     </style>
@@ -4841,62 +5066,90 @@
                 </div>
               </div>
             </div>
-            <div id="registerFields" class="stack">
-              <div class="stack" style="gap: 6px">
-                <label for="username">Username</label>
-                <input id="username" type="text" autocomplete="nickname" />
-                <div class="fieldHint">Nur f&uuml;r deinen Account, nicht f&uuml;r die gro&szlig;e B&uuml;hne gedacht.</div>
-              </div>
-              <div class="legalChecks">
-                <label class="legalCheck" for="acceptPrivacy">
-                  <input type="checkbox" id="acceptPrivacy" />
-                  <span>
-                    Ich habe die <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerkl&auml;rung</a>
-                    gelesen und nehme die Verarbeitung meiner Daten zur Kenntnis.
-                  </span>
-                </label>
-                <label class="legalCheck" for="acceptTerms">
-                  <input type="checkbox" id="acceptTerms" />
-                  <span>
-                    Ich akzeptiere die <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von Kaffeekarte.
-                  </span>
-                </label>
-              </div>
+
+            <div class="actions">
+              <button class="btn primary authGoogleBtn" id="authGoogle" type="button">
+                <svg
+                  class="authGoogleLogo"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="#EA4335"
+                    d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.8 2.9l3 2.4c1.8-1.6 2.8-4 2.8-6.9 0-.7-.1-1.5-.2-2.2H12z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 21c2.6 0 4.9-.9 6.5-2.4l-3-2.4c-.8.6-1.9 1-3.5 1-2.7 0-4.9-1.8-5.7-4.3l-3.1 2.4C4.8 18.6 8.1 21 12 21z"
+                  />
+                  <path
+                    fill="#4A90E2"
+                    d="M6.3 12.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L3.2 6.7C2.4 8.2 2 9.5 2 11s.4 2.8 1.2 4.3l3.1-2.4z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M12 4.8c1.4 0 2.7.5 3.7 1.5l2.7-2.7C16.9 2.1 14.7 1 12 1 8.1 1 4.8 3.4 3.2 6.7l3.1 2.4c.8-2.5 3-4.3 5.7-4.3z"
+                  />
+                </svg>
+                <span id="authGoogleLabel">Mit Google fortfahren</span>
+              </button>
             </div>
-            <div class="stack" style="gap: 6px">
-              <label for="email">E-Mail</label>
+
+            <div class="authDivider">ODER</div>
+
+            <div class="stack authEmailField" style="gap: 6px">
               <input
                 id="email"
                 type="email"
                 inputmode="email"
                 autocomplete="email"
-              />
-              <div class="fieldHint">Dar&uuml;ber loggst du dich sp&auml;ter wieder ein. N&uuml;chtern, aber zuverl&auml;ssig.</div>
-            </div>
-
-            <div class="stack" style="gap: 6px">
-              <label for="password">Passwort</label>
-              <input
-                id="password"
-                type="password"
-                autocomplete="current-password"
-              />
-              <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
-            </div>
-
-            <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
-              <label for="confirmPassword">Passwort best&auml;tigen</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                autocomplete="new-password"
+                placeholder="Gib deine E-Mail ein"
               />
             </div>
 
             <div class="actions">
               <button class="btn primary" id="authSubmit" type="button">
-                Account erstellen
+                Mit E-Mail fortfahren
               </button>
+            </div>
+
+            <div id="authDetails" class="stack authDetails">
+              <div id="registerFields" class="stack">
+                <div class="stack" style="gap: 6px">
+                  <label for="username">Username</label>
+                  <input id="username" type="text" autocomplete="nickname" />
+                  <div class="fieldHint">Optional. Wenn du nichts eintr&auml;gst, leiten wir ihn aus deiner E-Mail ab.</div>
+                </div>
+              </div>
+
+              <div class="stack" style="gap: 6px">
+                <label for="password">Passwort</label>
+                <input
+                  id="password"
+                  type="password"
+                  autocomplete="current-password"
+                />
+                <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
+              </div>
+
+              <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
+                <label for="confirmPassword">Passwort best&auml;tigen</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
+            </div>
+
+            <div id="registerFieldsLegal" class="legalChecks">
+              <p class="legalHint">
+                Indem du fortf&auml;hrst, erkennst du Kaffeekartes
+                <a href="/datenschutz" target="_blank" rel="noreferrer">Datenschutzerkl&auml;rung</a>
+                und
+                <a href="/agb" target="_blank" rel="noreferrer">AGB</a>
+                an.
+              </p>
             </div>
 
             <div class="hint" style="margin-top: 6px">
@@ -4982,8 +5235,14 @@
             <div class="card panel" id="welcomePanel">
               <div class="welcomeIntro">
                 <div class="welcomeKicker">Deine Kaffeekarte</div>
-                <div class="panelHeader">
-                  <h3 id="welcomeTitle">Hallo</h3>
+                <div class="welcomeProfileRow">
+                  <div class="welcomeAvatar" aria-hidden="true">
+                    <img id="welcomeAvatarImg" alt="" style="display: none" />
+                    <div class="welcomeAvatarFallback" id="welcomeAvatarFallback">K</div>
+                  </div>
+                  <div class="panelHeader" style="min-width: 0; flex: 1">
+                    <h3 id="welcomeTitle">Hallo</h3>
+                  </div>
                 </div>
                 <div class="welcomeLeadText" id="welcomeLead">
                   Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
@@ -5243,6 +5502,52 @@
             </a>
           </div>
 
+          <div class="modalExtraDetails" id="cafeModalExtraDetails">
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailRewardRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Belohnung</div>
+              <div class="modalDetailValue" id="cafeModalDetailReward"></div>
+            </div>
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailAddressRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Adresse</div>
+              <div class="modalDetailValue" id="cafeModalDetailAddress"></div>
+            </div>
+            <div
+              class="modalDetailRow"
+              id="cafeModalDetailDirectionsRow"
+              style="display: none"
+            >
+              <div class="modalDetailLabel">Route</div>
+              <div class="modalDetailValue">
+                <a
+                  id="cafeModalDirections"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >In Karten öffnen</a
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="modalInfoActions">
+            <button
+              class="btn ghost"
+              id="cafeModalProfileBtn"
+              type="button"
+              style="display: none"
+            >
+              Caféprofil öffnen
+            </button>
+          </div>
+
           <div class="modalActions">
             <button class="btn primary" id="cafeModalAddBtn" type="button">
               Stempelkarte holen
@@ -5269,8 +5574,8 @@
     </div>
 
     <script src="/vendor/qrcode.min.js"></script>
-    <script src="/ui.js"></script>
-    <script src="/customer-qr-modern.js?v=20260703a"></script>
+    <script src="/ui.js?v=20260714a"></script>
+    <script src="/customer-qr-modern.js?v=20260714a"></script>
 
     <script>
       (function () {
@@ -5592,6 +5897,6 @@
         });
       })();
     </script>
-    <script src="/pwa/sw-register.js" defer></script>
+    <script src="/pwa/sw-register.js?v=20260712b" defer></script>
   </body>
 </html>

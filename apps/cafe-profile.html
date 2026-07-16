@@ -10,14 +10,28 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Barista App" />
     <meta name="application-name" content="Barista App - Kaffeekarte" />
-    <link rel="manifest" href="/pwa/manifest-cafe.webmanifest" />
+    <link rel="manifest" href="/pwa/manifest-cafe.webmanifest?v=20260713a" />
+    <link
+      rel="shortcut icon"
+      href="/favicon.ico?v=20260713a"
+    />
     <link
       rel="icon"
       type="image/png"
       sizes="192x192"
-      href="/pwa/icons/icon-192.png"
+      href="/pwa/icons/cafe-icon-192.png?v=20260713a"
     />
-    <link rel="apple-touch-icon" href="/pwa/icons/apple-touch-icon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="/pwa/icons/cafe-icon-512.png?v=20260713a"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/pwa/icons/cafe-apple-touch-icon.png?v=20260713a"
+    />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -905,6 +919,64 @@
             <div id="galleryList" class="galleryList"></div>
           </div>
 
+          <div
+            id="sectionDeleteProfile"
+            class="cardSection"
+            style="border-color: rgba(180, 35, 24, 0.26); background: rgba(180, 35, 24, 0.08)"
+          >
+            <div
+              class="muted"
+              style="margin-bottom: 6px; font-weight: 800; color: var(--danger)"
+            >
+              Café-Profil löschen
+            </div>
+            <div class="muted" style="margin-bottom: 10px">
+              Entfernt euer Café-Profil inklusive Stempelhistorie, Bilder und
+              Logindaten dauerhaft.
+            </div>
+            <div class="logoRow" style="align-items: flex-end; gap: 12px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Aktuelles Passwort
+                </div>
+                <input
+                  id="deleteCafePassword"
+                  class="input"
+                  type="password"
+                  autocomplete="current-password"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Zur Bestätigung `DELETE`
+                </div>
+                <input
+                  id="deleteCafeConfirmText"
+                  class="input"
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  style="width: 100%"
+                />
+              </div>
+            </div>
+            <div class="muted" style="margin-top: 8px">
+              Diese Aktion kann nicht rückgängig gemacht werden.
+            </div>
+            <div class="logoRow" style="justify-content: flex-start; margin-top: 12px">
+              <button
+                class="btn"
+                id="deleteCafeBtn"
+                type="button"
+                style="background: var(--danger); color: white; border-color: var(--danger)"
+              >
+                Café-Profil endgültig löschen
+              </button>
+              <div class="msg" id="deleteCafeMsg"></div>
+            </div>
+          </div>
+
           <div class="logoRow" style="justify-content: space-between">
             <button class="btn" id="profileSaveBtn" type="button">
               Änderungen speichern
@@ -1046,6 +1118,11 @@
 
       function setMsg(text) {
         const msg = document.getElementById("profileMsg");
+        if (msg) msg.textContent = text || "";
+      }
+
+      function setDeleteMsg(text) {
+        const msg = document.getElementById("deleteCafeMsg");
         if (msg) msg.textContent = text || "";
       }
 
@@ -1523,6 +1600,63 @@
         window.location.href = "/cafe-onboarding";
       }
 
+      async function deleteCafeProfile() {
+        if (!cafe || !cafe.token) {
+          setDeleteMsg("Session fehlt. Bitte neu anmelden.");
+          return;
+        }
+        const passwordEl = document.getElementById("deleteCafePassword");
+        const confirmEl = document.getElementById("deleteCafeConfirmText");
+        const btn = document.getElementById("deleteCafeBtn");
+        const currentPassword = passwordEl ? String(passwordEl.value || "") : "";
+        const confirmText = confirmEl ? String(confirmEl.value || "").trim() : "";
+
+        if (confirmText !== "DELETE") {
+          setDeleteMsg("Bitte zur Bestätigung genau DELETE eingeben.");
+          return;
+        }
+        if (!currentPassword) {
+          setDeleteMsg("Bitte dein aktuelles Passwort eingeben.");
+          return;
+        }
+        if (!confirm("Willst du dieses Café-Profil wirklich endgültig löschen?")) {
+          return;
+        }
+
+        setDeleteMsg("Lösche Profil…");
+        if (btn) btn.disabled = true;
+        try {
+          await apiFetch("/cafes/me/delete-account", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({
+              currentPassword,
+              confirmText,
+            }),
+          });
+          try {
+            localStorage.removeItem("cafe_session");
+            localStorage.removeItem("last_scanned_customer");
+          } catch (e) {}
+          setDeleteMsg("Café-Profil wurde gelöscht.");
+          window.setTimeout(() => {
+            location.href = "/cafe-onboarding";
+          }, 900);
+        } catch (e) {
+          setDeleteMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Café-Profil konnte nicht gelöscht werden.",
+            ),
+          );
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
       function wireUtilityMenu() {
         const topUtilityBtn = document.getElementById("topUtilityBtn");
         const utilityMenu = document.getElementById("utilityMenu");
@@ -1587,6 +1721,8 @@
 
           const btn = document.getElementById("profileSaveBtn");
           if (btn) btn.addEventListener("click", saveProfile);
+          const deleteBtn = document.getElementById("deleteCafeBtn");
+          if (deleteBtn) deleteBtn.addEventListener("click", deleteCafeProfile);
 
           const aboutEl = document.getElementById("profileAbout");
           const aboutPreview = document.getElementById("profileAboutPreview");

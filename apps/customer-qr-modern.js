@@ -24,6 +24,8 @@
     open: false,
   };
 
+  var favoritesSyncTimer = 0;
+
   var qrSheetState = {
     open: false,
     passEl: null,
@@ -56,12 +58,16 @@
     modeRegister: document.getElementById("modeRegister"),
     modeLogin: document.getElementById("modeLogin"),
     registerFields: document.getElementById("registerFields"),
+    registerFieldsLegal: document.getElementById("registerFieldsLegal"),
     username: document.getElementById("username"),
     email: document.getElementById("email"),
     password: document.getElementById("password"),
     confirmPassword: document.getElementById("confirmPassword"),
     confirmPasswordWrap: document.getElementById("confirmPasswordWrap"),
     authSubmit: document.getElementById("authSubmit"),
+    authGoogle: document.getElementById("authGoogle"),
+    authGoogleLabel: document.getElementById("authGoogleLabel"),
+    authDetails: document.getElementById("authDetails"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
@@ -88,6 +94,8 @@
 
     welcomePanel: document.getElementById("welcomePanel"),
     welcomeTitle: document.getElementById("welcomeTitle"),
+    welcomeAvatarImg: document.getElementById("welcomeAvatarImg"),
+    welcomeAvatarFallback: document.getElementById("welcomeAvatarFallback"),
     welcomeLead: document.getElementById("welcomeLead"),
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
@@ -140,9 +148,17 @@
     cafeModalLinks: document.getElementById("cafeModalLinks"),
     cafeModalWebsite: document.getElementById("cafeModalWebsite"),
     cafeModalInstagram: document.getElementById("cafeModalInstagram"),
+    cafeModalExtraDetails: document.getElementById("cafeModalExtraDetails"),
+    cafeModalDetailRewardRow: document.getElementById("cafeModalDetailRewardRow"),
+    cafeModalDetailReward: document.getElementById("cafeModalDetailReward"),
+    cafeModalDetailAddressRow: document.getElementById("cafeModalDetailAddressRow"),
+    cafeModalDetailAddress: document.getElementById("cafeModalDetailAddress"),
+    cafeModalDetailDirectionsRow: document.getElementById("cafeModalDetailDirectionsRow"),
+    cafeModalDirections: document.getElementById("cafeModalDirections"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
+    cafeModalProfileBtn: document.getElementById("cafeModalProfileBtn"),
   };
 
   var apiBase =
@@ -176,6 +192,7 @@
 
   var leafletMap = null;
   var leafletMarkers = [];
+  var activeCafeAddress = "";
   var pickedCafe = null;
   var mapInitTimer = 0;
   var mapInitAttempts = 0;
@@ -492,6 +509,18 @@
     el.authMsg.textContent = "";
   }
 
+  function deriveUsernameFromEmail(email) {
+    var raw = String(email || "").trim().toLowerCase();
+    var local = raw.split("@")[0] || "";
+    var cleaned = local.replace(/[^a-z0-9._-]+/g, "").slice(0, 32);
+    return cleaned || "kaffeekarte";
+  }
+
+  function setAuthDetailsVisible(visible) {
+    if (!el.authDetails) return;
+    el.authDetails.style.display = visible ? "" : "none";
+  }
+
   function loadSession() {
     var raw = null;
     try {
@@ -512,6 +541,15 @@
   }
 
   function saveSession(s) {
+    var prev = session || loadSession() || null;
+    if (
+      s &&
+      !Object.prototype.hasOwnProperty.call(s, "avatarDataUrl") &&
+      prev &&
+      prev.avatarDataUrl
+    ) {
+      s.avatarDataUrl = prev.avatarDataUrl;
+    }
     session = s;
     try {
       localStorage.setItem(STORAGE_KEY_V1, JSON.stringify(s));
@@ -536,12 +574,18 @@
 
     if (el.registerFields)
       el.registerFields.style.display = authMode === "register" ? "" : "none";
+    if (el.registerFieldsLegal)
+      el.registerFieldsLegal.style.display =
+        authMode === "register" ? "" : "none";
+    if (el.registerFieldsLegal)
+      el.registerFieldsLegal.classList.remove("attention");
     if (el.confirmPasswordWrap)
       el.confirmPasswordWrap.style.display =
         authMode === "register" ? "" : "none";
     if (el.authSubmit)
-      el.authSubmit.textContent =
-        authMode === "register" ? "Account erstellen" : "Einloggen";
+      el.authSubmit.textContent = "Mit E-Mail fortfahren";
+    if (el.authGoogleLabel)
+      el.authGoogleLabel.textContent = "Mit Google fortfahren";
 
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
@@ -556,8 +600,10 @@
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Registriere dich in wenigen Sekunden und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
-          : "Logge dich ein und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
+          ? "Starte mit Google oder deiner E-Mail und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
+          : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
+
+    setAuthDetailsVisible(false);
 
     if (el.authForgotToggle)
       el.authForgotToggle.style.display =
@@ -628,6 +674,28 @@
     }
     if (el.welcomeTitle) {
       el.welcomeTitle.textContent = uname ? "Hallo, " + uname + " ☕" : "Hallo ☕";
+    }
+    if (el.welcomeAvatarFallback) {
+      var avatarInitial = String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
+      el.welcomeAvatarFallback.textContent = avatarInitial;
+    }
+    if (el.welcomeAvatarImg || el.welcomeAvatarFallback) {
+      var avatarSrc =
+        session && session.avatarDataUrl ? String(session.avatarDataUrl) : "";
+      if (el.welcomeAvatarImg) {
+        if (avatarSrc) {
+          el.welcomeAvatarImg.src = avatarSrc;
+          el.welcomeAvatarImg.style.display = "block";
+        } else {
+          try {
+            el.welcomeAvatarImg.removeAttribute("src");
+          } catch (eAvatar0) {}
+          el.welcomeAvatarImg.style.display = "none";
+        }
+      }
+      if (el.welcomeAvatarFallback) {
+        el.welcomeAvatarFallback.style.display = avatarSrc ? "none" : "block";
+      }
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
@@ -794,6 +862,9 @@
       metaWrap.appendChild(count);
       metaWrap.appendChild(stampRow);
 
+      var actions = document.createElement("div");
+      actions.className = "welcomeCafeActions";
+
       var btn = document.createElement("button");
       btn.className = "btn secondary welcomeCafeAction";
       btn.type = "button";
@@ -807,10 +878,58 @@
           openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
         };
       })(cafeAddress));
+      actions.appendChild(btn);
+
+      var profileBtn = document.createElement("button");
+      profileBtn.className = "btn ghost welcomeCafeAction";
+      profileBtn.type = "button";
+      profileBtn.textContent = "Weitere Informationen";
+      profileBtn.addEventListener(
+        "click",
+        (function (info) {
+          return function (ev) {
+            try {
+              ev.preventDefault();
+              ev.stopPropagation();
+            } catch (e) {}
+            var href = buildCafeProfileUrl(info.cafeId, info.cafeAddress);
+            if (href) {
+              window.location.href = href;
+              return;
+            }
+            openCafeModal({
+              id: info.cafeId,
+              name: info.name,
+              address: info.address,
+              cafeAddress: info.cafeAddress,
+              about: info.about || "",
+              program: info.program || null,
+              websiteUrl: info.websiteUrl || "",
+              instagramUrl: info.instagramUrl || "",
+              logoDataUrl: info.logoDataUrl || null,
+              cardBackgroundDataUrl: info.cardBackgroundDataUrl || null,
+              images: info.images || null,
+            });
+          };
+        })({
+          cafeId: meta.cafeId,
+          name: meta.name,
+          address: meta.address,
+          cafeAddress: cafeAddress,
+          about: meta.about,
+          program: meta.program,
+          websiteUrl: meta.websiteUrl,
+          instagramUrl: meta.instagramUrl,
+          logoDataUrl: meta.logoDataUrl,
+          cardBackgroundDataUrl: meta.cardBackgroundDataUrl,
+          images: meta.images,
+        }),
+      );
+      actions.appendChild(profileBtn);
 
       row.appendChild(logoWrap);
       row.appendChild(metaWrap);
-      row.appendChild(btn);
+      row.appendChild(actions);
       rows.appendChild(row);
     }
 
@@ -882,6 +1001,7 @@
     closeAllPasses(passEl);
     try {
       if (passEl.classList) passEl.classList.add("isFocused");
+      setActiveCafeAddress(passEl.getAttribute("data-cafe") || "");
       if (passEl.scrollIntoView) {
         passEl.scrollIntoView({
           behavior: "smooth",
@@ -1125,6 +1245,34 @@
     } catch (e) {}
   }
 
+  function clearOauthParamsFromUrl() {
+    try {
+      var u = new URL(location.href);
+      var changed = false;
+      ["oauthToken", "oauthProvider", "oauthError"].forEach(function (key) {
+        if (u.searchParams.has(key)) {
+          u.searchParams.delete(key);
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      history.replaceState(
+        history && history.state ? history.state : null,
+        "",
+        u.pathname + (u.search ? u.search : "") + (u.hash || ""),
+      );
+    } catch (e) {}
+  }
+
+  function getOauthParam(name) {
+    try {
+      var u = new URL(location.href);
+      return u.searchParams.get(name) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   function processCustomerVerifyToken() {
     var token = getCustomerVerifyTokenFromUrl();
     if (!token) return Promise.resolve(false);
@@ -1152,6 +1300,68 @@
         showMsg(
           "danger",
           "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
+        );
+        return false;
+      });
+  }
+
+  function processCustomerOauthRedirect() {
+    var oauthError = getOauthParam("oauthError");
+    if (oauthError) {
+      clearOauthParamsFromUrl();
+      setAuthMode("login");
+      var msg = "Google-Anmeldung fehlgeschlagen.";
+      if (oauthError === "google_no_account") {
+        msg =
+          "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst oder nutze den normalen Login.";
+      } else if (oauthError === "google_auth_not_configured") {
+        msg =
+          "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
+      } else if (oauthError === "google_legal_required") {
+        msg =
+          "Bitte bestätige vor der Google-Registrierung Datenschutz und AGB.";
+      } else if (oauthError === "google_email_not_verified") {
+        msg =
+          "Google hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte Google-Adresse.";
+      }
+      showMsg("danger", msg);
+      return Promise.resolve(false);
+    }
+
+    var token = getOauthParam("oauthToken");
+    if (!token) return Promise.resolve(false);
+
+    return apiFetch("/customers/oauth/consume", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: token }),
+    })
+      .then(function (data) {
+        clearOauthParamsFromUrl();
+        if (!data || !data.address) throw new Error("Ungültige Antwort");
+        saveSession({
+          address: data.address,
+          email: data.email || null,
+          username: data.username || null,
+          customer_id: data.customer_id || null,
+          avatarDataUrl: data.avatarDataUrl || null,
+        });
+        setAuthedUI();
+        bootAuthed();
+        applyPageMode(getPageMode());
+        showMsg("success", "Du bist jetzt mit Google angemeldet.");
+        return true;
+      })
+      .catch(function (e) {
+        clearOauthParamsFromUrl();
+        clearSession();
+        setAuthedUI();
+        setAuthMode("login");
+        showMsg(
+          "danger",
+          window.stampUI
+            ? stampUI.userSafeErrorMessage(e, "Google-Anmeldung fehlgeschlagen.")
+            : "Google-Anmeldung fehlgeschlagen.",
         );
         return false;
       });
@@ -1245,6 +1455,8 @@
     cafeId: null,
     cafeAddress: null,
     reqSeq: 0,
+    detailsOpen: false,
+    cafe: null,
   };
 
   function setCafeModalVisible(show) {
@@ -1275,7 +1487,63 @@
     cafeModalState.open = false;
     cafeModalState.cafeId = null;
     cafeModalState.cafeAddress = null;
+    cafeModalState.detailsOpen = false;
+    cafeModalState.cafe = null;
     setCafeModalVisible(false);
+  }
+
+  function buildMapsUrl(address) {
+    var value = String(address || "").trim();
+    if (!value) return "";
+    return (
+      "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(value)
+    );
+  }
+
+  function cafeModalHasExtraDetails(cafe) {
+    if (!cafe) return false;
+    var addr = String(cafe.address || cafe.cafeAddress || "").trim();
+    var website = normalizeExternalUrl(cafe.websiteUrl || "");
+    var instagram = normalizeInstagramUrl(cafe.instagramUrl || "");
+    var rewardDescription = getRewardDescription(cafe);
+    return !!(addr || website || instagram || rewardDescription);
+  }
+
+  function syncCafeModalDetails() {
+    var cafe = cafeModalState.cafe;
+    var profileUrl = buildCafeProfileUrl(
+      cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
+      cafeModalState.cafeAddress || (cafe && cafe.cafeAddress) || "",
+    );
+    if (el.cafeModalExtraDetails) {
+      el.cafeModalExtraDetails.style.display = cafeModalHasExtraDetails(cafe)
+        ? "grid"
+        : "none";
+    }
+
+    var addr = cafe ? String(cafe.address || cafe.cafeAddress || "").trim() : "";
+    var rewardDescription = cafe ? getRewardDescription(cafe) : "";
+    var directionsUrl = buildMapsUrl(addr);
+
+    if (el.cafeModalDetailRewardRow && el.cafeModalDetailReward) {
+      el.cafeModalDetailRewardRow.style.display = rewardDescription ? "grid" : "none";
+      el.cafeModalDetailReward.textContent = rewardDescription || "";
+    }
+    if (el.cafeModalDetailAddressRow && el.cafeModalDetailAddress) {
+      el.cafeModalDetailAddressRow.style.display = addr ? "grid" : "none";
+      el.cafeModalDetailAddress.textContent = addr || "";
+    }
+    if (el.cafeModalDetailDirectionsRow && el.cafeModalDirections) {
+      el.cafeModalDetailDirectionsRow.style.display = directionsUrl ? "grid" : "none";
+      el.cafeModalDirections.href = directionsUrl || "#";
+    }
+    if (el.cafeModalProfileBtn) {
+      el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
+      el.cafeModalProfileBtn.disabled = !profileUrl;
+      el.cafeModalProfileBtn.dataset.href = profileUrl || "";
+      el.cafeModalProfileBtn.textContent = "Caf\u00e9profil \u00f6ffnen";
+    }
   }
 
   function isCafeInWallet(cafeAddr) {
@@ -1294,6 +1562,7 @@
     var want = normalizeAddr(cafeAddr || "");
     if (!want) return;
     var o = opts || {};
+    setActiveCafeAddress(want);
     try {
       if (o.ensureFavorite && !isCafeInWallet(want)) {
         addFavorite(want);
@@ -1348,6 +1617,7 @@
 
   function renderCafeModal(cafe, opts) {
     var o = opts || {};
+    cafeModalState.cafe = cafe || null;
     var name = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
     var about = cafe && cafe.about ? String(cafe.about) : "";
@@ -1507,14 +1777,17 @@
       el.cafeModalQrBtn.style.display = already3 ? "inline-flex" : "none";
       el.cafeModalQrBtn.disabled = !already3 || !cafeAddr;
     }
+    syncCafeModalDetails();
   }
 
   function openCafeModal(cafe) {
     if (!cafe) return;
     var cafeAddr = normalizeAddr(cafe.cafeAddress || cafe.address || "");
+    setActiveCafeAddress(cafeAddr);
     cafeModalState.open = true;
     cafeModalState.cafeId = cafe.id != null ? Number(cafe.id) : null;
     cafeModalState.cafeAddress = cafeAddr || null;
+    cafeModalState.detailsOpen = false;
 
     // Render immediately with what we have.
     renderCafeModal(
@@ -1590,7 +1863,11 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = "#";
+        var profileHref = buildCafeProfileUrl(
+          cafe && cafe.id != null ? Number(cafe.id) : null,
+          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
+        );
+        a.href = profileHref || "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -1613,6 +1890,7 @@
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
+          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -1738,6 +2016,39 @@
         JSON.stringify(Array.isArray(list) ? list : []),
       );
     } catch (e) {}
+    scheduleFavoritesSync();
+  }
+
+  function scheduleFavoritesSync() {
+    try {
+      if (favoritesSyncTimer) window.clearTimeout(favoritesSyncTimer);
+    } catch (e0) {}
+    favoritesSyncTimer = window.setTimeout(function () {
+      favoritesSyncTimer = 0;
+      syncFavoritesToServer();
+    }, 120);
+  }
+
+  function syncFavoritesToServer() {
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      return Promise.resolve(false);
+    }
+    return apiFetch("/customers/saved-cafes/sync", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        cafes: getFavorites(),
+      }),
+    })
+      .then(function () {
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
   }
 
   function getDefaultMapCenter() {
@@ -1835,12 +2146,15 @@
     if (!key) return;
     var name = meta && meta.name ? String(meta.name).trim() : "";
     var address = meta && meta.address ? String(meta.address).trim() : "";
+    var cafeId =
+      meta && Number.isFinite(Number(meta.id)) ? Number(meta.id) : null;
     if (isAddressLike(name)) name = "";
     if (!name && !address) return;
     var map = getCafeMetaCache();
     map[key] = {
       name: name || "",
       address: address || "",
+      id: cafeId,
     };
     setCafeMetaCache(map);
   }
@@ -1874,6 +2188,14 @@
       address = String(remembered.address || "").trim();
 
     return {
+      cafeId:
+        (serverCard && Number.isFinite(Number(serverCard.cafeId))
+          ? Number(serverCard.cafeId)
+          : null) ||
+        (cafe && Number.isFinite(Number(cafe.id)) ? Number(cafe.id) : null) ||
+        (remembered && Number.isFinite(Number(remembered.id))
+          ? Number(remembered.id)
+          : null),
       name: name || "Kaffeekarte",
       address: address || "",
       loading: !name && !cafesLoaded,
@@ -2177,6 +2499,7 @@
           addrs.push(addr);
           nextMap[addr] = card;
           rememberCafeMeta(addr, {
+            id: card.cafeId || null,
             name: card.name || card.cafeName || "",
             address: card.address || "",
           });
@@ -2258,7 +2581,11 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = "#";
+        var profileHref = buildCafeProfileUrl(
+          cafe && cafe.id != null ? Number(cafe.id) : null,
+          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
+        );
+        a.href = profileHref || "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -2281,6 +2608,7 @@
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
+          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -2380,6 +2708,7 @@
           [Number(cafe2.lat), Number(cafe2.lng)],
           icon ? { icon: icon } : undefined,
         );
+        marker.__cafeAddress = normalizeAddr(cafe2.cafeAddress || cafe2.address || "");
         marker.addTo(leafletMap);
         marker.on("click", function (ev) {
           try {
@@ -2394,6 +2723,13 @@
           openCafeModal(cafe2);
         });
         leafletMarkers.push(marker);
+        try {
+          var node = marker.getElement();
+          var pin = node ? node.querySelector(".cafePin") : null;
+          if (pin && marker.__cafeAddress && marker.__cafeAddress === activeCafeAddress) {
+            pin.classList.add("isActive");
+          }
+        } catch (ePin) {}
       })(cafe);
     }
   }
@@ -2912,6 +3248,37 @@
     } catch (e) {
       return null;
     }
+  }
+
+  function buildCafeProfileUrl(cafeId, cafeAddress) {
+    try {
+      var id = Number(cafeId);
+      if (Number.isFinite(id) && id > 0) {
+        var u = new URL(
+          location.protocol === "file:"
+            ? "http://127.0.0.1:8080/cafe-public"
+            : location.origin + "/cafe-public",
+        );
+        u.searchParams.set("id", String(id));
+        return u.toString();
+      }
+    } catch (e0) {}
+    try {
+      if (cafeAddress) {
+        var remembered = getRememberedCafeMeta(cafeAddress) || {};
+        var rememberId = Number(remembered && remembered.id);
+        if (Number.isFinite(rememberId) && rememberId > 0) {
+          var u2 = new URL(
+            location.protocol === "file:"
+              ? "http://127.0.0.1:8080/cafe-public"
+              : location.origin + "/cafe-public",
+          );
+          u2.searchParams.set("id", String(rememberId));
+          return u2.toString();
+        }
+      }
+    } catch (e1) {}
+    return null;
   }
 
   function buildRedeemLink(cafeAddress) {
@@ -3483,8 +3850,27 @@
     passEl.classList.remove("open");
   }
 
+  function setActiveCafeAddress(addr) {
+    activeCafeAddress = normalizeAddr(addr || "");
+    try {
+      for (var i = 0; i < leafletMarkers.length; i++) {
+        var marker = leafletMarkers[i];
+        if (!marker || !marker.getElement) continue;
+        var node = marker.getElement();
+        if (!node) continue;
+        var pin = node.querySelector(".cafePin");
+        if (!pin) continue;
+        pin.classList.toggle(
+          "isActive",
+          normalizeAddr(marker.__cafeAddress || "") === activeCafeAddress,
+        );
+      }
+    } catch (e) {}
+  }
+
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
+    var cafeId = Number(card.cafeId);
     var title = String(card.name || "Caf\u00e9");
     var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
@@ -3519,6 +3905,9 @@
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
+    if (Number.isFinite(cafeId) && cafeId > 0) {
+      passCard.setAttribute("data-cafe-id", String(cafeId));
+    }
     passCard.setAttribute("data-pass-theme", theme);
     passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
     passCard.setAttribute("data-reward-label", rewardLabel || "");
@@ -3735,6 +4124,7 @@
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
     if (infoBlock.childNodes.length) mainBtn.appendChild(infoBlock);
+    mainBtn.appendChild(metaRow);
     mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
@@ -4351,6 +4741,7 @@
       frag.appendChild(
         buildPassCard({
           cafeAddress: addr,
+          cafeId: meta.cafeId,
           name: meta.name,
           address: meta.address,
           about: (cafe && cafe.about) || "",
@@ -4428,6 +4819,10 @@
     if (el.authSubmit)
       el.authSubmit.addEventListener("click", function () {
         handleAuthSubmit();
+      });
+    if (el.authGoogle)
+      el.authGoogle.addEventListener("click", function () {
+        handleGoogleAuthStart();
       });
   }
 
@@ -4969,30 +5364,28 @@
     var confirmPassword = el.confirmPassword
       ? String(el.confirmPassword.value || "").trim()
       : "";
-    var acceptPrivacy = !!document.getElementById("acceptPrivacy")?.checked;
-    var acceptTerms = !!document.getElementById("acceptTerms")?.checked;
 
-    if (!email || !password) {
-      showMsg("danger", "Bitte E-Mail und Passwort ausf\u00fcllen.");
+    if (!email) {
+      showMsg("danger", "Bitte gib deine E-Mail ein.");
+      return;
+    }
+
+    if (el.authDetails && el.authDetails.style.display === "none") {
+      setAuthDetailsVisible(true);
+      if (el.password) el.password.focus();
+      return;
+    }
+
+    if (!password) {
+      showMsg("danger", "Bitte erg\u00e4nze dein Passwort.");
+      if (el.password) el.password.focus();
       return;
     }
 
     if (authMode === "register") {
-      if (!username) {
-        showMsg("danger", "Bitte Username ausf\u00fcllen.");
-        return;
-      }
+      var resolvedUsername = username || deriveUsernameFromEmail(email);
       if (confirmPassword !== password) {
         showMsg("danger", "Passw\u00f6rter stimmen nicht \u00fcberein.");
-        return;
-      }
-
-      if (!acceptPrivacy) {
-        showMsg("danger", "Bitte best\u00e4tige die Datenschutzerkl\u00e4rung.");
-        return;
-      }
-      if (!acceptTerms) {
-        showMsg("danger", "Bitte akzeptiere die AGB.");
         return;
       }
 
@@ -5000,11 +5393,11 @@
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          username: username,
+          username: resolvedUsername,
           email: email,
           password: password,
-          acceptPrivacy: acceptPrivacy,
-          acceptTerms: acceptTerms,
+          acceptPrivacy: true,
+          acceptTerms: true,
         }),
       })
         .then(function (data) {
@@ -5043,6 +5436,7 @@
           email: email,
           username: data2.username || null,
           customer_id: data2.customer_id || null,
+          avatarDataUrl: data2.avatarDataUrl || null,
         });
         setAuthedUI();
         bootAuthed();
@@ -5054,6 +5448,55 @@
           : "Anmelden fehlgeschlagen.";
         showMsg("danger", msg2);
       });
+  }
+
+  function handleGoogleAuthStart() {
+    clearMsg();
+    var username = el.username ? String(el.username.value || "").trim() : "";
+    var email = el.email ? String(el.email.value || "").trim() : "";
+    var acceptPrivacy = true;
+    var acceptTerms = true;
+    function requireLegalNotice(message, checkboxEl) {
+      showMsg("danger", message);
+      if (el.registerFieldsLegal) {
+        el.registerFieldsLegal.classList.add("attention");
+        try {
+          el.registerFieldsLegal.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        } catch (_) {}
+      }
+      if (checkboxEl && typeof checkboxEl.focus === "function") {
+        try {
+          checkboxEl.focus({ preventScroll: true });
+        } catch (_) {
+          checkboxEl.focus();
+        }
+      }
+    }
+    if (authMode === "register") {
+      if (!acceptPrivacy) {
+        requireLegalNotice(
+          "Bitte bestätige die Datenschutzerklärung.",
+          document.getElementById("acceptPrivacy"),
+        );
+        return;
+      }
+      if (!acceptTerms) {
+        requireLegalNotice(
+          "Bitte akzeptiere die AGB.",
+          document.getElementById("acceptTerms"),
+        );
+        return;
+      }
+    }
+    var qs = new URLSearchParams();
+    qs.set("mode", authMode === "register" ? "register" : "login");
+    if (authMode === "register") qs.set("acceptLegal", "1");
+    if (username || email)
+      qs.set("username", username || deriveUsernameFromEmail(email));
+    window.location.assign("/api/auth/google/start?" + qs.toString());
   }
   function refreshHistory() {
     if (!el.historyList) return;
@@ -5318,6 +5761,7 @@
           if (!addr) continue;
           cafesByCafeAddress[addr] = c;
           rememberCafeMeta(addr, {
+            id: c.id || null,
             name: c.name || "",
             address: c.address || "",
           });
@@ -5438,6 +5882,15 @@
         if (!addr) return;
         openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
       });
+    if (el.cafeModalProfileBtn)
+      el.cafeModalProfileBtn.addEventListener("click", function () {
+        var href =
+          (el.cafeModalProfileBtn.dataset &&
+            el.cafeModalProfileBtn.dataset.href) ||
+          "";
+        if (!href) return;
+        location.href = href;
+      });
 
     if (el.discoverPickAddBtn) {
       el.discoverPickAddBtn.addEventListener("click", function () {
@@ -5497,6 +5950,7 @@
     setAuthMode("register");
     applyPageMode(getPageMode());
     processCustomerVerifyToken();
+    processCustomerOauthRedirect();
 
     if (session && session.address) {
       bootAuthed();
@@ -5540,5 +5994,3 @@
     } catch (e5) {}
   }
 })();
-
-

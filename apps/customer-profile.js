@@ -4,6 +4,13 @@
   const el = {
     profileStatus: document.getElementById("profileStatus"),
     profileSub: document.getElementById("profileSub"),
+    profileAvatarWrap: document.getElementById("profileAvatarWrap"),
+    profileAvatarImg: document.getElementById("profileAvatarImg"),
+    profileAvatarFallback: document.getElementById("profileAvatarFallback"),
+    profileAvatarInput: document.getElementById("profileAvatarInput"),
+    profileAvatarChooseBtn: document.getElementById("profileAvatarChooseBtn"),
+    profileAvatarRemoveBtn: document.getElementById("profileAvatarRemoveBtn"),
+    profileAvatarMsg: document.getElementById("profileAvatarMsg"),
     logoutBtn: document.getElementById("logoutBtn"),
     topUtilityBtn: document.getElementById("topUtilityBtn"),
     utilityMenu: document.getElementById("utilityMenu"),
@@ -20,6 +27,10 @@
     newPassword2: document.getElementById("newPassword2"),
     changePwBtn: document.getElementById("changePwBtn"),
     changePwMsg: document.getElementById("changePwMsg"),
+    deletePassword: document.getElementById("deletePassword"),
+    deleteConfirmText: document.getElementById("deleteConfirmText"),
+    deleteAccountBtn: document.getElementById("deleteAccountBtn"),
+    deleteAccountMsg: document.getElementById("deleteAccountMsg"),
 
     resetEmail: document.getElementById("resetEmail"),
     forgotPwBtn: document.getElementById("forgotPwBtn"),
@@ -73,6 +84,12 @@
     } catch {}
   }
 
+  function saveSession(session) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session || null));
+    } catch {}
+  }
+
   async function apiFetch(path, init) {
     const res = await fetch(`${apiBase}${path}`, init);
     if (!res.ok) {
@@ -101,6 +118,111 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function profileInitial(session) {
+    const raw =
+      (session && (session.username || session.email || session.customer_id)) || "K";
+    return String(raw).trim().slice(0, 1).toUpperCase() || "K";
+  }
+
+  function renderAvatar(session) {
+    if (!el.profileAvatarWrap) return;
+    const src = session && session.avatarDataUrl ? String(session.avatarDataUrl) : "";
+    const fallback = profileInitial(session);
+    if (el.profileAvatarFallback) el.profileAvatarFallback.textContent = fallback;
+    if (src) {
+      if (el.profileAvatarImg) {
+        el.profileAvatarImg.src = src;
+        el.profileAvatarImg.style.display = "block";
+      }
+      if (el.profileAvatarFallback) el.profileAvatarFallback.style.display = "none";
+    } else {
+      if (el.profileAvatarImg) {
+        el.profileAvatarImg.removeAttribute("src");
+        el.profileAvatarImg.style.display = "none";
+      }
+      if (el.profileAvatarFallback) el.profileAvatarFallback.style.display = "block";
+    }
+  }
+
+  function updateAvatar(session, avatarDataUrl) {
+    if (!session) return null;
+    const next = { ...session };
+    if (avatarDataUrl) next.avatarDataUrl = avatarDataUrl;
+    else delete next.avatarDataUrl;
+    saveSession(next);
+    renderProfile(next);
+    return next;
+  }
+
+  async function saveAvatarToServer(session, avatarDataUrl) {
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      throw new Error("missing_customer_identity");
+    }
+    const data = await apiFetch("/customers/profile-avatar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        avatarDataUrl: avatarDataUrl || null,
+      }),
+    });
+    const customer = data && data.customer ? data.customer : null;
+    const next = {
+      ...session,
+      avatarDataUrl:
+        customer && customer.avatarDataUrl ? String(customer.avatarDataUrl) : "",
+    };
+    if (!next.avatarDataUrl) delete next.avatarDataUrl;
+    saveSession(next);
+    renderProfile(next);
+    return next;
+  }
+
+  function resizeAvatarFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        reject(new Error("missing_file"));
+        return;
+      }
+      if (!/^image\//i.test(String(file.type || ""))) {
+        reject(new Error("invalid_image_type"));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("file_read_failed"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("image_decode_failed"));
+        img.onload = () => {
+          const size = 256;
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("canvas_unavailable"));
+            return;
+          }
+          ctx.fillStyle = "#f6eee5";
+          ctx.fillRect(0, 0, size, size);
+          const sw = img.naturalWidth || img.width || size;
+          const sh = img.naturalHeight || img.height || size;
+          const scale = Math.max(size / sw, size / sh);
+          const dw = sw * scale;
+          const dh = sh * scale;
+          const dx = (size - dw) / 2;
+          const dy = (size - dh) / 2;
+          ctx.drawImage(img, dx, dy, dw, dh);
+          resolve(canvas.toDataURL("image/jpeg", 0.86));
+        };
+        img.src = String(reader.result || "");
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   function getResetTokenFromUrl() {
@@ -151,6 +273,8 @@
 
   function renderProfile(session) {
     if (!el.profileStatus) return;
+
+    renderAvatar(session);
 
     if (!session) {
       el.profileStatus.textContent = "Nicht eingeloggt";
@@ -290,6 +414,69 @@
     }
   }
 
+  async function handleDeleteAccount() {
+    const session = loadSession();
+    hideNotice(el.deleteAccountMsg);
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        "Bitte zuerst regulär einloggen.",
+      );
+      return;
+    }
+
+    const currentPassword = String(el.deletePassword?.value || "");
+    const confirmText = String(el.deleteConfirmText?.value || "").trim();
+    if (confirmText !== "DELETE") {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        "Bitte zur Bestätigung genau DELETE eingeben.",
+      );
+      return;
+    }
+
+    if (!window.confirm("Willst du dein Kundenprofil wirklich endgültig löschen?")) {
+      return;
+    }
+
+    if (el.deleteAccountBtn) el.deleteAccountBtn.disabled = true;
+    try {
+      await apiFetch("/customers/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          currentPassword,
+          confirmText,
+          customerId: session.customer_id,
+          address: session.address,
+        }),
+      });
+      clearSession();
+      renderProfile(null);
+      if (el.deletePassword) el.deletePassword.value = "";
+      if (el.deleteConfirmText) el.deleteConfirmText.value = "";
+      showNotice(
+        el.forgotPwMsg,
+        "success",
+        "Dein Profil wurde gelöscht.",
+      );
+      window.setTimeout(() => {
+        location.href = "/wallet";
+      }, 900);
+    } catch (e) {
+      showNotice(
+        el.deleteAccountMsg,
+        "danger",
+        safeUiErrorMessage(e, "Profil konnte nicht gelöscht werden."),
+      );
+    } finally {
+      if (el.deleteAccountBtn) el.deleteAccountBtn.disabled = false;
+    }
+  }
+
   async function handleResetPassword(token) {
     hideNotice(el.resetPwMsg);
 
@@ -334,6 +521,48 @@
       u.searchParams.delete("resetToken");
       history.replaceState(null, "", u.toString());
     } catch {}
+  }
+
+  async function handleAvatarChosen(file) {
+    hideNotice(el.profileAvatarMsg);
+    const session = loadSession();
+    if (!session) {
+      showNotice(el.profileAvatarMsg, "danger", "Bitte zuerst einloggen.");
+      return;
+    }
+    try {
+      const dataUrl = await resizeAvatarFile(file);
+      await saveAvatarToServer(session, dataUrl);
+      showNotice(el.profileAvatarMsg, "success", "Profilbild aktualisiert.");
+    } catch (e) {
+      showNotice(
+        el.profileAvatarMsg,
+        "danger",
+        safeUiErrorMessage(e, "Bild konnte nicht verarbeitet werden."),
+      );
+    } finally {
+      if (el.profileAvatarInput) el.profileAvatarInput.value = "";
+    }
+  }
+
+  function handleAvatarRemove() {
+    hideNotice(el.profileAvatarMsg);
+    const session = loadSession();
+    if (!session) {
+      showNotice(el.profileAvatarMsg, "danger", "Bitte zuerst einloggen.");
+      return;
+    }
+    saveAvatarToServer(session, "")
+      .then(() => {
+        showNotice(el.profileAvatarMsg, "info", "Profilbild entfernt.");
+      })
+      .catch((e) => {
+        showNotice(
+          el.profileAvatarMsg,
+          "danger",
+          safeUiErrorMessage(e, "Profilbild konnte nicht entfernt werden."),
+        );
+      });
   }
 
   async function previewResetToken(token) {
@@ -392,6 +621,31 @@
       el.changePwBtn.addEventListener("click", () => void handleChangePassword());
     }
 
+    if (el.deleteAccountBtn) {
+      el.deleteAccountBtn.addEventListener("click", () => void handleDeleteAccount());
+    }
+
+    if (el.profileAvatarChooseBtn && el.profileAvatarInput) {
+      el.profileAvatarChooseBtn.addEventListener("click", () => {
+        el.profileAvatarInput.click();
+      });
+    }
+
+    if (el.profileAvatarInput) {
+      el.profileAvatarInput.addEventListener("change", (event) => {
+        const file =
+          event && event.target && event.target.files && event.target.files[0]
+            ? event.target.files[0]
+            : null;
+        if (!file) return;
+        void handleAvatarChosen(file);
+      });
+    }
+
+    if (el.profileAvatarRemoveBtn) {
+      el.profileAvatarRemoveBtn.addEventListener("click", handleAvatarRemove);
+    }
+
     if (el.forgotPwBtn) {
       el.forgotPwBtn.addEventListener("click", () => void handleForgotPassword());
     }
@@ -410,4 +664,3 @@
 
   boot();
 })();
-

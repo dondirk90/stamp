@@ -41,6 +41,9 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OAUTH_STATE_SECRET: ${{ secrets.OAUTH_STATE_SECRET }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
           ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
@@ -61,6 +64,9 @@ jobs:
           test -n "$EMAIL_USER"
           test -n "$EMAIL_PASS"
           test -n "$EMAIL_FROM"
+          test -n "$GOOGLE_CLIENT_ID"
+          test -n "$GOOGLE_CLIENT_SECRET"
+          test -n "$OAUTH_STATE_SECRET"
           test -n "$ADMIN_TOKEN"
           test -n "$ADMIN_BASIC_USER"
           test -n "$ADMIN_BASIC_HASH"
@@ -127,6 +133,9 @@ jobs:
             EMAIL_USER=${{ secrets.EMAIL_USER }}
             EMAIL_PASS=${{ secrets.EMAIL_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            OAUTH_STATE_SECRET=${{ secrets.OAUTH_STATE_SECRET }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
@@ -135,6 +144,13 @@ jobs:
             cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
+              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -v ON_ERROR_STOP=1 -c \
+              "SELECT to_regclass('public.customer_oauth_identities') AS customer_oauth_identities, to_regclass('public.customer_auth_grants') AS customer_auth_grants;"
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
+              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -tA -v ON_ERROR_STOP=1 -c \
+              "SELECT CASE WHEN to_regclass('public.customer_oauth_identities') IS NOT NULL AND to_regclass('public.customer_auth_grants') IS NOT NULL THEN 'ok' ELSE 'missing' END;" \
+              | grep -qx 'ok'
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
 
             echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"
