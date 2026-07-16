@@ -192,6 +192,7 @@
 
   var leafletMap = null;
   var leafletMarkers = [];
+  var activeCafeAddress = "";
   var pickedCafe = null;
   var mapInitTimer = 0;
   var mapInitAttempts = 0;
@@ -1000,6 +1001,7 @@
     closeAllPasses(passEl);
     try {
       if (passEl.classList) passEl.classList.add("isFocused");
+      setActiveCafeAddress(passEl.getAttribute("data-cafe") || "");
       if (passEl.scrollIntoView) {
         passEl.scrollIntoView({
           behavior: "smooth",
@@ -1560,6 +1562,7 @@
     var want = normalizeAddr(cafeAddr || "");
     if (!want) return;
     var o = opts || {};
+    setActiveCafeAddress(want);
     try {
       if (o.ensureFavorite && !isCafeInWallet(want)) {
         addFavorite(want);
@@ -1780,6 +1783,7 @@
   function openCafeModal(cafe) {
     if (!cafe) return;
     var cafeAddr = normalizeAddr(cafe.cafeAddress || cafe.address || "");
+    setActiveCafeAddress(cafeAddr);
     cafeModalState.open = true;
     cafeModalState.cafeId = cafe.id != null ? Number(cafe.id) : null;
     cafeModalState.cafeAddress = cafeAddr || null;
@@ -1859,7 +1863,11 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = "#";
+        var profileHref = buildCafeProfileUrl(
+          cafe && cafe.id != null ? Number(cafe.id) : null,
+          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
+        );
+        a.href = profileHref || "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -1882,6 +1890,7 @@
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
+          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -2572,7 +2581,11 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        a.href = "#";
+        var profileHref = buildCafeProfileUrl(
+          cafe && cafe.id != null ? Number(cafe.id) : null,
+          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
+        );
+        a.href = profileHref || "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -2595,6 +2608,7 @@
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
+          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -2694,6 +2708,7 @@
           [Number(cafe2.lat), Number(cafe2.lng)],
           icon ? { icon: icon } : undefined,
         );
+        marker.__cafeAddress = normalizeAddr(cafe2.cafeAddress || cafe2.address || "");
         marker.addTo(leafletMap);
         marker.on("click", function (ev) {
           try {
@@ -2708,6 +2723,13 @@
           openCafeModal(cafe2);
         });
         leafletMarkers.push(marker);
+        try {
+          var node = marker.getElement();
+          var pin = node ? node.querySelector(".cafePin") : null;
+          if (pin && marker.__cafeAddress && marker.__cafeAddress === activeCafeAddress) {
+            pin.classList.add("isActive");
+          }
+        } catch (ePin) {}
       })(cafe);
     }
   }
@@ -3828,6 +3850,24 @@
     passEl.classList.remove("open");
   }
 
+  function setActiveCafeAddress(addr) {
+    activeCafeAddress = normalizeAddr(addr || "");
+    try {
+      for (var i = 0; i < leafletMarkers.length; i++) {
+        var marker = leafletMarkers[i];
+        if (!marker || !marker.getElement) continue;
+        var node = marker.getElement();
+        if (!node) continue;
+        var pin = node.querySelector(".cafePin");
+        if (!pin) continue;
+        pin.classList.toggle(
+          "isActive",
+          normalizeAddr(marker.__cafeAddress || "") === activeCafeAddress,
+        );
+      }
+    } catch (e) {}
+  }
+
   function buildPassCard(card) {
     var cafeAddress = String(card.cafeAddress || "");
     var cafeId = Number(card.cafeId);
@@ -4084,6 +4124,7 @@
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
     if (infoBlock.childNodes.length) mainBtn.appendChild(infoBlock);
+    mainBtn.appendChild(metaRow);
     mainBtn.appendChild(footer);
 
     var qr = document.createElement("div");
