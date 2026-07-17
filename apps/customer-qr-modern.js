@@ -13,6 +13,23 @@
   // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
   var WALLET_MODE = "carousel";
   var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
+  var copy =
+    (window.stampUI && window.stampUI.copy) ||
+    {
+      navigation: { cafes: "Cafés", cards: "Karten", history: "Verlauf" },
+      actions: {
+        getCard: "Karte holen",
+        showQr: "QR zeigen",
+        openCards: "Karten öffnen",
+        viewCafe: "Café ansehen",
+        discoverCafes: "Cafés entdecken",
+      },
+      emptyStates: {
+        noCardsTitle: "Noch kein Lieblingscafé dabei?",
+        noCardsText:
+          "Entdecke Cafés in deiner Nähe und hol dir deine erste Karte.",
+      },
+    };
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
   // while the customer holds it up to be scanned.
@@ -80,6 +97,7 @@
 
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
+    bottomModeAccount: document.getElementById("bottomModeAccount"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
     mainModeMap: document.getElementById("mainModeMap"),
     mainModeWallet: document.getElementById("mainModeWallet"),
@@ -600,7 +618,7 @@
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Starte mit Google oder deiner E-Mail und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
+          ? "Starte mit Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
           : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
     setAuthDetailsVisible(false);
@@ -650,8 +668,11 @@
 
   function navSetActive(which) {
     var w = which || "map";
+    if (el.bottomModeMap) el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
+    if (el.bottomModeAccount)
+      el.bottomModeAccount.classList.toggle("active", w === "account");
     if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
     if (el.mainModeWallet)
       el.mainModeWallet.classList.toggle("active", w === "wallet");
@@ -700,24 +721,24 @@
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
         favCount > 0
-          ? "Willkommen zur\u00fcck. Deine Karten sind bereit f\u00fcr den n\u00e4chsten Kaffee."
-          : "Hol dir deine erste Kaffeekarte und sammle deinen n\u00e4chsten Stempel digital.";
+          ? "Bereit f\u00fcr den n\u00e4chsten Kaffee? Deine Karten warten schon."
+          : copy.emptyStates.noCardsText;
     }
     if (el.welcomeCardCount) {
       el.welcomeCardCount.textContent = String(favCount || 0);
     }
     if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Entdecken";
+      el.welcomeStateTitle.textContent = favCount > 0 ? "Aktiv" : "Entdecken";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
         favCount > 0
-          ? "Dein n\u00e4chster Stempel ist nur einen Scan entfernt."
-          : "\u00d6ffne Caf\u00e9s im Men\u00fc oben rechts und hol dir deine erste digitale Kaffeekarte.";
+          ? "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt."
+          : "\u00d6ffne Caf\u00e9s im Men\u00fc und hol dir deine erste Karte.";
     }
     if (el.welcomePrimaryAction) {
       el.welcomePrimaryAction.textContent =
-        favCount > 0 ? "Wallet ansehen" : "Caf\u00e9s entdecken";
+        favCount > 0 ? copy.actions.openCards : copy.actions.discoverCafes;
     }
     renderWelcomeCards();
   }
@@ -757,7 +778,7 @@
     var overviewTitleWrap = document.createElement("div");
     var overviewTitle = document.createElement("div");
     overviewTitle.className = "welcomeOverviewTitle";
-    overviewTitle.textContent = "Deine Caf\u00e9s im \u00dcberblick";
+    overviewTitle.textContent = "Deine Caf\u00e9s";
 
     var overviewMeta = document.createElement("div");
     overviewMeta.className = "welcomeOverviewMeta";
@@ -883,7 +904,7 @@
       var profileBtn = document.createElement("button");
       profileBtn.className = "btn ghost welcomeCafeAction";
       profileBtn.type = "button";
-      profileBtn.textContent = "Weitere Informationen";
+      profileBtn.textContent = copy.actions.viewCafe;
       profileBtn.addEventListener(
         "click",
         (function (info) {
@@ -1687,8 +1708,8 @@
       var alreadyInWallet = isCafeInWallet(cafeAddr);
       el.cafeModalStatus.style.display = "inline-flex";
       el.cafeModalStatus.textContent = alreadyInWallet
-        ? "Schon in deiner Wallet"
-        : "Neu für deine Wallet";
+        ? "Schon bei deinen Karten"
+        : "Neu bei deinen Karten";
       el.cafeModalRewardCycle.style.display = "inline-flex";
       el.cafeModalRewardCycle.textContent =
         "Jeder " + rewardThreshold + ". Kaffee";
@@ -1765,7 +1786,7 @@
       var already = isCafeInWallet(cafeAddr);
       el.cafeModalAddBtn.style.display = already ? "none" : "inline-flex";
       el.cafeModalAddBtn.disabled = !cafeAddr;
-      el.cafeModalAddBtn.textContent = "Stempelkarte holen";
+      el.cafeModalAddBtn.textContent = copy.actions.getCard;
     }
     if (el.cafeModalWalletBtn) {
       var already2 = isCafeInWallet(cafeAddr);
@@ -2312,7 +2333,7 @@
 
   function formatNextStampLine(remaining, isFull) {
     if (isFull) return "Im Caf\u00e9 scannen lassen und deine Belohnung einl\u00f6sen.";
-    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Scan entfernt.";
+    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt.";
     return "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
   }
 
@@ -2880,14 +2901,13 @@
         var body = el.walletEmpty.querySelector(".walletEmptyBody");
         var cta = el.walletEmpty.querySelector("#walletEmptyMapBtn");
         if (lead) {
-          lead.textContent = "Noch keine Karten";
+          lead.textContent = copy.emptyStates.noCardsTitle;
         }
         if (body) {
-          body.textContent =
-            "Entdecke zuerst ein Caf\u00e9 auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
+          body.textContent = copy.emptyStates.noCardsText;
         }
         if (cta) {
-          cta.textContent = "Caf\u00e9s entdecken";
+          cta.textContent = copy.actions.discoverCafes;
         }
         var nodes = el.walletEmpty.childNodes || [];
         for (var i = nodes.length - 1; i >= 0; i--) {
@@ -3652,7 +3672,9 @@
           : "Kaffeekarte";
       }
       if (el.qrSheetSub) {
-        var countEl = passEl.querySelector(".passCountLine");
+        var countEl =
+          passEl.querySelector(".passStampNeed") ||
+          passEl.querySelector(".passCountLine");
         el.qrSheetSub.textContent = countEl
           ? String(countEl.textContent || "QR wird geladen\u2026")
           : "QR wird geladen\u2026";
@@ -3947,7 +3969,10 @@
     mainBtn.className = "passMain";
     mainBtn.setAttribute("role", "button");
     mainBtn.setAttribute("tabindex", "0");
-    mainBtn.setAttribute("aria-label", "QR-Code öffnen");
+    mainBtn.setAttribute(
+      "aria-label",
+      (isFull ? "Belohnung einlösen bei " : "QR zeigen für ") + title,
+    );
 
     var head = document.createElement("div");
     head.className = "passHead";
@@ -4104,6 +4129,7 @@
     var hint = document.createElement("div");
     hint.className = "passHint";
     hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
+    metaRow.appendChild(hint);
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -4114,13 +4140,7 @@
     var serial = document.createElement("span");
     serial.className = "passSerial";
     serial.textContent = footerLabel;
-
-    var footerType = document.createElement("span");
-    footerType.className = "passCountLine";
-    footerType.textContent = countLine;
-
     footerMeta.appendChild(serial);
-    footerMeta.appendChild(footerType);
 
     var footerVisit = document.createElement("div");
     footerVisit.className = "passFooterVisit";
@@ -4962,11 +4982,19 @@
     }
 
     bindModeButton(el.bottomModeWallet, "wallet");
+    bindModeButton(el.bottomModeMap, "map");
     bindModeButton(el.mainModeMap, "map");
     bindModeButton(el.mainModeWallet, "wallet");
     bindModeButton(el.mainModeHistory, "history");
+    if (el.bottomModeAccount) {
+      el.bottomModeAccount.addEventListener("click", function () {
+        navSetActive("account");
+        location.href = "/customer-profile";
+      });
+    }
     if (el.mainModeAccount) {
       el.mainModeAccount.addEventListener("click", function () {
+        navSetActive("account");
         location.href = "/customer-profile";
       });
     }
@@ -5810,18 +5838,18 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR-Code.";
+          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR.";
       }
       if (el.utilityMapBtn) {
-        el.utilityMapBtn.textContent = "Caf\u00e9s";
+        el.utilityMapBtn.textContent = copy.navigation.cafes;
       }
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
-        if (lbl) lbl.textContent = "Entdecken";
+        if (lbl) lbl.textContent = copy.navigation.cafes;
       }
       if (el.mainModeWallet) {
         var walletLbl = el.mainModeWallet.querySelector(".lbl");
-        if (walletLbl) walletLbl.textContent = "Karten";
+        if (walletLbl) walletLbl.textContent = copy.navigation.cards;
       }
       if (el.authPanel) {
         var authHint = el.authPanel.querySelector(".hint:last-of-type");

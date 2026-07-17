@@ -231,6 +231,40 @@
 
   // Public API
   var api = (window.stampUI = window.stampUI || {});
+  if (!api.copy) {
+    api.copy = {
+      navigation: {
+        cafes: "Cafés",
+        cards: "Karten",
+        profile: "Profil",
+        history: "Verlauf",
+      },
+      actions: {
+        getCard: "Karte holen",
+        showQr: "QR zeigen",
+        openCards: "Karten öffnen",
+        viewCafe: "Café ansehen",
+        discoverCafes: "Cafés entdecken",
+        addHome: "Zum Homescreen hinzufügen",
+      },
+      emptyStates: {
+        noCardsTitle: "Noch kein Lieblingscafé dabei?",
+        noCardsText:
+          "Entdecke Cafés in deiner Nähe und hol dir deine erste Karte.",
+        noRewardsTitle: "Noch ein paar Kaffees.",
+        noRewardsText:
+          "Wir sagen dir Bescheid, sobald deine nächste Belohnung bereit ist.",
+      },
+      feedback: {
+        updatedCard: "Deine Karte ist wieder aktuell.",
+        rewardReady: "Der nächste geht aufs Haus.",
+        stampAdded: "Neuer Stempel. Bis zum nächsten Kaffee.",
+        genericError: "Das hat gerade nicht geklappt. Versuch es noch einmal.",
+        networkError:
+          "Gerade keine Verbindung. Deine Karte wartet hier auf dich.",
+      },
+    };
+  }
   if (!api.isDebugEnabled) api.isDebugEnabled = isDebugEnabled;
   if (!api.userSafeErrorMessage)
     api.userSafeErrorMessage = userSafeErrorMessage;
