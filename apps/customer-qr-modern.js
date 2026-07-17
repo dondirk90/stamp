@@ -19,7 +19,7 @@
       navigation: { cafes: "Cafés", cards: "Karten", history: "Verlauf" },
       actions: {
         getCard: "Karte holen",
-        showQr: "QR zeigen",
+        showQr: "Im CafÃ© vorzeigen",
         openCards: "Karten öffnen",
         viewCafe: "Café ansehen",
         discoverCafes: "Cafés entdecken",
@@ -30,6 +30,8 @@
           "Entdecke Cafés in deiner Nähe und hol dir deine erste Karte.",
       },
     };
+  copy.actions.showQr = "Im Café vorzeigen";
+  copy.actions.openCards = "Stempelkarten";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
   // while the customer holds it up to be scanned.
@@ -889,7 +891,7 @@
       var btn = document.createElement("button");
       btn.className = "btn secondary welcomeCafeAction";
       btn.type = "button";
-      btn.textContent = "QR zeigen";
+      btn.textContent = "Im Café vorzeigen";
       btn.addEventListener("click", (function (addr) {
         return function (ev) {
           try {
@@ -1334,7 +1336,7 @@
       var msg = "Google-Anmeldung fehlgeschlagen.";
       if (oauthError === "google_no_account") {
         msg =
-          "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst oder nutze den normalen Login.";
+          "Zu dieser Google-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
       } else if (oauthError === "google_auth_not_configured") {
         msg =
           "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
@@ -1563,7 +1565,7 @@
       el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
       el.cafeModalProfileBtn.disabled = !profileUrl;
       el.cafeModalProfileBtn.dataset.href = profileUrl || "";
-      el.cafeModalProfileBtn.textContent = "Caf\u00e9profil \u00f6ffnen";
+      el.cafeModalProfileBtn.textContent = "Café ansehen";
     }
   }
 
@@ -2318,7 +2320,7 @@
     var hasCustomReward = !!String(rewardLabel || "").trim();
     if (isFull) {
       return hasCustomReward
-        ? "Deine Belohnung wartet \u2615"
+        ? "Der nächste geht aufs Haus"
         : "Dein Gratiskaffee wartet \u2615";
     }
     if (hasCustomReward) {
@@ -2750,15 +2752,31 @@
         try {
           var node = marker.getElement();
           var pin = node ? node.querySelector(".cafePin") : null;
+          var pinImg = node ? node.querySelector(".cafePinImg") : null;
+          var pinLetter = node ? node.querySelector(".cafePinLetter") : null;
           if (node && !node.__cafeProfileBound) {
             node.__cafeProfileBound = true;
             node.addEventListener("click", openMarkerCafe);
+            node.addEventListener("pointerup", openMarkerCafe);
             node.addEventListener("touchend", openMarkerCafe, { passive: false });
           }
           if (pin && !pin.__cafeProfileBound) {
             pin.__cafeProfileBound = true;
             pin.addEventListener("click", openMarkerCafe);
+            pin.addEventListener("pointerup", openMarkerCafe);
             pin.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pinImg && !pinImg.__cafeProfileBound) {
+            pinImg.__cafeProfileBound = true;
+            pinImg.addEventListener("click", openMarkerCafe);
+            pinImg.addEventListener("pointerup", openMarkerCafe);
+            pinImg.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pinLetter && !pinLetter.__cafeProfileBound) {
+            pinLetter.__cafeProfileBound = true;
+            pinLetter.addEventListener("click", openMarkerCafe);
+            pinLetter.addEventListener("pointerup", openMarkerCafe);
+            pinLetter.addEventListener("touchend", openMarkerCafe, { passive: false });
           }
           if (pin && marker.__cafeAddress && marker.__cafeAddress === activeCafeAddress) {
             pin.classList.add("isActive");
@@ -3202,6 +3220,8 @@
     }
     var seedKey = getStampSeedKey();
     container.innerHTML = "";
+    container.classList.toggle("stampGridTen", threshold === 10);
+    container.classList.toggle("stampGridFive", threshold === 5);
     for (var i = 0; i < threshold; i++) {
       var cell = document.createElement("div");
       var filled = i < n;
@@ -3974,6 +3994,11 @@
       (isFull ? "Belohnung einlösen bei " : "QR zeigen für ") + title,
     );
 
+    mainBtn.setAttribute(
+      "aria-label",
+      (isFull ? "Belohnung einlösen bei " : "Im Café vorzeigen bei ") + title,
+    );
+
     var head = document.createElement("div");
     head.className = "passHead";
 
@@ -4128,7 +4153,7 @@
 
     var hint = document.createElement("div");
     hint.className = "passHint";
-    hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
+    hint.textContent = isFull ? "Vorzeigen & einlösen" : "Im Café vorzeigen";
     metaRow.appendChild(hint);
 
     var footer = document.createElement("div");
@@ -5096,7 +5121,7 @@
     );
     var hint = passCardEl.querySelector(".passHint");
     if (hint)
-      hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
+      hint.textContent = isFull ? "Vorzeigen & einlösen" : "Im Café vorzeigen";
 
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
@@ -5838,7 +5863,7 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR.";
+          "Wähle deine Stempelkarte und zeig sie im Café direkt vor.";
       }
       if (el.utilityMapBtn) {
         el.utilityMapBtn.textContent = copy.navigation.cafes;

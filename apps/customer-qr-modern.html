@@ -1552,6 +1552,16 @@
         gap: 12px 14px;
       }
 
+      .passCard .stampGrid.stampGridTen,
+      .face .stampGrid.stampGridTen {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .passCard .stampGrid.stampGridFive,
+      .face .stampGrid.stampGridFive {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
       /* Wallet pass: simple empty circles; filled stamps get an ink mark */
       .passCard .stamp,
       .face .stamp {
@@ -1825,6 +1835,8 @@
           transform var(--motion-fast) var(--motion-ease),
           box-shadow var(--motion-normal) var(--motion-ease),
           border-color var(--motion-normal) var(--motion-ease);
+        cursor: pointer;
+        touch-action: manipulation;
       }
 
       .cafePin.isActive {
@@ -1869,6 +1881,7 @@
         display: block;
         filter: none;
         border-radius: 999px;
+        pointer-events: auto;
       }
 
       .cafePinLetter {
@@ -1878,6 +1891,7 @@
         text-transform: uppercase;
         color: var(--text);
         user-select: none;
+        pointer-events: auto;
       }
 
       /* Customer popup (toast) for incoming stamps/redeems */
@@ -3736,6 +3750,13 @@
           border-radius: 0;
         }
 
+        .passCard .stampGrid.stampGridTen,
+        .face .stampGrid.stampGridTen,
+        .passCard .stampGrid.stampGridFive,
+        .face .stampGrid.stampGridFive {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
         .passCard .stamp {
           border-radius: 999px;
         }
@@ -5257,7 +5278,7 @@
             <span class="ico" aria-hidden="true">
               <img class="beanIcon" src="/assets/stamp-bean.png?v=1" alt="" />
             </span>
-            <span class="lbl">Karten &ouml;ffnen</span>
+            <span class="lbl">Stempelkarten</span>
           </span>
         </button>
         <button
@@ -5309,7 +5330,7 @@
                 <div class="authPerk">
                   <div class="authPerkNo">3</div>
                   <div class="authPerkText">
-                    <strong>Schnell im Caf&eacute;:</strong> Karten &ouml;ffnen, QR zeigen, Kaffee genie&szlig;en.
+                    <strong>Schnell im Caf&eacute;:</strong> Stempelkarte &ouml;ffnen, vorzeigen, Kaffee genie&szlig;en.
                   </div>
                 </div>
               </div>
@@ -5461,7 +5482,7 @@
                 border-top: 1px solid rgba(17, 17, 17, 0.08);
               "
             >
-              Mit deinem Konto nutzt du Karten, Caf&eacute;-Ansicht und QR zeigen in einer ruhigen Oberfläche.
+              Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
               <span style="display: block; margin-top: 8px">
                 <a href="/impressum">Impressum</a> &middot;
                 <a href="/datenschutz">Datenschutz</a> &middot;
@@ -5609,7 +5630,7 @@
                   <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Karten schlie&szlig;en">Schlie&szlig;en</button>
                   <h3 style="margin: 0">Deine Karten</h3>
                   <div class="hint" id="walletSubtitle">
-                    W&auml;hle eine Karte und zeig im Caf&eacute; direkt deinen QR.
+                    W&auml;hle deine Stempelkarte und zeig sie im Caf&eacute; direkt vor.
                   </div>
                 </div>
                 <div
@@ -5778,7 +5799,7 @@
                   href="#"
                   target="_blank"
                   rel="noopener noreferrer"
-                  >In Karten öffnen</a
+                  >Zur Stempelkarte</a
                 >
               </div>
             </div>
@@ -5791,7 +5812,7 @@
               type="button"
               style="display: none"
             >
-              Caféprofil öffnen
+              Café ansehen
             </button>
           </div>
 
@@ -5805,7 +5826,7 @@
               type="button"
               style="display: none"
             >
-              Zur Karte
+              Zur Stempelkarte
             </button>
             <button
               class="btn secondary"
@@ -5813,7 +5834,7 @@
               type="button"
               style="display: none"
             >
-              QR zeigen
+              Im Caf&eacute; vorzeigen
             </button>
           </div>
         </div>

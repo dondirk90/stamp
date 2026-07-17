@@ -241,8 +241,8 @@
       },
       actions: {
         getCard: "Karte holen",
-        showQr: "QR zeigen",
-        openCards: "Karten öffnen",
+        showQr: "Im CafÃ© vorzeigen",
+        openCards: "Stempelkarten",
         viewCafe: "Café ansehen",
         discoverCafes: "Cafés entdecken",
         addHome: "Zum Homescreen hinzufügen",
