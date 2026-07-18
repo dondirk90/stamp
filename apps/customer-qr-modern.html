@@ -286,14 +286,14 @@
         align-items: center;
         justify-content: center;
         margin-bottom: var(--space-4);
-        padding: 14px 20px;
-        min-height: 76px;
-        border-radius: 28px;
+        padding: 10px 18px;
+        min-height: 64px;
+        border-radius: 24px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: rgba(255, 252, 248, 0.72);
         backdrop-filter: blur(18px);
         box-shadow:
-          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 10px 24px rgba(68, 41, 22, 0.05),
           0 1px 0 rgba(255, 255, 255, 0.68) inset;
         position: relative;
         z-index: 1;
@@ -565,49 +565,10 @@
         width: auto;
       }
 
-      .bottomTabBtn.walletHeroBtn {
-        position: relative;
-        flex: 0 0 auto;
-        width: auto;
-        min-width: 188px;
-        min-height: 64px;
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: -18px;
-        border-radius: 20px;
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
-        color: #fffaf5 !important;
-        box-shadow:
-          0 18px 30px rgba(68, 41, 22, 0.24),
-          0 1px 0 rgba(255, 255, 255, 0.16) inset;
-      }
-
-      .bottomTabBtn.walletHeroBtn .topMenuBtnContent {
-        gap: 8px;
-      }
-
-      .bottomTabBtn.walletHeroBtn .ico,
-      .bottomTabBtn.walletHeroBtn .lbl {
-        color: inherit;
-      }
-
-      .bottomTabBtn.walletHeroBtn .lbl {
-        font-size: 12px;
-        letter-spacing: 0.04em;
-        text-transform: none;
-      }
-
       .bottomTabBtn.active {
         background: rgba(107, 69, 44, 0.1) !important;
         color: #241710 !important;
         opacity: 1;
-      }
-
-      .bottomTabBtn.walletHeroBtn.active {
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
-        color: #fffaf5 !important;
       }
 
       .menuToggle,
@@ -652,58 +613,60 @@
       }
 
       .topbar .kk-brandWord {
-        font-size: 28px;
+        font-size: 24px;
         line-height: 1;
         letter-spacing: -0.04em;
         color: #241710;
       }
 
-      .topUtilityBtn {
-        min-height: 44px;
-        min-width: 44px;
+      .topProfileBtn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
         padding: 0;
-        border: 1px solid rgba(81, 58, 40, 0.08) !important;
-        border-radius: 16px;
+        border: 1px solid rgba(81, 58, 40, 0.1) !important;
+        border-radius: 18px;
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
-        color: #93684a !important;
+        color: #6b452c !important;
         box-shadow:
           0 12px 22px rgba(68, 41, 22, 0.08),
           0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
       }
 
-      .topUtilityIcon {
-        position: relative;
-        width: 18px;
-        height: 14px;
-        display: block;
-      }
-
-      .topUtilityIcon::before,
-      .topUtilityIcon::after,
-      .topUtilityIcon span {
-        content: "";
-        position: absolute;
-        left: 0;
+      .topProfileAvatar {
         width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #b1815c;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        border-radius: inherit;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 55%),
+          linear-gradient(180deg, rgba(240, 228, 212, 0.98), rgba(226, 205, 185, 0.96));
       }
 
-      .topUtilityIcon::before {
-        top: 0;
+      .topProfileAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
       }
 
-      .topUtilityIcon span {
-        top: 6px;
-      }
-
-      .topUtilityIcon::after {
-        top: 12px;
+      .topProfileFallback {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        color: #6b452c;
       }
 
       .utilityMenu {
@@ -719,7 +682,7 @@
         box-shadow:
           0 20px 42px rgba(47, 31, 22, 0.16),
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
-        display: none;
+        display: none !important;
         z-index: 72;
       }
 
@@ -847,12 +810,6 @@
           pointer-events: none;
         }
 
-        .bottomTabBtn.walletHeroBtn {
-          margin-top: -24px;
-          min-height: 70px;
-          pointer-events: auto;
-        }
-
         .topbar .kk-brandMark {
           width: 44px;
           height: 44px;
@@ -862,10 +819,12 @@
           font-size: 24px;
         }
 
-        .topUtilityBtn {
-          min-height: 34px;
-          min-width: 34px;
-          font-size: 20px;
+        .topProfileBtn {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
+          border-radius: 16px;
         }
 
         .grid {
@@ -1858,6 +1817,7 @@
         border-left: 9px solid transparent;
         border-right: 9px solid transparent;
         border-top: 10px solid rgba(107, 69, 44, 0.82);
+        pointer-events: none;
       }
 
       .cafePin::before {
@@ -1871,6 +1831,7 @@
         border-left: 8px solid transparent;
         border-right: 8px solid transparent;
         border-top: 9px solid rgba(252, 247, 241, 0.98);
+        pointer-events: none;
       }
 
       .cafePinImg {
@@ -1992,11 +1953,11 @@
       }
 
       #welcomePanel {
-        width: min(560px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        width: min(1080px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
         margin: auto;
         display: grid;
         gap: 20px;
-        padding: 72px 24px 108px;
+        padding: 56px 24px 108px;
         min-height: 0;
         background: transparent;
         border: none;
@@ -2006,10 +1967,24 @@
         justify-items: start;
       }
 
+      .welcomeHero {
+        width: 100%;
+        display: grid;
+        gap: 18px;
+        align-items: start;
+      }
+
       .welcomeIntro {
         display: grid;
         gap: 10px;
         max-width: 30ch;
+      }
+
+      @media (min-width: 900px) {
+        .welcomeHero {
+          grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+          gap: 28px;
+        }
       }
 
       .welcomeProfileRow {
@@ -2042,15 +2017,11 @@
       }
 
       .welcomeAvatarFallback {
-        font-size: 16px;
-        font-weight: 900;
-        color: #7a5236;
-      }
-
-      .welcomePrimaryAction {
-        width: auto;
-        min-width: 168px;
-        margin: 0;
+        width: 24px;
+        height: 24px;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.9;
+        color: transparent;
       }
 
       .welcomeKicker {
@@ -2062,49 +2033,16 @@
       }
 
       .welcomeLeadText {
-        color: rgba(59, 42, 31, 0.8);
-        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.9);
+        line-height: 1.45;
         font-size: 16px;
         letter-spacing: -0.01em;
         max-width: 30ch;
       }
 
-      .welcomeSummary {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        width: 100%;
-        max-width: none;
-      }
-
-      .welcomeStat {
-        display: inline-flex;
-        align-items: baseline;
-        gap: 8px;
-        padding: 10px 14px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        border-radius: var(--radius-pill);
-        background: rgba(255, 255, 255, 0.62);
-      }
-
-      .welcomeStatValue {
-        font-size: 18px;
-        font-weight: 950;
-        letter-spacing: -0.04em;
-        color: var(--text);
-      }
-
-      .welcomeStatLabel {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0;
-        text-transform: none;
-        color: rgba(59, 42, 31, 0.66);
-      }
-
       .welcomeDeck {
         display: grid;
-        gap: 14px;
+        gap: 18px;
         width: 100%;
       }
 
@@ -2124,31 +2062,140 @@
         color: rgba(59, 42, 31, 0.62);
       }
 
-      .welcomeCardsList {
-        display: grid;
-        gap: 12px;
-        width: 100%;
+      .welcomeSectionMeta {
+        font-size: 14px;
+        font-weight: 700;
+        color: rgba(59, 42, 31, 0.72);
       }
 
-      .welcomeOverviewCard {
+      .welcomeSectionLink {
+        appearance: none;
+        border: none;
+        background: transparent;
+        padding: 0;
+        color: #6b452c;
+        font-size: 14px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .welcomeSectionLink:hover,
+      .welcomeSectionLink:focus-visible {
+        color: #241710;
+      }
+
+      .welcomeCardsList {
         display: grid;
         gap: 18px;
         width: 100%;
-        padding: 18px 18px 20px;
-        border-radius: 28px;
+      }
+
+      .welcomeCardsRail {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(240px, 290px);
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .welcomeCardsRail::-webkit-scrollbar {
+        display: none;
+      }
+
+      .welcomeCardsRail > * {
+        scroll-snap-align: start;
+      }
+
+      .welcomeOverviewCard,
+      .welcomeHeroCard {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+        padding: 22px 22px 24px;
+        border-radius: 26px;
         border: 1px solid rgba(81, 58, 40, 0.12);
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
         box-shadow:
-          0 18px 38px rgba(47, 31, 22, 0.08),
+          0 16px 34px rgba(47, 31, 22, 0.08),
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .welcomeHeroCard {
+        gap: 18px;
+        align-self: start;
+        min-height: 100%;
+      }
+
+      .welcomeHeroCard .welcomePreviewLogo {
+        width: 80px;
+        height: 80px;
+      }
+
+      .welcomeHeroCard .welcomePreviewTitle {
+        font-size: 28px;
+        line-height: 1.04;
+      }
+
+      .welcomePreviewDistrict {
+        font-size: 14px;
+        font-weight: 700;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .welcomeHeroCard .welcomePreviewStampRow {
+        gap: 8px;
+      }
+
+      .welcomeHeroCard .welcomePreviewStamp {
+        min-height: 18px;
+        background-image: url("/assets/stamp-bean.png?v=1");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        border: none;
+        background-color: transparent;
+        box-shadow: none;
+        opacity: 0.22;
+        filter: saturate(0.7);
+      }
+
+      .welcomeHeroCard .welcomePreviewStamp.filled {
+        opacity: 1;
+        filter: none;
+      }
+
+      .welcomeHeroCard .welcomePreviewFooter {
+        align-items: flex-end;
+      }
+
+      .welcomeHeroCard .welcomePreviewHint {
+        font-size: 16px;
+        line-height: 1.45;
+        color: rgba(59, 42, 31, 0.88);
+      }
+
+      .welcomeHeroCard .welcomePreviewBtn {
+        min-width: 128px;
+      }
+
+      .welcomeHeroLinks {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
       }
 
       .welcomeOverviewHead {
         display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 14px;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
       }
 
       .welcomeOverviewTitle {
@@ -2159,24 +2206,24 @@
       }
 
       .welcomeOverviewMeta {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: rgba(59, 42, 31, 0.58);
       }
 
       .welcomeCafeRows {
         display: grid;
-        gap: 8px;
+        gap: 0;
       }
 
       .welcomeCafeRow {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 14px;
-        align-items: center;
-        padding: 14px 0;
+        align-items: start;
+        padding: 16px 0;
         border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
@@ -2186,8 +2233,8 @@
       }
 
       .welcomeCafeLogo {
-        width: 68px;
-        height: 68px;
+        width: 58px;
+        height: 58px;
         border-radius: 999px;
         border: 1px solid rgba(81, 58, 40, 0.1);
         background: rgba(255, 255, 255, 0.92);
@@ -2209,26 +2256,25 @@
 
       .welcomeCafeMeta {
         display: grid;
-        gap: 6px;
+        gap: 4px;
         min-width: 0;
       }
 
       .welcomeCafeName {
-        font-size: 19px;
+        font-size: 17px;
         font-weight: 900;
         letter-spacing: -0.03em;
         color: #241710;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        line-height: 1.15;
+        white-space: normal;
       }
 
       .welcomeCafeCount {
         font-size: 12px;
         font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.6);
+        letter-spacing: 0;
+        text-transform: none;
+        color: rgba(59, 42, 31, 0.72);
       }
 
       .welcomeCafeStampRow {
@@ -2255,43 +2301,52 @@
       }
 
       .welcomeCafeActions {
-        display: grid;
-        gap: 8px;
-        justify-items: end;
-        align-self: start;
-        grid-column: 3;
-        grid-row: 1;
-        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .welcomeCafeAction {
-        min-width: 126px;
+        min-height: 38px;
         width: auto;
-        padding: 10px 14px;
-        justify-self: end;
+        padding: 0 14px;
         margin-top: 0;
-        white-space: normal;
-        text-align: center;
+      }
+
+      .welcomeCafeActionLink {
+        appearance: none;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        color: rgba(59, 42, 31, 0.72);
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .welcomeCafeActionLink:hover,
+      .welcomeCafeActionLink:focus-visible {
+        color: #241710;
       }
 
       @media (max-width: 720px) {
         .welcomeCafeRow {
           grid-template-columns: auto minmax(0, 1fr);
-          align-items: start;
-        }
-
-        .welcomeCafeActions {
-          grid-column: 2;
-          grid-row: auto;
-          width: 100%;
-          justify-items: stretch;
-          margin-top: 4px;
-          padding-left: 0;
         }
 
         .welcomeCafeAction {
-          width: 100%;
-          justify-self: stretch;
+          min-height: 36px;
+          padding: 0 12px;
+        }
+
+        .welcomeHeroCard .welcomePreviewFooter {
+          flex-direction: column;
+          align-items: stretch;
         }
       }
 
@@ -2496,10 +2551,7 @@
       }
 
       .welcomeNextHint {
-        max-width: 36ch;
-        font-size: 14px;
-        line-height: 1.55;
-        color: rgba(59, 42, 31, 0.68);
+        display: none;
       }
 
       .mapHero {
@@ -5189,17 +5241,18 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
-            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
+          <button
+            class="topProfileBtn"
+            id="topProfileBtn"
+            type="button"
+            aria-label="Profil &ouml;ffnen"
+          >
+            <span class="topProfileAvatar" aria-hidden="true">
+              <img id="topProfileImg" alt="" />
+              <span class="topProfileFallback" id="topProfileFallback">P</span>
+            </span>
           </button>
         </div>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
-        <button class="utilityMenuBtn" id="utilityMapBtn" type="button">Caf&eacute;s</button>
-        <button class="utilityMenuBtn" id="utilityHistoryBtn" type="button">Verlauf</button>
-        <button class="utilityMenuBtn" id="utilityAccountBtn" type="button">Profil</button>
-        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Logout</button>
       </div>
 
       <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
@@ -5270,7 +5323,7 @@
           </span>
         </button>
         <button
-          class="bottomTabBtn ghost walletHeroBtn"
+          class="bottomTabBtn ghost"
           id="bottomModeWallet"
           type="button"
         >
@@ -5278,7 +5331,17 @@
             <span class="ico" aria-hidden="true">
               <img class="beanIcon" src="/assets/stamp-bean.png?v=1" alt="" />
             </span>
-            <span class="lbl">Stempelkarten</span>
+            <span class="lbl">Karten</span>
+          </span>
+        </button>
+        <button
+          class="bottomTabBtn ghost"
+          id="bottomModeHistory"
+          type="button"
+        >
+          <span class="topMenuBtnContent">
+            <span class="ico" aria-hidden="true">V</span>
+            <span class="lbl">Verlauf</span>
           </span>
         </button>
         <button
@@ -5502,45 +5565,38 @@
           <div class="home screenPager" id="screenPager" aria-label="Start">
             <div class="screenSlide" data-mode="welcome">
             <div class="card panel" id="welcomePanel">
-              <div class="welcomeIntro">
-                <div class="welcomeKicker">Deine Kaffeekarte</div>
-                <div class="welcomeProfileRow">
-                  <div class="welcomeAvatar" aria-hidden="true">
-                    <img id="welcomeAvatarImg" alt="" style="display: none" />
-                    <div class="welcomeAvatarFallback" id="welcomeAvatarFallback">K</div>
+              <div class="welcomeHero">
+                <div class="welcomeIntro">
+                  <div class="welcomeKicker">Deine Kaffeekarte</div>
+                  <div class="welcomeProfileRow">
+                    <div class="welcomeAvatar" aria-hidden="true">
+                      <img id="welcomeAvatarImg" alt="" style="display: none" />
+                      <div class="welcomeAvatarFallback" id="welcomeAvatarFallback"></div>
+                    </div>
+                    <div class="panelHeader" style="min-width: 0; flex: 1">
+                      <h3 id="welcomeTitle">Hallo</h3>
+                    </div>
                   </div>
-                  <div class="panelHeader" style="min-width: 0; flex: 1">
-                    <h3 id="welcomeTitle">Hallo</h3>
+                  <div class="welcomeLeadText" id="welcomeLead">
+                    Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
                   </div>
                 </div>
-                <div class="welcomeLeadText" id="welcomeLead">
-                  Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
-                </div>
-              </div>
-              <div class="welcomeSummary" aria-label="Dein Kartenstatus">
-                <div class="welcomeStat">
-                  <div class="welcomeStatValue" id="welcomeCardCount">0</div>
-                  <div class="welcomeStatLabel">aktive Karten</div>
-                </div>
-                <div class="welcomeStat">
-                  <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
-                  <div class="welcomeStatLabel">gerade wichtig</div>
-                </div>
+                <div id="welcomeHeroCardSlot"></div>
               </div>
               <div class="welcomeDeck">
                 <div class="welcomeSectionHead">
-                  <div class="welcomeSectionTitle">Deine Caf&eacute;s</div>
-                  <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
-                    Karten &ouml;ffnen
+                  <div>
+                    <div class="welcomeSectionTitle">Deine Karten</div>
+                    <div class="welcomeSectionMeta" id="welcomeCardsMeta">0 Lieblingscaf&eacute;s</div>
+                  </div>
+                  <button class="welcomeSectionLink" id="welcomeCardsOpenBtn" type="button">
+                    Alle ansehen &rarr;
                   </button>
                 </div>
                 <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
                   Noch kein Lieblingscaf&eacute; dabei? Entdecke Caf&eacute;s in deiner N&auml;he und hol dir deine erste Karte.
                 </div>
                 <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Deine Caf&eacute;s"></div>
-                <div class="welcomeNextHint" id="welcomeNextHint">
-                  &Ouml;ffne deine Karte im Caf&eacute; und zeig direkt deinen QR.
-                </div>
               </div>
             </div>
             </div>
@@ -5655,7 +5711,7 @@
             </div>
           </div>
           <div class="notice" id="noCafesNotice" style="display: none">
-            Es sind noch keine Caf&eacute;s registriert. Bitte zuerst ein Caf&eacute; anlegen (z.B. &uuml;ber die Caf&eacute;-Tools).
+            Hier fehlt noch guter Kaffee. Weitere Caf&eacute;s kommen bald dazu.
           </div>
         </div>
       </div>

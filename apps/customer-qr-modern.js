@@ -101,6 +101,9 @@
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeAccount: document.getElementById("bottomModeAccount"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
+    topProfileBtn: document.getElementById("topProfileBtn"),
+    topProfileImg: document.getElementById("topProfileImg"),
+    topProfileFallback: document.getElementById("topProfileFallback"),
     mainModeMap: document.getElementById("mainModeMap"),
     mainModeWallet: document.getElementById("mainModeWallet"),
     mainModeHistory: document.getElementById("mainModeHistory"),
@@ -116,7 +119,10 @@
     welcomeTitle: document.getElementById("welcomeTitle"),
     welcomeAvatarImg: document.getElementById("welcomeAvatarImg"),
     welcomeAvatarFallback: document.getElementById("welcomeAvatarFallback"),
+    welcomeHeroCardSlot: document.getElementById("welcomeHeroCardSlot"),
     welcomeLead: document.getElementById("welcomeLead"),
+    welcomeCardsMeta: document.getElementById("welcomeCardsMeta"),
+    welcomeCardsOpenBtn: document.getElementById("welcomeCardsOpenBtn"),
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
@@ -650,8 +656,8 @@
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
     if (!isAuthed) closeWalletOverlay({ silent: true });
-    if (el.topUtilityBtn) {
-      el.topUtilityBtn.style.display = isAuthed ? "" : "none";
+    if (el.topProfileBtn) {
+      el.topProfileBtn.style.display = isAuthed ? "" : "none";
     }
     if (!isAuthed) setShellMenuOpen(false);
 
@@ -673,6 +679,8 @@
     if (el.bottomModeMap) el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
+    if (el.bottomModeHistory)
+      el.bottomModeHistory.classList.toggle("active", w === "history");
     if (el.bottomModeAccount)
       el.bottomModeAccount.classList.toggle("active", w === "account");
     if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
@@ -702,6 +710,9 @@
       var avatarInitial = String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
       el.welcomeAvatarFallback.textContent = avatarInitial;
     }
+    if (el.welcomeTitle) {
+      el.welcomeTitle.textContent = uname ? "Hallo, " + uname + "." : "Hallo.";
+    }
     if (el.welcomeAvatarImg || el.welcomeAvatarFallback) {
       var avatarSrc =
         session && session.avatarDataUrl ? String(session.avatarDataUrl) : "";
@@ -719,6 +730,22 @@
       if (el.welcomeAvatarFallback) {
         el.welcomeAvatarFallback.style.display = avatarSrc ? "none" : "block";
       }
+      if (el.topProfileImg) {
+        if (avatarSrc) {
+          el.topProfileImg.src = avatarSrc;
+          el.topProfileImg.style.display = "block";
+        } else {
+          try {
+            el.topProfileImg.removeAttribute("src");
+          } catch (eAvatar1) {}
+          el.topProfileImg.style.display = "none";
+        }
+      }
+      if (el.topProfileFallback) {
+        el.topProfileFallback.textContent =
+          String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
+        el.topProfileFallback.style.display = avatarSrc ? "none" : "grid";
+      }
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
@@ -726,11 +753,12 @@
           ? "Bereit f\u00fcr den n\u00e4chsten Kaffee? Deine Karten warten schon."
           : copy.emptyStates.noCardsText;
     }
-    if (el.welcomeCardCount) {
-      el.welcomeCardCount.textContent = String(favCount || 0);
+    if (el.welcomeLead && favCount > 0) {
+      el.welcomeLead.textContent = "Bereit f\u00fcr den n\u00e4chsten Kaffee?";
     }
-    if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent = favCount > 0 ? "Aktiv" : "Entdecken";
+    if (el.welcomeCardsMeta) {
+      el.welcomeCardsMeta.textContent =
+        favCount === 1 ? "1 Lieblingscaf\u00e9" : String(favCount || 0) + " Lieblingscaf\u00e9s";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
@@ -738,15 +766,33 @@
           ? "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt."
           : "\u00d6ffne Caf\u00e9s im Men\u00fc und hol dir deine erste Karte.";
     }
-    if (el.welcomePrimaryAction) {
-      el.welcomePrimaryAction.textContent =
-        favCount > 0 ? copy.actions.openCards : copy.actions.discoverCafes;
-    }
     renderWelcomeCards();
   }
 
   function renderWelcomeCards() {
     if (!el.welcomeCardsList || !el.welcomeCardsEmpty) return;
+
+    function getDistrictLabel(address) {
+      var raw = String(address || "").trim();
+      if (!raw) return "";
+      var parts = raw.split(",");
+      if (parts.length > 1) {
+        var first = String(parts[0] || "").trim();
+        var second = String(parts[1] || "").trim();
+        if (/^\d{5}\s+/.test(second)) {
+          return second.replace(/^\d{5}\s+/, "").trim();
+        }
+        if (first) return first;
+      }
+      return raw;
+    }
+
+    function getProgressCopy(stampCount, rewardThreshold, rewardLabel) {
+      var threshold = clamp(Number(rewardThreshold || REWARD_THRESHOLD) || REWARD_THRESHOLD, 1, 50);
+      var current = clamp(Number(stampCount || 0) || 0, 0, threshold);
+      var remaining = Math.max(0, threshold - current);
+      return formatRewardProgressLine(remaining, current >= threshold, rewardLabel);
+    }
 
     var favorites = [];
     try {
@@ -763,6 +809,7 @@
     }
 
     el.welcomeCardsList.innerHTML = "";
+    if (el.welcomeHeroCardSlot) el.welcomeHeroCardSlot.innerHTML = "";
 
     if (!favNorm.length) {
       el.welcomeCardsEmpty.style.display = "block";
@@ -771,25 +818,276 @@
 
     el.welcomeCardsEmpty.style.display = "none";
 
+    var cardItems = [];
+    for (var j = 0; j < favNorm.length; j++) {
+      var cafeAddress = favNorm[j];
+      var cafe = cafesByCafeAddress[cafeAddress] || null;
+      var serverCard = getServerCard(cafeAddress);
+      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
+      var meta = resolveCafeDisplayMeta(cafeAddress, serverCard, cafe);
+      var rewardThreshold = serverCard
+        ? getCardRewardThreshold(serverCard)
+        : cafe
+          ? getCardRewardThreshold(cafe)
+          : REWARD_THRESHOLD;
+      var stampCount =
+        Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
+      var rewardLabel =
+        (serverCard &&
+          serverCard.program &&
+          serverCard.program.rewardLabel &&
+          String(serverCard.program.rewardLabel)) ||
+        "";
+      cardItems.push({
+        cafeAddress: cafeAddress,
+        cafe: cafe,
+        serverCard: serverCard,
+        meta: meta,
+        rewardThreshold: rewardThreshold,
+        stampCount: stampCount,
+        rewardLabel: rewardLabel,
+      });
+    }
+
+    cardItems.sort(function (a, b) {
+      var aReady = a.stampCount >= a.rewardThreshold ? 1 : 0;
+      var bReady = b.stampCount >= b.rewardThreshold ? 1 : 0;
+      if (aReady !== bReady) return bReady - aReady;
+      if (a.stampCount !== b.stampCount) return b.stampCount - a.stampCount;
+      return String(a.meta.name || "").localeCompare(String(b.meta.name || ""));
+    });
+
+    var featured = cardItems[0] || null;
+    if (featured && el.welcomeHeroCardSlot) {
+      var hero = document.createElement("article");
+      hero.className = "welcomeHeroCard";
+
+      var head = document.createElement("div");
+      head.className = "welcomePreviewHead";
+
+      var headMain = document.createElement("div");
+      headMain.className = "welcomePreviewHeadMain";
+
+      var logoWrap = document.createElement("div");
+      logoWrap.className = "welcomePreviewLogo";
+      logoWrap.setAttribute("data-cafe-name", featured.meta.name);
+      if (featured.cafe && featured.cafe.logoDataUrl) {
+        var heroImg = document.createElement("img");
+        heroImg.src = String(featured.cafe.logoDataUrl);
+        heroImg.alt = "";
+        heroImg.decoding = "async";
+        heroImg.loading = "lazy";
+        heroImg.addEventListener("error", function () {
+          try {
+            var parent = this.parentNode;
+            var cafeName = parent
+              ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
+              : "Kaffeekarte";
+            if (parent) {
+              parent.innerHTML = "";
+              parent.appendChild(buildPassLogoFallback(cafeName));
+            }
+          } catch (eLogo) {}
+        });
+        logoWrap.appendChild(heroImg);
+      } else {
+        logoWrap.appendChild(buildPassLogoFallback(featured.meta.name));
+      }
+
+      var metaWrap = document.createElement("div");
+      metaWrap.className = "welcomePreviewMeta";
+
+      var title = document.createElement("div");
+      title.className = "welcomePreviewTitle";
+      title.textContent = featured.meta.name;
+
+      var district = document.createElement("div");
+      district.className = "welcomePreviewDistrict";
+      district.textContent = getDistrictLabel(featured.meta.address);
+
+      metaWrap.appendChild(title);
+      if (district.textContent) metaWrap.appendChild(district);
+      headMain.appendChild(logoWrap);
+      headMain.appendChild(metaWrap);
+      head.appendChild(headMain);
+      hero.appendChild(head);
+
+      var stampRow = document.createElement("div");
+      stampRow.className = "welcomePreviewStampRow";
+      for (var stampIndex = 0; stampIndex < featured.rewardThreshold; stampIndex++) {
+        var stampDot = document.createElement("span");
+        stampDot.className =
+          "welcomePreviewStamp" +
+          (stampIndex < Math.min(featured.stampCount, featured.rewardThreshold) ? " filled" : "");
+        stampRow.appendChild(stampDot);
+      }
+      hero.appendChild(stampRow);
+
+      var footer = document.createElement("div");
+      footer.className = "welcomePreviewFooter";
+
+      var hint = document.createElement("div");
+      hint.className = "welcomePreviewHint";
+      hint.textContent = getProgressCopy(
+        featured.stampCount,
+        featured.rewardThreshold,
+        featured.rewardLabel,
+      );
+
+      var actions = document.createElement("div");
+      actions.className = "welcomeHeroLinks";
+
+      var qrBtn = document.createElement("button");
+      qrBtn.className = "btn primary welcomePreviewBtn";
+      qrBtn.type = "button";
+      qrBtn.textContent = "QR zeigen";
+      qrBtn.addEventListener("click", function () {
+        openWalletForCafe(featured.cafeAddress, {
+          ensureFavorite: true,
+          showQr: true,
+        });
+      });
+
+      var linkBtn = document.createElement("button");
+      linkBtn.className = "welcomeCafeActionLink";
+      linkBtn.type = "button";
+      linkBtn.textContent = "Caf\u00e9 ansehen \u2192";
+      linkBtn.addEventListener("click", function () {
+        var href = buildCafeProfileUrl(featured.meta.cafeId, featured.cafeAddress);
+        if (href) {
+          window.location.href = href;
+          return;
+        }
+        openCafeModal({
+          id: featured.meta.cafeId,
+          name: featured.meta.name,
+          address: featured.meta.address,
+          cafeAddress: featured.cafeAddress,
+        });
+      });
+
+      actions.appendChild(qrBtn);
+      actions.appendChild(linkBtn);
+      footer.appendChild(hint);
+      footer.appendChild(actions);
+      hero.appendChild(footer);
+      el.welcomeHeroCardSlot.appendChild(hero);
+    }
+
+    var rail = document.createElement("div");
+    rail.className = "welcomeCardsRail";
+
+    for (var railIndex = 0; railIndex < cardItems.length; railIndex++) {
+      (function (item) {
+        var row = document.createElement("article");
+        row.className = "welcomeOverviewCard";
+
+        var rowHead = document.createElement("div");
+        rowHead.className = "welcomePreviewHead";
+
+        var rowHeadMain = document.createElement("div");
+        rowHeadMain.className = "welcomePreviewHeadMain";
+
+        var rowLogo = document.createElement("div");
+        rowLogo.className = "welcomeCafeLogo";
+        rowLogo.setAttribute("data-cafe-name", item.meta.name);
+        if (item.cafe && item.cafe.logoDataUrl) {
+          var rowImg = document.createElement("img");
+          rowImg.src = String(item.cafe.logoDataUrl);
+          rowImg.alt = "";
+          rowImg.decoding = "async";
+          rowImg.loading = "lazy";
+          rowLogo.appendChild(rowImg);
+        } else {
+          rowLogo.appendChild(buildPassLogoFallback(item.meta.name));
+        }
+
+        var rowMeta = document.createElement("div");
+        rowMeta.className = "welcomePreviewMeta";
+
+        var rowTitle = document.createElement("div");
+        rowTitle.className = "welcomeCafeName";
+        rowTitle.textContent = item.meta.name;
+
+        var rowCount = document.createElement("div");
+        rowCount.className = "welcomeCafeCount";
+        rowCount.textContent = getProgressCopy(
+          item.stampCount,
+          item.rewardThreshold,
+          item.rewardLabel,
+        );
+
+        rowMeta.appendChild(rowTitle);
+        rowMeta.appendChild(rowCount);
+        rowHeadMain.appendChild(rowLogo);
+        rowHeadMain.appendChild(rowMeta);
+        rowHead.appendChild(rowHeadMain);
+        row.appendChild(rowHead);
+
+        var rowStamp = document.createElement("div");
+        rowStamp.className = "welcomeCafeStampRow";
+        for (var s = 0; s < item.rewardThreshold; s++) {
+          var rowStampDot = document.createElement("span");
+          rowStampDot.className =
+            "welcomeCafeStamp" +
+            (s < Math.min(item.stampCount, item.rewardThreshold) ? " filled" : "");
+          rowStamp.appendChild(rowStampDot);
+        }
+        row.appendChild(rowStamp);
+
+        var rowActions = document.createElement("div");
+        rowActions.className = "welcomeHeroLinks";
+
+        var rowQr = document.createElement("button");
+        rowQr.className = "btn secondary welcomeCafeAction";
+        rowQr.type = "button";
+        rowQr.textContent = "QR zeigen";
+        rowQr.addEventListener("click", function () {
+          openWalletForCafe(item.cafeAddress, {
+            ensureFavorite: true,
+            showQr: true,
+          });
+        });
+
+        var rowLink = document.createElement("button");
+        rowLink.className = "welcomeCafeActionLink";
+        rowLink.type = "button";
+        rowLink.textContent = "Caf\u00e9 ansehen \u2192";
+        rowLink.addEventListener("click", function () {
+          var href = buildCafeProfileUrl(item.meta.cafeId, item.cafeAddress);
+          if (href) {
+            window.location.href = href;
+            return;
+          }
+          openCafeModal({
+            id: item.meta.cafeId,
+            name: item.meta.name,
+            address: item.meta.address,
+            cafeAddress: item.cafeAddress,
+          });
+        });
+
+        rowActions.appendChild(rowQr);
+        rowActions.appendChild(rowLink);
+        row.appendChild(rowActions);
+        rail.appendChild(row);
+      })(cardItems[railIndex]);
+    }
+
+    el.welcomeCardsList.appendChild(rail);
+    return;
+
     var overview = document.createElement("article");
     overview.className = "welcomeOverviewCard";
 
     var overviewHead = document.createElement("div");
     overviewHead.className = "welcomeOverviewHead";
 
-    var overviewTitleWrap = document.createElement("div");
-    var overviewTitle = document.createElement("div");
-    overviewTitle.className = "welcomeOverviewTitle";
-    overviewTitle.textContent = "Deine Caf\u00e9s";
-
     var overviewMeta = document.createElement("div");
     overviewMeta.className = "welcomeOverviewMeta";
     overviewMeta.textContent =
       favNorm.length === 1 ? "1 aktive Karte" : String(favNorm.length) + " aktive Karten";
-
-    overviewTitleWrap.appendChild(overviewTitle);
-    overviewTitleWrap.appendChild(overviewMeta);
-    overviewHead.appendChild(overviewTitleWrap);
+    overviewHead.appendChild(overviewMeta);
     overview.appendChild(overviewHead);
 
     var rows = document.createElement("div");
@@ -891,6 +1189,7 @@
       var btn = document.createElement("button");
       btn.className = "btn secondary welcomeCafeAction";
       btn.type = "button";
+      btn.textContent = "Vorzeigen";
       btn.textContent = "Im Café vorzeigen";
       btn.addEventListener("click", (function (addr) {
         return function (ev) {
@@ -901,11 +1200,13 @@
           openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
         };
       })(cafeAddress));
+      btn.textContent = "Vorzeigen";
       actions.appendChild(btn);
 
       var profileBtn = document.createElement("button");
       profileBtn.className = "btn ghost welcomeCafeAction";
       profileBtn.type = "button";
+      profileBtn.className = "welcomeCafeActionLink";
       profileBtn.textContent = copy.actions.viewCafe;
       profileBtn.addEventListener(
         "click",
@@ -1055,17 +1356,11 @@
     shellMenuState.open = !!open;
     try {
       if (el.utilityMenu) el.utilityMenu.classList.toggle("open", shellMenuState.open);
-      if (el.topUtilityBtn)
-        el.topUtilityBtn.setAttribute("aria-expanded", shellMenuState.open ? "true" : "false");
     } catch (e) {}
   }
 
   function wireShellMenu() {
-    if (el.topUtilityBtn) {
-      el.topUtilityBtn.addEventListener("click", function () {
-        setShellMenuOpen(!shellMenuState.open);
-      });
-    }
+    if (!el.utilityLogoutBtn) return;
     if (el.utilityMapBtn) {
       el.utilityMapBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
@@ -1886,11 +2181,7 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        var profileHref = buildCafeProfileUrl(
-          cafe && cafe.id != null ? Number(cafe.id) : null,
-          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
-        );
-        a.href = profileHref || "#";
+        a.href = "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -1908,12 +2199,11 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "\u00d6ffnen";
+        hint.textContent = "Kurzprofil";
 
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
-          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -2680,17 +2970,29 @@
     try {
       if (!window.L || !window.L.divIcon) return null;
       var logo = cafe && cafe.logoDataUrl ? String(cafe.logoDataUrl) : "";
+      var cafeAddressAttr = "";
+      try {
+        cafeAddressAttr = escapeHtmlAttr(
+          String((cafe && (cafe.cafeAddress || cafe.address)) || ""),
+        );
+      } catch (eCafeAddr) {
+        cafeAddressAttr = "";
+      }
       var html = "";
       if (logo) {
         html =
-          '<div class="cafePin">' +
+          '<div class="cafePin" data-cafe-address="' +
+          cafeAddressAttr +
+          '">' +
           '<img class="cafePinImg" alt="" aria-hidden="true" draggable="false" src="' +
           logo.replace(/"/g, "&quot;") +
           '">' +
           "</div>";
       } else {
         html =
-          '<div class="cafePin"><div class="cafePinLetter">' +
+          '<div class="cafePin" data-cafe-address="' +
+          cafeAddressAttr +
+          '"><div class="cafePinLetter">' +
           cafeInitials(cafe && cafe.name ? cafe.name : "Caf\u00e9") +
           "</div></div>";
       }
@@ -2754,6 +3056,19 @@
           var pin = node ? node.querySelector(".cafePin") : null;
           var pinImg = node ? node.querySelector(".cafePinImg") : null;
           var pinLetter = node ? node.querySelector(".cafePinLetter") : null;
+          if (node && marker.__cafeAddress) {
+            try {
+              node.setAttribute("data-cafe-address", marker.__cafeAddress);
+            } catch (eData0) {}
+          }
+          if (pin && marker.__cafeAddress) {
+            try {
+              pin.setAttribute("data-cafe-address", marker.__cafeAddress);
+              pin.setAttribute("role", "button");
+              pin.setAttribute("tabindex", "0");
+              pin.setAttribute("aria-label", "Caf\u00e9 kurz ansehen");
+            } catch (eData1) {}
+          }
           if (node && !node.__cafeProfileBound) {
             node.__cafeProfileBound = true;
             node.addEventListener("click", openMarkerCafe);
@@ -2783,6 +3098,56 @@
           }
         } catch (ePin) {}
       })(cafe);
+    }
+  }
+
+  function openCafeModalByAddress(addr) {
+    var want = normalizeAddr(addr || "");
+    if (!want) return false;
+    var cafe = cafesByCafeAddress[want] || null;
+    if (!cafe && cafes && cafes.length) {
+      for (var i = 0; i < cafes.length; i++) {
+        var candidate = cafes[i];
+        if (
+          normalizeAddr(
+            (candidate && (candidate.cafeAddress || candidate.address)) || "",
+          ) === want
+        ) {
+          cafe = candidate;
+          break;
+        }
+      }
+    }
+    if (!cafe) return false;
+    walletState.ignoreClickUntil = nowMs() + 420;
+    openCafeModal(cafe);
+    return true;
+  }
+
+  function handleCafePinTapEvent(ev) {
+    try {
+      var target = ev && ev.target ? ev.target : null;
+      if (!target || !target.closest) return false;
+      var pin = target.closest(".cafePin");
+      var markerNode = target.closest(".leaflet-marker-icon");
+      if (!pin && !markerNode) return false;
+      var host = pin || markerNode;
+      var addr =
+        (host &&
+          host.dataset &&
+          (host.dataset.cafeAddress || host.dataset.cafeaddress)) ||
+        (pin && pin.getAttribute && pin.getAttribute("data-cafe-address")) ||
+        (markerNode &&
+          markerNode.getAttribute &&
+          markerNode.getAttribute("data-cafe-address")) ||
+        "";
+      if (!addr) return false;
+      if (ev.preventDefault) ev.preventDefault();
+      if (ev.stopPropagation) ev.stopPropagation();
+      walletState.ignoreClickUntil = nowMs() + 420;
+      return openCafeModalByAddress(addr);
+    } catch (eCafePinTap) {
+      return false;
     }
   }
 
@@ -5008,11 +5373,23 @@
 
     bindModeButton(el.bottomModeWallet, "wallet");
     bindModeButton(el.bottomModeMap, "map");
+    bindModeButton(el.bottomModeHistory, "history");
     bindModeButton(el.mainModeMap, "map");
     bindModeButton(el.mainModeWallet, "wallet");
     bindModeButton(el.mainModeHistory, "history");
     if (el.bottomModeAccount) {
       el.bottomModeAccount.addEventListener("click", function () {
+        navSetActive("account");
+        location.href = "/customer-profile";
+      });
+    }
+    if (el.welcomeCardsOpenBtn) {
+      el.welcomeCardsOpenBtn.addEventListener("click", function () {
+        navigateToMode("wallet");
+      });
+    }
+    if (el.topProfileBtn) {
+      el.topProfileBtn.addEventListener("click", function () {
         navSetActive("account");
         location.href = "/customer-profile";
       });
@@ -5876,6 +6253,10 @@
         var walletLbl = el.mainModeWallet.querySelector(".lbl");
         if (walletLbl) walletLbl.textContent = copy.navigation.cards;
       }
+      if (el.bottomModeWallet) {
+        var bottomWalletLbl = el.bottomModeWallet.querySelector(".lbl");
+        if (bottomWalletLbl) bottomWalletLbl.textContent = copy.navigation.cards;
+      }
       if (el.authPanel) {
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
@@ -5906,6 +6287,18 @@
     wireNavigation();
     wireScreenPager();
     wireVisibility();
+    if (!document.__cafePinDelegationBound) {
+      document.__cafePinDelegationBound = true;
+      var onCafePinTap = function (ev) {
+        handleCafePinTapEvent(ev);
+      };
+      document.addEventListener("click", onCafePinTap, true);
+      document.addEventListener("pointerup", onCafePinTap, true);
+      document.addEventListener("touchend", onCafePinTap, {
+        capture: true,
+        passive: false,
+      });
+    }
     try {
       window.addEventListener("popstate", function () {
         currentPageMode = null;

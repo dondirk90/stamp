@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cafe Profil</title>
+    <title>Café Profil</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -197,7 +197,7 @@
             </div>
           </div>
           <div class="brandText">
-            <h1 id="title">Cafe Profil</h1>
+            <h1 id="title">Café Profil</h1>
             <div class="subtitle" id="addr">-</div>
           </div>
         </div>
@@ -210,14 +210,14 @@
         <div id="error" class="notice danger" style="display: none"></div>
 
         <div class="hero" id="heroWrap" style="display: none">
-          <img id="heroImg" alt="Cafe Bild" />
+          <img id="heroImg" alt="Café Bild" />
         </div>
         <div class="gallery" id="gallery"></div>
 
         <div class="section" style="margin-top: var(--space-3)">
           <div id="about" class="about" style="display: none"></div>
           <div id="aboutEmpty" class="hint" style="display: none">
-            Noch keine Beschreibung. Vielleicht spricht das Cafe lieber durch den Espresso.
+            Noch keine Beschreibung. Vielleicht spricht das Café lieber durch den Espresso.
           </div>
         </div>
 
@@ -232,7 +232,7 @@
               <div class="factValue" id="locationValue"></div>
             </div>
             <div class="factCard" id="linksCard" style="display: none">
-              <div class="factLabel">Mehr vom Cafe</div>
+              <div class="factLabel">Mehr vom Café</div>
               <div class="factValue" id="linksValue"></div>
             </div>
           </div>
@@ -241,10 +241,10 @@
 
           <div class="actions" style="margin-top: var(--space-3)">
             <button class="btn primary" id="addBtn" type="button">
-              Stempelkarte holen
+              Karte holen
             </button>
             <a class="btn secondary" id="backToWallet" href="/customer-wallet"
-              >Zur Wallet</a
+              >Zu deinen Karten</a
             >
           </div>
         </div>
@@ -373,7 +373,7 @@
         for (const src of arr) {
           const img = document.createElement("img");
           img.className = "thumb";
-          img.alt = "Cafe Bild";
+          img.alt = "Café Bild";
           img.src = src;
           img.addEventListener("click", () => setHero(src));
           g.appendChild(img);
@@ -386,7 +386,7 @@
           const params = new URLSearchParams(location.search);
           const id = params.get("id");
           if (!id) {
-            setError("Fehlende Cafe-ID (Parameter 'id').");
+            setError("Fehlende Café-ID (Parameter 'id').");
             return;
           }
 
@@ -398,7 +398,7 @@
 
           const title = document.getElementById("title");
           const addr = document.getElementById("addr");
-          if (title) title.textContent = cafe.name || "Cafe";
+          if (title) title.textContent = cafe.name || "Café";
           if (addr) addr.textContent = cafe.address || "";
 
           const rewardCard = document.getElementById("rewardCard");
@@ -525,7 +525,7 @@
             const fav = loadFavorites();
             const key = normalizeAddr(cafeAddress);
             addBtn.textContent =
-              key && fav.has(key) ? "In Wallet" : "Stempelkarte holen";
+              key && fav.has(key) ? "In deinen Karten" : "Karte holen";
             addBtn.addEventListener("click", () => {
               if (!cafeAddress) {
                 location.href = "/customer-wallet";
@@ -541,7 +541,7 @@
           setError(
             stampUI.userSafeErrorMessage(
               e,
-              "Cafe-Seite konnte nicht geladen werden.",
+              "Café-Seite konnte nicht geladen werden.",
             ),
           );
         }

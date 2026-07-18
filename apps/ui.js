@@ -109,7 +109,7 @@
       raw.indexOf("ecconnrefused") >= 0 ||
       raw.indexOf("econnrefused") >= 0
     ) {
-      return "Keine Verbindung. Bitte prüfen, ob API und Apps-Server laufen.";
+      return api.copy.feedback.networkError;
     }
 
     if (
@@ -205,7 +205,7 @@
     }
 
     // Default
-    return String(fallback || "Ein Fehler ist aufgetreten.");
+    return String(fallback || api.copy.feedback.genericError);
   }
 
   function userSafeErrorMessage(err, fallback) {

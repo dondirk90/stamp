@@ -2000,8 +2000,8 @@
                 <div class="miniStep">
                   <div class="miniStepNum">1</div>
                   <div class="miniStepText">
-                    Kunde zeigt den Wallet-QR oder öffnet den persönlichen
-                    Link.
+                    Kunde zeigt den QR aus seinen Karten oder öffnet den
+                    persönlichen Link.
                   </div>
                 </div>
                 <div class="miniStep">
@@ -2076,7 +2076,7 @@
 
                 <div id="scanHint" class="hintBox scannerHintCompact">
                   Noch kein Kunde geladen. Starte die Kamera oder öffne einen
-                  QR-Link direkt aus der Wallet.
+                  QR-Link direkt aus den Karten.
                 </div>
 
                 <div class="scannerStage">
@@ -2730,7 +2730,7 @@
           if (permission !== "granted") {
             setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.');
             updateScannerHint(
-              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus den Karten, dann landet der Vorgang direkt hier.",
             );
             syncCameraButtons();
             return;
@@ -2798,7 +2798,7 @@
             : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.',
         );
         updateScannerHint(
-          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus den Karten, dann landet der Vorgang direkt hier.",
         );
         syncCameraButtons();
       }
@@ -2972,7 +2972,7 @@
         updateScannerHint(
           stream
             ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
-            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus der Wallet.",
+            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus den Karten.",
         );
       }
 
@@ -3096,7 +3096,7 @@
             'Kamera pausiert. Tippe auf "Kamera starten", wenn du weiter scannen willst.',
           );
           updateScannerHint(
-            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Wallet oeffnen.",
+            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Karten oeffnen.",
           );
         };
 
@@ -3501,7 +3501,7 @@
             applyActionUi();
             setScannerStatus("Bereit fuer den naechsten QR.");
             updateScannerHint(
-              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Wallet-Link.",
+              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Karten-Link.",
             );
             void resumeScannerCameraIfAllowed();
           }, 1800);
