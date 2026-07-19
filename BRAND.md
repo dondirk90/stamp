@@ -148,6 +148,12 @@ gibt), Rösterei-Partner, Brühmethoden, Öffnungszeiten, optional Instagram/Web
 - **Karten (UI):** weiche Radien (20–34px), dezente Schatten, Glass-Effekt sparsam.
 - **QR-Codes:** groß, zentriert, mindestens 200×200px auf Mobile. QR ist eine Aktion (Modal/Sheet),
   kein eigenes Ziel in der Navigation.
+- **Kurzprofil vs. Vollprofil (Café):** Das Kurzprofil (Modal auf der Map) ist die schnelle
+  Entscheidungsbasis und zeigt genau: Logo, Name, Adresse, Status („Schon/Neu bei deinen Karten"),
+  Reward-Zyklus, **ein** Bild, die Story als 3-Zeilen-Teaser und die Aktionen („Karte holen" bzw.
+  „Zur Stempelkarte"/QR, dazu „Café ansehen"). Das Vollprofil (`/cafe-public`) trägt alles andere:
+  Bildergalerie, die ganze Story, Belohnung, Standort mit Route, Website und Instagram.
+  Kein Inhalt erscheint in beiden Ebenen in voller Länge.
 - **Dark = Arbeit:** Der dunkle Espresso-Modus gehört dem Café (Scanner, Theke) und dem Manifest.
   Gäste-Flows bleiben hell.
 

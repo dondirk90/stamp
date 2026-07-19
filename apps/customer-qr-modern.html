@@ -307,275 +307,6 @@
         min-height: 48px;
       }
 
-      .menuToggle {
-        position: absolute;
-        left: 2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        appearance: none;
-        -webkit-appearance: none;
-        border: none !important;
-        border-radius: 0 !important;
-        background: rgba(255, 251, 246, 0.9) !important;
-        background-image: none !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        box-shadow:
-          0 8px 18px rgba(68, 41, 22, 0.06),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset !important;
-        outline: none;
-        filter: none !important;
-      }
-
-      .menuToggleLines {
-        position: relative;
-        width: 20px;
-        height: 14px;
-        display: block;
-      }
-
-      .menuToggleLines::before,
-      .menuToggleLines::after,
-      .menuToggleLines span {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #b1815c;
-        transition:
-          transform 180ms ease,
-          opacity 180ms ease;
-      }
-
-      .menuToggleLines::before {
-        top: 0;
-      }
-
-      .menuToggleLines span {
-        top: 6px;
-      }
-
-      .menuToggleLines::after {
-        top: 12px;
-      }
-
-      body.menuOpen .menuToggleLines::before {
-        transform: translateY(6px) rotate(45deg);
-      }
-
-      body.menuOpen .menuToggleLines span {
-        opacity: 0;
-      }
-
-      body.menuOpen .menuToggleLines::after {
-        transform: translateY(-6px) rotate(-45deg);
-      }
-
-      .menuBackdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(24, 16, 11, 0.18);
-        backdrop-filter: blur(6px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 180ms ease;
-        z-index: 30;
-      }
-
-      .menuBackdrop.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .menuDrawer {
-        position: absolute;
-        top: 18px;
-        left: 20px;
-        width: min(320px, calc(100vw - 32px));
-        padding: 16px;
-        border-radius: 24px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.92);
-        backdrop-filter: blur(18px);
-        box-shadow:
-          0 24px 48px rgba(68, 41, 22, 0.16),
-          0 1px 0 rgba(255, 255, 255, 0.8) inset;
-        opacity: 0;
-        transform: translateY(-8px) scale(0.985);
-        pointer-events: none;
-        transition:
-          opacity 180ms ease,
-          transform 220ms cubic-bezier(0.2, 0.92, 0.24, 1);
-        z-index: 31;
-      }
-
-      .menuDrawer.open {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
-      }
-
-      .menuDrawerHead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .menuDrawerTitle {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(47, 32, 23, 0.72);
-      }
-
-      .topMenu {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
-      }
-
-      .topMenuBtn {
-        width: 100%;
-        min-width: 0;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 14px;
-        padding: 12px 12px;
-        cursor: pointer;
-        touch-action: manipulation;
-        color: #3b2a1f !important;
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        box-shadow: none !important;
-        opacity: 0.76;
-      }
-
-      /* Global theme styles `button.ghost` with a border; ensure drawer menu is borderless. */
-      button.topMenuBtn.ghost {
-        border: none !important;
-      }
-
-      .topMenuBtn .ico {
-        display: inline-flex;
-        width: 24px;
-        align-items: center;
-        justify-content: center;
-        color: rgba(47, 32, 23, 0.5);
-      }
-
-      .beanIcon {
-        width: 18px;
-        height: 18px;
-        object-fit: contain;
-        display: block;
-        flex: 0 0 auto;
-      }
-
-      .beanIcon.soft {
-        opacity: 0.56;
-        filter: saturate(0.8);
-      }
-
-      .topMenuBtn.active .beanIcon.soft,
-      .bottomTabBtn.active .beanIcon.soft,
-      .bottomTabBtn.walletHeroBtn .beanIcon {
-        opacity: 1;
-        filter: none;
-      }
-
-      .topMenuBtn .lbl {
-        display: block;
-        text-align: left;
-        font-size: inherit;
-        font-weight: inherit;
-        margin: 0;
-        color: var(--text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .topMenuBtn.active {
-        background: rgba(107, 69, 44, 0.08) !important;
-        opacity: 1;
-      }
-
-      .topMenuBtn.active .lbl {
-        color: #241710;
-      }
-
-      .topMenuBtn.active .ico {
-        color: #6b452c;
-      }
-
-      .topMenuBtnContent {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .bottomTabs {
-        display: none;
-      }
-
-      .bottomTabBtn {
-        flex: 1 1 0;
-        min-width: 0;
-        min-height: 56px;
-        border: none !important;
-        border-radius: 16px;
-        background: transparent !important;
-        color: rgba(47, 32, 23, 0.72) !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 8px;
-        box-shadow: none !important;
-      }
-
-      .bottomTabBtn .topMenuBtnContent {
-        width: 100%;
-        justify-content: center;
-        gap: 6px;
-      }
-
-      .bottomTabBtn .lbl {
-        font-size: 10px;
-        letter-spacing: 0.04em;
-        text-align: center;
-        text-transform: none;
-      }
-
-      .bottomTabBtn .ico {
-        width: auto;
-      }
-
-      .bottomTabBtn.active {
-        background: rgba(107, 69, 44, 0.1) !important;
-        color: #241710 !important;
-        opacity: 1;
-      }
-
-      .menuToggle,
-      .menuBackdrop,
-      .menuDrawer {
-        display: none !important;
-      }
 
       .brand {
         display: flex;
@@ -722,11 +453,6 @@
         .brandHead {
           gap: 10px;
         }
-
-        .menuDrawer {
-          width: min(300px, calc(100vw - 24px));
-          left: 12px;
-        }
       }
 
       @media (max-width: 520px) and (orientation: portrait) {
@@ -789,29 +515,6 @@
 
         .brand #liveBadge {
           display: none;
-        }
-
-        .bottomTabs {
-          position: fixed;
-          left: calc(10px + var(--safe-left, 0px));
-          right: calc(10px + var(--safe-right, 0px));
-          bottom: calc(10px + var(--safe-bottom, 0px));
-          display: flex;
-          align-items: stretch;
-          justify-content: center;
-          gap: 8px;
-          padding: 0;
-          border-radius: 0;
-          border: none;
-          background: transparent;
-          backdrop-filter: none;
-          box-shadow: none;
-          z-index: 28;
-          pointer-events: none;
-        }
-
-        .bottomTabs .bottomTabBtn {
-          pointer-events: auto;
         }
 
         .topbar .kk-brandMark {
@@ -4321,26 +4024,6 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
 
-      .modalGallery {
-        display: none;
-        gap: 10px;
-        overflow-x: auto;
-        padding-top: 14px;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .modalThumb {
-        width: 92px;
-        height: 64px;
-        border-radius: 16px;
-        border: 1px solid rgba(132, 102, 74, 0.14);
-        background: rgba(255, 252, 247, 0.85);
-        object-fit: cover;
-        flex: 0 0 auto;
-        cursor: pointer;
-        box-shadow: 0 8px 18px rgba(66, 44, 28, 0.08);
-      }
-
       .modalImage img {
         width: 100%;
         height: 228px;
@@ -4371,6 +4054,11 @@
         line-height: 1.6;
         color: rgba(56, 39, 26, 0.88);
         white-space: pre-line;
+        /* Kurzprofil zeigt nur einen Teaser; die ganze Story lebt im Vollprofil. */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
       .rt-h1 {
@@ -4399,62 +4087,6 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
-      }
-
-      .modalLinkRow {
-        display: none;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .modalLinkPill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 0 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(128, 98, 70, 0.16);
-        background: rgba(255, 252, 247, 0.9);
-        color: rgba(92, 68, 48, 0.9);
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 800;
-        box-shadow: 0 8px 16px rgba(69, 45, 29, 0.05);
-      }
-
-      .modalLinkPill:hover {
-        background: rgba(255, 252, 247, 0.98);
-      }
-
-      .modalExtraDetails {
-        display: none;
-        gap: 10px;
-        padding: 14px 16px;
-        border-radius: 22px;
-        border: 1px solid rgba(128, 98, 70, 0.12);
-        background: rgba(255, 252, 247, 0.78);
-      }
-
-      .modalDetailRow {
-        display: grid;
-        gap: 3px;
-      }
-
-      .modalDetailLabel {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(92, 68, 48, 0.62);
-      }
-
-      .modalDetailValue,
-      .modalDetailValue a {
-        color: rgba(43, 28, 19, 0.9);
-        font-size: 14px;
-        line-height: 1.5;
-        text-decoration: none;
       }
 
       .modalActions button,
@@ -5164,8 +4796,7 @@
         }
 
         .modalMetaPill,
-        .modalStatusPill,
-        .modalLinkPill {
+        .modalStatusPill {
           width: 100%;
           white-space: normal;
           text-align: center;
@@ -5226,16 +4857,6 @@
       <div class="topbar">
         <div class="brand">
           <div class="brandHead">
-            <button
-              class="menuToggle"
-              id="menuToggle"
-              type="button"
-              aria-label="Men&uuml; &ouml;ffnen"
-              aria-expanded="false"
-              aria-controls="menuDrawer"
-            >
-              <span class="menuToggleLines"><span></span></span>
-            </button>
             <a class="kk-brand" href="/wallet">
               <span class="kk-brandMark" aria-hidden="true">
                 <img src="/assets/stamp-bean.png?v=1" alt="" />
@@ -5263,107 +4884,6 @@
             </span>
           </button>
         </div>
-      </div>
-
-      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
-      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
-        <div class="menuDrawerHead">
-          <div class="menuDrawerTitle">Kaffeekarte</div>
-        </div>
-        <div class="stack" style="gap: 10px; margin-bottom: 12px">
-          <button class="btn secondary" id="sessionBadge" type="button">
-            Anmelden
-          </button>
-          <button
-            class="btn secondary"
-            id="logoutBtn"
-            style="display: none"
-            type="button"
-          >
-            Logout
-          </button>
-        </div>
-        <div class="topMenu" aria-label="Navigation">
-          <button class="topMenuBtn ghost active" id="mainModeMap" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">
-                <img class="beanIcon soft" src="/assets/stamp-bean.png?v=1" alt="" />
-              </span>
-              <span class="lbl">Caf&eacute;s</span>
-            </span>
-          </button>
-          <button
-            class="topMenuBtn ghost"
-            id="mainModeWallet"
-            type="button"
-          >
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">
-                <img class="beanIcon" src="/assets/stamp-bean.png?v=1" alt="" />
-              </span>
-              <span class="lbl">Karten</span>
-            </span>
-          </button>
-          <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">V</span>
-              <span class="lbl">Verlauf</span>
-            </span>
-          </button>
-          <button class="topMenuBtn ghost" id="mainModeAccount" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">P</span>
-              <span class="lbl">Profil</span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div class="bottomTabs" aria-label="Hauptnavigation">
-        <button
-          class="bottomTabBtn ghost"
-          id="bottomModeMap"
-          type="button"
-        >
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">
-              <img class="beanIcon soft" src="/assets/stamp-bean.png?v=1" alt="" />
-            </span>
-            <span class="lbl">Caf&eacute;s</span>
-          </span>
-        </button>
-        <button
-          class="bottomTabBtn ghost"
-          id="bottomModeWallet"
-          type="button"
-        >
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">
-              <img class="beanIcon" src="/assets/stamp-bean.png?v=1" alt="" />
-            </span>
-            <span class="lbl">Karten</span>
-          </span>
-        </button>
-        <button
-          class="bottomTabBtn ghost"
-          id="bottomModeHistory"
-          type="button"
-        >
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verlauf</span>
-          </span>
-        </button>
-        <button
-          class="bottomTabBtn ghost"
-          id="bottomModeAccount"
-          type="button"
-        >
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">P</span>
-            <span class="lbl">Profil</span>
-          </span>
-        </button>
       </div>
 
       <div class="grid" id="layoutGrid">
@@ -5799,8 +5319,6 @@
           <div class="modalImage" id="cafeModalImageWrap" style="display: none">
             <img id="cafeModalImage" alt="Caf&eacute; Bild" />
           </div>
-
-          <div class="modalGallery" id="cafeModalGallery"></div>
         </div>
 
         <div class="modalBody">
@@ -5811,64 +5329,6 @@
           ></div>
           <div class="hint" id="cafeModalAboutEmpty" style="display: none">
             Noch keine Beschreibung. Vielleicht spricht das Caf&eacute; lieber durch den Espresso.
-          </div>
-
-          <div class="modalLinkRow" id="cafeModalLinks">
-            <a
-              class="modalLinkPill"
-              id="cafeModalWebsite"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              style="display: none"
-            >
-              Website
-            </a>
-            <a
-              class="modalLinkPill"
-              id="cafeModalInstagram"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              style="display: none"
-            >
-              Instagram
-            </a>
-          </div>
-
-          <div class="modalExtraDetails" id="cafeModalExtraDetails">
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailRewardRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Belohnung</div>
-              <div class="modalDetailValue" id="cafeModalDetailReward"></div>
-            </div>
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailAddressRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Adresse</div>
-              <div class="modalDetailValue" id="cafeModalDetailAddress"></div>
-            </div>
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailDirectionsRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Route</div>
-              <div class="modalDetailValue">
-                <a
-                  id="cafeModalDirections"
-                  href="#"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >Zur Stempelkarte</a
-                >
-              </div>
-            </div>
           </div>
 
           <div class="modalInfoActions">

@@ -489,52 +489,6 @@
             <span class="kk-brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
-          <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
-        </button>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
-        <a class="utilityMenuLink" href="/customer-map?view=map">
-          <span class="utilityMenuLinkMain">
-            <span class="utilityMenuIcon" aria-hidden="true">&#9749;</span>
-            <span class="utilityMenuText">
-              <span class="utilityMenuTitle">Caf&eacute;s</span>
-              <span class="utilityMenuMeta">Zur Karte und zu deinen Lieblingscaf&eacute;s</span>
-            </span>
-          </span>
-          <span class="utilityMenuChevron" aria-hidden="true">&rsaquo;</span>
-        </a>
-        <a class="utilityMenuLink" href="/wallet">
-          <span class="utilityMenuLinkMain">
-            <span class="utilityMenuIcon" aria-hidden="true">&#9635;</span>
-            <span class="utilityMenuText">
-              <span class="utilityMenuTitle">Karten</span>
-              <span class="utilityMenuMeta">Deine aktiven Karten und der schnelle Weg zum QR</span>
-            </span>
-          </span>
-          <span class="utilityMenuChevron" aria-hidden="true">&rsaquo;</span>
-        </a>
-        <a class="utilityMenuLink" href="/customer-profile" aria-current="page">
-          <span class="utilityMenuLinkMain">
-            <span class="utilityMenuIcon" aria-hidden="true">&#9881;</span>
-            <span class="utilityMenuText">
-              <span class="utilityMenuTitle">Profil</span>
-              <span class="utilityMenuMeta">Bild, Zugang und alles, was zu dir geh&ouml;rt</span>
-            </span>
-          </span>
-          <span class="utilityMenuChevron" aria-hidden="true">&rsaquo;</span>
-        </a>
-        <button class="utilityMenuLink utilityMenuButton" id="utilityLogoutBtn" type="button">
-          <span class="utilityMenuLinkMain">
-            <span class="utilityMenuIcon" aria-hidden="true">&#8599;</span>
-            <span class="utilityMenuText">
-              <span class="utilityMenuTitle">Abmelden</span>
-              <span class="utilityMenuMeta">Sicher von diesem Ger&auml;t abmelden</span>
-            </span>
-          </span>
-          <span class="utilityMenuChevron" aria-hidden="true">&rsaquo;</span>
-        </button>
       </div>
 
       <div class="profileStage">
@@ -696,6 +650,19 @@
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      if (window.stampUI && stampUI.mountBottomNav) {
+        stampUI.mountBottomNav({
+          theme: "espresso",
+          items: [
+            { label: "Cafés", href: "/customer-map?view=map" },
+            { label: "Karten", href: "/customer-wallet?view=cards" },
+            { label: "Verlauf", href: "/customer-history" },
+            { label: "Profil", href: "/customer-profile", active: true },
+          ],
+        });
+      }
+    </script>
     <script src="/customer-profile.js"></script>
   </body>
 </html>

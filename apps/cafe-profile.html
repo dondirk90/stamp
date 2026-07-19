@@ -34,12 +34,20 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      html {
+        overflow-x: hidden;
+      }
+
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
           calc(var(--space-5) + var(--safe-left, 0px));
         overflow-x: hidden;
+      }
+
+      .pageMetaSub {
+        overflow-wrap: anywhere;
       }
 
       .shell {
@@ -535,35 +543,20 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
-            <span class="topUtilityIcon"><span></span></span>
+          <button
+            class="btn secondary"
+            type="button"
+            onclick="location.href = '/cafe-logout.html'"
+          >
+            Abmelden
           </button>
         </div>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
-        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
-        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
-        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
-        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
-        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
       </div>
 
       <div class="pageMeta">
         <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
         <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
         <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
-      </div>
-
-      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
-        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </span>
-        </button>
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -992,6 +985,22 @@
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      (function () {
+        if (!window.stampUI || !stampUI.mountBottomNav) return;
+        var advanced = /[?&]view=advanced/.test(location.search);
+        var nav = stampUI.mountBottomNav({
+          theme: "cream",
+          items: [
+            { id: "utilityStartBtn", label: "Start" },
+            { id: "utilityCardBtn", label: "Karte", active: !advanced },
+            { id: "utilityDashboardBtn", label: "Dashboard" },
+            { id: "utilityAdminBtn", label: "Verwaltung", active: advanced },
+          ],
+        });
+        nav.id = "bottomTabs";
+      })();
+    </script>
     <script>
       let cafe = null;
 

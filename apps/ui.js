@@ -229,6 +229,80 @@
     return base;
   }
 
+  // Shared bottom tab bar (one design source for all pages).
+  // Guest pages get the dark espresso bar, café pages the cream bar.
+  var TABBAR_CSS =
+    ".kk-tabbar{position:fixed;left:0;right:0;margin:0 auto;" +
+    "bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:stretch;" +
+    "gap:4px;padding:6px;border-radius:999px;z-index:120;width:max-content;" +
+    "max-width:min(460px,calc(100vw - 20px));}" +
+    // !important: App-Seiten stylen <button> global sehr aggressiv.
+    ".kk-tab{appearance:none;border:none !important;background:transparent !important;" +
+    "min-height:48px;padding:0 18px;border-radius:999px !important;font:inherit;" +
+    "font-size:13px;font-weight:800;letter-spacing:0.01em;text-decoration:none;" +
+    "display:inline-flex;align-items:center;justify-content:center;cursor:pointer;" +
+    "white-space:nowrap;box-shadow:none !important;filter:none !important;" +
+    "transition:background 160ms ease,color 160ms ease;}" +
+    ".kk-tabbar--espresso{background:linear-gradient(180deg,#2c1e15,#1d130d);" +
+    "border:1px solid rgba(255,241,233,0.1);" +
+    "box-shadow:0 18px 40px rgba(30,18,10,0.35),0 1px 0 rgba(255,255,255,0.06) inset;}" +
+    ".kk-tabbar--espresso .kk-tab{background:transparent !important;" +
+    "border:none !important;color:rgba(242,228,216,0.62) !important;}" +
+    ".kk-tabbar--espresso .kk-tab:hover{color:rgba(255,248,241,0.92) !important;}" +
+    ".kk-tabbar--espresso .kk-tab.active{background:#f5ecdf !important;color:#241710 !important;" +
+    "box-shadow:0 6px 14px rgba(0,0,0,0.25) !important;}" +
+    ".kk-tabbar--cream{background:linear-gradient(180deg,rgba(252,248,242,0.98),rgba(240,229,216,0.96));" +
+    "border:1px solid rgba(81,58,40,0.14);" +
+    "box-shadow:0 18px 40px rgba(20,12,7,0.45),0 1px 0 rgba(255,255,255,0.85) inset;}" +
+    ".kk-tabbar--cream .kk-tab{background:transparent !important;" +
+    "border:none !important;color:rgba(59,42,31,0.6) !important;}" +
+    ".kk-tabbar--cream .kk-tab:hover{color:rgba(43,28,20,0.92) !important;}" +
+    ".kk-tabbar--cream .kk-tab.active{background:#2a1d15 !important;color:#f5ecdf !important;" +
+    "box-shadow:0 6px 14px rgba(0,0,0,0.3) !important;}" +
+    "body.kk-hasTabbar{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));}" +
+    "body.installHintOpen .kk-tabbar{opacity:0;pointer-events:none;}" +
+    "@media (max-width:520px){.kk-tabbar{width:calc(100vw - 20px);}" +
+    ".kk-tab{flex:1 1 0;padding:0 6px;font-size:12px;}}";
+
+  function injectTabbarCss() {
+    if (document.getElementById("kkTabbarStyles")) return;
+    var style = document.createElement("style");
+    style.id = "kkTabbarStyles";
+    style.textContent = TABBAR_CSS;
+    document.head.appendChild(style);
+  }
+
+  function mountBottomNav(options) {
+    var o = options || {};
+    injectTabbarCss();
+    var existing = document.querySelector(".kk-tabbar");
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var nav = document.createElement("nav");
+    nav.className =
+      "kk-tabbar " +
+      (o.theme === "cream" ? "kk-tabbar--cream" : "kk-tabbar--espresso");
+    nav.setAttribute("aria-label", "Hauptnavigation");
+    var items = Array.isArray(o.items) ? o.items : [];
+    for (var i = 0; i < items.length; i++) {
+      (function (item) {
+        if (!item || !item.label) return;
+        var node = document.createElement(item.href ? "a" : "button");
+        // "ghost" nimmt die Buttons aus den aggressiven globalen
+        // button:not(...)-Regeln von theme.css heraus.
+        node.className = "kk-tab ghost" + (item.active ? " active" : "");
+        if (item.id) node.id = item.id;
+        if (item.href) node.href = item.href;
+        else node.type = "button";
+        node.textContent = item.label;
+        if (item.onClick) node.addEventListener("click", item.onClick);
+        nav.appendChild(node);
+      })(items[i]);
+    }
+    document.body.appendChild(nav);
+    document.body.classList.add("kk-hasTabbar");
+    return nav;
+  }
+
   // Public API
   var api = (window.stampUI = window.stampUI || {});
   if (!api.copy) {
@@ -266,6 +340,7 @@
     };
   }
   if (!api.isDebugEnabled) api.isDebugEnabled = isDebugEnabled;
+  if (!api.mountBottomNav) api.mountBottomNav = mountBottomNav;
   if (!api.userSafeErrorMessage)
     api.userSafeErrorMessage = userSafeErrorMessage;
 

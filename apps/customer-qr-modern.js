@@ -162,7 +162,6 @@
     cafeModalAddr: document.getElementById("cafeModalAddr"),
     cafeModalImageWrap: document.getElementById("cafeModalImageWrap"),
     cafeModalImage: document.getElementById("cafeModalImage"),
-    cafeModalGallery: document.getElementById("cafeModalGallery"),
     cafeModalLogoWrap: document.getElementById("cafeModalLogoWrap"),
     cafeModalLogo: document.getElementById("cafeModalLogo"),
     cafeModalMetaRow: document.getElementById("cafeModalMetaRow"),
@@ -171,16 +170,6 @@
     cafeModalRewardHint: document.getElementById("cafeModalRewardHint"),
     cafeModalAbout: document.getElementById("cafeModalAbout"),
     cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
-    cafeModalLinks: document.getElementById("cafeModalLinks"),
-    cafeModalWebsite: document.getElementById("cafeModalWebsite"),
-    cafeModalInstagram: document.getElementById("cafeModalInstagram"),
-    cafeModalExtraDetails: document.getElementById("cafeModalExtraDetails"),
-    cafeModalDetailRewardRow: document.getElementById("cafeModalDetailRewardRow"),
-    cafeModalDetailReward: document.getElementById("cafeModalDetailReward"),
-    cafeModalDetailAddressRow: document.getElementById("cafeModalDetailAddressRow"),
-    cafeModalDetailAddress: document.getElementById("cafeModalDetailAddress"),
-    cafeModalDetailDirectionsRow: document.getElementById("cafeModalDetailDirectionsRow"),
-    cafeModalDirections: document.getElementById("cafeModalDirections"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
@@ -1360,7 +1349,6 @@
   }
 
   function wireShellMenu() {
-    if (!el.utilityLogoutBtn) return;
     if (el.utilityMapBtn) {
       el.utilityMapBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
@@ -1514,12 +1502,14 @@
         qs = "";
       }
       var forceMap = /[?&]view=map(?:&|$)/i.test(qs);
+      var forceCards = /[?&]view=cards(?:&|$)/i.test(qs);
       if (p.indexOf("/customer-map") === 0) {
         if (forceMap) return "map";
         return session && session.address ? "welcome" : "map";
       }
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "welcome";
+      if (p.indexOf("/customer-wallet") === 0)
+        return forceCards ? "wallet" : "welcome";
       if (p.indexOf("/customer-qr") === 0) return "welcome";
       if (
         p.indexOf("/customer-home") === 0 ||
@@ -1810,59 +1800,16 @@
     setCafeModalVisible(false);
   }
 
-  function buildMapsUrl(address) {
-    var value = String(address || "").trim();
-    if (!value) return "";
-    return (
-      "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(value)
-    );
-  }
-
-  function getRewardDescription(cafe) {
-    var program = cafe && cafe.program ? cafe.program : null;
-    return program && program.rewardDescription
-      ? String(program.rewardDescription).trim()
-      : "";
-  }
-
-  function cafeModalHasExtraDetails(cafe) {
-    if (!cafe) return false;
-    var addr = String(cafe.address || cafe.cafeAddress || "").trim();
-    var website = normalizeExternalUrl(cafe.websiteUrl || "");
-    var instagram = normalizeInstagramUrl(cafe.instagramUrl || "");
-    var rewardDescription = getRewardDescription(cafe);
-    return !!(addr || website || instagram || rewardDescription);
-  }
-
+  // Kurzprofil vs. Vollprofil: Das Modal zeigt nur die Entscheidungsbasis
+  // (Name, Adresse, Reward-Zyklus, ein Bild, About-Teaser, Aktionen).
+  // Galerie, ganze Story, Website/Instagram und Route leben im Vollprofil
+  // unter /cafe-public — erreichbar über "Café ansehen".
   function syncCafeModalDetails() {
     var cafe = cafeModalState.cafe;
     var profileUrl = buildCafeProfileUrl(
       cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
       cafeModalState.cafeAddress || (cafe && cafe.cafeAddress) || "",
     );
-    if (el.cafeModalExtraDetails) {
-      el.cafeModalExtraDetails.style.display = cafeModalHasExtraDetails(cafe)
-        ? "grid"
-        : "none";
-    }
-
-    var addr = cafe ? String(cafe.address || cafe.cafeAddress || "").trim() : "";
-    var rewardDescription = cafe ? getRewardDescription(cafe) : "";
-    var directionsUrl = buildMapsUrl(addr);
-
-    if (el.cafeModalDetailRewardRow && el.cafeModalDetailReward) {
-      el.cafeModalDetailRewardRow.style.display = rewardDescription ? "grid" : "none";
-      el.cafeModalDetailReward.textContent = rewardDescription || "";
-    }
-    if (el.cafeModalDetailAddressRow && el.cafeModalDetailAddress) {
-      el.cafeModalDetailAddressRow.style.display = addr ? "grid" : "none";
-      el.cafeModalDetailAddress.textContent = addr || "";
-    }
-    if (el.cafeModalDetailDirectionsRow && el.cafeModalDirections) {
-      el.cafeModalDetailDirectionsRow.style.display = directionsUrl ? "grid" : "none";
-      el.cafeModalDirections.href = directionsUrl || "#";
-    }
     if (el.cafeModalProfileBtn) {
       el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
       el.cafeModalProfileBtn.disabled = !profileUrl;
@@ -1957,12 +1904,6 @@
       program && program.rewardDescription
         ? String(program.rewardDescription).trim()
         : "";
-    var websiteUrl = normalizeExternalUrl(
-      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "",
-    );
-    var instagramUrl = normalizeInstagramUrl(
-      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "",
-    );
     var cafeAddr = normalizeAddr(
       (cafe && (cafe.cafeAddress || cafe.address)) || "",
     );
@@ -1980,27 +1921,6 @@
           el.cafeModalLogo.removeAttribute("src");
         } catch (eLogo) {}
       }
-    }
-
-    if (el.cafeModalLinks && el.cafeModalWebsite && el.cafeModalInstagram) {
-      var hasLinks = false;
-      if (websiteUrl) {
-        el.cafeModalWebsite.style.display = "inline-flex";
-        el.cafeModalWebsite.href = websiteUrl;
-        hasLinks = true;
-      } else {
-        el.cafeModalWebsite.style.display = "none";
-        el.cafeModalWebsite.href = "#";
-      }
-      if (instagramUrl) {
-        el.cafeModalInstagram.style.display = "inline-flex";
-        el.cafeModalInstagram.href = instagramUrl;
-        hasLinks = true;
-      } else {
-        el.cafeModalInstagram.style.display = "none";
-        el.cafeModalInstagram.href = "#";
-      }
-      el.cafeModalLinks.style.display = hasLinks ? "flex" : "none";
     }
 
     if (
@@ -2027,10 +1947,10 @@
       el.cafeModalMetaRow.style.display = "flex";
     }
 
-    // About text
+    // About-Teaser (CSS klemmt auf 3 Zeilen; Volltext im Vollprofil)
     if (el.cafeModalAbout) {
       if (about) {
-        el.cafeModalAbout.style.display = "block";
+        el.cafeModalAbout.style.display = "";
         el.cafeModalAbout.textContent = about;
         if (el.cafeModalAboutEmpty)
           el.cafeModalAboutEmpty.style.display = "none";
@@ -2052,36 +1972,6 @@
         try {
           el.cafeModalImage.removeAttribute("src");
         } catch (e0) {}
-      }
-    }
-
-    if (el.cafeModalGallery) {
-      el.cafeModalGallery.innerHTML = "";
-      var imgs2 =
-        cafe && cafe.images && Array.isArray(cafe.images)
-          ? cafe.images.slice(0)
-          : [];
-      if (imgs2.length > 1) {
-        el.cafeModalGallery.style.display = "flex";
-        for (var i = 0; i < Math.min(6, imgs2.length); i++) {
-          (function (src) {
-            var img = document.createElement("img");
-            img.className = "modalThumb";
-            img.alt = "";
-            img.loading = "lazy";
-            img.decoding = "async";
-            img.src = String(src || "");
-            img.addEventListener("click", function () {
-              if (el.cafeModalImage && el.cafeModalImageWrap) {
-                el.cafeModalImageWrap.style.display = "grid";
-                el.cafeModalImage.src = String(src || "");
-              }
-            });
-            el.cafeModalGallery.appendChild(img);
-          })(imgs2[i]);
-        }
-      } else {
-        el.cafeModalGallery.style.display = "none";
       }
     }
 
@@ -6291,6 +6181,27 @@
     wireLogout();
     wireShellMenu();
     bindBrandLinksToWelcome();
+    try {
+      var kkNav =
+        window.stampUI && stampUI.mountBottomNav
+          ? stampUI.mountBottomNav({
+              theme: "espresso",
+              items: [
+                { id: "bottomModeMap", label: copy.navigation.cafes },
+                { id: "bottomModeWallet", label: copy.navigation.cards },
+                { id: "bottomModeHistory", label: copy.navigation.history },
+                { id: "bottomModeAccount", label: copy.navigation.profile },
+              ],
+            })
+          : null;
+      if (kkNav) {
+        el.bottomTabs = kkNav;
+        el.bottomModeMap = document.getElementById("bottomModeMap");
+        el.bottomModeWallet = document.getElementById("bottomModeWallet");
+        el.bottomModeHistory = document.getElementById("bottomModeHistory");
+        el.bottomModeAccount = document.getElementById("bottomModeAccount");
+      }
+    } catch (eNav) {}
     wireNavigation();
     wireScreenPager();
     wireVisibility();

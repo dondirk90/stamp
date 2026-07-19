@@ -48,6 +48,9 @@
         padding: 0;
         box-sizing: border-box;
       }
+      html {
+        overflow-x: hidden;
+      }
       body {
         font-family: var(--font-sans);
         background: var(--bg);
@@ -1686,24 +1689,6 @@
           </button>
         </div>
 
-        <div class="topMenu" aria-label="Navigation">
-          <button class="topMenuBtn ghost active" id="navHome" type="button">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </button>
-          <a class="topMenuBtn ghost" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Stempelkarte</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verwaltung</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-dashboard">
-            <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
-          </a>
-        </div>
       </div>
 
       <div class="card" id="loginCard">
@@ -2152,6 +2137,7 @@
 
     <div id="toast" class="toast">Stempel vergeben</div>
 
+    <script src="/ui.js"></script>
     <script>
       (function mountCafeShell() {
         const badge = document.getElementById("cafeBadge");
@@ -2173,41 +2159,23 @@
               </a>
             </div>
           </div>
-          <div class="row">
-            <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
-              <span class="topUtilityIcon"><span></span></span>
-            </button>
-          </div>
         `;
 
-        badge.insertAdjacentHTML(
-          "afterend",
-          `
-            <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
-              <button class="utilityMenuBtn" id="utilityWelcomeBtn" type="button">Start</button>
-              <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
-              <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
-              <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
-              <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
-            </div>
-          `,
-        );
-
-        appShell.insertAdjacentHTML(
-          "afterend",
-          `
-            <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
-              <div class="bottomTabSpacer" aria-hidden="true"></div>
-              <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
-                <span class="topMenuBtnContent">
-                  <span class="ico" aria-hidden="true">S</span>
-                  <span class="lbl">Scanner</span>
-                </span>
-              </button>
-              <div class="bottomTabSpacer" aria-hidden="true"></div>
-            </div>
-          `,
-        );
+        // Gemeinsame Bottom-Nav (cream auf dunklem Café-Theme). Die IDs
+        // entsprechen den bisherigen Utility-Buttons, damit die bestehende
+        // Verdrahtung (wireShellChrome) unverändert greift.
+        if (window.stampUI && stampUI.mountBottomNav) {
+          const nav = stampUI.mountBottomNav({
+            theme: "cream",
+            items: [
+              { id: "utilityWelcomeBtn", label: "Start", active: true },
+              { id: "utilityCardBtn", label: "Karte" },
+              { id: "utilityDashboardBtn", label: "Dashboard" },
+              { id: "utilityAdminBtn", label: "Verwaltung" },
+            ],
+          });
+          nav.id = "bottomTabs";
+        }
       })();
     </script>
 

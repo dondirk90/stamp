@@ -234,9 +234,6 @@
             <span class="kk-brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <div class="actions topbarActions">
-          <a class="btn secondary" href="/customer-map?view=map">Zur Map</a>
-        </div>
       </div>
 
       <div class="profileCard">
@@ -298,6 +295,19 @@
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      if (window.stampUI && stampUI.mountBottomNav) {
+        stampUI.mountBottomNav({
+          theme: "espresso",
+          items: [
+            { label: "Cafés", href: "/customer-map?view=map", active: true },
+            { label: "Karten", href: "/customer-wallet?view=cards" },
+            { label: "Verlauf", href: "/customer-history" },
+            { label: "Profil", href: "/customer-profile" },
+          ],
+        });
+      }
+    </script>
     <script>
       const FAVORITES_KEY = "customer_favorites_v1";
 
@@ -474,7 +484,12 @@
           const locationValue = document.getElementById("locationValue");
           if (locationCard && locationValue) {
             if (cafe.address) {
-              locationValue.textContent = String(cafe.address);
+              const mapsUrl =
+                "https://www.google.com/maps/search/?api=1&query=" +
+                encodeURIComponent(String(cafe.address));
+              locationValue.innerHTML =
+                escapeHtml(String(cafe.address)) +
+                `<br /><a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">Route planen</a>`;
               locationCard.style.display = "grid";
             } else {
               locationCard.style.display = "none";
