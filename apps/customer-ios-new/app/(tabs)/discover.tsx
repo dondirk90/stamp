@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
+import { useFocusEffect } from "@react-navigation/native";
 import React from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,27 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CafeDetailModal, type PublicCafe } from "@/components/CafeDetailModal";
 import { apiFetch, ApiError } from "@/lib/api";
-import { AppTheme, Brand, Type } from "@/constants/theme";
-
-type PublicCafe = {
-  id: number;
-  name: string | null;
-  address: string | null;
-  cafeAddress: string | null;
-  lat: number | null;
-  lng: number | null;
-  websiteUrl: string | null;
-  instagramUrl: string | null;
-  about: string | null;
-  logoDataUrl: string | null;
-  cardTheme?: string | null;
-  cardBackText?: string | null;
-  program?: {
-    stampsForReward?: number;
-    rewardDescription?: string | null;
-  };
-};
+import { AppTheme, Type } from "@/constants/theme";
+import { loadCustomerSession, type CustomerSession } from "@/lib/session";
 
 type PublicCafeResponse = {
   ok?: boolean;
@@ -45,10 +28,23 @@ export default function DiscoverScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedCafe, setSelectedCafe] = React.useState<PublicCafe | null>(null);
+  const [session, setSession] = React.useState<CustomerSession | null>(null);
 
   React.useEffect(() => {
     void loadCafes();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      loadCustomerSession().then((storedSession) => {
+        if (active) setSession(storedSession);
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   async function loadCafes(refresh = false) {
     if (refresh) {
@@ -157,51 +153,12 @@ export default function DiscoverScreen() {
         </View>
       </ScrollView>
 
-      <Modal
+      <CafeDetailModal
         visible={!!selectedCafe}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedCafe(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.eyebrow}>Kurzprofil</Text>
-            <Text style={styles.modalTitle}>
-              {selectedCafe?.name || "Partnercafe"}
-            </Text>
-
-            <View style={styles.modalInfoBlock}>
-              <Text style={styles.modalInfoLabel}>Standort</Text>
-              <Text style={styles.modalInfoValue}>
-                {selectedCafe?.address || "Adresse folgt"}
-              </Text>
-            </View>
-
-            <View style={styles.modalInfoBlock}>
-              <Text style={styles.modalInfoLabel}>Stempelkarte</Text>
-              <Text style={styles.modalInfoValue}>
-                {buildProgramLabel(selectedCafe)}
-              </Text>
-            </View>
-
-            {selectedCafe?.about ? (
-              <View style={styles.modalInfoBlock}>
-                <Text style={styles.modalInfoLabel}>Beschreibung</Text>
-                <Text style={styles.modalInfoValue}>{selectedCafe.about}</Text>
-              </View>
-            ) : null}
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={styles.secondaryButton}
-                onPress={() => setSelectedCafe(null)}
-              >
-                <Text style={styles.secondaryButtonLabel}>Schliessen</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setSelectedCafe(null)}
+        cafe={selectedCafe}
+        session={session}
+      />
     </SafeAreaView>
   );
 }
@@ -372,55 +329,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: AppTheme.textMuted,
     textAlign: "center",
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(20, 10, 4, 0.34)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    backgroundColor: AppTheme.surface,
-    borderRadius: 30,
-    padding: 24,
-    gap: 16,
-  },
-  modalTitle: {
-    fontSize: Type.title,
-    fontWeight: "800",
-    color: AppTheme.text,
-  },
-  modalInfoBlock: {
-    borderRadius: 18,
-    backgroundColor: AppTheme.surfaceMuted,
-    padding: 16,
-    gap: 6,
-  },
-  modalInfoLabel: {
-    fontSize: Type.micro,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: AppTheme.textMuted,
-  },
-  modalInfoValue: {
-    fontSize: Type.body,
-    lineHeight: 22,
-    color: AppTheme.text,
-  },
-  modalActions: {
-    marginTop: 4,
-  },
-  secondaryButton: {
-    minHeight: 52,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: AppTheme.accent,
-  },
-  secondaryButtonLabel: {
-    fontSize: Type.meta,
-    fontWeight: "800",
-    color: Brand.white,
   },
 });

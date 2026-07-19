@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 export type CustomerSession = {
   address: string;
   email: string;
@@ -8,37 +10,23 @@ export type CustomerSession = {
 
 const storageKey = "customer_session_v1";
 
-let memorySession: CustomerSession | null = null;
-
 export async function loadCustomerSession(): Promise<CustomerSession | null> {
-  if (memorySession) return memorySession;
-
-  if (typeof localStorage !== "undefined") {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return null;
-    try {
-      memorySession = JSON.parse(raw) as CustomerSession;
-      return memorySession;
-    } catch {
-      localStorage.removeItem(storageKey);
-    }
+  const raw = await AsyncStorage.getItem(storageKey);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as CustomerSession;
+  } catch {
+    await AsyncStorage.removeItem(storageKey);
+    return null;
   }
-
-  return null;
 }
 
 export async function saveCustomerSession(
   session: CustomerSession,
 ): Promise<void> {
-  memorySession = session;
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(storageKey, JSON.stringify(session));
-  }
+  await AsyncStorage.setItem(storageKey, JSON.stringify(session));
 }
 
 export async function clearCustomerSession(): Promise<void> {
-  memorySession = null;
-  if (typeof localStorage !== "undefined") {
-    localStorage.removeItem(storageKey);
-  }
+  await AsyncStorage.removeItem(storageKey);
 }

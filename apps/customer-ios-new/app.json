@@ -1,19 +1,21 @@
 {
   "expo": {
-    "name": "customer-ios-new",
-    "slug": "customer-ios-new",
+    "name": "Kaffeekarte Customer",
+    "slug": "kaffeekarte-customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "customeriosnew",
-    "userInterfaceStyle": "automatic",
+    "scheme": "kaffeekartecustomer",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.kaffeekarte.customer"
     },
     "android": {
+      "package": "app.kaffeekarte.customer",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#f4ede4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -33,12 +35,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#f7f1e8",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#f7f1e8"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
