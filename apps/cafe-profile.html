@@ -730,6 +730,22 @@
 
           <div id="sectionAbout" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Kurzbeschreibung (max. 100 Zeichen)
+            </div>
+            <input
+              id="profileShortDescription"
+              class="profileInput"
+              type="text"
+              maxlength="100"
+              placeholder="Ein Satz, der euer Café trifft. Erscheint im Kurzprofil auf der Karte."
+            />
+            <div class="muted" style="margin-top: 6px">
+              <span id="shortDescriptionCount">0</span>/100 Zeichen · Das
+              Kurzprofil zeigt nur diesen Satz. Die ausführliche Beschreibung
+              unten erscheint im vollständigen Café-Profil.
+            </div>
+
+            <div class="muted" style="margin: 16px 0 6px; font-weight: 700">
               Über das Café
             </div>
             <textarea
@@ -1225,6 +1241,19 @@
         aboutEl.value =
           cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
 
+        const shortDescriptionInput = document.getElementById(
+          "profileShortDescription",
+        );
+        if (shortDescriptionInput) {
+          shortDescriptionInput.value =
+            cafeInfo && cafeInfo.shortDescription
+              ? String(cafeInfo.shortDescription)
+              : "";
+          const shortCount = document.getElementById("shortDescriptionCount");
+          if (shortCount)
+            shortCount.textContent = String(shortDescriptionInput.value.length);
+        }
+
         const aboutPreview = document.getElementById("profileAboutPreview");
         if (aboutPreview) {
           const txt = String(aboutEl.value || "");
@@ -1522,6 +1551,12 @@
             : "";
 
           const about = String(aboutEl.value || "").trim();
+          const shortDescriptionEl = document.getElementById(
+            "profileShortDescription",
+          );
+          const shortDescription = shortDescriptionEl
+            ? String(shortDescriptionEl.value || "").trim().slice(0, 100)
+            : "";
           const redeemMessage = redeemEl
             ? String(redeemEl.value || "").trim()
             : "";
@@ -1558,6 +1593,7 @@
             },
             body: JSON.stringify({
               about,
+              shortDescription: shortDescription || null,
               redeemMessage,
               websiteUrl: websiteUrl || null,
               instagramUrl: instagramUrl || null,
@@ -1740,6 +1776,20 @@
               try {
                 aboutPreview.innerHTML = formatRichText(aboutEl.value || "");
               } catch (e) {}
+            });
+          }
+
+          const shortDescriptionField = document.getElementById(
+            "profileShortDescription",
+          );
+          const shortDescriptionCounter = document.getElementById(
+            "shortDescriptionCount",
+          );
+          if (shortDescriptionField && shortDescriptionCounter) {
+            shortDescriptionField.addEventListener("input", () => {
+              shortDescriptionCounter.textContent = String(
+                shortDescriptionField.value.length,
+              );
             });
           }
 

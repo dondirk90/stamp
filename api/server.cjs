@@ -1094,6 +1094,10 @@ runSqliteOnlyAlter(
   "Failed to add cafes.about_text column:",
 );
 runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN short_description TEXT",
+  "Failed to add cafes.short_description column:",
+);
+runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN logo_mime TEXT",
   "Failed to add cafes.logo_mime column:",
 );
@@ -1429,7 +1433,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -2652,6 +2656,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         websiteUrl: cafeRow.website_url || null,
         instagramUrl: cafeRow.instagram_url || null,
         about: cafeRow.about_text || null,
+        shortDescription: cafeRow.short_description || null,
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
         cardBackText: cafeRow.card_back_text || null,
@@ -2731,6 +2736,15 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       const rawAbout = body.about == null ? "" : String(body.about);
       const trimmed = rawAbout.trim();
       aboutText = trimmed ? trimmed.slice(0, 1200) : null;
+    }
+
+    // Kurzbeschreibung fuers Kurzprofil (hart auf 100 Zeichen begrenzt)
+    let shortDescription = current.short_description || null;
+    if (Object.prototype.hasOwnProperty.call(body, "shortDescription")) {
+      const rawShort =
+        body.shortDescription == null ? "" : String(body.shortDescription);
+      const trimmedShort = rawShort.trim();
+      shortDescription = trimmedShort ? trimmedShort.slice(0, 100) : null;
     }
 
     let redeemMessage = current.redeem_message || null;
@@ -2915,6 +2929,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
+      shortDescription,
       redeemMessage,
       logoMime,
       logoData,
@@ -2954,6 +2969,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         websiteUrl: updated.website_url || null,
         instagramUrl: updated.instagram_url || null,
         about: updated.about_text || null,
+        shortDescription: updated.short_description || null,
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
         cardBackText: updated.card_back_text || null,
@@ -4410,7 +4426,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -4427,6 +4443,9 @@ app.get("/cafes/public", async (req, res) => {
           websiteUrl: row.website_url || null,
           instagramUrl: row.instagram_url || null,
           about: row.about_text ? String(row.about_text).slice(0, 280) : null,
+          shortDescription: row.short_description
+            ? String(row.short_description).slice(0, 100)
+            : null,
           logoDataUrl:
             row.logo_data && row.logo_mime
               ? `data:${row.logo_mime};base64,${row.logo_data}`
@@ -4466,7 +4485,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -4497,6 +4516,9 @@ app.get("/cafes/public/:id", async (req, res) => {
         websiteUrl: row.website_url || null,
         instagramUrl: row.instagram_url || null,
         about: row.about_text ? String(row.about_text).slice(0, 1200) : null,
+        shortDescription: row.short_description
+          ? String(row.short_description).slice(0, 100)
+          : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
         cardBackText: row.card_back_text || null,

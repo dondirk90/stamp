@@ -315,7 +315,7 @@
       },
       actions: {
         getCard: "Karte holen",
-        showQr: "Im CafÃ© vorzeigen",
+        showQr: "Im Café vorzeigen",
         openCards: "Stempelkarten",
         viewCafe: "Café ansehen",
         discoverCafes: "Cafés entdecken",

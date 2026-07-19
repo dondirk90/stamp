@@ -2023,23 +2023,30 @@
         margin-top: 0;
       }
 
-      .welcomeCafeActionLink {
+      .welcomeCafeActionLink,
+      button.welcomeCafeActionLink.ghost {
         appearance: none;
-        border: none;
-        background: transparent;
+        border: none !important;
+        background: transparent !important;
         padding: 0;
         margin: 0;
-        color: rgba(59, 42, 31, 0.72);
+        color: rgba(59, 42, 31, 0.78) !important;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 800;
         line-height: 1.2;
-        text-decoration: none;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-color: rgba(81, 58, 40, 0.3);
+        box-shadow: none !important;
         cursor: pointer;
       }
 
       .welcomeCafeActionLink:hover,
-      .welcomeCafeActionLink:focus-visible {
-        color: #241710;
+      .welcomeCafeActionLink:focus-visible,
+      button.welcomeCafeActionLink.ghost:hover,
+      button.welcomeCafeActionLink.ghost:focus-visible {
+        color: #241710 !important;
+        text-decoration-color: rgba(81, 58, 40, 0.6);
       }
 
       @media (max-width: 720px) {

@@ -6,7 +6,7 @@
     <title>Kaffeekarte - Der digitale Ort für deine Lieblingscafés</title>
     <meta
       name="description"
-      content="Der digitale Ort für deine Lieblingscafés. Karten, QR zeigen und kleine Belohnungen für guten Kaffee."
+      content="Der digitale Ort für deine Lieblingscafés. Karte zeigen, Stempel sammeln und kleine Belohnungen für guten Kaffee."
     />
     <link rel="stylesheet" href="/theme.css?v=20260712b" />
     <style>
@@ -918,9 +918,9 @@
         </article>
         <article class="feature">
           <div class="featureIcon">▣</div>
-          <div class="sectionKicker">QR zeigen</div>
-          <h2>QR zeigen, Stempel sammeln</h2>
-          <p>QR zeigen im Café, und der nächste Stempel landet direkt auf deiner Karte.</p>
+          <div class="sectionKicker">Karte zeigen</div>
+          <h2>Karte zeigen, Stempel sammeln</h2>
+          <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
         </article>
         <article class="feature">
           <div class="featureIcon">⌂</div>
@@ -932,7 +932,7 @@
 
       <section class="section journey" id="ablauf">
         <div class="sectionKicker">So funktioniert's</div>
-        <h2>Entdecken, QR zeigen, wiederkommen.</h2>
+        <h2>Entdecken, Karte zeigen, wiederkommen.</h2>
         <p>Ein klarer Ablauf vom ersten Cafébesuch bis zum nächsten Kaffee aufs Haus.</p>
         <div class="journeyList">
           <div class="journeyStep">
@@ -945,7 +945,7 @@
           <div class="journeyStep">
             <div class="journeyNo">2</div>
             <div>
-              <div class="journeyStepTitle">QR zeigen</div>
+              <div class="journeyStepTitle">Karte zeigen</div>
               <p>Öffne deine Karte beim Bestellen und sammle deinen nächsten Stempel.</p>
             </div>
           </div>
@@ -1018,6 +1018,8 @@
         }
 
         function buildMeta(cafe) {
+          var short = String((cafe && cafe.shortDescription) || "").trim();
+          if (short) return short;
           var about = String((cafe && cafe.about) || "").trim();
           if (about) return about;
           return "Ein unabhängiges Café bei Kaffeekarte.";
