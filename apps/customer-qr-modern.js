@@ -1819,6 +1819,13 @@
     );
   }
 
+  function getRewardDescription(cafe) {
+    var program = cafe && cafe.program ? cafe.program : null;
+    return program && program.rewardDescription
+      ? String(program.rewardDescription).trim()
+      : "";
+  }
+
   function cafeModalHasExtraDetails(cafe) {
     if (!cafe) return false;
     var addr = String(cafe.address || cafe.cafeAddress || "").trim();
