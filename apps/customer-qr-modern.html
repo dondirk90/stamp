@@ -4479,7 +4479,7 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 220ms ease;
-        z-index: 60;
+        z-index: 200;
       }
 
       .qrSheetBackdrop.open {
@@ -4504,13 +4504,19 @@
         transition:
           transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
           opacity 220ms ease;
-        z-index: 61;
+        z-index: 201;
       }
 
       .qrSheet.open {
         transform: translate(-50%, 0);
         opacity: 1;
         pointer-events: auto;
+      }
+
+      body.qrSheetOpen .topbar,
+      body.qrSheetOpen .topbar .row,
+      body.qrSheetOpen .topbar .brand {
+        pointer-events: none;
       }
 
       .qrSheetInner {
