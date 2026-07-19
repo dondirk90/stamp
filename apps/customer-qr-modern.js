@@ -610,7 +610,7 @@
     if (el.authIntroTitle)
       el.authIntroTitle.textContent =
         authMode === "register"
-          ? "Erstelle dein Konto und sammle digital."
+          ? "Good coffee deserves better loyalty."
           : "Sch\u00f6n, dass du wieder da bist.";
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =

@@ -42,8 +42,10 @@ Minimal. Still. Viel Weißraum. Keine Werbesprache.
 - **Markenname: Kaffeekarte.** Keine Varianten, keine Stadtteil-Präfixe („Sülzer Kaffeekarte" ist Alt-Branding und wurde entfernt), kein „Kaffeeklub", kein „Stamp".
 - **Kicker/Herkunftszeile: „Kaffee im Veedel"** — bewusst kölsch, hyperlokal, anti-hype. Steht klein über dem Markennamen, nie allein.
 - **Claim (primär, DE):** „Dein Lieblingscafé. Immer dabei."
-- **Claim (sekundär/EN, für Aufsteller & Sticker):** „Good coffee deserves better loyalty."
+- **Slogan (EN, markenweit):** „Good coffee deserves better loyalty." — Gold-Zeile im
+  Landing-Manifest, Titel der Wallet-Registrierung, Aufsteller & Sticker.
 - **Manifest-Zeile (nur wir können das sagen):** „Mehr Cafégefühl, weniger Interface."
+- **„Support your local café"** bleibt als Kicker über der Café-Sektion der Landingpage.
 
 ---
 
