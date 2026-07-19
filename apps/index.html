@@ -125,9 +125,7 @@
       .heroCard,
       .heroVisual,
       .feature,
-      .story,
       .cafe,
-      .audience,
       .journey {
         border-radius: 34px;
         border: 1px solid var(--line);
@@ -160,20 +158,6 @@
         pointer-events: none;
       }
 
-      .eyebrow {
-        display: inline-flex;
-        width: fit-content;
-        padding: 8px 14px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.64);
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--color-coffee);
-      }
-
       .heroTitle {
         margin: 0;
         font-family: var(--font-serif);
@@ -196,13 +180,14 @@
         flex-wrap: wrap;
       }
 
-      .heroValues {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
+      .heroFacts {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: rgba(59, 42, 31, 0.62);
       }
 
-      .heroValues span,
       .cafeTag {
         display: inline-flex;
         align-items: center;
@@ -216,15 +201,6 @@
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: rgba(59, 42, 31, 0.68);
-      }
-
-      .heroSignature {
-        color: rgba(59, 42, 31, 0.74);
-        line-height: 1.55;
-      }
-
-      .heroSignature strong {
-        color: var(--text);
       }
 
       .heroVisual {
@@ -418,33 +394,19 @@
       }
 
       .featureGrid,
-      .storyGrid,
-      .cafeGrid,
-      .audienceGrid {
+      .cafeGrid {
         display: grid;
         gap: 18px;
       }
 
       .featureGrid {
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .feature,
-      .story,
       .cafe,
-      .audience,
       .journey {
         padding: 24px;
-      }
-
-      .feature:nth-child(1) {
-        grid-column: span 6;
-      }
-
-      .feature:nth-child(2),
-      .feature:nth-child(3),
-      .feature:nth-child(4) {
-        grid-column: span 3;
       }
 
       .featureIcon {
@@ -459,8 +421,6 @@
       }
 
       .feature h2,
-      .story h2,
-      .audience h2,
       .journey h2,
       .cafe h2 {
         margin: 14px 0 8px;
@@ -470,8 +430,6 @@
       }
 
       .feature p,
-      .story p,
-      .audience p,
       .journey p,
       .cafe p {
         margin: 0;
@@ -479,14 +437,62 @@
         line-height: 1.55;
       }
 
-      .storyGrid,
-      .audienceGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .manifesto {
+        padding: clamp(40px, 7vw, 76px) clamp(24px, 6vw, 76px);
+        border-radius: 34px;
+        display: grid;
+        gap: 20px;
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 84% -4%, rgba(213, 173, 132, 0.18), rgba(213, 173, 132, 0) 44%),
+          linear-gradient(165deg, #2c1e15 0%, #211712 56%, #191009 100%);
+        color: rgba(255, 247, 239, 0.94);
+        box-shadow: 0 28px 56px rgba(40, 24, 14, 0.24);
       }
 
-      .story:first-child,
-      .audience:first-child {
-        padding-right: 14%;
+      .manifesto .sectionKicker {
+        color: rgba(242, 228, 216, 0.52);
+      }
+
+      .manifesto h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(38px, 5.4vw, 66px);
+        line-height: 0.98;
+        letter-spacing: -0.045em;
+        color: rgba(255, 247, 239, 0.96);
+      }
+
+      .manifesto p {
+        margin: 0;
+        max-width: 56ch;
+        font-size: 18px;
+        line-height: 1.65;
+        color: rgba(242, 228, 216, 0.78);
+      }
+
+      .manifestoClaim {
+        margin-top: 6px;
+        font-family: var(--font-serif);
+        font-size: 24px;
+        letter-spacing: -0.02em;
+        color: #d9b48d;
+      }
+
+      .sectionHead {
+        margin: 44px 4px 20px;
+        display: grid;
+        gap: 8px;
+        scroll-margin-top: 110px;
+      }
+
+      .sectionHead h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1;
+        letter-spacing: -0.04em;
       }
 
       .sectionKicker {
@@ -591,19 +597,6 @@
         padding-inline: 16px;
       }
 
-      .list {
-        display: grid;
-        gap: 12px;
-        margin-top: 16px;
-      }
-
-      .list div {
-        padding: 14px 0 0;
-        border-top: 1px solid rgba(81, 58, 40, 0.08);
-        color: rgba(59, 42, 31, 0.76);
-        line-height: 1.55;
-      }
-
       .journeyList {
         display: grid;
         gap: 14px;
@@ -678,14 +671,7 @@
         }
 
         .featureGrid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .feature:nth-child(1),
-        .feature:nth-child(2),
-        .feature:nth-child(3),
-        .feature:nth-child(4) {
-          grid-column: auto;
+          grid-template-columns: 1fr;
         }
 
         .cafeGrid {
@@ -717,32 +703,22 @@
         .heroCard,
         .heroVisual,
         .feature,
-        .story,
         .cafe,
-        .audience,
-        .journey {
+        .journey,
+        .manifesto {
           border-radius: 28px;
         }
 
         .heroCard,
         .heroVisual,
         .feature,
-        .story,
         .cafe,
-        .audience,
         .journey {
           padding: 20px;
         }
 
-        .featureGrid,
-        .storyGrid,
-        .audienceGrid {
+        .featureGrid {
           grid-template-columns: 1fr;
-        }
-
-        .story:first-child,
-        .audience:first-child {
-          padding-right: 20px;
         }
 
         .heroActions {
@@ -772,31 +748,24 @@
           </span>
         </a>
         <nav class="nav" aria-label="Produktnavigation">
-          <a href="#gaeste">Für Gäste</a>
           <a href="#cafes">Cafés entdecken</a>
-          <a href="#cafes-fuer-cafes">Für Cafés</a>
+          <a href="#ablauf">So funktioniert's</a>
+          <a href="/fuer-cafes">Für Cafés</a>
           <a href="#cta">Karte holen</a>
         </nav>
       </header>
 
       <section class="hero">
         <div class="heroCard">
-          <div class="eyebrow">Support your local café.</div>
           <h1 class="heroTitle">Dein Lieblingscafé.<br />Immer dabei.</h1>
           <p class="heroLead">
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
           <div class="heroActions" id="cta">
             <a class="btn primary" href="/wallet">Karte holen</a>
-            <a class="btn secondary" href="/cafe">Für Cafés</a>
+            <a class="btn secondary" href="#cafes">Cafés entdecken</a>
           </div>
-          <div class="heroValues" aria-label="Kernwerte">
-            <span>Keine App nötig</span>
-            <span>Für unabhängige Cafés</span>
-          </div>
-          <div class="heroSignature">
-            <strong>Der digitale Ort für deine Lieblingscafés.</strong> Für Stammgäste, gute Routinen und kleine Belohnungen, auf die man sich freut.
-          </div>
+          <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
         </div>
 
         <div class="heroVisual" aria-hidden="true">
@@ -879,53 +848,26 @@
         </div>
       </section>
 
-      <section class="section featureGrid">
-        <article class="feature">
-          <div class="featureIcon">☕</div>
-          <div class="sectionKicker">Karten</div>
-          <h2>Alle Karten an einem Ort</h2>
-          <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon">▣</div>
-          <div class="sectionKicker">QR zeigen</div>
-          <h2>QR zeigen, Stempel sammeln</h2>
-          <p>QR zeigen im Café, und der nächste Stempel landet direkt auf deiner Karte.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon">⌂</div>
-          <div class="sectionKicker">Cafés entdecken</div>
-          <h2>Lieblingscafés entdecken</h2>
-          <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon">✦</div>
-          <div class="sectionKicker">Lokale Cafékultur</div>
-          <h2>Papierlos & unkompliziert</h2>
-          <p>Weniger Software, mehr Cafégefühl. Eher Ritual als Pflichtprogramm.</p>
-        </article>
+      <section class="section manifesto">
+        <div class="sectionKicker">Warum es Kaffeekarte gibt</div>
+        <h2>Mehr Cafégefühl,<br />weniger Interface.</h2>
+        <p>
+          Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
+          gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
+        </p>
+        <p>
+          Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
+          lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
+        </p>
+        <div class="manifestoClaim">Support your local café.</div>
       </section>
 
-      <section class="section storyGrid">
-        <article class="story">
-          <div class="sectionKicker">Kaffeekultur</div>
-          <h2>Mehr Cafégefühl, weniger Interface.</h2>
-          <p>
-            Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
-            gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
-          </p>
-        </article>
-        <article class="story">
-          <div class="sectionKicker">Für Wiederkehr gebaut</div>
-          <h2>Support your local café.</h2>
-          <p>
-            Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
-            lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
-          </p>
-        </article>
-      </section>
+      <div class="sectionHead" id="cafes">
+        <div class="sectionKicker">Cafés entdecken</div>
+        <h2>Unabhängige Cafés, die schon dabei sind.</h2>
+      </div>
 
-            <section class="section cafeGrid" id="cafes">
+            <section class="section cafeGrid">
   <article class="cafe" data-cafe-slot="0">
     <div class="cafeVisual" data-cafe-visual>
       <div class="cafeVisualLogo">
@@ -967,32 +909,24 @@
   </article>
 </section>
 
-      <section class="section audienceGrid">
-        <article class="audience" id="gaeste">
-          <div class="sectionKicker">Für Gäste</div>
-          <h2>Karten, die man wirklich wieder öffnet.</h2>
-          <p>
-            Karten öffnen, QR zeigen, Kaffee genießen. Neue Orte entdecken, ohne
-            den entspannten Produktfluss zu verlieren.
-          </p>
-          <div class="list">
-            <div><strong>Sofort verständlich:</strong> Lieblingscafés, Fortschritt und QR liegen direkt vor dir.</div>
-            <div><strong>Weniger Reibung:</strong> kein Papier, kein langes Suchen, kein Kartenchaos.</div>
-            <div><strong>Mehr Vorfreude:</strong> jeder Besuch fühlt sich wie ein kleiner Schritt zur nächsten Gratisrunde an.</div>
-          </div>
+      <section class="section featureGrid">
+        <article class="feature">
+          <div class="featureIcon">☕</div>
+          <div class="sectionKicker">Karten</div>
+          <h2>Alle Karten an einem Ort</h2>
+          <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
         </article>
-        <article class="audience">
-          <div class="sectionKicker">Für Cafés</div>
-          <h2>Ein Werkzeug für den Caféalltag.</h2>
-          <p>
-            QR zeigen, Karten und Verwaltung leben in derselben ruhigen Oberfläche.
-            Schnell genug für die Theke, hochwertig genug fürs Produktgefühl.
-          </p>
-          <div class="list">
-            <div><strong>Ein Klick zum QR:</strong> keine Umwege, keine Theken-Hektik.</div>
-            <div><strong>Eigene Karte pflegen:</strong> Reward, Beschreibung, Website und Bild an einem Ort.</div>
-            <div><strong>Arbeitsmodus statt Website:</strong> gemacht für echte Schichten, nicht für Folien.</div>
-          </div>
+        <article class="feature">
+          <div class="featureIcon">▣</div>
+          <div class="sectionKicker">QR zeigen</div>
+          <h2>QR zeigen, Stempel sammeln</h2>
+          <p>QR zeigen im Café, und der nächste Stempel landet direkt auf deiner Karte.</p>
+        </article>
+        <article class="feature">
+          <div class="featureIcon">⌂</div>
+          <div class="sectionKicker">Cafés entdecken</div>
+          <h2>Lieblingscafés entdecken</h2>
+          <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
         </article>
       </section>
 
@@ -1029,7 +963,8 @@
         Kaffeekarte verbindet lokale Lieblingscafés mit ruhigen digitalen Karten
         für Menschen, die gute Routinen schätzen und Specialty Coffee ernst nehmen.
       </p>
-      <div class="footerLinks" aria-label="Rechtliches">
+      <div class="footerLinks" aria-label="Weitere Seiten">
+        <a href="/fuer-cafes">Für Cafés</a>
         <a href="/impressum">Impressum</a>
         <a href="/datenschutz">Datenschutz</a>
         <a href="/agb">AGB</a>
@@ -1040,11 +975,6 @@
       (function () {
         var copy = (window.stampUI && window.stampUI.copy) || null;
         if (!copy) return;
-
-        var audienceCards = document.querySelectorAll(".audience");
-        if (audienceCards[1]) {
-          audienceCards[1].id = "cafes-fuer-cafes";
-        }
 
         var staticCafeCards = document.querySelectorAll(".cafe");
         for (var cafeIndex = 0; cafeIndex < staticCafeCards.length; cafeIndex++) {
@@ -1116,7 +1046,11 @@
           .then(function (payload) {
             var cafes = Array.isArray(payload && payload.cafes)
               ? payload.cafes.filter(function (cafe) {
-                  return cafe && String(cafe.name || "").trim();
+                  var name = cafe && String(cafe.name || "").trim();
+                  if (!name) return false;
+                  // Interne Test-Einträge gehören nicht auf die Landingpage.
+                  if (/test|debug|demo/i.test(name)) return false;
+                  return true;
                 })
               : [];
 
