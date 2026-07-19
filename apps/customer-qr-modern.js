@@ -6261,7 +6261,7 @@
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
           authHint.textContent =
-            "Kein Schl\u00fcssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch f\u00fcr dich an.";
+            "Kein Schl\u00fcssel, kein Technikstress. Kaffeekarte richtet dein Konto im Hintergrund automatisch ein.";
         }
       }
     } catch (eText) {}
