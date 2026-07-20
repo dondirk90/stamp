@@ -1,0 +1,2 @@
+ALTER TABLE customer_saved_cafes
+  ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT FALSE;

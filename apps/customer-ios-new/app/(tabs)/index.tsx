@@ -1,25 +1,38 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import QRCode from "react-native-qrcode-svg";
 import {
   ActivityIndicator,
+  FlatList,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CafeDetailModal } from "@/components/CafeDetailModal";
 import { AppTheme, Brand, Type } from "@/constants/theme";
 import { apiFetch, ApiError } from "@/lib/api";
+import { buildRedeemLink, buildStampLink } from "@/lib/qr";
 import {
   loadCustomerSession,
   saveCustomerSession,
   type CustomerSession,
 } from "@/lib/session";
-import { buildProgressLabel, useWalletCards } from "@/lib/wallet";
+import {
+  buildProgressLabel,
+  buildStampDots,
+  isCardFull,
+  useWalletCards,
+  type WalletCard,
+} from "@/lib/wallet";
 
 type AuthMode = "register" | "login";
 type MessageTone = "success" | "danger" | "neutral";
@@ -34,8 +47,14 @@ type LoginResponse = {
   customer_id?: string | null;
 };
 
+const CARD_GAP = 14;
+const CARD_SIDE_PADDING = 20;
+
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(width - CARD_SIDE_PADDING * 2, 420);
+
   const [mode, setMode] = React.useState<AuthMode>("register");
   const [username, setUsername] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -47,9 +66,12 @@ export default function HomeScreen() {
     tone: MessageTone;
     text: string;
   } | null>(null);
+  const [selectedCard, setSelectedCard] = React.useState<WalletCard | null>(null);
+  const [detailCard, setDetailCard] = React.useState<WalletCard | null>(null);
 
   const isRegister = mode === "register";
-  const { cards, loading: cardsLoading } = useWalletCards(session);
+  const { cards, loading: cardsLoading, refresh, toggleCardFavorite } =
+    useWalletCards(session);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -58,11 +80,12 @@ export default function HomeScreen() {
       loadCustomerSession().then((storedSession) => {
         if (active) setSession(storedSession);
       });
+      void refresh();
 
       return () => {
         active = false;
       };
-    }, []),
+    }, [refresh]),
   );
 
   React.useEffect(() => {
@@ -180,8 +203,6 @@ export default function HomeScreen() {
   }
 
   if (session) {
-    const previewCards = cards.slice(0, 3);
-
     return (
       <SafeAreaView style={styles.safe}>
         <ScrollView
@@ -190,7 +211,7 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heroCard}>
-            <Text style={styles.eyebrow}>Kaffeeklub</Text>
+            <Text style={styles.eyebrow}>Kaffeekarte</Text>
             <Text style={styles.heroTitle}>
               {session.username ? `Hallo, ${session.username}.` : "Deine Kaffeekarte."}
             </Text>
@@ -234,44 +255,100 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          <View style={styles.walletCard}>
-            <View style={styles.walletHeader}>
-              <Text style={styles.walletTitle}>Deine Lieblingscafés</Text>
-              <Text style={styles.walletMeta}>{cards.length} Karten</Text>
-            </View>
-
-            {cardsLoading ? (
-              <View style={styles.walletEmpty}>
-                <ActivityIndicator color={AppTheme.accent} />
-                <Text style={styles.walletEmptyText}>Karten werden geladen…</Text>
-              </View>
-            ) : previewCards.length ? (
-              <View style={styles.walletList}>
-                {previewCards.map((card) => (
-                  <Pressable
-                    key={`${card.cafeAddress || card.cafeName}`}
-                    style={styles.cafeRow}
-                    onPress={() => router.push("/cards")}
-                  >
-                    <View style={styles.cafeTextWrap}>
-                      <Text style={styles.cafeName}>
-                        {card.cafeName || "Partnercafé"}
-                      </Text>
-                      <Text style={styles.cafeMeta}>{buildProgressLabel(card)}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.walletEmpty}>
-                <Text style={styles.walletEmptyTitle}>Noch keine Karten</Text>
-                <Text style={styles.walletEmptyText}>
-                  Sobald du ein Café entdeckst und hinzufügst, erscheint hier deine erste Karte.
-                </Text>
-              </View>
-            )}
+          <View style={styles.walletHeader}>
+            <Text style={styles.walletTitle}>Deine Karten</Text>
+            <Text style={styles.walletMeta}>{cards.length}</Text>
           </View>
+
+          {cardsLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={AppTheme.accent} />
+              <Text style={styles.emptyText}>Karten werden geladen…</Text>
+            </View>
+          ) : cards.length ? (
+            <FlatList
+              data={cards}
+              keyExtractor={(card, index) =>
+                card.cafeAddress || card.cafeName || String(index)
+              }
+              horizontal
+              pagingEnabled
+              decelerationRate="fast"
+              snapToInterval={cardWidth + CARD_GAP}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: CARD_GAP }}
+              style={styles.carousel}
+              renderItem={({ item }) => (
+                <CardPage
+                  card={item}
+                  width={cardWidth}
+                  onToggleFavorite={() =>
+                    item.cafeAddress && toggleCardFavorite(item.cafeAddress)
+                  }
+                  onPressQr={() => setSelectedCard(item)}
+                  onPressDetail={() => setDetailCard(item)}
+                />
+              )}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Noch keine Karten</Text>
+              <Text style={styles.emptyText}>
+                Entdecke Cafés und füge sie zu deinen Karten hinzu, um hier deine
+                erste Stempelkarte zu sehen.
+              </Text>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => router.push("/discover")}
+              >
+                <Text style={styles.primaryButtonLabel}>Cafés entdecken</Text>
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
+
+        <Modal
+          visible={!!selectedCard}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSelectedCard(null)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.eyebrow}>
+                {selectedCard && isCardFull(selectedCard) ? "Gratiskaffee wartet" : "QR bereit"}
+              </Text>
+              <Text style={styles.modalTitle}>{selectedCard?.cafeName || "Partnercafé"}</Text>
+              <Text style={styles.modalLead}>{buildProgressLabel(selectedCard)}</Text>
+
+              {session && selectedCard?.cafeAddress ? (
+                <View style={styles.qrWrap}>
+                  <QRCode
+                    value={
+                      isCardFull(selectedCard)
+                        ? buildRedeemLink(session, selectedCard.cafeAddress)
+                        : buildStampLink(session, selectedCard.cafeAddress)
+                    }
+                    size={220}
+                    backgroundColor={Brand.white}
+                    color={AppTheme.text}
+                  />
+                </View>
+              ) : null}
+
+              <Pressable style={styles.primaryButton} onPress={() => setSelectedCard(null)}>
+                <Text style={styles.primaryButtonLabel}>Zurück zur Wallet</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <CafeDetailModal
+          visible={!!detailCard}
+          onClose={() => setDetailCard(null)}
+          cafeId={detailCard?.cafeId}
+          session={session}
+        />
       </SafeAreaView>
     );
   }
@@ -409,6 +486,65 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function CardPage({
+  card,
+  width,
+  onToggleFavorite,
+  onPressQr,
+  onPressDetail,
+}: {
+  card: WalletCard;
+  width: number;
+  onToggleFavorite: () => void;
+  onPressQr: () => void;
+  onPressDetail: () => void;
+}) {
+  return (
+    <View style={[styles.cardPage, { width }]}>
+      <Pressable style={styles.cafeRow} onPress={onPressQr}>
+        <View style={styles.cafeRowHead}>
+          <Text style={styles.cafeName} numberOfLines={1}>
+            {card.cafeName || "Partnercafé"}
+          </Text>
+          <Pressable
+            hitSlop={10}
+            style={styles.starBtn}
+            onPress={(event) => {
+              event.stopPropagation();
+              onToggleFavorite();
+            }}
+          >
+            <Ionicons
+              name={card.isFavorite ? "star" : "star-outline"}
+              size={22}
+              color={card.isFavorite ? "#c8912a" : AppTheme.textMuted}
+            />
+          </Pressable>
+        </View>
+
+        <View style={styles.stampRow}>
+          {buildStampDots(card).map((filled, index) => (
+            <View
+              key={`${card.cafeAddress || "cafe"}-${index}`}
+              style={[styles.stampDot, filled ? styles.stampDotFilled : null]}
+            />
+          ))}
+        </View>
+
+        <Pressable
+          style={styles.detailLink}
+          onPress={(event) => {
+            event.stopPropagation();
+            onPressDetail();
+          }}
+        >
+          <Text style={styles.detailLinkLabel}>Café ansehen</Text>
+        </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
@@ -654,19 +790,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: AppTheme.textMuted,
   },
-  walletCard: {
-    backgroundColor: AppTheme.surface,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: AppTheme.border,
-    padding: 22,
-    gap: 16,
-  },
   walletHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    paddingHorizontal: 2,
   },
   walletTitle: {
     fontSize: Type.section,
@@ -678,45 +806,109 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: AppTheme.textMuted,
   },
-  walletList: {
-    gap: 14,
+  carousel: {
+    marginHorizontal: -CARD_SIDE_PADDING,
+    paddingHorizontal: CARD_SIDE_PADDING,
+  },
+  cardPage: {
+    paddingVertical: 2,
   },
   cafeRow: {
     borderRadius: 22,
     borderWidth: 1,
     borderColor: AppTheme.border,
     backgroundColor: "#fffaf4",
-    padding: 16,
-    gap: 6,
+    padding: 18,
+    gap: 12,
+    minHeight: 168,
   },
-  cafeTextWrap: {
-    gap: 6,
+  cafeRowHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
   },
   cafeName: {
+    flex: 1,
     fontSize: 20,
     fontWeight: "800",
     color: AppTheme.text,
   },
-  cafeMeta: {
-    fontSize: Type.meta,
-    lineHeight: 18,
-    color: AppTheme.textMuted,
+  starBtn: {
+    padding: 2,
   },
-  walletEmpty: {
+  stampRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  stampDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: "rgba(74, 49, 36, 0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(74, 49, 36, 0.18)",
+  },
+  stampDotFilled: {
+    backgroundColor: AppTheme.accent,
+    borderColor: AppTheme.accent,
+  },
+  detailLink: {
+    alignSelf: "flex-start",
+  },
+  detailLinkLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: AppTheme.accentSoft,
+    textDecorationLine: "underline",
+  },
+  emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    paddingVertical: 18,
+    gap: 12,
+    paddingVertical: 24,
   },
-  walletEmptyTitle: {
+  emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: AppTheme.text,
   },
-  walletEmptyText: {
+  emptyText: {
     fontSize: Type.body,
     lineHeight: 22,
     color: AppTheme.textMuted,
     textAlign: "center",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(20, 10, 4, 0.34)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    backgroundColor: AppTheme.surface,
+    borderRadius: 30,
+    padding: 24,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: Type.title,
+    fontWeight: "800",
+    color: AppTheme.text,
+  },
+  modalLead: {
+    fontSize: Type.body,
+    lineHeight: 22,
+    color: AppTheme.textMuted,
+  },
+  qrWrap: {
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: AppTheme.border,
+    backgroundColor: "#fffaf4",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
   },
 });

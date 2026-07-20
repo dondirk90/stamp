@@ -978,6 +978,7 @@ CREATE TABLE IF NOT EXISTS customer_saved_cafes (
   customer_id INTEGER NOT NULL,
   cafe_address TEXT NOT NULL,
   created_at INTEGER NOT NULL,
+  is_favorite INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
   UNIQUE(customer_id, cafe_address)
 );
@@ -1248,6 +1249,12 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE stamp_events ADD COLUMN status TEXT DEFAULT 'confirmed'",
   "Failed to add status column:",
+);
+
+// Favorite/pinned saved cafes (star toggle)
+runSqliteOnlyAlter(
+  "ALTER TABLE customer_saved_cafes ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+  "Failed to add customer_saved_cafes.is_favorite column:",
 );
 
 // Prepare statements
@@ -1527,7 +1534,7 @@ const deleteCustomerAuthGrantsByCustomerId = db.prepare(
   "DELETE FROM customer_auth_grants WHERE customer_id = ?",
 );
 const listCustomerSavedCafeAddressesByCustomerId = db.prepare(
-  "SELECT cafe_address, created_at FROM customer_saved_cafes WHERE customer_id = ? ORDER BY created_at ASC, id ASC",
+  "SELECT cafe_address, created_at, is_favorite FROM customer_saved_cafes WHERE customer_id = ? ORDER BY created_at ASC, id ASC",
 );
 const deleteCustomerSavedCafesByCustomerId = db.prepare(
   "DELETE FROM customer_saved_cafes WHERE customer_id = ?",
@@ -1536,6 +1543,10 @@ const insertCustomerSavedCafe = db.prepare(
   db.client === "postgres"
     ? "INSERT INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?) ON CONFLICT (customer_id, cafe_address) DO NOTHING"
     : "INSERT OR IGNORE INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?)",
+);
+const setCustomerSavedCafeFavorite = db.prepare(
+  "INSERT INTO customer_saved_cafes (customer_id, cafe_address, created_at, is_favorite) VALUES (?, ?, ?, ?) " +
+    "ON CONFLICT (customer_id, cafe_address) DO UPDATE SET is_favorite = excluded.is_favorite",
 );
 const deleteRedeemTokensByCustomerAddress = db.prepare(
   'DELETE FROM redeem_tokens WHERE LOWER(COALESCE("user", \'\')) = LOWER(?)',
@@ -4566,10 +4577,12 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         ? await listCustomerSavedCafeAddressesByCustomerId.all(customerRow.id)
         : [];
     const savedCafeAddresses = [];
+    const favoriteCafeAddresses = new Set();
     for (const row of Array.isArray(savedCafeRows) ? savedCafeRows : []) {
       const savedAddr = row && row.cafe_address ? String(row.cafe_address) : "";
       if (!/^0x[0-9a-f]{40}$/i.test(savedAddr)) continue;
       savedCafeAddresses.push(savedAddr);
+      if (row.is_favorite) favoriteCafeAddresses.add(savedAddr.toLowerCase());
     }
 
     const aggregates = await db
@@ -4634,6 +4647,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         cafeAddress: agg.cafe || null,
         cafeName: cafeInfo?.name || null,
         cafeId: cafeInfo?.id || null,
+        isFavorite: favoriteCafeAddresses.has(cafeAddr),
         program: getCafeProgramSettings(cafeInfo),
         stats: {
           stampsAwarded: Number(agg.stamps_awarded || 0),
@@ -4661,6 +4675,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         cafeAddress: savedCafeAddress,
         cafeName: cafeInfo?.name || null,
         cafeId: cafeInfo?.id || null,
+        isFavorite: favoriteCafeAddresses.has(cafeAddr),
         program: getCafeProgramSettings(cafeInfo),
         stats: {
           stampsAwarded: 0,
@@ -4688,10 +4703,22 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
     }
 
     const cards = Array.from(cardsByCafe.values()).sort((a, b) => {
+      if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+
+      const aRemaining = Math.max(
+        (a.program?.stampsForReward || 10) - (a.stats.netStamps || 0),
+        0,
+      );
+      const bRemaining = Math.max(
+        (b.program?.stampsForReward || 10) - (b.stats.netStamps || 0),
+        0,
+      );
+      if (aRemaining !== bRemaining) return aRemaining - bRemaining;
+
       const bTs = b.stats.lastActivityTs || 0;
       const aTs = a.stats.lastActivityTs || 0;
       if (bTs !== aTs) return bTs - aTs;
-      return (b.cafeName || "").localeCompare(a.cafeName || "");
+      return (a.cafeName || "").localeCompare(b.cafeName || "");
     });
 
     const primaryName =
@@ -5185,13 +5212,69 @@ app.post("/customers/saved-cafes/sync", async (req, res) => {
       cafes.push(addr);
     }
 
+    // Preserve existing favorite flags — this sync only replaces which cafes are saved.
+    const existingFavorites = new Map();
+    const existingRows = await listCustomerSavedCafeAddressesByCustomerId.all(row.id);
+    for (const existingRow of Array.isArray(existingRows) ? existingRows : []) {
+      const addr =
+        existingRow && existingRow.cafe_address
+          ? String(existingRow.cafe_address).toLowerCase()
+          : "";
+      if (addr) existingFavorites.set(addr, !!existingRow.is_favorite);
+    }
+
     await deleteCustomerSavedCafesByCustomerId.run(row.id);
     const now = Date.now();
     for (let i = 0; i < cafes.length; i += 1) {
-      await insertCustomerSavedCafe.run(row.id, cafes[i], now + i);
+      const isFavorite = existingFavorites.get(cafes[i]) ? 1 : 0;
+      await setCustomerSavedCafeFavorite.run(row.id, cafes[i], now + i, isFavorite);
     }
 
     return res.json({ ok: true, cafes });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/saved-cafes/favorite", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    const cafeAddress =
+      req.body?.cafeAddress != null ? String(req.body.cafeAddress).trim().toLowerCase() : "";
+    const favorite = !!req.body?.favorite;
+
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ ok: false, error: "missing_customer_identity" });
+    }
+    if (!/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+      return res.status(400).json({ ok: false, error: "invalid_cafe_address" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+
+    await setCustomerSavedCafeFavorite.run(
+      row.id,
+      cafeAddress,
+      Date.now(),
+      favorite ? 1 : 0,
+    );
+
+    return res.json({ ok: true, cafeAddress, favorite });
   } catch (e) {
     return res
       .status(500)

@@ -839,10 +839,11 @@
     }
 
     cardItems.sort(function (a, b) {
-      var aReady = a.stampCount >= a.rewardThreshold ? 1 : 0;
-      var bReady = b.stampCount >= b.rewardThreshold ? 1 : 0;
-      if (aReady !== bReady) return bReady - aReady;
-      if (a.stampCount !== b.stampCount) return b.stampCount - a.stampCount;
+      var order = compareCardPriority(
+        cardPriorityKey(a.cafeAddress),
+        cardPriorityKey(b.cafeAddress),
+      );
+      if (order !== 0) return order;
       return String(a.meta.name || "").localeCompare(String(b.meta.name || ""));
     });
 
@@ -2303,6 +2304,72 @@
     }
   }
 
+  function toggleCardStar(cafeAddress) {
+    var addr = normalizeAddr(cafeAddress || "");
+    if (!addr) return;
+    if (!session || !session.email || !session.customer_id || !session.address) return;
+
+    var serverCard = getServerCard(addr);
+    var nextFavorite = !(serverCard && serverCard.isFavorite);
+
+    if (serverCard) serverCard.isFavorite = nextFavorite;
+    else walletServerCardsByCafe[addr] = { isFavorite: nextFavorite };
+
+    try {
+      walletState.lastFavKey = "";
+      refreshWallet();
+      renderWelcomeCards();
+    } catch (eRender) {}
+
+    apiFetch("/customers/saved-cafes/favorite", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        cafeAddress: addr,
+        favorite: nextFavorite,
+      }),
+    }).catch(function () {
+      var revertCard = getServerCard(addr);
+      if (revertCard) revertCard.isFavorite = !nextFavorite;
+      try {
+        walletState.lastFavKey = "";
+        refreshWallet();
+        renderWelcomeCards();
+      } catch (eRevert) {}
+      showToast("Favorit konnte nicht gespeichert werden.", "danger");
+    });
+  }
+
+  function cardPriorityKey(cafeAddress) {
+    var serverCard = getServerCard(cafeAddress);
+    var program = getCardProgram(serverCard);
+    var stats = (serverCard && serverCard.stats) || {};
+    var threshold = clamp(Number(program.stampsForReward) || REWARD_THRESHOLD, 1, 50);
+    var stampCount = Number(stats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
+    return {
+      isFavorite: !!(serverCard && serverCard.isFavorite),
+      remaining: Math.max(threshold - stampCount, 0),
+      lastActivityTs: Number(stats.lastActivityTs || 0) || 0,
+    };
+  }
+
+  function compareCardPriority(aKey, bKey) {
+    if (aKey.isFavorite !== bKey.isFavorite) return aKey.isFavorite ? -1 : 1;
+    if (aKey.remaining !== bKey.remaining) return aKey.remaining - bKey.remaining;
+    return bKey.lastActivityTs - aKey.lastActivityTs;
+  }
+
+  function sortWalletAddressesByPriority(addrs) {
+    var list = Array.isArray(addrs) ? addrs.slice() : [];
+    list.sort(function (a, b) {
+      return compareCardPriority(cardPriorityKey(a), cardPriorityKey(b));
+    });
+    return list;
+  }
+
   function getCardProgram(card) {
     return card && card.program ? card.program : {};
   }
@@ -2428,6 +2495,7 @@
           Number(program.popupInactiveDays || 0) || 0,
           Number(program.popupAlmostRewardEnabled || 0) || 0,
           Number(program.popupAlmostRewardRemaining || 0) || 0,
+          card.isFavorite ? 1 : 0,
         ].join(":"),
       );
     }
@@ -3190,11 +3258,6 @@
     return "KAFFEESPEZIALITAETEN";
   }
 
-  function getCardFrontKicker(threshold) {
-    return "JEDER " + String(threshold) + ". KAFFEE GRATIS";
-  }
-
-
   function getCardFrontNote(card, about) {
     var note = card && card.cardBackText ? String(card.cardBackText || "").trim() : "";
     if (note) return note;
@@ -3223,22 +3286,6 @@
       }
     } catch (e) {}
     return "bean";
-  }
-
-  function getRewardSideNote(label, isFull) {
-    if (isFull) return "PRAEMIE BEREIT";
-    var src = String(label || "").trim();
-    if (!src) return "GRATIS";
-    var normalized = src
-      .replace(/^1\s+/i, "")
-      .replace(/freigetr[a\u00e4]nk/i, "gratis")
-      .replace(/free cup/i, "gratis")
-      .replace(/free/i, "gratis")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toUpperCase();
-    if (!normalized) return "GRATIS";
-    return normalized.length > 18 ? "GRATIS" : normalized;
   }
 
   function getCardFooterLabel(card) {
@@ -3794,12 +3841,16 @@
           : "Kaffeekarte";
       }
       if (el.qrSheetSub) {
-        var countEl =
-          passEl.querySelector(".passStampNeed") ||
-          passEl.querySelector(".passCountLine");
-        el.qrSheetSub.textContent = countEl
-          ? String(countEl.textContent || "QR wird geladen\u2026")
-          : "QR wird geladen\u2026";
+        var stampsForSub = getPassStampCount(passEl);
+        var thresholdForSub = getPassRewardThreshold(passEl);
+        el.qrSheetSub.textContent =
+          stampsForSub != null
+            ? formatStampCountLine(
+                stampsForSub,
+                thresholdForSub,
+                Math.max(0, stampsForSub - thresholdForSub),
+              )
+            : "QR wird geladen\u2026";
       }
       if (el.qrSheetHint) {
         var stamps = getPassStampCount(passEl);
@@ -4053,11 +4104,8 @@
       ? cafeAddress.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6)
       : "";
     if (!serialTail) serialTail = "STAMP";
-    var kickerText = getCardFrontKicker(rewardThreshold);
     var subtitle = getCardPrintSubtitle(card);
-    var rewardSideNote = getRewardSideNote(rewardLabel, isFull);
     var footerLabel = getCardFooterLabel(card);
-    var countLine = formatStampCountLine(stampCount, rewardThreshold, extra);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
@@ -4108,10 +4156,6 @@
     left.className = "stack";
     left.style.minWidth = "0";
 
-    var eyebrow = document.createElement("div");
-    eyebrow.className = "passEyebrow";
-    eyebrow.textContent = kickerText;
-
     var brandLockup = document.createElement("div");
     brandLockup.className = "passBrandLockup";
 
@@ -4154,10 +4198,27 @@
     titleBlock.appendChild(sub);
     brandLockup.appendChild(titleBlock);
 
-    left.appendChild(eyebrow);
     left.appendChild(brandLockup);
 
     head.appendChild(left);
+
+    var isFavoriteCard = !!card.isFavorite;
+    var starBtn = document.createElement("button");
+    starBtn.type = "button";
+    starBtn.className = "passStarBtn";
+    starBtn.setAttribute("aria-pressed", isFavoriteCard ? "true" : "false");
+    starBtn.setAttribute(
+      "aria-label",
+      isFavoriteCard ? "Favorit entfernen" : "Als Favorit markieren",
+    );
+    starBtn.textContent = isFavoriteCard ? "★" : "☆";
+    starBtn.addEventListener("click", function (ev) {
+      try {
+        ev.stopPropagation();
+      } catch (eStop) {}
+      toggleCardStar(cafeAddress);
+    });
+    head.appendChild(starBtn);
 
     var stampField = document.createElement("div");
     stampField.className = "passStampField";
@@ -4169,22 +4230,13 @@
     stampLead.className = "passStampLead";
     stampLead.textContent = "Fortschritt";
 
-    var stampNeed = document.createElement("div");
-    stampNeed.className = "passStampNeed";
-    stampNeed.textContent = countLine;
-
     stampGuide.appendChild(stampLead);
-    stampGuide.appendChild(stampNeed);
     stampField.appendChild(stampGuide);
 
     var grid = document.createElement("div");
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
     stampField.appendChild(grid);
-    var rewardNote = document.createElement("div");
-    rewardNote.className = "passRewardNote";
-    rewardNote.textContent = rewardSideNote;
-    stampField.appendChild(rewardNote);
 
     var infoBlock = document.createElement("div");
     infoBlock.className = "passInfoBlock";
@@ -4846,8 +4898,9 @@
       if (!a) continue;
       favNorm.push(a);
     }
+    favNorm = sortWalletAddressesByPriority(favNorm);
 
-    // Stable cache key: order matters (we preserve user ordering).
+    // Stable cache key: order matters (favorites + reward-proximity decide it).
     var favKey = favNorm.join("|");
 
     // If nothing changed and cards already exist, avoid tearing down the DOM.
@@ -4900,6 +4953,7 @@
           name: meta.name,
           address: meta.address,
           about: (cafe && cafe.about) || "",
+          isFavorite: !!(serverCard && serverCard.isFavorite),
           netStamps:
             Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0,
           program: serverCard && serverCard.program ? serverCard.program : null,
@@ -5296,11 +5350,6 @@
       countLine.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
     }
 
-    var stampNeed = passCardEl.querySelector(".passStampNeed");
-    if (stampNeed) {
-      stampNeed.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
-    }
-
     var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
     if (progressHeadline) {
       progressHeadline.textContent = formatRewardProgressLine(
@@ -5313,14 +5362,6 @@
     var progressSub = passCardEl.querySelector(".passProgressSub");
     if (progressSub) {
       progressSub.textContent = formatNextStampLine(remaining, isFull);
-    }
-
-    var rewardNote = passCardEl.querySelector(".passRewardNote");
-    if (rewardNote) {
-      rewardNote.textContent = getRewardSideNote(
-        passCardEl.getAttribute("data-reward-label") || "",
-        isFull,
-      );
     }
 
     var footerVisit = passCardEl.querySelector(".passFooterVisit");

@@ -2911,6 +2911,29 @@
         text-align: left;
       }
 
+      .passStarBtn {
+        margin-left: auto;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: 20px;
+        line-height: 1;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.55;
+        cursor: pointer;
+      }
+
+      .passStarBtn[aria-pressed="true"] {
+        opacity: 1;
+        color: #c8912a;
+      }
+
       .passBrandLockup {
         display: flex;
         align-items: flex-start;

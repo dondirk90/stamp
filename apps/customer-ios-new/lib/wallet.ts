@@ -7,6 +7,7 @@ export type WalletCard = {
   cafeAddress: string | null;
   cafeName: string | null;
   cafeId: string | null;
+  isFavorite?: boolean;
   program?: {
     stampsForReward?: number;
     rewardDescription?: string;
@@ -21,6 +22,32 @@ export type WalletCard = {
 type WalletResponse = {
   cards?: WalletCard[];
 };
+
+function cardRemaining(card: WalletCard) {
+  const total = Math.max(1, Number(card?.program?.stampsForReward || 10));
+  const collected = Math.max(0, Number(card?.stats?.netStamps || 0));
+  return Math.max(total - collected, 0);
+}
+
+function sortCards(cards: WalletCard[]) {
+  return [...cards].sort((a, b) => {
+    const aFav = !!a.isFavorite;
+    const bFav = !!b.isFavorite;
+    if (aFav !== bFav) return aFav ? -1 : 1;
+
+    const aRemaining = cardRemaining(a);
+    const bRemaining = cardRemaining(b);
+    if (aRemaining !== bRemaining) return aRemaining - bRemaining;
+
+    const aTs = Number(a?.stats?.lastActivityTs || 0);
+    const bTs = Number(b?.stats?.lastActivityTs || 0);
+    return bTs - aTs;
+  });
+}
+
+function sameCafe(card: WalletCard, cafeAddress: string) {
+  return (card.cafeAddress || "").toLowerCase() === cafeAddress;
+}
 
 export function useWalletCards(session: CustomerSession | null) {
   const [cards, setCards] = React.useState<WalletCard[]>([]);
@@ -40,7 +67,7 @@ export function useWalletCards(session: CustomerSession | null) {
         `/customers/${encodeURIComponent(session.address)}/cards`,
       );
       if (active) {
-        setCards(Array.isArray(data?.cards) ? data.cards : []);
+        setCards(sortCards(Array.isArray(data?.cards) ? data.cards : []));
       }
     } catch (nextError) {
       if (active) {
@@ -63,7 +90,47 @@ export function useWalletCards(session: CustomerSession | null) {
     };
   }, [refresh]);
 
-  return { cards, loading, error, refresh };
+  const toggleCardFavorite = React.useCallback(
+    async (cafeAddress: string) => {
+      const addr = cafeAddress.toLowerCase();
+      if (!session?.email || !session?.customer_id || !session?.address) return;
+
+      let nextFavorite = false;
+      setCards((prev) =>
+        sortCards(
+          prev.map((card) => {
+            if (!sameCafe(card, addr)) return card;
+            nextFavorite = !card.isFavorite;
+            return { ...card, isFavorite: nextFavorite };
+          }),
+        ),
+      );
+
+      try {
+        await apiFetch("/customers/saved-cafes/favorite", {
+          method: "POST",
+          body: JSON.stringify({
+            email: session.email,
+            customerId: session.customer_id,
+            address: session.address,
+            cafeAddress: addr,
+            favorite: nextFavorite,
+          }),
+        });
+      } catch {
+        setCards((prev) =>
+          sortCards(
+            prev.map((card) =>
+              sameCafe(card, addr) ? { ...card, isFavorite: !nextFavorite } : card,
+            ),
+          ),
+        );
+      }
+    },
+    [session],
+  );
+
+  return { cards, loading, error, refresh, toggleCardFavorite };
 }
 
 export function buildProgressLabel(card?: WalletCard | null) {
