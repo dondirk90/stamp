@@ -5155,22 +5155,35 @@
                     Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
                   </div>
                 </div>
-                <div id="welcomeHeroCardSlot"></div>
               </div>
               <div class="welcomeDeck">
                 <div class="welcomeSectionHead">
                   <div>
                     <div class="welcomeSectionTitle">Deine Karten</div>
-                    <div class="welcomeSectionMeta" id="welcomeCardsMeta">0 Lieblingscaf&eacute;s</div>
+                    <div class="hint" id="walletSubtitle">
+                      W&auml;hle deine Stempelkarte und zeig sie im Caf&eacute; direkt vor.
+                    </div>
                   </div>
-                  <button class="welcomeSectionLink" id="welcomeCardsOpenBtn" type="button">
-                    Alle ansehen &rarr;
-                  </button>
                 </div>
-                <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
-                  Noch kein Lieblingscaf&eacute; dabei? Entdecke Caf&eacute;s in deiner N&auml;he und hol dir deine erste Karte.
+                <div
+                  id="walletEmpty"
+                  class="hint"
+                  style="display: none; margin-top: var(--space-3)"
+                >
+                  <div class="walletEmptyLead"></div>
+                  <div class="walletEmptyBody"></div>
+                  <button
+                    class="btn secondary"
+                    id="walletEmptyMapBtn"
+                    type="button"
+                    style="width: auto; margin-top: 12px"
+                  >Caf&eacute;s entdecken</button>
                 </div>
-                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Deine Caf&eacute;s"></div>
+                <div
+                  id="walletList"
+                  class="walletCarousel"
+                  aria-label="Deine Karten"
+                ></div>
               </div>
             </div>
             </div>
@@ -5251,38 +5264,6 @@
             </div>
             </div>
 
-          </div>
-          <div class="walletOverlayBackdrop" id="walletOverlayBackdrop" aria-hidden="true"></div>
-          <div class="walletOverlay" id="walletOverlay" aria-hidden="true" aria-label="Karten">
-            <div class="walletOverlayInner">
-              <div class="card panel walletDock" id="walletPanel">
-                <div class="walletDockHead">
-                  <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Karten schlie&szlig;en">Schlie&szlig;en</button>
-                  <h3 style="margin: 0">Deine Karten</h3>
-                  <div class="hint" id="walletSubtitle">
-                    W&auml;hle deine Stempelkarte und zeig sie im Caf&eacute; direkt vor.
-                  </div>
-                </div>
-                <div
-                  id="walletEmpty"
-                  class="hint"
-                  style="display: none; margin-top: var(--space-3)"
-                >
-                  <div class="walletEmptyLead"></div>
-                  <div class="walletEmptyBody"></div>
-                  <button
-                    class="btn secondary"
-                    id="walletEmptyMapBtn"
-                    type="button"
-                    style="width: auto; margin-top: 12px"
-                  >Caf&eacute;s entdecken</button></div>
-                <div
-                  id="walletList"
-                  class="walletCarousel"
-                  aria-label="Deine Karten"
-                ></div>
-              </div>
-            </div>
           </div>
           <div class="notice" id="noCafesNotice" style="display: none">
             Hier fehlt noch guter Kaffee. Weitere Caf&eacute;s kommen bald dazu.

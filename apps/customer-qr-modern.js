@@ -63,9 +63,6 @@
     qrSheetBox: document.getElementById("qrSheetBox"),
     qrSheetHint: document.getElementById("qrSheetHint"),
     qrSheetClose: document.getElementById("qrSheetClose"),
-    walletOverlayBackdrop: document.getElementById("walletOverlayBackdrop"),
-    walletOverlay: document.getElementById("walletOverlay"),
-    walletOverlayClose: document.getElementById("walletOverlayClose"),
 
     authPanel: document.getElementById("authPanel"),
     authPanelTitle: document.getElementById("authPanelTitle"),
@@ -119,16 +116,10 @@
     welcomeTitle: document.getElementById("welcomeTitle"),
     welcomeAvatarImg: document.getElementById("welcomeAvatarImg"),
     welcomeAvatarFallback: document.getElementById("welcomeAvatarFallback"),
-    welcomeHeroCardSlot: document.getElementById("welcomeHeroCardSlot"),
     welcomeLead: document.getElementById("welcomeLead"),
-    welcomeCardsMeta: document.getElementById("welcomeCardsMeta"),
-    welcomeCardsOpenBtn: document.getElementById("welcomeCardsOpenBtn"),
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
-    welcomePrimaryAction: document.getElementById("welcomePrimaryAction"),
-    welcomeCardsEmpty: document.getElementById("welcomeCardsEmpty"),
-    welcomeCardsList: document.getElementById("welcomeCardsList"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -242,7 +233,6 @@
     stampsRefreshQueuedAt: 0,
     stampsLastRunAt: 0,
     stampsInFlight: {},
-    overlayOpen: false,
   };
 
   var rewardCelebrationState = {
@@ -644,7 +634,7 @@
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
-    if (!isAuthed) closeWalletOverlay({ silent: true });
+    if (!isAuthed) resetWalletCardsUI();
     if (el.topProfileBtn) {
       el.topProfileBtn.style.display = isAuthed ? "" : "none";
     }
@@ -745,367 +735,21 @@
     if (el.welcomeLead && favCount > 0) {
       el.welcomeLead.textContent = "Bereit f\u00fcr den n\u00e4chsten Kaffee?";
     }
-    if (el.welcomeCardsMeta) {
-      el.welcomeCardsMeta.textContent =
-        favCount === 1 ? "1 Lieblingscaf\u00e9" : String(favCount || 0) + " Lieblingscaf\u00e9s";
-    }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
         favCount > 0
           ? "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt."
           : "\u00d6ffne Caf\u00e9s im Men\u00fc und hol dir deine erste Karte.";
     }
-    renderWelcomeCards();
-  }
-
-  function renderWelcomeCards() {
-    if (!el.welcomeCardsList || !el.welcomeCardsEmpty) return;
-
-    function getDistrictLabel(address) {
-      var raw = String(address || "").trim();
-      if (!raw) return "";
-      var parts = raw.split(",");
-      if (parts.length > 1) {
-        var first = String(parts[0] || "").trim();
-        var second = String(parts[1] || "").trim();
-        if (/^\d{5}\s+/.test(second)) {
-          return second.replace(/^\d{5}\s+/, "").trim();
-        }
-        if (first) return first;
-      }
-      return raw;
-    }
-
-    function getProgressCopy(stampCount, rewardThreshold, rewardLabel) {
-      var threshold = clamp(Number(rewardThreshold || REWARD_THRESHOLD) || REWARD_THRESHOLD, 1, 50);
-      var current = clamp(Number(stampCount || 0) || 0, 0, threshold);
-      var remaining = Math.max(0, threshold - current);
-      return formatRewardProgressLine(remaining, current >= threshold, rewardLabel);
-    }
-
-    var favorites = [];
-    try {
-      favorites = getFavorites();
-    } catch (eFav) {
-      favorites = [];
-    }
-
-    var favNorm = [];
-    for (var i = 0; i < favorites.length; i++) {
-      var addr = normalizeAddr(favorites[i]);
-      if (!addr) continue;
-      favNorm.push(addr);
-    }
-
-    el.welcomeCardsList.innerHTML = "";
-    if (el.welcomeHeroCardSlot) el.welcomeHeroCardSlot.innerHTML = "";
-
-    if (!favNorm.length) {
-      el.welcomeCardsEmpty.style.display = "block";
-      return;
-    }
-
-    el.welcomeCardsEmpty.style.display = "none";
-
-    var cardItems = [];
-    for (var j = 0; j < favNorm.length; j++) {
-      var cafeAddress = favNorm[j];
-      var cafe = cafesByCafeAddress[cafeAddress] || null;
-      var serverCard = getServerCard(cafeAddress);
-      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
-      var meta = resolveCafeDisplayMeta(cafeAddress, serverCard, cafe);
-      var rewardThreshold = serverCard
-        ? getCardRewardThreshold(serverCard)
-        : cafe
-          ? getCardRewardThreshold(cafe)
-          : REWARD_THRESHOLD;
-      var stampCount =
-        Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
-      var rewardLabel =
-        (serverCard &&
-          serverCard.program &&
-          serverCard.program.rewardLabel &&
-          String(serverCard.program.rewardLabel)) ||
-        "";
-      cardItems.push({
-        cafeAddress: cafeAddress,
-        cafe: cafe,
-        serverCard: serverCard,
-        meta: meta,
-        rewardThreshold: rewardThreshold,
-        stampCount: stampCount,
-        rewardLabel: rewardLabel,
-      });
-    }
-
-    cardItems.sort(function (a, b) {
-      var order = compareCardPriority(
-        cardPriorityKey(a.cafeAddress),
-        cardPriorityKey(b.cafeAddress),
-      );
-      if (order !== 0) return order;
-      return String(a.meta.name || "").localeCompare(String(b.meta.name || ""));
-    });
-
-    var featured = cardItems[0] || null;
-    if (featured && el.welcomeHeroCardSlot) {
-      var hero = document.createElement("article");
-      hero.className = "welcomeHeroCard";
-
-      var head = document.createElement("div");
-      head.className = "welcomePreviewHead";
-
-      var headMain = document.createElement("div");
-      headMain.className = "welcomePreviewHeadMain";
-
-      var logoWrap = document.createElement("div");
-      logoWrap.className = "welcomePreviewLogo";
-      logoWrap.setAttribute("data-cafe-name", featured.meta.name);
-      if (featured.cafe && featured.cafe.logoDataUrl) {
-        var heroImg = document.createElement("img");
-        heroImg.src = String(featured.cafe.logoDataUrl);
-        heroImg.alt = "";
-        heroImg.decoding = "async";
-        heroImg.loading = "lazy";
-        heroImg.addEventListener("error", function () {
-          try {
-            var parent = this.parentNode;
-            var cafeName = parent
-              ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
-              : "Kaffeekarte";
-            if (parent) {
-              parent.innerHTML = "";
-              parent.appendChild(buildPassLogoFallback(cafeName));
-            }
-          } catch (eLogo) {}
-        });
-        logoWrap.appendChild(heroImg);
-      } else {
-        logoWrap.appendChild(buildPassLogoFallback(featured.meta.name));
-      }
-
-      var metaWrap = document.createElement("div");
-      metaWrap.className = "welcomePreviewMeta";
-
-      var title = document.createElement("div");
-      title.className = "welcomePreviewTitle";
-      title.textContent = featured.meta.name;
-
-      var district = document.createElement("div");
-      district.className = "welcomePreviewDistrict";
-      district.textContent = getDistrictLabel(featured.meta.address);
-
-      metaWrap.appendChild(title);
-      if (district.textContent) metaWrap.appendChild(district);
-      headMain.appendChild(logoWrap);
-      headMain.appendChild(metaWrap);
-      head.appendChild(headMain);
-      hero.appendChild(head);
-
-      var stampRow = document.createElement("div");
-      stampRow.className = "welcomePreviewStampRow";
-      for (var stampIndex = 0; stampIndex < featured.rewardThreshold; stampIndex++) {
-        var stampDot = document.createElement("span");
-        stampDot.className =
-          "welcomePreviewStamp" +
-          (stampIndex < Math.min(featured.stampCount, featured.rewardThreshold) ? " filled" : "");
-        stampRow.appendChild(stampDot);
-      }
-      hero.appendChild(stampRow);
-
-      var footer = document.createElement("div");
-      footer.className = "welcomePreviewFooter";
-
-      var hint = document.createElement("div");
-      hint.className = "welcomePreviewHint";
-      hint.textContent = getProgressCopy(
-        featured.stampCount,
-        featured.rewardThreshold,
-        featured.rewardLabel,
-      );
-
-      var actions = document.createElement("div");
-      actions.className = "welcomeHeroLinks";
-
-      var qrBtn = document.createElement("button");
-      qrBtn.className = "btn primary welcomePreviewBtn";
-      qrBtn.type = "button";
-      qrBtn.textContent = "Karte zeigen";
-      qrBtn.addEventListener("click", function () {
-        openWalletForCafe(featured.cafeAddress, {
-          ensureFavorite: true,
-          showQr: true,
-        });
-      });
-
-      var linkBtn = document.createElement("button");
-      // "ghost" haelt die globalen Button-Styles (brauner Grund) fern.
-      linkBtn.className = "welcomeCafeActionLink ghost";
-      linkBtn.type = "button";
-      linkBtn.textContent = "Caf\u00e9 ansehen \u2192";
-      linkBtn.addEventListener("click", function () {
-        var href = buildCafeProfileUrl(featured.meta.cafeId, featured.cafeAddress);
-        if (href) {
-          window.location.href = href;
-          return;
-        }
-        openCafeModal({
-          id: featured.meta.cafeId,
-          name: featured.meta.name,
-          address: featured.meta.address,
-          cafeAddress: featured.cafeAddress,
-        });
-      });
-
-      actions.appendChild(qrBtn);
-      actions.appendChild(linkBtn);
-      footer.appendChild(hint);
-      footer.appendChild(actions);
-      hero.appendChild(footer);
-      el.welcomeHeroCardSlot.appendChild(hero);
-    }
-
-    // Kompakter Ueberblick statt einzelner Kacheln: eine Karte mit allen
-    // gesammelten Stempeln ueber alle Cafes. Zeile antippen oeffnet die
-    // jeweilige Stempelkarte.
-    var overview = document.createElement("article");
-    overview.className = "welcomeOverviewCard";
-
-    var totalStamps = 0;
-    for (var totalIndex = 0; totalIndex < cardItems.length; totalIndex++) {
-      totalStamps += cardItems[totalIndex].stampCount;
-    }
-
-    var overviewHead = document.createElement("div");
-    overviewHead.className = "welcomeOverviewHead";
-
-    var overviewTitle = document.createElement("div");
-    overviewTitle.className = "welcomeOverviewTitle";
-    overviewTitle.textContent = "Deine Stempel";
-
-    var overviewMeta = document.createElement("div");
-    overviewMeta.className = "welcomeOverviewMeta";
-    overviewMeta.textContent =
-      totalStamps +
-      " Stempel · " +
-      cardItems.length +
-      (cardItems.length === 1 ? " Café" : " Cafés");
-
-    overviewHead.appendChild(overviewTitle);
-    overviewHead.appendChild(overviewMeta);
-    overview.appendChild(overviewHead);
-
-    var rows = document.createElement("div");
-    rows.className = "welcomeCafeRows";
-
-    for (var rowIndex = 0; rowIndex < cardItems.length; rowIndex++) {
-      (function (item) {
-        var row = document.createElement("div");
-        row.className = "welcomeCafeRow";
-        row.tabIndex = 0;
-        row.setAttribute("role", "button");
-        row.setAttribute("aria-label", item.meta.name + " öffnen");
-
-        var openCard = function () {
-          openWalletForCafe(item.cafeAddress, {
-            ensureFavorite: true,
-            showQr: false,
-          });
-        };
-        row.addEventListener("click", openCard);
-        row.addEventListener("keydown", function (ev) {
-          if (ev.key !== "Enter" && ev.key !== " ") return;
-          try {
-            ev.preventDefault();
-          } catch (e) {}
-          openCard();
-        });
-
-        var logoWrap = document.createElement("div");
-        logoWrap.className = "welcomeCafeLogo";
-        logoWrap.setAttribute("data-cafe-name", item.meta.name);
-        if (item.cafe && item.cafe.logoDataUrl) {
-          var img = document.createElement("img");
-          img.src = String(item.cafe.logoDataUrl);
-          img.alt = "";
-          img.decoding = "async";
-          img.loading = "lazy";
-          img.addEventListener("error", function () {
-            try {
-              var parent = this.parentNode;
-              var cafeName = parent
-                ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
-                : "Kaffeekarte";
-              if (parent) {
-                parent.innerHTML = "";
-                parent.appendChild(buildPassLogoFallback(cafeName));
-              }
-            } catch (eLogo) {}
-          });
-          logoWrap.appendChild(img);
-        } else {
-          logoWrap.appendChild(buildPassLogoFallback(item.meta.name));
-        }
-
-        var metaWrap = document.createElement("div");
-        metaWrap.className = "welcomeCafeMeta";
-
-        var title = document.createElement("div");
-        title.className = "welcomeCafeName";
-        title.textContent = item.meta.name;
-
-        var count = document.createElement("div");
-        count.className = "welcomeCafeCount";
-        count.textContent = formatStampCountLine(
-          item.stampCount,
-          item.rewardThreshold,
-          Math.max(0, item.stampCount - item.rewardThreshold),
-        );
-
-        var stampRow = document.createElement("div");
-        stampRow.className = "welcomeCafeStampRow";
-        for (var s = 0; s < item.rewardThreshold; s++) {
-          var stampDot = document.createElement("span");
-          stampDot.className =
-            "welcomeCafeStamp" +
-            (s < Math.min(item.stampCount, item.rewardThreshold) ? " filled" : "");
-          stampRow.appendChild(stampDot);
-        }
-
-        metaWrap.appendChild(title);
-        metaWrap.appendChild(count);
-        metaWrap.appendChild(stampRow);
-
-        row.appendChild(logoWrap);
-        row.appendChild(metaWrap);
-        rows.appendChild(row);
-      })(cardItems[rowIndex]);
-    }
-
-    overview.appendChild(rows);
-    el.welcomeCardsList.appendChild(overview);
-  }
-
-  function setWalletOverlayOpen(open) {
-    var next = !!open;
-    walletState.overlayOpen = next;
-    try {
-      if (el.walletOverlayBackdrop)
-        el.walletOverlayBackdrop.classList.toggle("open", next);
-      if (el.walletOverlay)
-        el.walletOverlay.classList.toggle("open", next);
-      if (el.walletOverlay)
-        el.walletOverlay.setAttribute("aria-hidden", next ? "false" : "true");
-      document.body.classList.toggle("walletOverlayOpen", next);
-      document.documentElement.classList.toggle("walletMode", next);
-    } catch (e) {}
-  }
-
-  function openWalletOverlay() {
-    closeQrSheet();
     refreshWallet();
-    setWalletOverlayOpen(true);
-    navSetActive("wallet");
+  }
+
+
+  // Die Karten leben direkt auf dem Welcome-Screen (kein Overlay mehr) -
+  // dieser Helper zeigt sie an und zentriert die oberste/fokussierte Karte.
+  function showWalletScreen() {
+    closeQrSheet();
+    navigateToMode("wallet");
     window.setTimeout(function () {
       try {
         closeAllPasses();
@@ -1114,8 +758,9 @@
     }, 24);
   }
 
-  function closeWalletOverlay(opts) {
-    var o = opts || {};
+  // Klappt offene Stempelkarten wieder zu, z.B. beim Logout oder beim
+  // Wechsel zu einem anderen Screen.
+  function resetWalletCardsUI() {
     closeQrSheet();
     try {
       if (el.walletList) {
@@ -1125,13 +770,6 @@
         }
       }
     } catch (e0) {}
-    setWalletOverlayOpen(false);
-    if (o.silent) return;
-    if (currentPageMode === "wallet") {
-      navigateToMode("welcome");
-      return;
-    }
-    navSetActive(currentPageMode === "wallet" ? "wallet" : "");
   }
 
   function closeAllPasses(exceptEl) {
@@ -1268,7 +906,7 @@
           setShellMenuOpen(false);
         }
 
-        if (!walletState.overlayOpen || !el.walletList) return;
+        if (!el.walletList) return;
         if (qrSheetState.open) return;
 
         try {
@@ -1279,15 +917,9 @@
           if (openPass.contains(t)) return;
           if (
             t.closest &&
-            t.closest(
-              ".passInfoLink, .passQr, .passQrBox, .walletOverlayClose, #walletEmpty",
-            )
+            t.closest(".passInfoLink, .passQr, .passQrBox, #walletEmpty")
           )
             return;
-          if (el.walletOverlay && el.walletOverlay.contains(t)) {
-            closeWalletOverlay();
-            return;
-          }
           closeAllPasses();
         } catch (eWalletClose) {}
       });
@@ -1303,7 +935,7 @@
             ev.preventDefault();
           } catch (e0) {}
           setShellMenuOpen(false);
-          closeWalletOverlay({ silent: true });
+          resetWalletCardsUI();
           try {
             history.pushState({ mode: "welcome" }, "", "/wallet");
           } catch (e1) {}
@@ -1680,7 +1312,7 @@
       refreshWallet();
     } catch (e1) {}
     closeCafeModal();
-    openWalletOverlay();
+    showWalletScreen();
 
     var attempts = 0;
     var t = window.setInterval(function () {
@@ -1973,34 +1605,30 @@
   function applyPageMode(mode) {
     var m = mode || getPageMode();
     currentPageMode = m;
+    // "wallet" ist der Nav-Zustand fuer den Karten-Button; die Karten leben
+    // direkt auf dem Welcome-Screen, daher zeigen beide dieselbe Slide.
+    var slideMode = m === "wallet" ? "welcome" : m;
     navSetActive(m === "wallet" ? "wallet" : m);
 
     try {
       var welcomeSlide = getModeSlide("welcome");
       var mapSlide = getModeSlide("map");
       var historySlide = getModeSlide("history");
-      if (welcomeSlide) welcomeSlide.style.display = m === "welcome" ? "block" : "none";
-      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
-      if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
+      if (welcomeSlide) welcomeSlide.style.display = slideMode === "welcome" ? "block" : "none";
+      if (mapSlide) mapSlide.style.display = slideMode === "map" ? "block" : "none";
+      if (historySlide) historySlide.style.display = slideMode === "history" ? "block" : "none";
       if (el.screenPager) {
         el.screenPager.scrollLeft = 0;
       }
     } catch (eScroll) {}
 
     if (m === "history") {
-      closeWalletOverlay({ silent: true });
       refreshHistory();
       return;
     }
 
-    if (m === "wallet") {
-      openWalletOverlay();
-      return;
-    }
-
-    closeWalletOverlay({ silent: true });
-
-    if (m === "welcome") {
+    if (m === "wallet" || m === "welcome") {
+      refreshWallet();
       return;
     }
 
@@ -2318,7 +1946,6 @@
     try {
       walletState.lastFavKey = "";
       refreshWallet();
-      renderWelcomeCards();
     } catch (eRender) {}
 
     apiFetch("/customers/saved-cafes/favorite", {
@@ -2337,7 +1964,6 @@
       try {
         walletState.lastFavKey = "";
         refreshWallet();
-        renderWelcomeCards();
       } catch (eRevert) {}
       showToast("Favorit konnte nicht gespeichert werden.", "danger");
     });
@@ -4933,7 +4559,6 @@
       walletState.lastFavKey = "";
       walletState.lastCardCount = 0;
       setWalletEmptyVisible(true);
-      renderWelcomeCards();
       return;
     }
 
@@ -4987,7 +4612,6 @@
     if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
     if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
 
-    renderWelcomeCards();
     scheduleWalletStampsRefresh(40);
   }
 
@@ -5058,7 +4682,7 @@
       walletState.stampsInFlight = {};
       walletServerCardsByCafe = {};
       walletServerCardsDigest = "";
-      closeWalletOverlay({ silent: true });
+      resetWalletCardsUI();
 
       setAuthedUI();
       currentPageMode = "map";
@@ -5172,11 +4796,6 @@
       el.bottomModeAccount.addEventListener("click", function () {
         navSetActive("account");
         location.href = "/customer-profile";
-      });
-    }
-    if (el.welcomeCardsOpenBtn) {
-      el.welcomeCardsOpenBtn.addEventListener("click", function () {
-        navigateToMode("wallet");
       });
     }
     if (el.topProfileBtn) {
@@ -6152,33 +5771,8 @@
     }
     if (el.walletEmptyMapBtn) {
       el.walletEmptyMapBtn.addEventListener("click", function () {
-        closeWalletOverlay({ silent: true });
+        resetWalletCardsUI();
         navigateToMode("map");
-      });
-    }
-    if (el.welcomePrimaryAction) {
-      el.welcomePrimaryAction.addEventListener("click", function () {
-        var hasCards = false;
-        try {
-          hasCards = getFavorites().length > 0;
-        } catch (eFav) {
-          hasCards = false;
-        }
-        if (hasCards) {
-          openWalletOverlay();
-          return;
-        }
-        navigateToMode("map");
-      });
-    }
-    if (el.walletOverlayBackdrop) {
-      el.walletOverlayBackdrop.addEventListener("click", function () {
-        closeWalletOverlay();
-      });
-    }
-    if (el.walletOverlayClose) {
-      el.walletOverlayClose.addEventListener("click", function () {
-        closeWalletOverlay();
       });
     }
 
