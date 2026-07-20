@@ -2165,10 +2165,26 @@
         // entsprechen den bisherigen Utility-Buttons, damit die bestehende
         // Verdrahtung (wireShellChrome) unverändert greift.
         if (window.stampUI && stampUI.mountBottomNav) {
+          // Inline query check: getInitialView() lives in the main script
+          // below and isn't defined yet when this early shell script runs.
+          let initialViewIsScan = false;
+          try {
+            initialViewIsScan =
+              new URLSearchParams(location.search || "").get("view") === "scan";
+          } catch (e) {}
           const nav = stampUI.mountBottomNav({
             theme: "cream",
             items: [
-              { id: "utilityWelcomeBtn", label: "Start", active: true },
+              {
+                id: "bottomModeScanner",
+                label: "Scanner",
+                active: initialViewIsScan,
+              },
+              {
+                id: "utilityWelcomeBtn",
+                label: "Start",
+                active: !initialViewIsScan,
+              },
               { id: "utilityCardBtn", label: "Karte" },
               { id: "utilityDashboardBtn", label: "Dashboard" },
               { id: "utilityAdminBtn", label: "Verwaltung" },
