@@ -3945,6 +3945,48 @@ app.post("/cafes/logout", requireCafeAuth, async (req, res) => {
   }
 });
 
+app.post("/cafes/me/change-password", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ ok: false, error: "missing_cafe_context" });
+    }
+
+    const currentPassword =
+      req.body?.currentPassword != null ? String(req.body.currentPassword) : "";
+    const newPassword =
+      req.body?.newPassword != null ? String(req.body.newPassword) : "";
+
+    if (!cafeRow.password_hash) {
+      return res.status(400).json({ ok: false, error: "password_not_set" });
+    }
+    if (!currentPassword) {
+      return res.status(400).json({ ok: false, error: "invalid_current_password" });
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ ok: false, error: "invalid_new_password" });
+    }
+
+    const okPw = await bcrypt.compare(currentPassword, cafeRow.password_hash);
+    if (!okPw) {
+      return res.status(401).json({ ok: false, error: "wrong_password" });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await setCafePasswordHashById.run(newHash, cafeRow.id);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(
+      "Error in /cafes/me/change-password:",
+      e && e.stack ? e.stack : e,
+    );
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/cafes/me/delete-account", requireCafeAuth, async (req, res) => {
   try {
     const cafeRow = req.cafe;

@@ -928,6 +928,56 @@
             <div id="galleryList" class="galleryList"></div>
           </div>
 
+          <div id="sectionChangePassword" class="cardSection">
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Passwort ändern
+            </div>
+            <div class="logoRow" style="align-items: flex-end; gap: 12px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Aktuelles Passwort
+                </div>
+                <input
+                  id="changePwCurrent"
+                  class="input"
+                  type="password"
+                  autocomplete="current-password"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Neues Passwort
+                </div>
+                <input
+                  id="changePwNew"
+                  class="input"
+                  type="password"
+                  autocomplete="new-password"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Neues Passwort bestätigen
+                </div>
+                <input
+                  id="changePwNew2"
+                  class="input"
+                  type="password"
+                  autocomplete="new-password"
+                  style="width: 100%"
+                />
+              </div>
+            </div>
+            <div class="logoRow" style="justify-content: flex-start; margin-top: 12px">
+              <button class="btn" id="changePwBtn" type="button">
+                Passwort ändern
+              </button>
+              <div class="msg" id="changePwMsg"></div>
+            </div>
+          </div>
+
           <div
             id="sectionDeleteProfile"
             class="cardSection"
@@ -1645,6 +1695,64 @@
         window.location.href = "/cafe-onboarding";
       }
 
+      function setChangePwMsg(text) {
+        const msg = document.getElementById("changePwMsg");
+        if (msg) msg.textContent = text || "";
+      }
+
+      async function changeCafePassword() {
+        if (!cafe || !cafe.token) {
+          setChangePwMsg("Session fehlt. Bitte neu anmelden.");
+          return;
+        }
+        const currentEl = document.getElementById("changePwCurrent");
+        const newEl = document.getElementById("changePwNew");
+        const new2El = document.getElementById("changePwNew2");
+        const btn = document.getElementById("changePwBtn");
+        const currentPassword = currentEl ? String(currentEl.value || "") : "";
+        const newPassword = newEl ? String(newEl.value || "") : "";
+        const newPassword2 = new2El ? String(new2El.value || "") : "";
+
+        if (!currentPassword) {
+          setChangePwMsg("Bitte aktuelles Passwort eingeben.");
+          return;
+        }
+        if (!newPassword || newPassword.length < 6) {
+          setChangePwMsg("Neues Passwort muss mindestens 6 Zeichen haben.");
+          return;
+        }
+        if (newPassword !== newPassword2) {
+          setChangePwMsg("Neue Passwörter stimmen nicht überein.");
+          return;
+        }
+
+        setChangePwMsg("Ändere Passwort…");
+        if (btn) btn.disabled = true;
+        try {
+          await apiFetch("/cafes/me/change-password", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          if (currentEl) currentEl.value = "";
+          if (newEl) newEl.value = "";
+          if (new2El) new2El.value = "";
+          setChangePwMsg("Passwort wurde geändert.");
+        } catch (e) {
+          setChangePwMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Passwort konnte nicht geändert werden.",
+            ),
+          );
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
       async function deleteCafeProfile() {
         if (!cafe || !cafe.token) {
           setDeleteMsg("Session fehlt. Bitte neu anmelden.");
@@ -1768,6 +1876,8 @@
           if (btn) btn.addEventListener("click", saveProfile);
           const deleteBtn = document.getElementById("deleteCafeBtn");
           if (deleteBtn) deleteBtn.addEventListener("click", deleteCafeProfile);
+          const changePwBtn = document.getElementById("changePwBtn");
+          if (changePwBtn) changePwBtn.addEventListener("click", changeCafePassword);
 
           const aboutEl = document.getElementById("profileAbout");
           const aboutPreview = document.getElementById("profileAboutPreview");
