@@ -277,8 +277,10 @@
     renderAvatar(session);
 
     if (!session) {
-      el.profileStatus.textContent = "Nicht eingeloggt";
-      if (el.profileSub) el.profileSub.textContent = "Melde dich an oder fordere einen Reset-Link an.";
+      el.profileStatus.textContent = "Noch nicht eingeloggt";
+      if (el.profileSub)
+        el.profileSub.textContent =
+          "Melde dich an oder lass dir einen Link für ein neues Passwort schicken.";
       if (el.logoutBtn) el.logoutBtn.style.display = "none";
       if (el.notLoggedIn) el.notLoggedIn.style.display = "block";
       if (el.authedOnly) el.authedOnly.style.display = "none";
@@ -286,8 +288,10 @@
       return;
     }
 
-    el.profileStatus.textContent = `Willkommen zur\u00fcck, ${session.username || session.email}`;
-    if (el.profileSub) el.profileSub.textContent = "Dein Account ist aktiv und bereit f\u00fcr den n\u00e4chsten Kaffee.";
+    el.profileStatus.textContent = `Hallo ${session.username || session.email}`;
+    if (el.profileSub)
+      el.profileSub.textContent =
+        "Dein Profil ist bereit. Deine Karten warten schon auf den nächsten Kaffee.";
     if (el.logoutBtn) el.logoutBtn.style.display = "inline-flex";
     if (el.notLoggedIn) el.notLoggedIn.style.display = "none";
     if (el.authedOnly) el.authedOnly.style.display = "grid";
@@ -310,9 +314,11 @@
 
     if (el.profileAdvancedInfo) {
       const lines = [];
-      if (session.customer_id != null) lines.push(`Kunden-ID: ${session.customer_id}`);
-      if (session.address) lines.push(`Kunden-Adresse: ${session.address}`);
-      el.profileAdvancedInfo.textContent = lines.length ? lines.join("\n") : "Keine erweiterten Informationen vorhanden.";
+      if (session.customer_id != null) lines.push(`Profil-ID: ${session.customer_id}`);
+      if (session.address) lines.push(`Karten-Adresse: ${session.address}`);
+      el.profileAdvancedInfo.textContent = lines.length
+        ? lines.join("\n")
+        : "Noch keine weiteren Profildaten vorhanden.";
     }
 
     if (el.resetEmail && session.email) el.resetEmail.value = session.email;

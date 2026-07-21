@@ -48,6 +48,9 @@
         padding: 0;
         box-sizing: border-box;
       }
+      html {
+        overflow-x: hidden;
+      }
       body {
         font-family: var(--font-sans);
         background: var(--bg);
@@ -1686,24 +1689,6 @@
           </button>
         </div>
 
-        <div class="topMenu" aria-label="Navigation">
-          <button class="topMenuBtn ghost active" id="navHome" type="button">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </button>
-          <a class="topMenuBtn ghost" href="/cafe-profile">
-            <span class="ico" aria-hidden="true">K</span>
-            <span class="lbl">Stempelkarte</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-profile?view=advanced">
-            <span class="ico" aria-hidden="true">V</span>
-            <span class="lbl">Verwaltung</span>
-          </a>
-          <a class="topMenuBtn ghost" href="/cafe-dashboard">
-            <span class="ico" aria-hidden="true">D</span>
-            <span class="lbl">Dashboard</span>
-          </a>
-        </div>
       </div>
 
       <div class="card" id="loginCard">
@@ -2000,8 +1985,8 @@
                 <div class="miniStep">
                   <div class="miniStepNum">1</div>
                   <div class="miniStepText">
-                    Kunde zeigt den Wallet-QR oder öffnet den persönlichen
-                    Link.
+                    Kunde zeigt den QR aus seinen Karten oder öffnet den
+                    persönlichen Link.
                   </div>
                 </div>
                 <div class="miniStep">
@@ -2076,7 +2061,7 @@
 
                 <div id="scanHint" class="hintBox scannerHintCompact">
                   Noch kein Kunde geladen. Starte die Kamera oder öffne einen
-                  QR-Link direkt aus der Wallet.
+                  QR-Link direkt aus den Karten.
                 </div>
 
                 <div class="scannerStage">
@@ -2152,6 +2137,7 @@
 
     <div id="toast" class="toast">Stempel vergeben</div>
 
+    <script src="/ui.js"></script>
     <script>
       (function mountCafeShell() {
         const badge = document.getElementById("cafeBadge");
@@ -2173,41 +2159,40 @@
               </a>
             </div>
           </div>
-          <div class="row">
-            <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Menü">
-              <span class="topUtilityIcon"><span></span></span>
-            </button>
-          </div>
+          <div class="row"></div>
         `;
 
-        badge.insertAdjacentHTML(
-          "afterend",
-          `
-            <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
-              <button class="utilityMenuBtn" id="utilityWelcomeBtn" type="button">Start</button>
-              <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
-              <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
-              <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
-              <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
-            </div>
-          `,
-        );
-
-        appShell.insertAdjacentHTML(
-          "afterend",
-          `
-            <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
-              <div class="bottomTabSpacer" aria-hidden="true"></div>
-              <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
-                <span class="topMenuBtnContent">
-                  <span class="ico" aria-hidden="true">S</span>
-                  <span class="lbl">Scanner</span>
-                </span>
-              </button>
-              <div class="bottomTabSpacer" aria-hidden="true"></div>
-            </div>
-          `,
-        );
+        // Gemeinsame Bottom-Nav (cream auf dunklem Café-Theme). Die IDs
+        // entsprechen den bisherigen Utility-Buttons, damit die bestehende
+        // Verdrahtung (wireShellChrome) unverändert greift.
+        if (window.stampUI && stampUI.mountBottomNav) {
+          // Inline query check: getInitialView() lives in the main script
+          // below and isn't defined yet when this early shell script runs.
+          let initialViewIsScan = false;
+          try {
+            initialViewIsScan =
+              new URLSearchParams(location.search || "").get("view") === "scan";
+          } catch (e) {}
+          const nav = stampUI.mountBottomNav({
+            theme: "cream",
+            items: [
+              {
+                id: "bottomModeScanner",
+                label: "Scanner",
+                active: initialViewIsScan,
+              },
+              {
+                id: "utilityWelcomeBtn",
+                label: "Start",
+                active: !initialViewIsScan,
+              },
+              { id: "utilityCardBtn", label: "Karte" },
+              { id: "utilityDashboardBtn", label: "Dashboard" },
+              { id: "utilityAdminBtn", label: "Verwaltung" },
+            ],
+          });
+          nav.id = "bottomTabs";
+        }
       })();
     </script>
 
@@ -2730,7 +2715,7 @@
           if (permission !== "granted") {
             setScannerStatus('Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.');
             updateScannerHint(
-              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+              "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus den Karten, dann landet der Vorgang direkt hier.",
             );
             syncCameraButtons();
             return;
@@ -2798,7 +2783,7 @@
             : 'Kamera bereit. Tippe auf "Kamera starten", wenn du direkt scannen willst.',
         );
         updateScannerHint(
-          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus der Wallet, dann landet der Vorgang direkt hier.",
+          "Noch kein Kunde geladen. Starte die Kamera oder oeffne einen QR-Link aus den Karten, dann landet der Vorgang direkt hier.",
         );
         syncCameraButtons();
       }
@@ -2972,7 +2957,7 @@
         updateScannerHint(
           stream
             ? "Kamera aktiv. Halte den QR-Code ruhig in den Rahmen, damit der Kunde direkt geladen wird."
-            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus der Wallet.",
+            : "Noch kein Kunde geladen. Öffne unten den Scanner oder nutze einen QR-Link direkt aus den Karten.",
         );
       }
 
@@ -2992,6 +2977,22 @@
         }
         cafeBadge.style.display = "flex";
         if (cafeName) cafeName.textContent = cafe.name || "Barista App";
+        if (window.stampUI && stampUI.mountCafeTopProfile) {
+          stampUI.mountCafeTopProfile({ name: cafe.name });
+          fetch(`${apiBase}/cafes/me/overview`, {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data && data.cafe) {
+                stampUI.mountCafeTopProfile({
+                  name: data.cafe.name || cafe.name,
+                  logoDataUrl: data.cafe.logoDataUrl,
+                });
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       // Login
@@ -3096,7 +3097,7 @@
             'Kamera pausiert. Tippe auf "Kamera starten", wenn du weiter scannen willst.',
           );
           updateScannerHint(
-            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Wallet oeffnen.",
+            "Kamera pausiert. Du kannst sie jederzeit wieder starten oder einen QR-Link direkt ueber die Karten oeffnen.",
           );
         };
 
@@ -3501,7 +3502,7 @@
             applyActionUi();
             setScannerStatus("Bereit fuer den naechsten QR.");
             updateScannerHint(
-              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Wallet-Link.",
+              "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Karten-Link.",
             );
             void resumeScannerCameraIfAllowed();
           }, 1800);

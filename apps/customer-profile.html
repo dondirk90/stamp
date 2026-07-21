@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Customer - Profil - Kaffeekarte</title>
+    <title>Kaffeekarte - Profil</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
       body {
@@ -146,24 +146,27 @@
       .utilityMenuLink {
         display: flex;
         align-items: center;
-        min-height: 48px;
-        padding: 0 14px;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 56px;
+        padding: 10px 14px;
         border-radius: 14px;
         color: #241710;
         text-decoration: none;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: none;
       }
 
       .utilityMenuButton {
         width: 100%;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         background: transparent !important;
         border: none !important;
-        padding: 0 14px;
+        padding: 10px 14px;
         text-align: left;
         font: inherit;
         color: inherit;
@@ -175,6 +178,51 @@
 
       .utilityMenuLink:hover {
         background: rgba(107, 69, 44, 0.08);
+      }
+
+      .utilityMenuLinkMain {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .utilityMenuIcon {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(107, 69, 44, 0.1);
+        color: #6b452c;
+        flex: 0 0 auto;
+        font-size: 16px;
+      }
+
+      .utilityMenuText {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .utilityMenuTitle {
+        font-size: 14px;
+        font-weight: 800;
+        color: #241710;
+      }
+
+      .utilityMenuMeta {
+        font-size: 12px;
+        color: rgba(59, 42, 31, 0.62);
+        line-height: 1.35;
+      }
+
+      .utilityMenuChevron {
+        color: rgba(59, 42, 31, 0.52);
+        font-size: 18px;
+        line-height: 1;
+        flex: 0 0 auto;
       }
 
       .profileStage {
@@ -441,31 +489,19 @@
             <span class="kk-brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
-          <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
-        </button>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
-        <a class="utilityMenuLink" href="/customer-map">Caf&eacute;s</a>
-        <a class="utilityMenuLink" href="/customer-history">Verlauf</a>
-        <a class="utilityMenuLink" href="/customer-profile">Konto</a>
-        <button class="utilityMenuLink utilityMenuButton" id="utilityLogoutBtn" type="button">
-          Logout
-        </button>
       </div>
 
       <div class="profileStage">
         <div class="profilePanel">
           <div class="profileIntro">
-            <div class="profileEyebrow">Konto</div>
+            <div class="profileEyebrow">Profil</div>
             <div class="profileHead">
               <div class="stack" style="gap: 8px">
                 <h1>Profil</h1>
-                <p class="profileLead">Verwalte deinen Account ohne Umwege.</p>
+                <p class="profileLead">Alles, was zu deinen Karten und deinem Caf&eacute;-Alltag geh&ouml;rt, an einem ruhigen Ort.</p>
               </div>
               <button class="btn secondary hiddenWhenLoggedOut" id="logoutBtn" type="button">
-                Logout
+                Abmelden
               </button>
             </div>
           </div>
@@ -475,20 +511,20 @@
               <div class="stack" style="gap: 6px">
                 <div class="badge" id="profileStatus">Nicht eingeloggt</div>
                 <div class="smallHint" id="profileSub">
-                  Halte deine Daten aktuell und bleib bereit f&uuml;r den n&auml;chsten Kaffee.
+                  Halte dein Profil aktuell und deine Karten griffbereit.
                 </div>
               </div>
             </div>
           </div>
 
           <div id="notLoggedIn" class="notice" style="display: none; margin-top: 16px">
-            Du bist nicht eingeloggt. Einen Reset-Link kannst du trotzdem anfordern.
+            Du bist gerade nicht eingeloggt. Einen Link f&uuml;r ein neues Passwort kannst du dir trotzdem schicken lassen.
           </div>
 
           <div id="authedOnly" class="stack" style="display: none; gap: 16px; margin-top: 16px">
             <div class="sectionCard">
-              <div class="sectionTitle">Profilbild</div>
-              <div class="sectionLead">Gib deinem Konto ein Gesicht. Das Bild erscheint in deiner Wallet auf diesem Gerät.</div>
+              <div class="sectionTitle">Dein Profilbild</div>
+              <div class="sectionLead">Gib deinem Konto ein Gesicht. Das Bild erscheint in deinen Karten auf diesem Gerät.</div>
               <div class="profileIdentityCard">
                 <div class="profileIdentityRow">
                   <div class="profileAvatar" id="profileAvatarWrap" aria-hidden="true">
@@ -497,7 +533,7 @@
                   </div>
                   <div class="stack" style="gap: 8px; min-width: 0; flex: 1">
                     <div class="smallHint">
-                      Am besten funktioniert ein quadratisches Bild. Wir verkleinern es automatisch f&uuml;r die Wallet.
+                      Am besten funktioniert ein quadratisches Bild. Wir passen es automatisch f&uuml;r deine Karten an.
                     </div>
                     <div class="profileAvatarActions">
                       <button class="btn secondary" id="profileAvatarChooseBtn" type="button">Bild ausw&auml;hlen</button>
@@ -511,11 +547,11 @@
             </div>
 
             <div class="sectionCard">
-              <div class="sectionTitle">Account</div>
-              <div class="sectionLead">Benutzername und E-Mail liegen hier klar an einem Ort.</div>
+              <div class="sectionTitle">Dein Profil</div>
+              <div class="sectionLead">Benutzername, E-Mail und deine feste Kartenadresse liegen hier an einem Ort.</div>
               <div class="profileFields" id="profileInfo"></div>
               <details class="advancedDetails">
-                <summary>Erweiterte Informationen</summary>
+                <summary>Mehr zu deinem Profil</summary>
                 <div class="advancedDetailsBody">
                   <div class="tokenBox" id="profileAdvancedInfo"></div>
                 </div>
@@ -523,8 +559,8 @@
             </div>
 
             <div class="sectionCard">
-              <div class="sectionTitle">Passwort &auml;ndern</div>
-              <div class="sectionLead">Wenn du willst, aktualisierst du hier deinen Zugang.</div>
+              <div class="sectionTitle">Zugang aktualisieren</div>
+              <div class="sectionLead">Wenn du willst, setzt du hier ein neues Passwort f&uuml;r dein Profil.</div>
               <div class="formRow">
                 <div class="stack" style="gap: 6px">
                   <label for="currentPassword">Aktuelles Passwort</label>
@@ -544,9 +580,9 @@
             </div>
 
             <div class="sectionCard" style="border-color: rgba(180, 35, 24, 0.22); background: rgba(254, 243, 242, 0.7)">
-              <div class="sectionTitle" style="color: var(--danger)">Profil l&ouml;schen</div>
+              <div class="sectionTitle" style="color: var(--danger)">Profil dauerhaft l&ouml;schen</div>
               <div class="sectionLead">
-                Damit entfernst du dein Kundenkonto inklusive Verlauf und verkn&uuml;pfter Logindaten dauerhaft.
+                Damit entfernst du dein Profil, deine Karten, deinen Verlauf und verkn&uuml;pfte Logindaten dauerhaft.
               </div>
               <div class="formRow">
                 <div class="stack" style="gap: 6px">
@@ -559,7 +595,7 @@
                 </div>
               </div>
               <div class="smallHint">
-                Bei Passwort-Logins wird das Passwort gepr&uuml;ft. Bei reinen Google-Konten reicht die aktive Session zusammen mit `DELETE`.
+                Bei Passwort-Logins pr&uuml;fen wir dein Passwort. Bei reinen Google-Konten reicht die aktive Session zusammen mit `DELETE`.
               </div>
               <button
                 class="btn"
@@ -567,29 +603,29 @@
                 type="button"
                 style="margin-top: 12px; background: var(--danger); color: white; border-color: var(--danger)"
               >
-                Profil endg&uuml;ltig l&ouml;schen
+                Profil jetzt l&ouml;schen
               </button>
               <div id="deleteAccountMsg" class="notice" style="display: none"></div>
             </div>
           </div>
 
           <div id="forgotPanel" class="sectionCard" style="margin-top: 16px">
-            <div class="sectionTitle">Passwort vergessen</div>
-            <div class="sectionLead">Fordere einen Reset-Link an, wenn du gerade nicht mehr reinkommst.</div>
+            <div class="sectionTitle">Neues Passwort anfordern</div>
+            <div class="sectionLead">Wenn du gerade nicht reinkommst, schicken wir dir einen Link f&uuml;r ein neues Passwort.</div>
             <div class="formRow">
               <div class="stack" style="gap: 6px">
                 <label for="resetEmail">E-Mail</label>
                 <input id="resetEmail" type="email" inputmode="email" autocomplete="email" />
               </div>
             </div>
-            <button class="btn secondary" id="forgotPwBtn" type="button">Reset-Link senden</button>
+            <button class="btn secondary" id="forgotPwBtn" type="button">Link senden</button>
             <div id="forgotPwMsg" class="notice" style="display: none"></div>
             <div id="devResetBox" style="display: none">
               <div class="smallHint" style="margin-top: 10px">Reset-Link</div>
               <div class="tokenBox" id="devResetUrl"></div>
             </div>
             <div class="smallHint" style="margin-top: 10px">
-              Wenn die E-Mail existiert, bekommst du eine Nachricht.
+              Wenn die E-Mail zu einem Profil geh&ouml;rt, bekommst du gleich eine Nachricht.
             </div>
           </div>
 
@@ -614,6 +650,19 @@
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      if (window.stampUI && stampUI.mountBottomNav) {
+        stampUI.mountBottomNav({
+          theme: "espresso",
+          items: [
+            { label: "Cafés", href: "/customer-map?view=map" },
+            { label: "Karten", href: "/customer-wallet?view=cards" },
+            { label: "Verlauf", href: "/customer-history" },
+            { label: "Profil", href: "/customer-profile", active: true },
+          ],
+        });
+      }
+    </script>
     <script src="/customer-profile.js"></script>
   </body>
 </html>

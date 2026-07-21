@@ -2,72 +2,126 @@
   Keep overrides low-specificity so page styles can extend safely. */
 
 :root {
-  /* iOS safe-area insets (0px on non-notch devices/browsers) */
   --safe-top: env(safe-area-inset-top);
   --safe-right: env(safe-area-inset-right);
   --safe-bottom: env(safe-area-inset-bottom);
   --safe-left: env(safe-area-inset-left);
 
-  /* Holm-like: bright white canvas, charcoal ink, subtle lines */
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-muted: #f5f5f4;
+  --color-background: #f7f4ef;
+  --color-surface: #fcfaf6;
+  --color-surface-elevated: #ffffff;
+  --color-text-primary: #171513;
+  --color-text-secondary: #706860;
+  --color-text-muted: #968d85;
+  --color-border: rgba(34, 28, 24, 0.1);
+  --color-border-strong: rgba(34, 28, 24, 0.18);
+  --color-coffee: #68452f;
+  --color-coffee-dark: #422b1f;
+  --color-coffee-light: #b99174;
+  --color-sage: #aeb7a0;
+  --color-terracotta: #b76e52;
+  --color-butter: #d8bd75;
+  --color-success: #54705b;
+  --color-error: #9e4d43;
+  --color-disabled: rgba(23, 21, 19, 0.38);
 
-  --text: #111111;
-  --text-muted: #666666;
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-muted: #f2ece4;
+  --surface-elevated: color-mix(in srgb, var(--color-surface-elevated) 92%, #f4ede4 8%);
+  --text: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --border: var(--color-border);
+  --border-subtle: rgba(34, 28, 24, 0.08);
+  --shadow: rgba(30, 24, 20, 0.08);
+  --brand: var(--color-coffee);
+  --brand-700: var(--color-coffee-dark);
+  --brand-press: #36231a;
+  --brand-50: #efe5d8;
+  --on-brand: #fffdfa;
+  --danger: var(--color-error);
+  --danger-bg: rgba(183, 110, 82, 0.12);
+  --success: var(--color-success);
+  --success-bg: rgba(84, 112, 91, 0.12);
+  --info: #6c7f93;
+  --info-bg: rgba(174, 183, 160, 0.16);
 
-  --border: rgba(17, 17, 17, 0.14);
-  --shadow: rgba(0, 0, 0, 0);
+  --radius: 28px;
+  --radius-sm: 18px;
+  --radius-xs: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-card: 22px;
+  --radius-pill: 999px;
 
-  /* Brand accent: charcoal */
-  --brand: #111111;
-  --brand-700: #000000;
-  --brand-50: #f3f1ee;
-  --on-brand: #ffffff;
-
-  /* Subtle status colors (avoid purple legacy) */
-  --danger: #b42318;
-  --danger-bg: #fef3f2;
-  --success: #067647;
-  --success-bg: #ecfdf3;
-  --info: #175cd3;
-  --info-bg: #eff8ff;
-
-  /* Shared soft geometry for wallet-like product feel */
-  --radius: 30px;
-  --radius-sm: 20px;
-
-  --space-1: 6px;
-  --space-2: 10px;
-  --space-3: 14px;
-  --space-4: 18px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
 
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+    "Geist", "Inter", "Manrope", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --font-display:
-    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    "Geist", "Inter", "Manrope", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 
-  --shadow-sm: 0 10px 22px rgba(68, 41, 22, 0.06);
-  --shadow-md: 0 18px 40px rgba(68, 41, 22, 0.08);
-  --shadow-lg: 0 28px 56px rgba(68, 41, 22, 0.12);
+  --font-size-display: clamp(3rem, 10vw, 5.5rem);
+  --font-size-h1: clamp(2.5rem, 8vw, 4.5rem);
+  --font-size-h2: clamp(2rem, 6vw, 3.25rem);
+  --font-size-h3: clamp(1.5rem, 4.5vw, 2.25rem);
+  --font-size-body-large: 1.25rem;
+  --font-size-body: 1rem;
+  --font-size-small: 0.875rem;
+  --font-size-label: 0.75rem;
 
-  --focus: rgba(17, 17, 17, 0.14);
-  --coffee-ink: #6b452c;
-  --coffee-ink-soft: #8a6145;
-  --coffee-paper: #f2e6d7;
-  --coffee-paper-deep: #e9d8c3;
-  --coffee-line: rgba(107, 69, 44, 0.16);
-  --soft-button-bg: rgba(255, 255, 255, 0.56);
-  --soft-button-border: rgba(17, 17, 17, 0.1);
+  --shadow-sm: 0 1px 2px rgba(30, 24, 20, 0.03);
+  --shadow-md: 0 8px 24px rgba(30, 24, 20, 0.04);
+  --shadow-lg: 0 18px 44px rgba(30, 24, 20, 0.08);
+  --shadow-card:
+    0 1px 2px rgba(30, 24, 20, 0.03),
+    0 8px 24px rgba(30, 24, 20, 0.04);
+  --shadow-card-hover:
+    0 2px 8px rgba(30, 24, 20, 0.05),
+    0 16px 32px rgba(30, 24, 20, 0.08);
+
+  --focus: rgba(66, 43, 31, 0.14);
+  --focus-ring: rgba(104, 69, 47, 0.22);
+  --coffee-ink: var(--color-coffee);
+  --coffee-ink-soft: var(--color-coffee-light);
+  --coffee-paper: #f1e7da;
+  --coffee-paper-deep: #e8d9c6;
+  --coffee-line: rgba(104, 69, 47, 0.14);
+  --soft-button-bg: rgba(255, 253, 250, 0.72);
+  --soft-button-border: rgba(34, 28, 24, 0.1);
   --soft-button-text: var(--text);
-  --soft-button-bg-hover: rgba(255, 255, 255, 0.72);
-  --notice-surface: rgba(255, 255, 255, 0.62);
+  --soft-button-bg-hover: rgba(255, 255, 255, 0.92);
+  --notice-surface: rgba(255, 253, 249, 0.82);
+
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 300ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --color-primary: var(--brand);
+  --color-primary-hover: var(--brand-700);
+  --color-primary-pressed: var(--brand-press);
+  --color-border-subtle: var(--border-subtle);
 }
 
 /* Inverted (café) theme: same layout tokens, swapped canvas/ink */
@@ -95,6 +149,17 @@
 
 * {
   box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html,
@@ -263,10 +328,10 @@ a:hover {
     0 18px 40px rgba(68, 41, 22, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.74) inset;
   transition:
-    transform 240ms ease-out,
-    box-shadow 240ms ease-out,
-    border-color 240ms ease-out,
-    background 240ms ease-out;
+    transform var(--motion-normal) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease),
+    border-color var(--motion-normal) var(--motion-ease),
+    background var(--motion-normal) var(--motion-ease);
 }
 
 h1,
@@ -309,10 +374,10 @@ textarea {
     0 1px 0 rgba(255, 255, 255, 0.66) inset,
     0 8px 18px rgba(68, 41, 22, 0.04);
   transition:
-    border-color 220ms ease-out,
-    box-shadow 220ms ease-out,
-    background 220ms ease-out,
-    transform 220ms ease-out;
+    border-color var(--motion-normal) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease),
+    background var(--motion-normal) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
 input:focus,
@@ -327,16 +392,16 @@ button {
   background: var(--brand);
   color: var(--on-brand, #fff);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 18px;
   padding: 12px 16px;
   font-weight: 700;
   letter-spacing: 0;
   transition:
-    transform 220ms ease-out,
-    box-shadow 220ms ease-out,
-    background 220ms ease-out,
-    border-color 220ms ease-out,
-    opacity 220ms ease-out;
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease),
+    background var(--motion-normal) var(--motion-ease),
+    border-color var(--motion-normal) var(--motion-ease),
+    opacity var(--motion-normal) var(--motion-ease);
 }
 
 /* Some legacy pages still have inline purple button backgrounds.
@@ -424,16 +489,23 @@ button.ghost {
   gap: 10px;
   width: auto;
   cursor: pointer;
-  min-height: 44px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
+  min-height: 52px;
+  padding: 13px 18px;
+  border-radius: 18px;
   border: 1px solid transparent;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
   touch-action: manipulation;
   box-shadow:
-    0 10px 22px rgba(68, 41, 22, 0.08),
+    0 10px 22px rgba(68, 41, 22, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease),
+    background var(--motion-normal) var(--motion-ease),
+    border-color var(--motion-normal) var(--motion-ease),
+    color var(--motion-normal) var(--motion-ease),
+    opacity var(--motion-normal) var(--motion-ease);
 }
 
 .btn.primary {
@@ -466,11 +538,33 @@ button.btn-secondary:hover {
 button:hover,
 .btn:hover {
   transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 button:active,
 .btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
+}
+
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(107, 69, 44, 0.14);
+}
+
+button:disabled,
+.btn:disabled,
+.btn[aria-disabled="true"],
+.btn[aria-busy="true"] {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
 }
 
 /* Clean top navigation (Holm-like): text links on white */

@@ -34,12 +34,20 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      html {
+        overflow-x: hidden;
+      }
+
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
           calc(var(--space-5) + var(--safe-left, 0px));
         overflow-x: hidden;
+      }
+
+      .pageMetaSub {
+        overflow-wrap: anywhere;
       }
 
       .shell {
@@ -535,35 +543,20 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
-            <span class="topUtilityIcon"><span></span></span>
+          <button
+            class="btn secondary"
+            type="button"
+            onclick="location.href = '/cafe-logout.html'"
+          >
+            Abmelden
           </button>
         </div>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
-        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
-        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
-        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
-        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
-        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
       </div>
 
       <div class="pageMeta">
         <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
         <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
         <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
-      </div>
-
-      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
-        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </span>
-        </button>
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -588,9 +581,9 @@
             <h3>Ein guter Aufbau in 3 Schritten</h3>
             <p>
               1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
-              ist. 2. Gestalte die Karte so, dass sie in der Wallet klar und
-              hochwertig wirkt. 3. Pflege später in der Verwaltung Kampagnen,
-              Standort und Zusatzinhalte.
+              ist. 2. Gestalte die Karte so, dass sie in den Karten deiner Gäste
+              klar und hochwertig wirkt. 3. Pflege später in der Verwaltung
+              Kampagnen, Standort und Zusatzinhalte.
             </p>
           </div>
         </div>
@@ -672,7 +665,7 @@
 
             <div id="programAdvancedIntro" class="advancedOnly">
               <div class="muted" style="margin: 4px 0 14px">
-                Diese Hinweise erscheinen in der Kunden-Wallet, wenn ein Besuch
+                Diese Hinweise erscheinen in der Kundenkarte, wenn ein Besuch
                 länger her ist oder nur noch wenige Stempel bis zur Belohnung fehlen.
               </div>
             </div>
@@ -737,6 +730,22 @@
 
           <div id="sectionAbout" class="cardSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Kurzbeschreibung (max. 100 Zeichen)
+            </div>
+            <input
+              id="profileShortDescription"
+              class="profileInput"
+              type="text"
+              maxlength="100"
+              placeholder="Ein Satz, der euer Café trifft. Erscheint im Kurzprofil auf der Karte."
+            />
+            <div class="muted" style="margin-top: 6px">
+              <span id="shortDescriptionCount">0</span>/100 Zeichen · Das
+              Kurzprofil zeigt nur diesen Satz. Die ausführliche Beschreibung
+              unten erscheint im vollständigen Café-Profil.
+            </div>
+
+            <div class="muted" style="margin: 16px 0 6px; font-weight: 700">
               Über das Café
             </div>
             <textarea
@@ -855,7 +864,7 @@
               <option value="mono">Printed (Mono)</option>
             </select>
             <div class="muted" style="margin-top: 6px">
-              Das Design wird in der Kunden-Wallet automatisch verwendet und
+              Das Design wird in der Kundenkarte automatisch verwendet und
               orientiert sich eher an einer echten gedruckten Treuekarte als an einer allzu eifrigen App.
             </div>
           </div>
@@ -917,6 +926,56 @@
               es das alte.
             </div>
             <div id="galleryList" class="galleryList"></div>
+          </div>
+
+          <div id="sectionChangePassword" class="cardSection">
+            <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+              Passwort ändern
+            </div>
+            <div class="logoRow" style="align-items: flex-end; gap: 12px">
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Aktuelles Passwort
+                </div>
+                <input
+                  id="changePwCurrent"
+                  class="input"
+                  type="password"
+                  autocomplete="current-password"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Neues Passwort
+                </div>
+                <input
+                  id="changePwNew"
+                  class="input"
+                  type="password"
+                  autocomplete="new-password"
+                  style="width: 100%"
+                />
+              </div>
+              <div style="flex: 1">
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Neues Passwort bestätigen
+                </div>
+                <input
+                  id="changePwNew2"
+                  class="input"
+                  type="password"
+                  autocomplete="new-password"
+                  style="width: 100%"
+                />
+              </div>
+            </div>
+            <div class="logoRow" style="justify-content: flex-start; margin-top: 12px">
+              <button class="btn" id="changePwBtn" type="button">
+                Passwort ändern
+              </button>
+              <div class="msg" id="changePwMsg"></div>
+            </div>
           </div>
 
           <div
@@ -992,6 +1051,22 @@
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      (function () {
+        if (!window.stampUI || !stampUI.mountBottomNav) return;
+        var advanced = /[?&]view=advanced/.test(location.search);
+        var nav = stampUI.mountBottomNav({
+          theme: "cream",
+          items: [
+            { id: "utilityStartBtn", label: "Start" },
+            { id: "utilityCardBtn", label: "Karte", active: !advanced },
+            { id: "utilityDashboardBtn", label: "Dashboard" },
+            { id: "utilityAdminBtn", label: "Verwaltung", active: advanced },
+          ],
+        });
+        nav.id = "bottomTabs";
+      })();
+    </script>
     <script>
       let cafe = null;
 
@@ -1215,6 +1290,19 @@
 
         aboutEl.value =
           cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
+
+        const shortDescriptionInput = document.getElementById(
+          "profileShortDescription",
+        );
+        if (shortDescriptionInput) {
+          shortDescriptionInput.value =
+            cafeInfo && cafeInfo.shortDescription
+              ? String(cafeInfo.shortDescription)
+              : "";
+          const shortCount = document.getElementById("shortDescriptionCount");
+          if (shortCount)
+            shortCount.textContent = String(shortDescriptionInput.value.length);
+        }
 
         const aboutPreview = document.getElementById("profileAboutPreview");
         if (aboutPreview) {
@@ -1513,6 +1601,12 @@
             : "";
 
           const about = String(aboutEl.value || "").trim();
+          const shortDescriptionEl = document.getElementById(
+            "profileShortDescription",
+          );
+          const shortDescription = shortDescriptionEl
+            ? String(shortDescriptionEl.value || "").trim().slice(0, 100)
+            : "";
           const redeemMessage = redeemEl
             ? String(redeemEl.value || "").trim()
             : "";
@@ -1549,6 +1643,7 @@
             },
             body: JSON.stringify({
               about,
+              shortDescription: shortDescription || null,
               redeemMessage,
               websiteUrl: websiteUrl || null,
               instagramUrl: instagramUrl || null,
@@ -1598,6 +1693,64 @@
           localStorage.removeItem("last_scanned_customer");
         } catch (e) {}
         window.location.href = "/cafe-onboarding";
+      }
+
+      function setChangePwMsg(text) {
+        const msg = document.getElementById("changePwMsg");
+        if (msg) msg.textContent = text || "";
+      }
+
+      async function changeCafePassword() {
+        if (!cafe || !cafe.token) {
+          setChangePwMsg("Session fehlt. Bitte neu anmelden.");
+          return;
+        }
+        const currentEl = document.getElementById("changePwCurrent");
+        const newEl = document.getElementById("changePwNew");
+        const new2El = document.getElementById("changePwNew2");
+        const btn = document.getElementById("changePwBtn");
+        const currentPassword = currentEl ? String(currentEl.value || "") : "";
+        const newPassword = newEl ? String(newEl.value || "") : "";
+        const newPassword2 = new2El ? String(new2El.value || "") : "";
+
+        if (!currentPassword) {
+          setChangePwMsg("Bitte aktuelles Passwort eingeben.");
+          return;
+        }
+        if (!newPassword || newPassword.length < 6) {
+          setChangePwMsg("Neues Passwort muss mindestens 6 Zeichen haben.");
+          return;
+        }
+        if (newPassword !== newPassword2) {
+          setChangePwMsg("Neue Passwörter stimmen nicht überein.");
+          return;
+        }
+
+        setChangePwMsg("Ändere Passwort…");
+        if (btn) btn.disabled = true;
+        try {
+          await apiFetch("/cafes/me/change-password", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          if (currentEl) currentEl.value = "";
+          if (newEl) newEl.value = "";
+          if (new2El) new2El.value = "";
+          setChangePwMsg("Passwort wurde geändert.");
+        } catch (e) {
+          setChangePwMsg(
+            stampUI.userSafeErrorMessage(
+              e,
+              "Passwort konnte nicht geändert werden.",
+            ),
+          );
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       }
 
       async function deleteCafeProfile() {
@@ -1723,6 +1876,8 @@
           if (btn) btn.addEventListener("click", saveProfile);
           const deleteBtn = document.getElementById("deleteCafeBtn");
           if (deleteBtn) deleteBtn.addEventListener("click", deleteCafeProfile);
+          const changePwBtn = document.getElementById("changePwBtn");
+          if (changePwBtn) changePwBtn.addEventListener("click", changeCafePassword);
 
           const aboutEl = document.getElementById("profileAbout");
           const aboutPreview = document.getElementById("profileAboutPreview");
@@ -1731,6 +1886,20 @@
               try {
                 aboutPreview.innerHTML = formatRichText(aboutEl.value || "");
               } catch (e) {}
+            });
+          }
+
+          const shortDescriptionField = document.getElementById(
+            "profileShortDescription",
+          );
+          const shortDescriptionCounter = document.getElementById(
+            "shortDescriptionCount",
+          );
+          if (shortDescriptionField && shortDescriptionCounter) {
+            shortDescriptionField.addEventListener("input", () => {
+              shortDescriptionCounter.textContent = String(
+                shortDescriptionField.value.length,
+              );
             });
           }
 
@@ -1821,6 +1990,13 @@
           );
 
           renderProfile(overview && overview.cafe ? overview.cafe : null);
+
+          if (window.stampUI && stampUI.mountCafeTopProfile) {
+            stampUI.mountCafeTopProfile({
+              name: overview && overview.cafe ? overview.cafe.name : cafe.name,
+              logoDataUrl: overview && overview.cafe ? overview.cafe.logoDataUrl : null,
+            });
+          }
 
           await refreshGallery();
 

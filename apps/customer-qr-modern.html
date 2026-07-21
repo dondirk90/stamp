@@ -6,17 +6,17 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>Kaffeekarte - deine Wallet</title>
+    <title>Kaffeekarte - deine Karten</title>
     <meta
       name="description"
-      content="Die S&uuml;lzer Kaffeekarte f&uuml;r Lieblingscaf&eacute;s, Rewards und digitale Stempelkarten auf dem Handy."
+      content="Der digitale Ort f&uuml;r deine Lieblingscaf&eacute;s, Karten und kleine Belohnungen auf dem Handy."
     />
     <meta name="theme-color" content="#6b452c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Kaffeekarte" />
-    <meta name="application-name" content="Kaffeekarte - deine Wallet" />
+    <meta name="application-name" content="Kaffeekarte - deine Karten" />
     <link rel="manifest" href="/pwa/manifest-customer.webmanifest?v=20260713a" />
     <link rel="shortcut icon" href="/favicon.ico?v=20260713a" />
     <link
@@ -78,6 +78,31 @@
         background: var(--surface);
         padding: var(--space-4);
         box-shadow: none;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .bootBean {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 14px;
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0 10px 18px rgba(68, 41, 22, 0.14));
+        animation: bootBeanPulse 1.8s ease-in-out infinite;
+        transform-origin: center;
+      }
+
+      @keyframes bootBeanPulse {
+        0%,
+        100% {
+          transform: translateY(0) scale(0.96) rotate(-3deg);
+          opacity: 0.82;
+        }
+        50% {
+          transform: translateY(-2px) scale(1.02) rotate(0deg);
+          opacity: 1;
+        }
       }
 
       .bootTitle {
@@ -261,14 +286,14 @@
         align-items: center;
         justify-content: center;
         margin-bottom: var(--space-4);
-        padding: 14px 20px;
-        min-height: 76px;
-        border-radius: 28px;
+        padding: 10px 18px;
+        min-height: 64px;
+        border-radius: 24px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: rgba(255, 252, 248, 0.72);
         backdrop-filter: blur(18px);
         box-shadow:
-          0 18px 40px rgba(68, 41, 22, 0.08),
+          0 10px 24px rgba(68, 41, 22, 0.05),
           0 1px 0 rgba(255, 255, 255, 0.68) inset;
         position: relative;
         z-index: 1;
@@ -282,293 +307,6 @@
         min-height: 48px;
       }
 
-      .menuToggle {
-        position: absolute;
-        left: 2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        appearance: none;
-        -webkit-appearance: none;
-        border: none !important;
-        border-radius: 0 !important;
-        background: rgba(255, 251, 246, 0.9) !important;
-        background-image: none !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        box-shadow:
-          0 8px 18px rgba(68, 41, 22, 0.06),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset !important;
-        outline: none;
-        filter: none !important;
-      }
-
-      .menuToggleLines {
-        position: relative;
-        width: 20px;
-        height: 14px;
-        display: block;
-      }
-
-      .menuToggleLines::before,
-      .menuToggleLines::after,
-      .menuToggleLines span {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #b1815c;
-        transition:
-          transform 180ms ease,
-          opacity 180ms ease;
-      }
-
-      .menuToggleLines::before {
-        top: 0;
-      }
-
-      .menuToggleLines span {
-        top: 6px;
-      }
-
-      .menuToggleLines::after {
-        top: 12px;
-      }
-
-      body.menuOpen .menuToggleLines::before {
-        transform: translateY(6px) rotate(45deg);
-      }
-
-      body.menuOpen .menuToggleLines span {
-        opacity: 0;
-      }
-
-      body.menuOpen .menuToggleLines::after {
-        transform: translateY(-6px) rotate(-45deg);
-      }
-
-      .menuBackdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(24, 16, 11, 0.18);
-        backdrop-filter: blur(6px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 180ms ease;
-        z-index: 30;
-      }
-
-      .menuBackdrop.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .menuDrawer {
-        position: absolute;
-        top: 18px;
-        left: 20px;
-        width: min(320px, calc(100vw - 32px));
-        padding: 16px;
-        border-radius: 24px;
-        border: 1px solid rgba(17, 17, 17, 0.08);
-        background: rgba(255, 252, 248, 0.92);
-        backdrop-filter: blur(18px);
-        box-shadow:
-          0 24px 48px rgba(68, 41, 22, 0.16),
-          0 1px 0 rgba(255, 255, 255, 0.8) inset;
-        opacity: 0;
-        transform: translateY(-8px) scale(0.985);
-        pointer-events: none;
-        transition:
-          opacity 180ms ease,
-          transform 220ms cubic-bezier(0.2, 0.92, 0.24, 1);
-        z-index: 31;
-      }
-
-      .menuDrawer.open {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
-      }
-
-      .menuDrawerHead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .menuDrawerTitle {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(47, 32, 23, 0.72);
-      }
-
-      .topMenu {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
-      }
-
-      .topMenuBtn {
-        width: 100%;
-        min-width: 0;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 14px;
-        padding: 12px 12px;
-        cursor: pointer;
-        touch-action: manipulation;
-        color: #3b2a1f !important;
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        box-shadow: none !important;
-        opacity: 0.76;
-      }
-
-      /* Global theme styles `button.ghost` with a border; ensure drawer menu is borderless. */
-      button.topMenuBtn.ghost {
-        border: none !important;
-      }
-
-      .topMenuBtn .ico {
-        display: inline-flex;
-        width: 24px;
-        align-items: center;
-        justify-content: center;
-        color: rgba(47, 32, 23, 0.5);
-      }
-
-      .topMenuBtn .lbl {
-        display: block;
-        text-align: left;
-        font-size: inherit;
-        font-weight: inherit;
-        margin: 0;
-        color: var(--text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .topMenuBtn.active {
-        background: rgba(107, 69, 44, 0.08) !important;
-        opacity: 1;
-      }
-
-      .topMenuBtn.active .lbl {
-        color: #241710;
-      }
-
-      .topMenuBtn.active .ico {
-        color: #6b452c;
-      }
-
-      .topMenuBtnContent {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .bottomTabs {
-        display: none;
-      }
-
-      .bottomTabBtn {
-        flex: 1 1 0;
-        min-width: 0;
-        min-height: 56px;
-        border: none !important;
-        border-radius: 16px;
-        background: transparent !important;
-        color: rgba(47, 32, 23, 0.72) !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 8px;
-        box-shadow: none !important;
-      }
-
-      .bottomTabBtn .topMenuBtnContent {
-        width: 100%;
-        justify-content: center;
-        gap: 6px;
-      }
-
-      .bottomTabBtn .lbl {
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        text-align: center;
-      }
-
-      .bottomTabBtn .ico {
-        width: auto;
-      }
-
-      .bottomTabBtn.walletHeroBtn {
-        position: relative;
-        flex: 0 0 auto;
-        width: auto;
-        min-width: 188px;
-        min-height: 64px;
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: -18px;
-        border-radius: 20px;
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98)) !important;
-        color: #fffaf5 !important;
-        box-shadow:
-          0 18px 30px rgba(68, 41, 22, 0.24),
-          0 1px 0 rgba(255, 255, 255, 0.16) inset;
-      }
-
-      .bottomTabBtn.walletHeroBtn .topMenuBtnContent {
-        gap: 8px;
-      }
-
-      .bottomTabBtn.walletHeroBtn .ico,
-      .bottomTabBtn.walletHeroBtn .lbl {
-        color: inherit;
-      }
-
-      .bottomTabBtn.walletHeroBtn .lbl {
-        font-size: 12px;
-        letter-spacing: 0.04em;
-        text-transform: none;
-      }
-
-      .bottomTabBtn.active {
-        background: rgba(107, 69, 44, 0.1) !important;
-        color: #241710 !important;
-        opacity: 1;
-      }
-
-      .bottomTabBtn.walletHeroBtn.active {
-        background:
-          linear-gradient(180deg, rgba(109, 78, 50, 1), rgba(72, 47, 30, 1)) !important;
-        color: #fffaf5 !important;
-      }
-
-      .menuToggle,
-      .menuBackdrop,
-      .menuDrawer {
-        display: none !important;
-      }
 
       .brand {
         display: flex;
@@ -606,58 +344,79 @@
       }
 
       .topbar .kk-brandWord {
-        font-size: 28px;
+        font-size: 24px;
         line-height: 1;
         letter-spacing: -0.04em;
         color: #241710;
       }
 
-      .topUtilityBtn {
-        min-height: 44px;
-        min-width: 44px;
+      .topProfileBtn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
         padding: 0;
-        border: 1px solid rgba(81, 58, 40, 0.08) !important;
-        border-radius: 16px;
+        border: 1px solid rgba(81, 58, 40, 0.1) !important;
+        border-radius: 18px;
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 238, 228, 0.96)) !important;
-        color: #93684a !important;
+        color: #6b452c !important;
         box-shadow:
           0 12px 22px rgba(68, 41, 22, 0.08),
           0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
       }
 
-      .topUtilityIcon {
-        position: relative;
-        width: 18px;
-        height: 14px;
-        display: block;
+      /* Zentraler, hervorgehobener Nav-Button (Kartenstapel) - ragt wie ein
+         FAB ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen. */
+      .kk-tab--featured {
+        min-height: 58px !important;
+        padding: 0 26px !important;
+        font-size: 14px !important;
+        transform: translateY(-8px);
+        background:
+          linear-gradient(180deg, #fffaf3, #f5ecdf) !important;
+        color: #241710 !important;
+        box-shadow:
+          0 14px 26px rgba(20, 10, 4, 0.32),
+          0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
       }
 
-      .topUtilityIcon::before,
-      .topUtilityIcon::after,
-      .topUtilityIcon span {
-        content: "";
-        position: absolute;
-        left: 0;
+      .kk-tab--featured:hover {
+        color: #241710 !important;
+      }
+
+      .topProfileAvatar {
         width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #b1815c;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        border-radius: inherit;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 55%),
+          linear-gradient(180deg, rgba(240, 228, 212, 0.98), rgba(226, 205, 185, 0.96));
       }
 
-      .topUtilityIcon::before {
-        top: 0;
+      .topProfileAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
       }
 
-      .topUtilityIcon span {
-        top: 6px;
-      }
-
-      .topUtilityIcon::after {
-        top: 12px;
+      .topProfileFallback {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        color: #6b452c;
       }
 
       .utilityMenu {
@@ -673,7 +432,7 @@
         box-shadow:
           0 20px 42px rgba(47, 31, 22, 0.16),
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
-        display: none;
+        display: none !important;
         z-index: 72;
       }
 
@@ -712,11 +471,6 @@
       @media (max-width: 420px) {
         .brandHead {
           gap: 10px;
-        }
-
-        .menuDrawer {
-          width: min(300px, calc(100vw - 24px));
-          left: 12px;
         }
       }
 
@@ -782,31 +536,6 @@
           display: none;
         }
 
-        .bottomTabs {
-          position: fixed;
-          left: calc(10px + var(--safe-left, 0px));
-          right: calc(10px + var(--safe-right, 0px));
-          bottom: calc(10px + var(--safe-bottom, 0px));
-          display: flex;
-          align-items: stretch;
-          justify-content: center;
-          gap: 0;
-          padding: 0;
-          border-radius: 0;
-          border: none;
-          background: transparent;
-          backdrop-filter: none;
-          box-shadow: none;
-          z-index: 28;
-          pointer-events: none;
-        }
-
-        .bottomTabBtn.walletHeroBtn {
-          margin-top: -24px;
-          min-height: 70px;
-          pointer-events: auto;
-        }
-
         .topbar .kk-brandMark {
           width: 44px;
           height: 44px;
@@ -816,10 +545,12 @@
           font-size: 24px;
         }
 
-        .topUtilityBtn {
-          min-height: 34px;
-          min-width: 34px;
-          font-size: 20px;
+        .topProfileBtn {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
+          border-radius: 16px;
         }
 
         .grid {
@@ -1131,9 +862,10 @@
 
       .authTitle {
         margin: 0;
-        font-size: 26px;
-        line-height: 1.02;
-        letter-spacing: -0.04em;
+        font-family: var(--font-serif);
+        font-size: 30px;
+        line-height: 1.04;
+        letter-spacing: -0.035em;
       }
 
       .authLead {
@@ -1437,7 +1169,7 @@
 
       .stampGrid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(28px, 36px));
         gap: 12px;
         padding: 0;
         border-radius: 0;
@@ -1504,6 +1236,14 @@
         padding: 0;
         border-radius: 0;
         gap: 12px 14px;
+      }
+
+      .passCard .stampGrid.stampGridTen,
+      .face .stampGrid.stampGridTen,
+      .passCard .stampGrid.stampGridFive,
+      .face .stampGrid.stampGridFive {
+        grid-template-columns: repeat(5, minmax(0, 36px));
+        justify-content: center;
       }
 
       /* Wallet pass: simple empty circles; filled stamps get an ink mark */
@@ -1779,6 +1519,8 @@
           transform var(--motion-fast) var(--motion-ease),
           box-shadow var(--motion-normal) var(--motion-ease),
           border-color var(--motion-normal) var(--motion-ease);
+        cursor: pointer;
+        touch-action: manipulation;
       }
 
       .cafePin.isActive {
@@ -1800,6 +1542,7 @@
         border-left: 9px solid transparent;
         border-right: 9px solid transparent;
         border-top: 10px solid rgba(107, 69, 44, 0.82);
+        pointer-events: none;
       }
 
       .cafePin::before {
@@ -1813,6 +1556,7 @@
         border-left: 8px solid transparent;
         border-right: 8px solid transparent;
         border-top: 9px solid rgba(252, 247, 241, 0.98);
+        pointer-events: none;
       }
 
       .cafePinImg {
@@ -1823,6 +1567,7 @@
         display: block;
         filter: none;
         border-radius: 999px;
+        pointer-events: auto;
       }
 
       .cafePinLetter {
@@ -1832,6 +1577,7 @@
         text-transform: uppercase;
         color: var(--text);
         user-select: none;
+        pointer-events: auto;
       }
 
       /* Customer popup (toast) for incoming stamps/redeems */
@@ -1932,11 +1678,11 @@
       }
 
       #welcomePanel {
-        width: min(560px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
+        width: min(1080px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
         margin: auto;
         display: grid;
         gap: 20px;
-        padding: 72px 24px 108px;
+        padding: 56px 24px 108px;
         min-height: 0;
         background: transparent;
         border: none;
@@ -1946,10 +1692,24 @@
         justify-items: start;
       }
 
+      .welcomeHero {
+        width: 100%;
+        display: grid;
+        gap: 18px;
+        align-items: start;
+      }
+
       .welcomeIntro {
         display: grid;
         gap: 10px;
         max-width: 30ch;
+      }
+
+      @media (min-width: 900px) {
+        .welcomeHero {
+          grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+          gap: 28px;
+        }
       }
 
       .welcomeProfileRow {
@@ -1982,15 +1742,11 @@
       }
 
       .welcomeAvatarFallback {
-        font-size: 16px;
-        font-weight: 900;
-        color: #7a5236;
-      }
-
-      .welcomePrimaryAction {
-        width: auto;
-        min-width: 168px;
-        margin: 0;
+        width: 24px;
+        height: 24px;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.9;
+        color: transparent;
       }
 
       .welcomeKicker {
@@ -2002,46 +1758,16 @@
       }
 
       .welcomeLeadText {
-        color: rgba(59, 42, 31, 0.8);
-        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.9);
+        line-height: 1.45;
         font-size: 16px;
         letter-spacing: -0.01em;
         max-width: 30ch;
       }
 
-      .welcomeSummary {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-        width: 100%;
-        max-width: none;
-      }
-
-      .welcomeStat {
-        display: grid;
-        gap: 4px;
-        padding: 12px 0 0;
-        border-top: 1px solid rgba(17, 17, 17, 0.08);
-      }
-
-      .welcomeStatValue {
-        font-size: 20px;
-        font-weight: 950;
-        letter-spacing: -0.04em;
-        color: var(--text);
-      }
-
-      .welcomeStatLabel {
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.56);
-      }
-
       .welcomeDeck {
         display: grid;
-        gap: 14px;
+        gap: 18px;
         width: 100%;
       }
 
@@ -2061,31 +1787,140 @@
         color: rgba(59, 42, 31, 0.62);
       }
 
-      .welcomeCardsList {
-        display: grid;
-        gap: 12px;
-        width: 100%;
+      .welcomeSectionMeta {
+        font-size: 14px;
+        font-weight: 700;
+        color: rgba(59, 42, 31, 0.72);
       }
 
-      .welcomeOverviewCard {
+      .welcomeSectionLink {
+        appearance: none;
+        border: none;
+        background: transparent;
+        padding: 0;
+        color: #6b452c;
+        font-size: 14px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .welcomeSectionLink:hover,
+      .welcomeSectionLink:focus-visible {
+        color: #241710;
+      }
+
+      .welcomeCardsList {
         display: grid;
         gap: 18px;
         width: 100%;
-        padding: 18px 18px 20px;
-        border-radius: 28px;
+      }
+
+      .welcomeCardsRail {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(240px, 290px);
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .welcomeCardsRail::-webkit-scrollbar {
+        display: none;
+      }
+
+      .welcomeCardsRail > * {
+        scroll-snap-align: start;
+      }
+
+      .welcomeOverviewCard,
+      .welcomeHeroCard {
+        display: grid;
+        gap: 14px;
+        width: 100%;
+        padding: 22px 22px 24px;
+        border-radius: 26px;
         border: 1px solid rgba(81, 58, 40, 0.12);
         background:
           linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(249, 241, 231, 0.96));
         box-shadow:
-          0 18px 38px rgba(47, 31, 22, 0.08),
+          0 16px 34px rgba(47, 31, 22, 0.08),
           0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .welcomeHeroCard {
+        gap: 18px;
+        align-self: start;
+        min-height: 100%;
+      }
+
+      .welcomeHeroCard .welcomePreviewLogo {
+        width: 80px;
+        height: 80px;
+      }
+
+      .welcomeHeroCard .welcomePreviewTitle {
+        font-size: 28px;
+        line-height: 1.04;
+      }
+
+      .welcomePreviewDistrict {
+        font-size: 14px;
+        font-weight: 700;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .welcomeHeroCard .welcomePreviewStampRow {
+        gap: 8px;
+      }
+
+      .welcomeHeroCard .welcomePreviewStamp {
+        min-height: 18px;
+        background-image: url("/assets/stamp-bean.png?v=1");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        border: none;
+        background-color: transparent;
+        box-shadow: none;
+        opacity: 0.22;
+        filter: saturate(0.7);
+      }
+
+      .welcomeHeroCard .welcomePreviewStamp.filled {
+        opacity: 1;
+        filter: none;
+      }
+
+      .welcomeHeroCard .welcomePreviewFooter {
+        align-items: flex-end;
+      }
+
+      .welcomeHeroCard .welcomePreviewHint {
+        font-size: 16px;
+        line-height: 1.45;
+        color: rgba(59, 42, 31, 0.88);
+      }
+
+      .welcomeHeroCard .welcomePreviewBtn {
+        min-width: 128px;
+      }
+
+      .welcomeHeroLinks {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
       }
 
       .welcomeOverviewHead {
         display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 14px;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
       }
 
       .welcomeOverviewTitle {
@@ -2096,24 +1931,24 @@
       }
 
       .welcomeOverviewMeta {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: rgba(59, 42, 31, 0.58);
       }
 
       .welcomeCafeRows {
         display: grid;
-        gap: 8px;
+        gap: 0;
       }
 
       .welcomeCafeRow {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 14px;
-        align-items: center;
-        padding: 14px 0;
+        align-items: start;
+        padding: 16px 0;
         border-top: 1px solid rgba(17, 17, 17, 0.08);
       }
 
@@ -2123,8 +1958,8 @@
       }
 
       .welcomeCafeLogo {
-        width: 68px;
-        height: 68px;
+        width: 58px;
+        height: 58px;
         border-radius: 999px;
         border: 1px solid rgba(81, 58, 40, 0.1);
         background: rgba(255, 255, 255, 0.92);
@@ -2138,34 +1973,39 @@
           0 1px 0 rgba(255, 255, 255, 0.8) inset;
       }
 
+      .welcomeCafeLogo {
+        overflow: hidden;
+      }
+
       .welcomeCafeLogo img,
       .welcomeCafeLogo .passLogoInitial {
         width: 100%;
         height: 100%;
+        border-radius: 999px;
+        object-fit: cover;
       }
 
       .welcomeCafeMeta {
         display: grid;
-        gap: 6px;
+        gap: 4px;
         min-width: 0;
       }
 
       .welcomeCafeName {
-        font-size: 19px;
+        font-size: 17px;
         font-weight: 900;
         letter-spacing: -0.03em;
         color: #241710;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        line-height: 1.15;
+        white-space: normal;
       }
 
       .welcomeCafeCount {
         font-size: 12px;
         font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.6);
+        letter-spacing: 0;
+        text-transform: none;
+        color: rgba(59, 42, 31, 0.72);
       }
 
       .welcomeCafeStampRow {
@@ -2176,58 +2016,75 @@
       }
 
       .welcomeCafeStamp {
-        width: 12px;
-        height: 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(81, 58, 40, 0.16);
-        background: rgba(255, 255, 255, 0.7);
-        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+        width: 13px;
+        height: 13px;
+        background-image: url("/assets/stamp-bean.png?v=1");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        opacity: 0.2;
+        filter: saturate(0.72);
       }
 
       .welcomeCafeStamp.filled {
-        border-color: rgba(96, 65, 43, 0.48);
-        background:
-          radial-gradient(circle at 35% 35%, rgba(245, 215, 175, 0.95), rgba(150, 98, 58, 0.96));
+        opacity: 0.94;
+        filter: none;
       }
 
       .welcomeCafeActions {
-        display: grid;
-        gap: 8px;
-        justify-items: end;
-        align-self: start;
-        grid-column: 3;
-        grid-row: 1;
-        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .welcomeCafeAction {
-        min-width: 126px;
+        min-height: 38px;
         width: auto;
-        padding: 10px 14px;
-        justify-self: end;
+        padding: 0 14px;
         margin-top: 0;
-        white-space: normal;
-        text-align: center;
+      }
+
+      .welcomeCafeActionLink,
+      button.welcomeCafeActionLink.ghost {
+        appearance: none;
+        border: none !important;
+        background: transparent !important;
+        padding: 0;
+        margin: 0;
+        color: rgba(59, 42, 31, 0.78) !important;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-color: rgba(81, 58, 40, 0.3);
+        box-shadow: none !important;
+        cursor: pointer;
+      }
+
+      .welcomeCafeActionLink:hover,
+      .welcomeCafeActionLink:focus-visible,
+      button.welcomeCafeActionLink.ghost:hover,
+      button.welcomeCafeActionLink.ghost:focus-visible {
+        color: #241710 !important;
+        text-decoration-color: rgba(81, 58, 40, 0.6);
       }
 
       @media (max-width: 720px) {
         .welcomeCafeRow {
           grid-template-columns: auto minmax(0, 1fr);
-          align-items: start;
-        }
-
-        .welcomeCafeActions {
-          grid-column: 2;
-          grid-row: auto;
-          width: 100%;
-          justify-items: stretch;
-          margin-top: 4px;
-          padding-left: 0;
         }
 
         .welcomeCafeAction {
-          width: 100%;
-          justify-self: stretch;
+          min-height: 36px;
+          padding: 0 12px;
+        }
+
+        .welcomeHeroCard .welcomePreviewFooter {
+          flex-direction: column;
+          align-items: stretch;
         }
       }
 
@@ -2239,6 +2096,18 @@
         background: rgba(255, 251, 246, 0.78);
         color: rgba(59, 42, 31, 0.76);
         line-height: 1.55;
+      }
+
+      .welcomeEmptyState::before,
+      .walletEmptyLead::before {
+        content: "";
+        width: 34px;
+        height: 34px;
+        display: inline-block;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.88;
+        filter: drop-shadow(0 8px 16px rgba(68, 41, 22, 0.12));
+        flex: 0 0 auto;
       }
 
       .welcomePreviewCard {
@@ -2305,10 +2174,16 @@
           0 1px 0 rgba(255, 255, 255, 0.8) inset;
       }
 
+      .welcomePreviewLogo {
+        overflow: hidden;
+      }
+
       .welcomePreviewLogo img,
       .welcomePreviewLogo .passLogoInitial {
         width: 100%;
         height: 100%;
+        border-radius: 999px;
+        object-fit: cover;
       }
 
       .welcomePreviewMeta {
@@ -2420,10 +2295,7 @@
       }
 
       .welcomeNextHint {
-        max-width: 36ch;
-        font-size: 14px;
-        line-height: 1.55;
-        color: rgba(59, 42, 31, 0.68);
+        display: none;
       }
 
       .mapHero {
@@ -3021,7 +2893,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: 22px 24px 28px;
+        padding: 16px 24px 18px;
         min-height: 44px;
         cursor: pointer;
         touch-action: pan-x;
@@ -3030,32 +2902,67 @@
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 10px;
         isolation: isolate;
       }
 
       .passMain::before {
-        content: none;
+        content: "";
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        width: 104px;
+        height: 104px;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.06;
+        filter: saturate(0.9);
+        pointer-events: none;
+        z-index: 0;
       }
 
       .passHead {
         display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 0;
+        text-align: left;
+      }
+
+      .passStarBtn {
+        margin-left: auto;
+        flex: 0 0 auto;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0;
-        text-align: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: 20px;
+        line-height: 1;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.55;
+        cursor: pointer;
+      }
+
+      .passStarBtn[aria-pressed="true"] {
+        opacity: 1;
+        color: #c8912a;
       }
 
       .passBrandLockup {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        align-items: flex-start;
+        justify-content: flex-start;
         gap: 14px;
         min-width: 0;
       }
 
       .passTitleBlock {
         min-width: 0;
+        display: grid;
+        gap: 6px;
       }
 
       .passLogoWrap {
@@ -3069,16 +2976,17 @@
         justify-content: center;
         padding: 6px;
         flex: 0 0 auto;
+        overflow: hidden;
         box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
       }
 
       .passLogo {
         width: 100%;
         height: 100%;
-        border-radius: 0;
+        border-radius: 999px;
         border: none;
         background: transparent;
-        object-fit: contain;
+        object-fit: cover;
         object-position: center;
       }
 
@@ -3135,43 +3043,53 @@
 
       .passTitle {
         margin: 0;
-        font-size: 24px;
-        font-weight: 600;
+        font-size: 26px;
+        font-weight: 700;
         color: var(--pass-ink, var(--brand-700));
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        line-height: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        letter-spacing: -0.03em;
+        line-height: 1.04;
         max-width: 100%;
-        font-family: var(--font-display);
+        font-family: var(--font-serif);
+        text-transform: none;
+        white-space: normal;
+        text-wrap: balance;
       }
 
       .passSub {
-        margin-top: 6px;
-        font-size: 11px;
-        font-weight: 800;
+        margin-top: 0;
+        font-size: 12px;
+        font-weight: 700;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.62;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
+        opacity: 0.68;
+        letter-spacing: 0.04em;
+        text-transform: none;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
         max-width: 100%;
-        font-family: var(--font-mono);
+        white-space: normal;
+        line-height: 1.35;
       }
 
       .passEyebrow {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0;
-        margin-bottom: 14px;
-        font-size: 11px;
+        gap: 8px;
+        margin-bottom: 12px;
+        width: fit-content;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--pass-border, var(--border)) 72%,
+            rgba(255, 255, 255, 0.22) 28%
+          );
+        background: rgba(255, 252, 248, 0.56);
+        font-size: 10px;
         font-weight: 800;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.78;
@@ -3179,19 +3097,51 @@
       }
 
       .passEyebrow::before {
-        content: none;
+        content: "";
+        width: 12px;
+        height: 12px;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.9;
+        flex: 0 0 auto;
       }
 
       .passHint {
-        display: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--pass-border, var(--border)) 70%,
+            rgba(255, 255, 255, 0.24) 30%
+          );
+        background: rgba(255, 252, 248, 0.72);
+        color: var(--pass-ink, var(--brand-700));
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(41, 29, 21, 0.06);
       }
 
       .passStampField {
         position: relative;
-        width: min(100%, 392px);
+        width: min(100%, 404px);
         margin: 0 auto;
-        padding: 12px 44px 10px 0;
-        background: transparent;
+        padding: 14px;
+        border-radius: 22px;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--pass-border, var(--border)) 74%,
+            rgba(255, 255, 255, 0.18) 26%
+          );
+        background: rgba(255, 252, 248, 0.44);
+        box-shadow: 0 10px 24px rgba(41, 29, 21, 0.04);
       }
 
       .passStampGuide {
@@ -3228,18 +3178,23 @@
 
       .passRewardNote {
         position: absolute;
-        right: 0;
-        bottom: 8px;
-        width: 46px;
-        text-align: left;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        max-width: 64px;
+        text-align: center;
         font-family: var(--font-mono);
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
         line-height: 1.15;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.78;
+        padding: 6px 7px 5px;
+        border-radius: 14px;
+        background: rgba(255, 252, 248, 0.78);
+        border: 1px solid rgba(81, 58, 40, 0.12);
       }
 
       .passInfoBlock {
@@ -3250,12 +3205,13 @@
       }
 
       .passCardNote {
-        font-size: 11px;
-        line-height: 1.45;
+        font-size: 12px;
+        line-height: 1.55;
         color: var(--pass-ink, var(--brand-700));
-        opacity: 0.72;
+        opacity: 0.76;
         white-space: pre-wrap;
         text-align: left;
+        max-width: 34ch;
       }
 
       .passLinkRow {
@@ -3292,11 +3248,11 @@
 
       .passMetaRow {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 12px;
-        padding-top: 2px;
+        padding-top: 6px;
       }
 
       .passProgressText {
@@ -3311,13 +3267,25 @@
       }
 
       .passProgressText strong {
-        display: block;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         font-size: 13px;
         font-weight: 900;
         color: var(--pass-ink, var(--brand-700));
         opacity: 1;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+      }
+
+      .passProgressText strong::before {
+        content: "";
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
+        opacity: 0.96;
+        flex: 0 0 auto;
       }
 
       .passRewardChip {
@@ -3362,13 +3330,11 @@
         align-items: flex-end;
         justify-content: space-between;
         gap: 12px;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.72;
-        font-family: var(--font-mono);
       }
 
       .passFooterMeta {
@@ -3386,6 +3352,7 @@
       .passSerial {
         overflow: hidden;
         text-overflow: ellipsis;
+        font-weight: 800;
       }
 
       .passFooterVisit {
@@ -3469,17 +3436,6 @@
         word-break: break-word;
       }
 
-      .passBackAddr {
-        margin-top: 4px;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--pass-ink, var(--brand-700));
-        opacity: 0.72;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: initial;
-        word-break: break-word;
-      }
 
       .passBackText {
         font-size: 11px;
@@ -3551,7 +3507,8 @@
         }
 
         .passTitle {
-          font-size: 17px;
+          font-size: 18px;
+          line-height: 1.06;
         }
 
         .passEyebrow {
@@ -3562,12 +3519,12 @@
         .passSub {
           margin-top: 4px;
           font-size: 10px;
-          letter-spacing: 0.18em;
+          letter-spacing: 0.03em;
         }
 
         .passStampField {
           width: min(100%, 304px);
-          padding: 8px 32px 8px 0;
+          padding: 10px;
         }
 
         .passStampGuide {
@@ -3583,13 +3540,17 @@
 
         .passRewardNote {
           bottom: 6px;
-          width: 28px;
+          right: 6px;
+          max-width: 42px;
           font-size: 9px;
           line-height: 1.05;
+          padding: 5px 6px 4px;
         }
 
         .passHint {
           margin-top: 6px;
+          min-height: 34px;
+          padding: 0 12px;
         }
 
         .passCard .stampGrid {
@@ -3598,18 +3559,22 @@
           border-radius: 0;
         }
 
+        .passCard .stampGrid.stampGridTen,
+        .face .stampGrid.stampGridTen,
+        .passCard .stampGrid.stampGridFive,
+        .face .stampGrid.stampGridFive {
+          grid-template-columns: repeat(5, minmax(0, 32px));
+          justify-content: center;
+        }
+
         .passCard .stamp {
           border-radius: 999px;
         }
 
         .passFooter {
           padding-top: 8px;
-          font-size: 8px;
-          letter-spacing: 0.1em;
-        }
-
-        .passCountLine {
-          font-size: 8px;
+          font-size: 10px;
+          letter-spacing: 0.02em;
         }
 
         .passQrBox {
@@ -3685,7 +3650,8 @@
         }
 
         .passTitle {
-          font-size: 16px;
+          font-size: 17px;
+          line-height: 1.08;
         }
 
         .passEyebrow {
@@ -3696,12 +3662,12 @@
         .passSub {
           margin-top: 3px;
           font-size: 10px;
-          letter-spacing: 0.16em;
+          letter-spacing: 0.03em;
         }
 
         .passStampField {
           width: min(100%, 292px);
-          padding: 8px 30px 8px 0;
+          padding: 9px 10px;
         }
 
         .passStampGuide {
@@ -3717,14 +3683,18 @@
 
         .passRewardNote {
           bottom: 6px;
-          width: 26px;
+          right: 6px;
+          max-width: 40px;
           font-size: 8px;
           line-height: 1.05;
+          padding: 4px 5px 4px;
         }
 
         .passHint {
           margin-top: 6px;
           font-size: 11px;
+          min-height: 32px;
+          padding: 0 10px;
         }
 
         .passCard .stampGrid {
@@ -3742,12 +3712,8 @@
           gap: 6px;
           padding-top: 9px;
           padding-bottom: 2px;
-          font-size: 8px;
-          letter-spacing: 0.09em;
-        }
-
-        .passCountLine {
-          font-size: 8px;
+          font-size: 10px;
+          letter-spacing: 0.02em;
         }
 
         .passBackText,
@@ -4109,26 +4075,6 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
 
-      .modalGallery {
-        display: none;
-        gap: 10px;
-        overflow-x: auto;
-        padding-top: 14px;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .modalThumb {
-        width: 92px;
-        height: 64px;
-        border-radius: 16px;
-        border: 1px solid rgba(132, 102, 74, 0.14);
-        background: rgba(255, 252, 247, 0.85);
-        object-fit: cover;
-        flex: 0 0 auto;
-        cursor: pointer;
-        box-shadow: 0 8px 18px rgba(66, 44, 28, 0.08);
-      }
-
       .modalImage img {
         width: 100%;
         height: 228px;
@@ -4159,6 +4105,11 @@
         line-height: 1.6;
         color: rgba(56, 39, 26, 0.88);
         white-space: pre-line;
+        /* Kurzprofil zeigt nur einen Teaser; die ganze Story lebt im Vollprofil. */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
       .rt-h1 {
@@ -4189,62 +4140,6 @@
         gap: 10px;
       }
 
-      .modalLinkRow {
-        display: none;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .modalLinkPill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 0 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(128, 98, 70, 0.16);
-        background: rgba(255, 252, 247, 0.9);
-        color: rgba(92, 68, 48, 0.9);
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 800;
-        box-shadow: 0 8px 16px rgba(69, 45, 29, 0.05);
-      }
-
-      .modalLinkPill:hover {
-        background: rgba(255, 252, 247, 0.98);
-      }
-
-      .modalExtraDetails {
-        display: none;
-        gap: 10px;
-        padding: 14px 16px;
-        border-radius: 22px;
-        border: 1px solid rgba(128, 98, 70, 0.12);
-        background: rgba(255, 252, 247, 0.78);
-      }
-
-      .modalDetailRow {
-        display: grid;
-        gap: 3px;
-      }
-
-      .modalDetailLabel {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(92, 68, 48, 0.62);
-      }
-
-      .modalDetailValue,
-      .modalDetailValue a {
-        color: rgba(43, 28, 19, 0.9);
-        font-size: 14px;
-        line-height: 1.5;
-        text-decoration: none;
-      }
-
       .modalActions button,
       .modalInfoActions button {
         min-width: 0;
@@ -4267,7 +4162,7 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 220ms ease;
-        z-index: 60;
+        z-index: 200;
       }
 
       .qrSheetBackdrop.open {
@@ -4292,13 +4187,19 @@
         transition:
           transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
           opacity 220ms ease;
-        z-index: 61;
+        z-index: 201;
       }
 
       .qrSheet.open {
         transform: translate(-50%, 0);
         opacity: 1;
         pointer-events: auto;
+      }
+
+      body.qrSheetOpen .topbar,
+      body.qrSheetOpen .topbar .row,
+      body.qrSheetOpen .topbar .brand {
+        pointer-events: none;
       }
 
       .qrSheetInner {
@@ -4541,7 +4442,7 @@
       }
 
       .walletOverlay .walletDockHead::before {
-        content: "Wallet";
+        content: "Karten";
         display: block;
         font-size: 10px;
         font-weight: 900;
@@ -4589,6 +4490,9 @@
       }
 
       .walletEmptyLead {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         font-size: 15px;
         font-weight: 900;
         letter-spacing: -0.02em;
@@ -4943,8 +4847,7 @@
         }
 
         .modalMetaPill,
-        .modalStatusPill,
-        .modalLinkPill {
+        .modalStatusPill {
           width: 100%;
           white-space: normal;
           text-align: center;
@@ -4960,6 +4863,12 @@
   <body>
     <div id="bootOverlay" class="bootOverlay" role="status" aria-live="polite">
       <div class="bootCard">
+        <img
+          class="bootBean"
+          src="/assets/stamp-bean.png?v=1"
+          alt=""
+          aria-hidden="true"
+        />
         <div class="bootTitle">Lade&hellip;</div>
         <div class="bootSub" id="bootSub">Initialisiere App&hellip;</div>
         <pre class="bootDiag" id="bootDiag" style="display: none"></pre>
@@ -4999,16 +4908,6 @@
       <div class="topbar">
         <div class="brand">
           <div class="brandHead">
-            <button
-              class="menuToggle"
-              id="menuToggle"
-              type="button"
-              aria-label="Men&uuml; &ouml;ffnen"
-              aria-expanded="false"
-              aria-controls="menuDrawer"
-            >
-              <span class="menuToggleLines"><span></span></span>
-            </button>
             <a class="kk-brand" href="/wallet">
               <span class="kk-brandMark" aria-hidden="true">
                 <img src="/assets/stamp-bean.png?v=1" alt="" />
@@ -5024,80 +4923,18 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" id="topUtilityBtn" type="button" aria-label="Men&uuml;">
-            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
-          </button>
-        </div>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Men&uuml;">
-        <button class="utilityMenuBtn" id="utilityMapBtn" type="button">Caf&eacute;s</button>
-        <button class="utilityMenuBtn" id="utilityHistoryBtn" type="button">Verlauf</button>
-        <button class="utilityMenuBtn" id="utilityAccountBtn" type="button">Konto</button>
-        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Logout</button>
-      </div>
-
-      <div class="menuBackdrop" id="menuBackdrop" aria-hidden="true"></div>
-      <div class="menuDrawer" id="menuDrawer" aria-label="Navigation">
-        <div class="menuDrawerHead">
-          <div class="menuDrawerTitle">Kaffeekarte</div>
-        </div>
-        <div class="stack" style="gap: 10px; margin-bottom: 12px">
-          <button class="btn secondary" id="sessionBadge" type="button">
-            Anmelden
-          </button>
           <button
-            class="btn secondary"
-            id="logoutBtn"
-            style="display: none"
+            class="topProfileBtn"
+            id="topProfileBtn"
             type="button"
+            aria-label="Profil &ouml;ffnen"
           >
-            Logout
-          </button>
-        </div>
-        <div class="topMenu" aria-label="Navigation">
-          <button class="topMenuBtn ghost active" id="mainModeMap" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">C</span>
-              <span class="lbl">Caf&eacute;s</span>
-            </span>
-          </button>
-          <button
-            class="topMenuBtn ghost"
-            id="mainModeWallet"
-            type="button"
-          >
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">W</span>
-              <span class="lbl">Karten</span>
-            </span>
-          </button>
-          <button class="topMenuBtn ghost" id="mainModeHistory" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">V</span>
-              <span class="lbl">Verlauf</span>
-            </span>
-          </button>
-          <button class="topMenuBtn ghost" id="mainModeAccount" type="button">
-            <span class="topMenuBtnContent">
-              <span class="ico" aria-hidden="true">K</span>
-              <span class="lbl">Konto</span>
+            <span class="topProfileAvatar" aria-hidden="true">
+              <img id="topProfileImg" alt="" />
+              <span class="topProfileFallback" id="topProfileFallback">P</span>
             </span>
           </button>
         </div>
-      </div>
-
-      <div class="bottomTabs" aria-label="Hauptnavigation">
-        <button
-          class="bottomTabBtn ghost walletHeroBtn"
-          id="bottomModeWallet"
-          type="button"
-        >
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">&#9749;</span>
-            <span class="lbl">Karten &ouml;ffnen</span>
-          </span>
-        </button>
       </div>
 
       <div class="grid" id="layoutGrid">
@@ -5112,8 +4949,8 @@
 
           <div class="stack panelBody">
             <div class="authIntro">
-              <div class="authEyebrow">S&uuml;lzer Kaffeekarte</div>
-                <h3 class="authTitle" id="authIntroTitle">Deine Lieblingscaf&eacute;s an einem Ort.</h3>
+              <div class="authEyebrow">Kaffee im Veedel</div>
+                <h3 class="authTitle" id="authIntroTitle">Good coffee deserves better loyalty.</h3>
               <p class="authLead" id="authIntroLead">
                 Melde dich an und behalte Stempel, Rewards und deine n&auml;chsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
@@ -5137,7 +4974,7 @@
                 <div class="authPerk">
                   <div class="authPerkNo">3</div>
                   <div class="authPerkText">
-                    <strong>Schnell im Caf&eacute;:</strong> Karten &ouml;ffnen, QR zeigen, Kaffee genie&szlig;en.
+                    <strong>Schnell im Caf&eacute;:</strong> Stempelkarte &ouml;ffnen, vorzeigen, Kaffee genie&szlig;en.
                   </div>
                 </div>
               </div>
@@ -5205,7 +5042,7 @@
                   type="password"
                   autocomplete="current-password"
                 />
-                <div class="fieldHint">Die technische Wallet entsteht im Hintergrund automatisch. Du musst daf&uuml;r weder etwas einrichten noch etwas studieren.</div>
+                <div class="fieldHint">Deine Karte entsteht im Hintergrund automatisch. Du musst daf&uuml;r nichts einrichten und nichts studieren.</div>
               </div>
 
               <div id="confirmPasswordWrap" class="stack" style="gap: 6px">
@@ -5289,7 +5126,7 @@
                 border-top: 1px solid rgba(17, 17, 17, 0.08);
               "
             >
-              Mit deinem Konto nutzt du Wallet, Kartenansicht und QR-Flow von Kaffeekarte.
+              Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
               <span style="display: block; margin-top: 8px">
                 <a href="/impressum">Impressum</a> &middot;
                 <a href="/datenschutz">Datenschutz</a> &middot;
@@ -5309,45 +5146,51 @@
           <div class="home screenPager" id="screenPager" aria-label="Start">
             <div class="screenSlide" data-mode="welcome">
             <div class="card panel" id="welcomePanel">
-              <div class="welcomeIntro">
-                <div class="welcomeKicker">Deine Kaffeekarte</div>
-                <div class="welcomeProfileRow">
-                  <div class="welcomeAvatar" aria-hidden="true">
-                    <img id="welcomeAvatarImg" alt="" style="display: none" />
-                    <div class="welcomeAvatarFallback" id="welcomeAvatarFallback">K</div>
+              <div class="welcomeHero">
+                <div class="welcomeIntro">
+                  <div class="welcomeKicker">Deine Kaffeekarte</div>
+                  <div class="welcomeProfileRow">
+                    <div class="welcomeAvatar" aria-hidden="true">
+                      <img id="welcomeAvatarImg" alt="" style="display: none" />
+                      <div class="welcomeAvatarFallback" id="welcomeAvatarFallback"></div>
+                    </div>
+                    <div class="panelHeader" style="min-width: 0; flex: 1">
+                      <h3 id="welcomeTitle">Hallo</h3>
+                    </div>
                   </div>
-                  <div class="panelHeader" style="min-width: 0; flex: 1">
-                    <h3 id="welcomeTitle">Hallo</h3>
+                  <div class="welcomeLeadText" id="welcomeLead">
+                    Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
                   </div>
-                </div>
-                <div class="welcomeLeadText" id="welcomeLead">
-                  Willkommen zur&uuml;ck. Bereit f&uuml;r den n&auml;chsten Kaffee?
-                </div>
-              </div>
-              <div class="welcomeSummary" aria-label="Startstatus">
-                <div class="welcomeStat">
-                  <div class="welcomeStatValue" id="welcomeCardCount">0</div>
-                  <div class="welcomeStatLabel">Kaffeekarten</div>
-                </div>
-                <div class="welcomeStat">
-                  <div class="welcomeStatValue" id="welcomeStateTitle">Bereit</div>
-                  <div class="welcomeStatLabel">N&auml;chster Schritt</div>
                 </div>
               </div>
               <div class="welcomeDeck">
                 <div class="welcomeSectionHead">
-                  <div class="welcomeSectionTitle">Caf&eacute;-&Uuml;berblick</div>
-                  <button class="btn primary welcomePrimaryAction" id="welcomePrimaryAction" type="button">
-                    Wallet ansehen
-                  </button>
+                  <div>
+                    <div class="welcomeSectionTitle">Deine Karten</div>
+                    <div class="hint" id="walletSubtitle">
+                      W&auml;hle deine Stempelkarte und zeig sie im Caf&eacute; direkt vor.
+                    </div>
+                  </div>
                 </div>
-                <div class="welcomeEmptyState" id="welcomeCardsEmpty" style="display: none">
-                  Noch keine Kaffeekarten. Entdecke ein Caf&eacute; und hol dir deine erste Karte.
+                <div
+                  id="walletEmpty"
+                  class="hint"
+                  style="display: none; margin-top: var(--space-3)"
+                >
+                  <div class="walletEmptyLead"></div>
+                  <div class="walletEmptyBody"></div>
+                  <button
+                    class="btn secondary"
+                    id="walletEmptyMapBtn"
+                    type="button"
+                    style="width: auto; margin-top: 12px"
+                  >Caf&eacute;s entdecken</button>
                 </div>
-                <div class="welcomeCardsList" id="welcomeCardsList" aria-label="Caf&eacute;-&Uuml;berblick"></div>
-                <div class="welcomeNextHint" id="welcomeNextHint">
-                  Zeig im Caf&eacute; einfach den QR-Code, dann kommt der n&auml;chste Stempel direkt dazu.
-                </div>
+                <div
+                  id="walletList"
+                  class="walletCarousel"
+                  aria-label="Deine Karten"
+                ></div>
               </div>
             </div>
             </div>
@@ -5358,13 +5201,13 @@
                 <div class="stack tight">
                   <div class="badge" id="welcomeBadge">Willkommen</div>
                   <div class="hint" id="mapHint">
-                    Tippe auf einen Marker und schau kurz hinein.
+                    Tippe auf ein Caf&eacute; und schau kurz hinein.
                   </div>
                   <div
                     class="stack"
                     style="gap: 8px; margin-top: var(--space-3)"
                   >
-                    <div class="muted" style="font-size: 12px">Lieblingscaf&eacute; finden</div>
+                    <div class="muted" style="font-size: 12px">Neues Lieblingscaf&eacute; finden</div>
                     <input
                       id="cafeSearch"
                       type="search"
@@ -5398,7 +5241,7 @@
                       id="discoverPickAddBtn"
                       type="button"
                     >
-                      Stempelkarte holen
+                      Karte holen
                     </button>
                   </div>
                 </div>
@@ -5411,10 +5254,10 @@
             <div class="screenSlide" data-mode="history">
             <div class="card panel" id="historyPanel">
               <div class="panelHeader">
-                <h3>Stempel-Historie</h3>
+                <h3>Deine letzten Besuche</h3>
               </div>
               <div class="hint" id="historySubtitle">
-                Deine letzten Kaffee-Momente auf einen Blick.
+                Behalte deine letzten Stempel und Einl&ouml;sungen im Blick.
               </div>
               <div
                 id="historyError"
@@ -5422,48 +5265,15 @@
                 style="display: none"
               ></div>
               <div id="historyEmpty" class="hint" style="display: none">
-                Noch keine Eintr&auml;ge.
+                Noch keine Kaffee-Momente hier.
               </div>
               <div id="historyList" class="historyList"></div>
             </div>
             </div>
 
           </div>
-          <div class="walletOverlayBackdrop" id="walletOverlayBackdrop" aria-hidden="true"></div>
-          <div class="walletOverlay" id="walletOverlay" aria-hidden="true" aria-label="Wallet">
-            <div class="walletOverlayInner">
-              <div class="card panel walletDock" id="walletPanel">
-                <div class="walletDockHead">
-                  <button class="walletOverlayClose" id="walletOverlayClose" type="button" aria-label="Wallet schlie&szlig;en">Schlie&szlig;en</button>
-                  <h3 style="margin: 0">Deine Lieblingscafés</h3>
-                  <div class="hint" id="walletSubtitle">
-                    W&auml;hle eine Karte und zeig im Caf&eacute; direkt deinen QR-Code.
-                  </div>
-                </div>
-                <div
-                  id="walletEmpty"
-                  class="hint"
-                  style="display: none; margin-top: var(--space-3)"
-                >
-                  <div class="walletEmptyLead"></div>
-                  <div class="walletEmptyBody"></div>
-                  <button
-                    class="btn secondary"
-                    id="walletEmptyMapBtn"
-                    type="button"
-                    style="width: auto; margin-top: 12px"
-                  >Caf&eacute;s entdecken</button>
-                  Noch keine Karten. W&auml;hle ein Caf&eacute; auf der Karte und tippe &bdquo;Stempelkarte holen&ldquo;.</div>
-                <div
-                  id="walletList"
-                  class="walletCarousel"
-                  aria-label="Wallet Karten"
-                ></div>
-              </div>
-            </div>
-          </div>
           <div class="notice" id="noCafesNotice" style="display: none">
-            Es sind noch keine Caf&eacute;s registriert. Bitte zuerst ein Caf&eacute; anlegen (z.B. &uuml;ber die Caf&eacute;-Tools).
+            Hier fehlt noch guter Kaffee. Weitere Caf&eacute;s kommen bald dazu.
           </div>
         </div>
       </div>
@@ -5496,7 +5306,7 @@
           >
             App installieren
           </button>
-          <button class="btn primary" id="installHintDone" type="button" style="width: auto">
+          <button class="btn secondary" id="installHintDone" type="button" style="width: auto">
             Verstanden
           </button>
         </div>
@@ -5541,8 +5351,6 @@
           <div class="modalImage" id="cafeModalImageWrap" style="display: none">
             <img id="cafeModalImage" alt="Caf&eacute; Bild" />
           </div>
-
-          <div class="modalGallery" id="cafeModalGallery"></div>
         </div>
 
         <div class="modalBody">
@@ -5555,64 +5363,6 @@
             Noch keine Beschreibung. Vielleicht spricht das Caf&eacute; lieber durch den Espresso.
           </div>
 
-          <div class="modalLinkRow" id="cafeModalLinks">
-            <a
-              class="modalLinkPill"
-              id="cafeModalWebsite"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              style="display: none"
-            >
-              Website
-            </a>
-            <a
-              class="modalLinkPill"
-              id="cafeModalInstagram"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              style="display: none"
-            >
-              Instagram
-            </a>
-          </div>
-
-          <div class="modalExtraDetails" id="cafeModalExtraDetails">
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailRewardRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Belohnung</div>
-              <div class="modalDetailValue" id="cafeModalDetailReward"></div>
-            </div>
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailAddressRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Adresse</div>
-              <div class="modalDetailValue" id="cafeModalDetailAddress"></div>
-            </div>
-            <div
-              class="modalDetailRow"
-              id="cafeModalDetailDirectionsRow"
-              style="display: none"
-            >
-              <div class="modalDetailLabel">Route</div>
-              <div class="modalDetailValue">
-                <a
-                  id="cafeModalDirections"
-                  href="#"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >In Karten öffnen</a
-                >
-              </div>
-            </div>
-          </div>
-
           <div class="modalInfoActions">
             <button
               class="btn ghost"
@@ -5620,13 +5370,13 @@
               type="button"
               style="display: none"
             >
-              Caféprofil öffnen
+              Café ansehen
             </button>
           </div>
 
           <div class="modalActions">
             <button class="btn primary" id="cafeModalAddBtn" type="button">
-              Stempelkarte holen
+              Karte holen
             </button>
             <button
               class="btn secondary"
@@ -5634,7 +5384,7 @@
               type="button"
               style="display: none"
             >
-              Zur Karte
+              Zur Stempelkarte
             </button>
             <button
               class="btn secondary"
@@ -5642,7 +5392,7 @@
               type="button"
               style="display: none"
             >
-              QR zeigen
+              Im Caf&eacute; vorzeigen
             </button>
           </div>
         </div>

@@ -34,12 +34,22 @@
     />
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      /* Beide Ebenen klemmen, sonst weitet überlaufender Inhalt (z. B. lange
+         URLs) den Layout-Viewport und schiebt die fixe Bottom-Nav aus dem Bild. */
+      html {
+        overflow-x: hidden;
+      }
+
       body {
         padding: calc(var(--space-5) + var(--safe-top, 0px))
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px) + 108px)
           calc(var(--space-5) + var(--safe-left, 0px));
         overflow-x: hidden;
+      }
+
+      .pageMetaSub {
+        overflow-wrap: anywhere;
       }
 
       .shell {
@@ -476,18 +486,14 @@
           </div>
         </div>
         <div class="row">
-          <button class="topUtilityBtn" type="button" id="topUtilityBtn" aria-label="Menü">
-            <span class="topUtilityIcon"><span></span></span>
+          <button
+            class="btn secondary"
+            type="button"
+            onclick="location.href = '/cafe-logout.html'"
+          >
+            Abmelden
           </button>
         </div>
-      </div>
-
-      <div class="utilityMenu" id="utilityMenu" aria-label="Menü">
-        <button class="utilityMenuBtn" id="utilityStartBtn" type="button">Start</button>
-        <button class="utilityMenuBtn" id="utilityCardBtn" type="button">Stempelkarte</button>
-        <button class="utilityMenuBtn" id="utilityAdminBtn" type="button">Verwaltung</button>
-        <button class="utilityMenuBtn" id="utilityDashboardBtn" type="button">Dashboard</button>
-        <button class="utilityMenuBtn" id="utilityLogoutBtn" type="button">Abmelden</button>
       </div>
 
         <div class="pageMeta">
@@ -574,19 +580,23 @@
         </div>
       </div>
 
-      <div class="bottomTabs" id="bottomTabs" aria-label="Scanner Schnellzugriff">
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
-        <button class="bottomTabBtn ghost walletHeroBtn" id="bottomModeScanner" type="button">
-          <span class="topMenuBtnContent">
-            <span class="ico" aria-hidden="true">S</span>
-            <span class="lbl">Scanner</span>
-          </span>
-        </button>
-        <div class="bottomTabSpacer" aria-hidden="true"></div>
-      </div>
     </div>
 
     <script src="/ui.js"></script>
+    <script>
+      (function () {
+        if (!window.stampUI || !stampUI.mountBottomNav) return;
+        stampUI.mountBottomNav({
+          theme: "cream",
+          items: [
+            { id: "utilityStartBtn", label: "Start" },
+            { id: "utilityCardBtn", label: "Karte" },
+            { id: "utilityDashboardBtn", label: "Dashboard", active: true },
+            { id: "utilityAdminBtn", label: "Verwaltung" },
+          ],
+        });
+      })();
+    </script>
     <script>
       let cafe = null;
 
@@ -794,6 +804,13 @@
             headers: { Authorization: `Bearer ${cafe.token}` },
           },
         );
+
+        if (window.stampUI && stampUI.mountCafeTopProfile) {
+          stampUI.mountCafeTopProfile({
+            name: overview && overview.cafe ? overview.cafe.name : cafe.name,
+            logoDataUrl: overview && overview.cafe ? overview.cafe.logoDataUrl : null,
+          });
+        }
 
         const stats = overview.stats || {};
         document.getElementById("stampsAwarded").textContent =

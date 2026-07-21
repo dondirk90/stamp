@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v14-20260713-stamp-ring";
+const CACHE_VERSION = "stamp-shell-v15-20260714-mobile-modal-fix";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",

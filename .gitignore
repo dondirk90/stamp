@@ -35,3 +35,5 @@ apps/.apps-server.*.log
 !.vscode/settings.json
 
 .env.local
+.env.staging
+.env.prod

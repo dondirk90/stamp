@@ -978,6 +978,7 @@ CREATE TABLE IF NOT EXISTS customer_saved_cafes (
   customer_id INTEGER NOT NULL,
   cafe_address TEXT NOT NULL,
   created_at INTEGER NOT NULL,
+  is_favorite INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
   UNIQUE(customer_id, cafe_address)
 );
@@ -1092,6 +1093,10 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN about_text TEXT",
   "Failed to add cafes.about_text column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN short_description TEXT",
+  "Failed to add cafes.short_description column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN logo_mime TEXT",
@@ -1244,6 +1249,12 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE stamp_events ADD COLUMN status TEXT DEFAULT 'confirmed'",
   "Failed to add status column:",
+);
+
+// Favorite/pinned saved cafes (star toggle)
+runSqliteOnlyAlter(
+  "ALTER TABLE customer_saved_cafes ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+  "Failed to add customer_saved_cafes.is_favorite column:",
 );
 
 // Prepare statements
@@ -1429,7 +1440,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -1523,7 +1534,7 @@ const deleteCustomerAuthGrantsByCustomerId = db.prepare(
   "DELETE FROM customer_auth_grants WHERE customer_id = ?",
 );
 const listCustomerSavedCafeAddressesByCustomerId = db.prepare(
-  "SELECT cafe_address, created_at FROM customer_saved_cafes WHERE customer_id = ? ORDER BY created_at ASC, id ASC",
+  "SELECT cafe_address, created_at, is_favorite FROM customer_saved_cafes WHERE customer_id = ? ORDER BY created_at ASC, id ASC",
 );
 const deleteCustomerSavedCafesByCustomerId = db.prepare(
   "DELETE FROM customer_saved_cafes WHERE customer_id = ?",
@@ -1532,6 +1543,10 @@ const insertCustomerSavedCafe = db.prepare(
   db.client === "postgres"
     ? "INSERT INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?) ON CONFLICT (customer_id, cafe_address) DO NOTHING"
     : "INSERT OR IGNORE INTO customer_saved_cafes (customer_id, cafe_address, created_at) VALUES (?, ?, ?)",
+);
+const setCustomerSavedCafeFavorite = db.prepare(
+  "INSERT INTO customer_saved_cafes (customer_id, cafe_address, created_at, is_favorite) VALUES (?, ?, ?, ?) " +
+    "ON CONFLICT (customer_id, cafe_address) DO UPDATE SET is_favorite = excluded.is_favorite",
 );
 const deleteRedeemTokensByCustomerAddress = db.prepare(
   'DELETE FROM redeem_tokens WHERE LOWER(COALESCE("user", \'\')) = LOWER(?)',
@@ -2652,6 +2667,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         websiteUrl: cafeRow.website_url || null,
         instagramUrl: cafeRow.instagram_url || null,
         about: cafeRow.about_text || null,
+        shortDescription: cafeRow.short_description || null,
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
         cardBackText: cafeRow.card_back_text || null,
@@ -2731,6 +2747,15 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       const rawAbout = body.about == null ? "" : String(body.about);
       const trimmed = rawAbout.trim();
       aboutText = trimmed ? trimmed.slice(0, 1200) : null;
+    }
+
+    // Kurzbeschreibung fuers Kurzprofil (hart auf 100 Zeichen begrenzt)
+    let shortDescription = current.short_description || null;
+    if (Object.prototype.hasOwnProperty.call(body, "shortDescription")) {
+      const rawShort =
+        body.shortDescription == null ? "" : String(body.shortDescription);
+      const trimmedShort = rawShort.trim();
+      shortDescription = trimmedShort ? trimmedShort.slice(0, 100) : null;
     }
 
     let redeemMessage = current.redeem_message || null;
@@ -2915,6 +2940,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
+      shortDescription,
       redeemMessage,
       logoMime,
       logoData,
@@ -2954,6 +2980,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         websiteUrl: updated.website_url || null,
         instagramUrl: updated.instagram_url || null,
         about: updated.about_text || null,
+        shortDescription: updated.short_description || null,
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
         cardBackText: updated.card_back_text || null,
@@ -3918,6 +3945,48 @@ app.post("/cafes/logout", requireCafeAuth, async (req, res) => {
   }
 });
 
+app.post("/cafes/me/change-password", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ ok: false, error: "missing_cafe_context" });
+    }
+
+    const currentPassword =
+      req.body?.currentPassword != null ? String(req.body.currentPassword) : "";
+    const newPassword =
+      req.body?.newPassword != null ? String(req.body.newPassword) : "";
+
+    if (!cafeRow.password_hash) {
+      return res.status(400).json({ ok: false, error: "password_not_set" });
+    }
+    if (!currentPassword) {
+      return res.status(400).json({ ok: false, error: "invalid_current_password" });
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ ok: false, error: "invalid_new_password" });
+    }
+
+    const okPw = await bcrypt.compare(currentPassword, cafeRow.password_hash);
+    if (!okPw) {
+      return res.status(401).json({ ok: false, error: "wrong_password" });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await setCafePasswordHashById.run(newHash, cafeRow.id);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(
+      "Error in /cafes/me/change-password:",
+      e && e.stack ? e.stack : e,
+    );
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
 app.post("/cafes/me/delete-account", requireCafeAuth, async (req, res) => {
   try {
     const cafeRow = req.cafe;
@@ -4410,7 +4479,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -4427,6 +4496,9 @@ app.get("/cafes/public", async (req, res) => {
           websiteUrl: row.website_url || null,
           instagramUrl: row.instagram_url || null,
           about: row.about_text ? String(row.about_text).slice(0, 280) : null,
+          shortDescription: row.short_description
+            ? String(row.short_description).slice(0, 100)
+            : null,
           logoDataUrl:
             row.logo_data && row.logo_mime
               ? `data:${row.logo_mime};base64,${row.logo_data}`
@@ -4466,7 +4538,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -4497,6 +4569,9 @@ app.get("/cafes/public/:id", async (req, res) => {
         websiteUrl: row.website_url || null,
         instagramUrl: row.instagram_url || null,
         about: row.about_text ? String(row.about_text).slice(0, 1200) : null,
+        shortDescription: row.short_description
+          ? String(row.short_description).slice(0, 100)
+          : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
         cardBackText: row.card_back_text || null,
@@ -4544,10 +4619,12 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         ? await listCustomerSavedCafeAddressesByCustomerId.all(customerRow.id)
         : [];
     const savedCafeAddresses = [];
+    const favoriteCafeAddresses = new Set();
     for (const row of Array.isArray(savedCafeRows) ? savedCafeRows : []) {
       const savedAddr = row && row.cafe_address ? String(row.cafe_address) : "";
       if (!/^0x[0-9a-f]{40}$/i.test(savedAddr)) continue;
       savedCafeAddresses.push(savedAddr);
+      if (row.is_favorite) favoriteCafeAddresses.add(savedAddr.toLowerCase());
     }
 
     const aggregates = await db
@@ -4612,6 +4689,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         cafeAddress: agg.cafe || null,
         cafeName: cafeInfo?.name || null,
         cafeId: cafeInfo?.id || null,
+        isFavorite: favoriteCafeAddresses.has(cafeAddr),
         program: getCafeProgramSettings(cafeInfo),
         stats: {
           stampsAwarded: Number(agg.stamps_awarded || 0),
@@ -4639,6 +4717,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         cafeAddress: savedCafeAddress,
         cafeName: cafeInfo?.name || null,
         cafeId: cafeInfo?.id || null,
+        isFavorite: favoriteCafeAddresses.has(cafeAddr),
         program: getCafeProgramSettings(cafeInfo),
         stats: {
           stampsAwarded: 0,
@@ -4666,10 +4745,22 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
     }
 
     const cards = Array.from(cardsByCafe.values()).sort((a, b) => {
+      if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+
+      const aRemaining = Math.max(
+        (a.program?.stampsForReward || 10) - (a.stats.netStamps || 0),
+        0,
+      );
+      const bRemaining = Math.max(
+        (b.program?.stampsForReward || 10) - (b.stats.netStamps || 0),
+        0,
+      );
+      if (aRemaining !== bRemaining) return aRemaining - bRemaining;
+
       const bTs = b.stats.lastActivityTs || 0;
       const aTs = a.stats.lastActivityTs || 0;
       if (bTs !== aTs) return bTs - aTs;
-      return (b.cafeName || "").localeCompare(a.cafeName || "");
+      return (a.cafeName || "").localeCompare(b.cafeName || "");
     });
 
     const primaryName =
@@ -5163,13 +5254,69 @@ app.post("/customers/saved-cafes/sync", async (req, res) => {
       cafes.push(addr);
     }
 
+    // Preserve existing favorite flags — this sync only replaces which cafes are saved.
+    const existingFavorites = new Map();
+    const existingRows = await listCustomerSavedCafeAddressesByCustomerId.all(row.id);
+    for (const existingRow of Array.isArray(existingRows) ? existingRows : []) {
+      const addr =
+        existingRow && existingRow.cafe_address
+          ? String(existingRow.cafe_address).toLowerCase()
+          : "";
+      if (addr) existingFavorites.set(addr, !!existingRow.is_favorite);
+    }
+
     await deleteCustomerSavedCafesByCustomerId.run(row.id);
     const now = Date.now();
     for (let i = 0; i < cafes.length; i += 1) {
-      await insertCustomerSavedCafe.run(row.id, cafes[i], now + i);
+      const isFavorite = existingFavorites.get(cafes[i]) ? 1 : 0;
+      await setCustomerSavedCafeFavorite.run(row.id, cafes[i], now + i, isFavorite);
     }
 
     return res.json({ ok: true, cafes });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/saved-cafes/favorite", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    const cafeAddress =
+      req.body?.cafeAddress != null ? String(req.body.cafeAddress).trim().toLowerCase() : "";
+    const favorite = !!req.body?.favorite;
+
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ ok: false, error: "missing_customer_identity" });
+    }
+    if (!/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+      return res.status(400).json({ ok: false, error: "invalid_cafe_address" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ ok: false, error: "session_mismatch" });
+    }
+
+    await setCustomerSavedCafeFavorite.run(
+      row.id,
+      cafeAddress,
+      Date.now(),
+      favorite ? 1 : 0,
+    );
+
+    return res.json({ ok: true, cafeAddress, favorite });
   } catch (e) {
     return res
       .status(500)

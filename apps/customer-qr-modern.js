@@ -13,6 +13,25 @@
   // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
   var WALLET_MODE = "carousel";
   var CAMPAIGN_SEEN_KEY = "customer_campaign_seen_v1";
+  var copy =
+    (window.stampUI && window.stampUI.copy) ||
+    {
+      navigation: { cafes: "Cafés", cards: "Karten", history: "Verlauf" },
+      actions: {
+        getCard: "Karte holen",
+        showQr: "Im Café vorzeigen",
+        openCards: "Karten öffnen",
+        viewCafe: "Café ansehen",
+        discoverCafes: "Cafés entdecken",
+      },
+      emptyStates: {
+        noCardsTitle: "Noch kein Lieblingscafé dabei?",
+        noCardsText:
+          "Entdecke Cafés in deiner Nähe und hol dir deine erste Karte.",
+      },
+    };
+  copy.actions.showQr = "Im Café vorzeigen";
+  copy.actions.openCards = "Stempelkarten";
 
   // Redeem QR tokens (single-use). Cache briefly so the QR stays stable
   // while the customer holds it up to be scanned.
@@ -44,9 +63,6 @@
     qrSheetBox: document.getElementById("qrSheetBox"),
     qrSheetHint: document.getElementById("qrSheetHint"),
     qrSheetClose: document.getElementById("qrSheetClose"),
-    walletOverlayBackdrop: document.getElementById("walletOverlayBackdrop"),
-    walletOverlay: document.getElementById("walletOverlay"),
-    walletOverlayClose: document.getElementById("walletOverlayClose"),
 
     authPanel: document.getElementById("authPanel"),
     authPanelTitle: document.getElementById("authPanelTitle"),
@@ -81,6 +97,9 @@
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
+    topProfileBtn: document.getElementById("topProfileBtn"),
+    topProfileImg: document.getElementById("topProfileImg"),
+    topProfileFallback: document.getElementById("topProfileFallback"),
     mainModeMap: document.getElementById("mainModeMap"),
     mainModeWallet: document.getElementById("mainModeWallet"),
     mainModeHistory: document.getElementById("mainModeHistory"),
@@ -100,9 +119,6 @@
     welcomeCardCount: document.getElementById("welcomeCardCount"),
     welcomeStateTitle: document.getElementById("welcomeStateTitle"),
     welcomeNextHint: document.getElementById("welcomeNextHint"),
-    welcomePrimaryAction: document.getElementById("welcomePrimaryAction"),
-    welcomeCardsEmpty: document.getElementById("welcomeCardsEmpty"),
-    welcomeCardsList: document.getElementById("welcomeCardsList"),
     welcomeBadge: document.getElementById("welcomeBadge"),
     addressLine: document.getElementById("addressLine"),
 
@@ -136,7 +152,6 @@
     cafeModalAddr: document.getElementById("cafeModalAddr"),
     cafeModalImageWrap: document.getElementById("cafeModalImageWrap"),
     cafeModalImage: document.getElementById("cafeModalImage"),
-    cafeModalGallery: document.getElementById("cafeModalGallery"),
     cafeModalLogoWrap: document.getElementById("cafeModalLogoWrap"),
     cafeModalLogo: document.getElementById("cafeModalLogo"),
     cafeModalMetaRow: document.getElementById("cafeModalMetaRow"),
@@ -145,16 +160,6 @@
     cafeModalRewardHint: document.getElementById("cafeModalRewardHint"),
     cafeModalAbout: document.getElementById("cafeModalAbout"),
     cafeModalAboutEmpty: document.getElementById("cafeModalAboutEmpty"),
-    cafeModalLinks: document.getElementById("cafeModalLinks"),
-    cafeModalWebsite: document.getElementById("cafeModalWebsite"),
-    cafeModalInstagram: document.getElementById("cafeModalInstagram"),
-    cafeModalExtraDetails: document.getElementById("cafeModalExtraDetails"),
-    cafeModalDetailRewardRow: document.getElementById("cafeModalDetailRewardRow"),
-    cafeModalDetailReward: document.getElementById("cafeModalDetailReward"),
-    cafeModalDetailAddressRow: document.getElementById("cafeModalDetailAddressRow"),
-    cafeModalDetailAddress: document.getElementById("cafeModalDetailAddress"),
-    cafeModalDetailDirectionsRow: document.getElementById("cafeModalDetailDirectionsRow"),
-    cafeModalDirections: document.getElementById("cafeModalDirections"),
     cafeModalAddBtn: document.getElementById("cafeModalAddBtn"),
     cafeModalWalletBtn: document.getElementById("cafeModalWalletBtn"),
     cafeModalQrBtn: document.getElementById("cafeModalQrBtn"),
@@ -227,7 +232,6 @@
     stampsRefreshQueuedAt: 0,
     stampsLastRunAt: 0,
     stampsInFlight: {},
-    overlayOpen: false,
   };
 
   var rewardCelebrationState = {
@@ -518,7 +522,10 @@
 
   function setAuthDetailsVisible(visible) {
     if (!el.authDetails) return;
-    el.authDetails.style.display = visible ? "" : "none";
+    // .authDetails defaults to display:none in CSS, so clearing the inline
+    // style back to "" would just fall through to that - it needs an explicit
+    // visible value (matching .stack's display: flex) to actually show it.
+    el.authDetails.style.display = visible ? "flex" : "none";
   }
 
   function loadSession() {
@@ -595,12 +602,12 @@
     if (el.authIntroTitle)
       el.authIntroTitle.textContent =
         authMode === "register"
-          ? "Erstelle dein Konto und sammle digital."
+          ? "Good coffee deserves better loyalty."
           : "Sch\u00f6n, dass du wieder da bist.";
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Starte mit Google oder deiner E-Mail und behalte Stempel, Rewards und deine Lieblingscaf&eacute;s an einem Ort."
+          ? "Starte mit Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
           : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
     setAuthDetailsVisible(false);
@@ -629,9 +636,9 @@
     if (el.mainPanel) el.mainPanel.style.display = isAuthed ? "block" : "none";
     if (el.bottomTabs) el.bottomTabs.style.display = isAuthed ? "" : "none";
     if (el.layoutGrid) el.layoutGrid.classList.toggle("authed", isAuthed);
-    if (!isAuthed) closeWalletOverlay({ silent: true });
-    if (el.topUtilityBtn) {
-      el.topUtilityBtn.style.display = isAuthed ? "" : "none";
+    if (!isAuthed) resetWalletCardsUI();
+    if (el.topProfileBtn) {
+      el.topProfileBtn.style.display = isAuthed ? "" : "none";
     }
     if (!isAuthed) setShellMenuOpen(false);
 
@@ -650,8 +657,11 @@
 
   function navSetActive(which) {
     var w = which || "map";
+    if (el.bottomModeMap) el.bottomModeMap.classList.toggle("active", w === "map");
     if (el.bottomModeWallet)
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
+    if (el.bottomModeHistory)
+      el.bottomModeHistory.classList.toggle("active", w === "history");
     if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
     if (el.mainModeWallet)
       el.mainModeWallet.classList.toggle("active", w === "wallet");
@@ -679,6 +689,9 @@
       var avatarInitial = String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
       el.welcomeAvatarFallback.textContent = avatarInitial;
     }
+    if (el.welcomeTitle) {
+      el.welcomeTitle.textContent = uname ? "Hallo, " + uname + "." : "Hallo.";
+    }
     if (el.welcomeAvatarImg || el.welcomeAvatarFallback) {
       var avatarSrc =
         session && session.avatarDataUrl ? String(session.avatarDataUrl) : "";
@@ -696,267 +709,47 @@
       if (el.welcomeAvatarFallback) {
         el.welcomeAvatarFallback.style.display = avatarSrc ? "none" : "block";
       }
+      if (el.topProfileImg) {
+        if (avatarSrc) {
+          el.topProfileImg.src = avatarSrc;
+          el.topProfileImg.style.display = "block";
+        } else {
+          try {
+            el.topProfileImg.removeAttribute("src");
+          } catch (eAvatar1) {}
+          el.topProfileImg.style.display = "none";
+        }
+      }
+      if (el.topProfileFallback) {
+        el.topProfileFallback.textContent =
+          String(uname || "K").trim().slice(0, 1).toUpperCase() || "K";
+        el.topProfileFallback.style.display = avatarSrc ? "none" : "grid";
+      }
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
         favCount > 0
-          ? "Willkommen zur\u00fcck. Deine Karten sind bereit f\u00fcr den n\u00e4chsten Kaffee."
-          : "Hol dir deine erste Kaffeekarte und sammle deinen n\u00e4chsten Stempel digital.";
+          ? "Bereit f\u00fcr den n\u00e4chsten Kaffee? Deine Karten warten schon."
+          : copy.emptyStates.noCardsText;
     }
-    if (el.welcomeCardCount) {
-      el.welcomeCardCount.textContent = String(favCount || 0);
-    }
-    if (el.welcomeStateTitle) {
-      el.welcomeStateTitle.textContent = favCount > 0 ? "Bereit" : "Entdecken";
+    if (el.welcomeLead && favCount > 0) {
+      el.welcomeLead.textContent = "Bereit f\u00fcr den n\u00e4chsten Kaffee?";
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
         favCount > 0
-          ? "Dein n\u00e4chster Stempel ist nur einen Scan entfernt."
-          : "\u00d6ffne Caf\u00e9s im Men\u00fc oben rechts und hol dir deine erste digitale Kaffeekarte.";
+          ? "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt."
+          : "\u00d6ffne Caf\u00e9s im Men\u00fc und hol dir deine erste Karte.";
     }
-    if (el.welcomePrimaryAction) {
-      el.welcomePrimaryAction.textContent =
-        favCount > 0 ? "Wallet ansehen" : "Caf\u00e9s entdecken";
-    }
-    renderWelcomeCards();
-  }
-
-  function renderWelcomeCards() {
-    if (!el.welcomeCardsList || !el.welcomeCardsEmpty) return;
-
-    var favorites = [];
-    try {
-      favorites = getFavorites();
-    } catch (eFav) {
-      favorites = [];
-    }
-
-    var favNorm = [];
-    for (var i = 0; i < favorites.length; i++) {
-      var addr = normalizeAddr(favorites[i]);
-      if (!addr) continue;
-      favNorm.push(addr);
-    }
-
-    el.welcomeCardsList.innerHTML = "";
-
-    if (!favNorm.length) {
-      el.welcomeCardsEmpty.style.display = "block";
-      return;
-    }
-
-    el.welcomeCardsEmpty.style.display = "none";
-
-    var overview = document.createElement("article");
-    overview.className = "welcomeOverviewCard";
-
-    var overviewHead = document.createElement("div");
-    overviewHead.className = "welcomeOverviewHead";
-
-    var overviewTitleWrap = document.createElement("div");
-    var overviewTitle = document.createElement("div");
-    overviewTitle.className = "welcomeOverviewTitle";
-    overviewTitle.textContent = "Deine Caf\u00e9s im \u00dcberblick";
-
-    var overviewMeta = document.createElement("div");
-    overviewMeta.className = "welcomeOverviewMeta";
-    overviewMeta.textContent =
-      favNorm.length === 1 ? "1 aktive Karte" : String(favNorm.length) + " aktive Karten";
-
-    overviewTitleWrap.appendChild(overviewTitle);
-    overviewTitleWrap.appendChild(overviewMeta);
-    overviewHead.appendChild(overviewTitleWrap);
-    overview.appendChild(overviewHead);
-
-    var rows = document.createElement("div");
-    rows.className = "welcomeCafeRows";
-
-    for (var j = 0; j < favNorm.length; j++) {
-      var cafeAddress = favNorm[j];
-      var cafe = cafesByCafeAddress[cafeAddress] || null;
-      var serverCard = getServerCard(cafeAddress);
-      var serverStats = serverCard && serverCard.stats ? serverCard.stats : {};
-      var meta = resolveCafeDisplayMeta(cafeAddress, serverCard, cafe);
-      var rewardThreshold = serverCard
-        ? getCardRewardThreshold(serverCard)
-        : cafe
-          ? getCardRewardThreshold(cafe)
-          : REWARD_THRESHOLD;
-      var stampCount =
-        Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
-      var countLine = formatStampCountLine(
-        stampCount,
-        rewardThreshold,
-        Math.max(0, stampCount - rewardThreshold),
-      );
-
-      var row = document.createElement("div");
-      row.className = "welcomeCafeRow";
-      row.tabIndex = 0;
-      row.setAttribute("role", "button");
-      row.setAttribute("aria-label", meta.name + " \u00f6ffnen");
-      row.addEventListener("click", (function (addr) {
-        return function () {
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
-        };
-      })(cafeAddress));
-      row.addEventListener("keydown", (function (addr) {
-        return function (ev) {
-          if (ev.key !== "Enter" && ev.key !== " ") return;
-          try {
-            ev.preventDefault();
-          } catch (e) {}
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: false });
-        };
-      })(cafeAddress));
-
-      var logoWrap = document.createElement("div");
-      logoWrap.className = "welcomeCafeLogo";
-      logoWrap.setAttribute("data-cafe-name", meta.name);
-      if (cafe && cafe.logoDataUrl) {
-        var img = document.createElement("img");
-        img.src = String(cafe.logoDataUrl);
-        img.alt = "";
-        img.decoding = "async";
-        img.loading = "lazy";
-        img.addEventListener("error", function () {
-          try {
-            var parent = this.parentNode;
-            var cafeName = parent
-              ? String(parent.getAttribute("data-cafe-name") || "Kaffeekarte")
-              : "Kaffeekarte";
-            if (parent) {
-              parent.innerHTML = "";
-              parent.appendChild(buildPassLogoFallback(cafeName));
-            }
-          } catch (eLogo) {}
-        });
-        logoWrap.appendChild(img);
-      } else {
-        logoWrap.appendChild(buildPassLogoFallback(meta.name));
-      }
-
-      var metaWrap = document.createElement("div");
-      metaWrap.className = "welcomeCafeMeta";
-
-      var title = document.createElement("div");
-      title.className = "welcomeCafeName";
-      title.textContent = meta.name;
-
-      var count = document.createElement("div");
-      count.className = "welcomeCafeCount";
-      count.textContent = countLine;
-
-      var stampRow = document.createElement("div");
-      stampRow.className = "welcomeCafeStampRow";
-      for (var stampIndex = 0; stampIndex < rewardThreshold; stampIndex++) {
-        var stampDot = document.createElement("span");
-        stampDot.className =
-          "welcomeCafeStamp" +
-          (stampIndex < Math.min(stampCount, rewardThreshold) ? " filled" : "");
-        stampRow.appendChild(stampDot);
-      }
-
-      metaWrap.appendChild(title);
-      metaWrap.appendChild(count);
-      metaWrap.appendChild(stampRow);
-
-      var actions = document.createElement("div");
-      actions.className = "welcomeCafeActions";
-
-      var btn = document.createElement("button");
-      btn.className = "btn secondary welcomeCafeAction";
-      btn.type = "button";
-      btn.textContent = "QR zeigen";
-      btn.addEventListener("click", (function (addr) {
-        return function (ev) {
-          try {
-            ev.preventDefault();
-            ev.stopPropagation();
-          } catch (e) {}
-          openWalletForCafe(addr, { ensureFavorite: true, showQr: true });
-        };
-      })(cafeAddress));
-      actions.appendChild(btn);
-
-      var profileBtn = document.createElement("button");
-      profileBtn.className = "btn ghost welcomeCafeAction";
-      profileBtn.type = "button";
-      profileBtn.textContent = "Weitere Informationen";
-      profileBtn.addEventListener(
-        "click",
-        (function (info) {
-          return function (ev) {
-            try {
-              ev.preventDefault();
-              ev.stopPropagation();
-            } catch (e) {}
-            var href = buildCafeProfileUrl(info.cafeId, info.cafeAddress);
-            if (href) {
-              window.location.href = href;
-              return;
-            }
-            openCafeModal({
-              id: info.cafeId,
-              name: info.name,
-              address: info.address,
-              cafeAddress: info.cafeAddress,
-              about: info.about || "",
-              program: info.program || null,
-              websiteUrl: info.websiteUrl || "",
-              instagramUrl: info.instagramUrl || "",
-              logoDataUrl: info.logoDataUrl || null,
-              cardBackgroundDataUrl: info.cardBackgroundDataUrl || null,
-              images: info.images || null,
-            });
-          };
-        })({
-          cafeId: meta.cafeId,
-          name: meta.name,
-          address: meta.address,
-          cafeAddress: cafeAddress,
-          about: meta.about,
-          program: meta.program,
-          websiteUrl: meta.websiteUrl,
-          instagramUrl: meta.instagramUrl,
-          logoDataUrl: meta.logoDataUrl,
-          cardBackgroundDataUrl: meta.cardBackgroundDataUrl,
-          images: meta.images,
-        }),
-      );
-      actions.appendChild(profileBtn);
-
-      row.appendChild(logoWrap);
-      row.appendChild(metaWrap);
-      row.appendChild(actions);
-      rows.appendChild(row);
-    }
-
-    overview.appendChild(rows);
-    el.welcomeCardsList.appendChild(overview);
-  }
-
-  function setWalletOverlayOpen(open) {
-    var next = !!open;
-    walletState.overlayOpen = next;
-    try {
-      if (el.walletOverlayBackdrop)
-        el.walletOverlayBackdrop.classList.toggle("open", next);
-      if (el.walletOverlay)
-        el.walletOverlay.classList.toggle("open", next);
-      if (el.walletOverlay)
-        el.walletOverlay.setAttribute("aria-hidden", next ? "false" : "true");
-      document.body.classList.toggle("walletOverlayOpen", next);
-      document.documentElement.classList.toggle("walletMode", next);
-    } catch (e) {}
-  }
-
-  function openWalletOverlay() {
-    closeQrSheet();
     refreshWallet();
-    setWalletOverlayOpen(true);
-    navSetActive("wallet");
+  }
+
+
+  // Die Karten leben direkt auf dem Welcome-Screen (kein Overlay mehr) -
+  // dieser Helper zeigt sie an und zentriert die oberste/fokussierte Karte.
+  function showWalletScreen() {
+    closeQrSheet();
+    navigateToMode("wallet");
     window.setTimeout(function () {
       try {
         closeAllPasses();
@@ -965,8 +758,9 @@
     }, 24);
   }
 
-  function closeWalletOverlay(opts) {
-    var o = opts || {};
+  // Klappt offene Stempelkarten wieder zu, z.B. beim Logout oder beim
+  // Wechsel zu einem anderen Screen.
+  function resetWalletCardsUI() {
     closeQrSheet();
     try {
       if (el.walletList) {
@@ -976,13 +770,6 @@
         }
       }
     } catch (e0) {}
-    setWalletOverlayOpen(false);
-    if (o.silent) return;
-    if (currentPageMode === "wallet") {
-      navigateToMode("welcome");
-      return;
-    }
-    navSetActive(currentPageMode === "wallet" ? "wallet" : "");
   }
 
   function closeAllPasses(exceptEl) {
@@ -1032,17 +819,10 @@
     shellMenuState.open = !!open;
     try {
       if (el.utilityMenu) el.utilityMenu.classList.toggle("open", shellMenuState.open);
-      if (el.topUtilityBtn)
-        el.topUtilityBtn.setAttribute("aria-expanded", shellMenuState.open ? "true" : "false");
     } catch (e) {}
   }
 
   function wireShellMenu() {
-    if (el.topUtilityBtn) {
-      el.topUtilityBtn.addEventListener("click", function () {
-        setShellMenuOpen(!shellMenuState.open);
-      });
-    }
     if (el.utilityMapBtn) {
       el.utilityMapBtn.addEventListener("click", function () {
         setShellMenuOpen(false);
@@ -1126,7 +906,7 @@
           setShellMenuOpen(false);
         }
 
-        if (!walletState.overlayOpen || !el.walletList) return;
+        if (!el.walletList) return;
         if (qrSheetState.open) return;
 
         try {
@@ -1137,15 +917,9 @@
           if (openPass.contains(t)) return;
           if (
             t.closest &&
-            t.closest(
-              ".passInfoLink, .passQr, .passQrBox, .walletOverlayClose, #walletEmpty",
-            )
+            t.closest(".passInfoLink, .passQr, .passQrBox, #walletEmpty")
           )
             return;
-          if (el.walletOverlay && el.walletOverlay.contains(t)) {
-            closeWalletOverlay();
-            return;
-          }
           closeAllPasses();
         } catch (eWalletClose) {}
       });
@@ -1161,7 +935,7 @@
             ev.preventDefault();
           } catch (e0) {}
           setShellMenuOpen(false);
-          closeWalletOverlay({ silent: true });
+          resetWalletCardsUI();
           try {
             history.pushState({ mode: "welcome" }, "", "/wallet");
           } catch (e1) {}
@@ -1196,12 +970,14 @@
         qs = "";
       }
       var forceMap = /[?&]view=map(?:&|$)/i.test(qs);
+      var forceCards = /[?&]view=cards(?:&|$)/i.test(qs);
       if (p.indexOf("/customer-map") === 0) {
         if (forceMap) return "map";
         return session && session.address ? "welcome" : "map";
       }
       if (p.indexOf("/customer-history") === 0) return "history";
-      if (p.indexOf("/customer-wallet") === 0) return "welcome";
+      if (p.indexOf("/customer-wallet") === 0)
+        return forceCards ? "wallet" : "welcome";
       if (p.indexOf("/customer-qr") === 0) return "welcome";
       if (
         p.indexOf("/customer-home") === 0 ||
@@ -1313,7 +1089,7 @@
       var msg = "Google-Anmeldung fehlgeschlagen.";
       if (oauthError === "google_no_account") {
         msg =
-          "Zu dieser Google-Adresse gibt es noch kein Konto. Bitte registriere dich zuerst oder nutze den normalen Login.";
+          "Zu dieser Google-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
       } else if (oauthError === "google_auth_not_configured") {
         msg =
           "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
@@ -1492,57 +1268,21 @@
     setCafeModalVisible(false);
   }
 
-  function buildMapsUrl(address) {
-    var value = String(address || "").trim();
-    if (!value) return "";
-    return (
-      "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(value)
-    );
-  }
-
-  function cafeModalHasExtraDetails(cafe) {
-    if (!cafe) return false;
-    var addr = String(cafe.address || cafe.cafeAddress || "").trim();
-    var website = normalizeExternalUrl(cafe.websiteUrl || "");
-    var instagram = normalizeInstagramUrl(cafe.instagramUrl || "");
-    var rewardDescription = getRewardDescription(cafe);
-    return !!(addr || website || instagram || rewardDescription);
-  }
-
+  // Kurzprofil vs. Vollprofil: Das Modal zeigt nur die Entscheidungsbasis
+  // (Name, Adresse, Reward-Zyklus, ein Bild, About-Teaser, Aktionen).
+  // Galerie, ganze Story, Website/Instagram und Route leben im Vollprofil
+  // unter /cafe-public — erreichbar über "Café ansehen".
   function syncCafeModalDetails() {
     var cafe = cafeModalState.cafe;
     var profileUrl = buildCafeProfileUrl(
       cafe && cafe.id != null ? Number(cafe.id) : cafeModalState.cafeId,
       cafeModalState.cafeAddress || (cafe && cafe.cafeAddress) || "",
     );
-    if (el.cafeModalExtraDetails) {
-      el.cafeModalExtraDetails.style.display = cafeModalHasExtraDetails(cafe)
-        ? "grid"
-        : "none";
-    }
-
-    var addr = cafe ? String(cafe.address || cafe.cafeAddress || "").trim() : "";
-    var rewardDescription = cafe ? getRewardDescription(cafe) : "";
-    var directionsUrl = buildMapsUrl(addr);
-
-    if (el.cafeModalDetailRewardRow && el.cafeModalDetailReward) {
-      el.cafeModalDetailRewardRow.style.display = rewardDescription ? "grid" : "none";
-      el.cafeModalDetailReward.textContent = rewardDescription || "";
-    }
-    if (el.cafeModalDetailAddressRow && el.cafeModalDetailAddress) {
-      el.cafeModalDetailAddressRow.style.display = addr ? "grid" : "none";
-      el.cafeModalDetailAddress.textContent = addr || "";
-    }
-    if (el.cafeModalDetailDirectionsRow && el.cafeModalDirections) {
-      el.cafeModalDetailDirectionsRow.style.display = directionsUrl ? "grid" : "none";
-      el.cafeModalDirections.href = directionsUrl || "#";
-    }
     if (el.cafeModalProfileBtn) {
       el.cafeModalProfileBtn.style.display = profileUrl ? "inline-flex" : "none";
       el.cafeModalProfileBtn.disabled = !profileUrl;
       el.cafeModalProfileBtn.dataset.href = profileUrl || "";
-      el.cafeModalProfileBtn.textContent = "Caf\u00e9profil \u00f6ffnen";
+      el.cafeModalProfileBtn.textContent = "Café ansehen";
     }
   }
 
@@ -1572,7 +1312,7 @@
       refreshWallet();
     } catch (e1) {}
     closeCafeModal();
-    openWalletOverlay();
+    showWalletScreen();
 
     var attempts = 0;
     var t = window.setInterval(function () {
@@ -1620,7 +1360,11 @@
     cafeModalState.cafe = cafe || null;
     var name = cafe && cafe.name ? String(cafe.name) : "Caf\u00e9";
     var addr = cafe && cafe.address ? String(cafe.address) : "";
-    var about = cafe && cafe.about ? String(cafe.about) : "";
+    // Kurzprofil zeigt die gepflegte Kurzbeschreibung (max. 100 Zeichen);
+    // die lange Story bleibt dem Vollprofil vorbehalten.
+    var shortDescription =
+      cafe && cafe.shortDescription ? String(cafe.shortDescription).trim() : "";
+    var about = shortDescription || (cafe && cafe.about ? String(cafe.about) : "");
     var program = cafe && cafe.program ? cafe.program : {};
     var rewardThreshold =
       program && program.stampsForReward != null
@@ -1632,12 +1376,6 @@
       program && program.rewardDescription
         ? String(program.rewardDescription).trim()
         : "";
-    var websiteUrl = normalizeExternalUrl(
-      cafe && cafe.websiteUrl ? String(cafe.websiteUrl).trim() : "",
-    );
-    var instagramUrl = normalizeInstagramUrl(
-      cafe && cafe.instagramUrl ? String(cafe.instagramUrl).trim() : "",
-    );
     var cafeAddr = normalizeAddr(
       (cafe && (cafe.cafeAddress || cafe.address)) || "",
     );
@@ -1657,27 +1395,6 @@
       }
     }
 
-    if (el.cafeModalLinks && el.cafeModalWebsite && el.cafeModalInstagram) {
-      var hasLinks = false;
-      if (websiteUrl) {
-        el.cafeModalWebsite.style.display = "inline-flex";
-        el.cafeModalWebsite.href = websiteUrl;
-        hasLinks = true;
-      } else {
-        el.cafeModalWebsite.style.display = "none";
-        el.cafeModalWebsite.href = "#";
-      }
-      if (instagramUrl) {
-        el.cafeModalInstagram.style.display = "inline-flex";
-        el.cafeModalInstagram.href = instagramUrl;
-        hasLinks = true;
-      } else {
-        el.cafeModalInstagram.style.display = "none";
-        el.cafeModalInstagram.href = "#";
-      }
-      el.cafeModalLinks.style.display = hasLinks ? "flex" : "none";
-    }
-
     if (
       el.cafeModalMetaRow &&
       el.cafeModalStatus &&
@@ -1687,8 +1404,8 @@
       var alreadyInWallet = isCafeInWallet(cafeAddr);
       el.cafeModalStatus.style.display = "inline-flex";
       el.cafeModalStatus.textContent = alreadyInWallet
-        ? "Schon in deiner Wallet"
-        : "Neu für deine Wallet";
+        ? "Schon bei deinen Karten"
+        : "Neu bei deinen Karten";
       el.cafeModalRewardCycle.style.display = "inline-flex";
       el.cafeModalRewardCycle.textContent =
         "Jeder " + rewardThreshold + ". Kaffee";
@@ -1702,10 +1419,10 @@
       el.cafeModalMetaRow.style.display = "flex";
     }
 
-    // About text
+    // About-Teaser (CSS klemmt auf 3 Zeilen; Volltext im Vollprofil)
     if (el.cafeModalAbout) {
       if (about) {
-        el.cafeModalAbout.style.display = "block";
+        el.cafeModalAbout.style.display = "";
         el.cafeModalAbout.textContent = about;
         if (el.cafeModalAboutEmpty)
           el.cafeModalAboutEmpty.style.display = "none";
@@ -1730,42 +1447,12 @@
       }
     }
 
-    if (el.cafeModalGallery) {
-      el.cafeModalGallery.innerHTML = "";
-      var imgs2 =
-        cafe && cafe.images && Array.isArray(cafe.images)
-          ? cafe.images.slice(0)
-          : [];
-      if (imgs2.length > 1) {
-        el.cafeModalGallery.style.display = "flex";
-        for (var i = 0; i < Math.min(6, imgs2.length); i++) {
-          (function (src) {
-            var img = document.createElement("img");
-            img.className = "modalThumb";
-            img.alt = "";
-            img.loading = "lazy";
-            img.decoding = "async";
-            img.src = String(src || "");
-            img.addEventListener("click", function () {
-              if (el.cafeModalImage && el.cafeModalImageWrap) {
-                el.cafeModalImageWrap.style.display = "grid";
-                el.cafeModalImage.src = String(src || "");
-              }
-            });
-            el.cafeModalGallery.appendChild(img);
-          })(imgs2[i]);
-        }
-      } else {
-        el.cafeModalGallery.style.display = "none";
-      }
-    }
-
     // Action button state
     if (el.cafeModalAddBtn) {
       var already = isCafeInWallet(cafeAddr);
       el.cafeModalAddBtn.style.display = already ? "none" : "inline-flex";
       el.cafeModalAddBtn.disabled = !cafeAddr;
-      el.cafeModalAddBtn.textContent = "Stempelkarte holen";
+      el.cafeModalAddBtn.textContent = copy.actions.getCard;
     }
     if (el.cafeModalWalletBtn) {
       var already2 = isCafeInWallet(cafeAddr);
@@ -1797,6 +1484,7 @@
         address: cafe.address,
         cafeAddress: cafe.cafeAddress,
         about: cafe.about || "",
+        shortDescription: cafe.shortDescription || "",
         program: cafe.program || null,
         websiteUrl: cafe.websiteUrl || "",
         instagramUrl: cafe.instagramUrl || "",
@@ -1863,11 +1551,7 @@
       (function (cafe) {
         var a = document.createElement("a");
         a.className = "mapItem";
-        var profileHref = buildCafeProfileUrl(
-          cafe && cafe.id != null ? Number(cafe.id) : null,
-          cafe && cafe.cafeAddress ? String(cafe.cafeAddress) : "",
-        );
-        a.href = profileHref || "#";
+        a.href = "#";
 
         var main = document.createElement("div");
         main.className = "mapItemMain";
@@ -1885,12 +1569,11 @@
 
         var hint = document.createElement("div");
         hint.className = "mapItemHint";
-        hint.textContent = "\u00d6ffnen";
+        hint.textContent = "Kurzprofil";
 
         a.appendChild(main);
         a.appendChild(hint);
         a.addEventListener("click", function (ev) {
-          if (profileHref) return;
           try {
             ev.preventDefault();
           } catch (e) {}
@@ -1922,34 +1605,30 @@
   function applyPageMode(mode) {
     var m = mode || getPageMode();
     currentPageMode = m;
+    // "wallet" ist der Nav-Zustand fuer den Karten-Button; die Karten leben
+    // direkt auf dem Welcome-Screen, daher zeigen beide dieselbe Slide.
+    var slideMode = m === "wallet" ? "welcome" : m;
     navSetActive(m === "wallet" ? "wallet" : m);
 
     try {
       var welcomeSlide = getModeSlide("welcome");
       var mapSlide = getModeSlide("map");
       var historySlide = getModeSlide("history");
-      if (welcomeSlide) welcomeSlide.style.display = m === "welcome" ? "block" : "none";
-      if (mapSlide) mapSlide.style.display = m === "map" ? "block" : "none";
-      if (historySlide) historySlide.style.display = m === "history" ? "block" : "none";
+      if (welcomeSlide) welcomeSlide.style.display = slideMode === "welcome" ? "block" : "none";
+      if (mapSlide) mapSlide.style.display = slideMode === "map" ? "block" : "none";
+      if (historySlide) historySlide.style.display = slideMode === "history" ? "block" : "none";
       if (el.screenPager) {
         el.screenPager.scrollLeft = 0;
       }
     } catch (eScroll) {}
 
     if (m === "history") {
-      closeWalletOverlay({ silent: true });
       refreshHistory();
       return;
     }
 
-    if (m === "wallet") {
-      openWalletOverlay();
-      return;
-    }
-
-    closeWalletOverlay({ silent: true });
-
-    if (m === "welcome") {
+    if (m === "wallet" || m === "welcome") {
+      refreshWallet();
       return;
     }
 
@@ -2253,6 +1932,70 @@
     }
   }
 
+  function toggleCardStar(cafeAddress) {
+    var addr = normalizeAddr(cafeAddress || "");
+    if (!addr) return;
+    if (!session || !session.email || !session.customer_id || !session.address) return;
+
+    var serverCard = getServerCard(addr);
+    var nextFavorite = !(serverCard && serverCard.isFavorite);
+
+    if (serverCard) serverCard.isFavorite = nextFavorite;
+    else walletServerCardsByCafe[addr] = { isFavorite: nextFavorite };
+
+    try {
+      walletState.lastFavKey = "";
+      refreshWallet();
+    } catch (eRender) {}
+
+    apiFetch("/customers/saved-cafes/favorite", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: session.email,
+        customerId: session.customer_id,
+        address: session.address,
+        cafeAddress: addr,
+        favorite: nextFavorite,
+      }),
+    }).catch(function () {
+      var revertCard = getServerCard(addr);
+      if (revertCard) revertCard.isFavorite = !nextFavorite;
+      try {
+        walletState.lastFavKey = "";
+        refreshWallet();
+      } catch (eRevert) {}
+      showToast("Favorit konnte nicht gespeichert werden.", "danger");
+    });
+  }
+
+  function cardPriorityKey(cafeAddress) {
+    var serverCard = getServerCard(cafeAddress);
+    var program = getCardProgram(serverCard);
+    var stats = (serverCard && serverCard.stats) || {};
+    var threshold = clamp(Number(program.stampsForReward) || REWARD_THRESHOLD, 1, 50);
+    var stampCount = Number(stats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0;
+    return {
+      isFavorite: !!(serverCard && serverCard.isFavorite),
+      remaining: Math.max(threshold - stampCount, 0),
+      lastActivityTs: Number(stats.lastActivityTs || 0) || 0,
+    };
+  }
+
+  function compareCardPriority(aKey, bKey) {
+    if (aKey.isFavorite !== bKey.isFavorite) return aKey.isFavorite ? -1 : 1;
+    if (aKey.remaining !== bKey.remaining) return aKey.remaining - bKey.remaining;
+    return bKey.lastActivityTs - aKey.lastActivityTs;
+  }
+
+  function sortWalletAddressesByPriority(addrs) {
+    var list = Array.isArray(addrs) ? addrs.slice() : [];
+    list.sort(function (a, b) {
+      return compareCardPriority(cardPriorityKey(a), cardPriorityKey(b));
+    });
+    return list;
+  }
+
   function getCardProgram(card) {
     return card && card.program ? card.program : {};
   }
@@ -2297,8 +2040,8 @@
     var hasCustomReward = !!String(rewardLabel || "").trim();
     if (isFull) {
       return hasCustomReward
-        ? "Deine Belohnung wartet \u2615"
-        : "Dein Gratiskaffee wartet \u2615";
+        ? "Der nächste geht aufs Haus"
+        : "Dein Gratiskaffee wartet";
     }
     if (hasCustomReward) {
       return remaining === 1
@@ -2308,17 +2051,6 @@
     return remaining === 1
       ? "Nur noch ein Kaffee bis zur Gratisrunde."
       : "Noch " + remaining + " Kaffees bis zum Gratiskaffee.";
-  }
-
-  function formatNextStampLine(remaining, isFull) {
-    if (isFull) return "Im Caf\u00e9 scannen lassen und deine Belohnung einl\u00f6sen.";
-    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Scan entfernt.";
-    return "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
-  }
-
-  function formatFooterProgressLine(remaining, isFull) {
-    if (isFull) return "GRATISKAFFEE WARTET";
-    return remaining === 1 ? "NOCH 1 KAFFEE" : "NOCH " + remaining + " KAFFEES";
   }
 
   function getCampaignSeenMap() {
@@ -2378,6 +2110,7 @@
           Number(program.popupInactiveDays || 0) || 0,
           Number(program.popupAlmostRewardEnabled || 0) || 0,
           Number(program.popupAlmostRewardRemaining || 0) || 0,
+          card.isFavorite ? 1 : 0,
         ].join(":"),
       );
     }
@@ -2657,17 +2390,29 @@
     try {
       if (!window.L || !window.L.divIcon) return null;
       var logo = cafe && cafe.logoDataUrl ? String(cafe.logoDataUrl) : "";
+      var cafeAddressAttr = "";
+      try {
+        cafeAddressAttr = escapeHtmlAttr(
+          String((cafe && (cafe.cafeAddress || cafe.address)) || ""),
+        );
+      } catch (eCafeAddr) {
+        cafeAddressAttr = "";
+      }
       var html = "";
       if (logo) {
         html =
-          '<div class="cafePin">' +
+          '<div class="cafePin" data-cafe-address="' +
+          cafeAddressAttr +
+          '">' +
           '<img class="cafePinImg" alt="" aria-hidden="true" draggable="false" src="' +
           logo.replace(/"/g, "&quot;") +
           '">' +
           "</div>";
       } else {
         html =
-          '<div class="cafePin"><div class="cafePinLetter">' +
+          '<div class="cafePin" data-cafe-address="' +
+          cafeAddressAttr +
+          '"><div class="cafePinLetter">' +
           cafeInitials(cafe && cafe.name ? cafe.name : "Caf\u00e9") +
           "</div></div>";
       }
@@ -2704,33 +2449,125 @@
       }
       (function (cafe2) {
         var icon = buildCafePinIcon(cafe2);
+        var openMarkerCafe = function (ev) {
+          try {
+            if (ev) {
+              if (ev.preventDefault) ev.preventDefault();
+              if (ev.stopPropagation) ev.stopPropagation();
+            }
+            if (ev && ev.originalEvent) {
+              if (ev.originalEvent.preventDefault) ev.originalEvent.preventDefault();
+              if (ev.originalEvent.stopPropagation) ev.originalEvent.stopPropagation();
+            }
+          } catch (eStop0) {}
+          walletState.ignoreClickUntil = nowMs() + 420;
+          openCafeModal(cafe2);
+        };
         var marker = window.L.marker(
           [Number(cafe2.lat), Number(cafe2.lng)],
           icon ? { icon: icon } : undefined,
         );
         marker.__cafeAddress = normalizeAddr(cafe2.cafeAddress || cafe2.address || "");
         marker.addTo(leafletMap);
-        marker.on("click", function (ev) {
-          try {
-            if (ev && ev.originalEvent) {
-              if (ev.originalEvent.preventDefault)
-                ev.originalEvent.preventDefault();
-              if (ev.originalEvent.stopPropagation)
-                ev.originalEvent.stopPropagation();
-            }
-          } catch (eStop0) {}
-          walletState.ignoreClickUntil = nowMs() + 420;
-          openCafeModal(cafe2);
-        });
+        marker.on("click", openMarkerCafe);
         leafletMarkers.push(marker);
         try {
           var node = marker.getElement();
           var pin = node ? node.querySelector(".cafePin") : null;
+          var pinImg = node ? node.querySelector(".cafePinImg") : null;
+          var pinLetter = node ? node.querySelector(".cafePinLetter") : null;
+          if (node && marker.__cafeAddress) {
+            try {
+              node.setAttribute("data-cafe-address", marker.__cafeAddress);
+            } catch (eData0) {}
+          }
+          if (pin && marker.__cafeAddress) {
+            try {
+              pin.setAttribute("data-cafe-address", marker.__cafeAddress);
+              pin.setAttribute("role", "button");
+              pin.setAttribute("tabindex", "0");
+              pin.setAttribute("aria-label", "Caf\u00e9 kurz ansehen");
+            } catch (eData1) {}
+          }
+          if (node && !node.__cafeProfileBound) {
+            node.__cafeProfileBound = true;
+            node.addEventListener("click", openMarkerCafe);
+            node.addEventListener("pointerup", openMarkerCafe);
+            node.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pin && !pin.__cafeProfileBound) {
+            pin.__cafeProfileBound = true;
+            pin.addEventListener("click", openMarkerCafe);
+            pin.addEventListener("pointerup", openMarkerCafe);
+            pin.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pinImg && !pinImg.__cafeProfileBound) {
+            pinImg.__cafeProfileBound = true;
+            pinImg.addEventListener("click", openMarkerCafe);
+            pinImg.addEventListener("pointerup", openMarkerCafe);
+            pinImg.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
+          if (pinLetter && !pinLetter.__cafeProfileBound) {
+            pinLetter.__cafeProfileBound = true;
+            pinLetter.addEventListener("click", openMarkerCafe);
+            pinLetter.addEventListener("pointerup", openMarkerCafe);
+            pinLetter.addEventListener("touchend", openMarkerCafe, { passive: false });
+          }
           if (pin && marker.__cafeAddress && marker.__cafeAddress === activeCafeAddress) {
             pin.classList.add("isActive");
           }
         } catch (ePin) {}
       })(cafe);
+    }
+  }
+
+  function openCafeModalByAddress(addr) {
+    var want = normalizeAddr(addr || "");
+    if (!want) return false;
+    var cafe = cafesByCafeAddress[want] || null;
+    if (!cafe && cafes && cafes.length) {
+      for (var i = 0; i < cafes.length; i++) {
+        var candidate = cafes[i];
+        if (
+          normalizeAddr(
+            (candidate && (candidate.cafeAddress || candidate.address)) || "",
+          ) === want
+        ) {
+          cafe = candidate;
+          break;
+        }
+      }
+    }
+    if (!cafe) return false;
+    walletState.ignoreClickUntil = nowMs() + 420;
+    openCafeModal(cafe);
+    return true;
+  }
+
+  function handleCafePinTapEvent(ev) {
+    try {
+      var target = ev && ev.target ? ev.target : null;
+      if (!target || !target.closest) return false;
+      var pin = target.closest(".cafePin");
+      var markerNode = target.closest(".leaflet-marker-icon");
+      if (!pin && !markerNode) return false;
+      var host = pin || markerNode;
+      var addr =
+        (host &&
+          host.dataset &&
+          (host.dataset.cafeAddress || host.dataset.cafeaddress)) ||
+        (pin && pin.getAttribute && pin.getAttribute("data-cafe-address")) ||
+        (markerNode &&
+          markerNode.getAttribute &&
+          markerNode.getAttribute("data-cafe-address")) ||
+        "";
+      if (!addr) return false;
+      if (ev.preventDefault) ev.preventDefault();
+      if (ev.stopPropagation) ev.stopPropagation();
+      walletState.ignoreClickUntil = nowMs() + 420;
+      return openCafeModalByAddress(addr);
+    } catch (eCafePinTap) {
+      return false;
     }
   }
 
@@ -2867,14 +2704,13 @@
         var body = el.walletEmpty.querySelector(".walletEmptyBody");
         var cta = el.walletEmpty.querySelector("#walletEmptyMapBtn");
         if (lead) {
-          lead.textContent = "Noch keine Karten";
+          lead.textContent = copy.emptyStates.noCardsTitle;
         }
         if (body) {
-          body.textContent =
-            "Entdecke zuerst ein Caf\u00e9 auf der Karte und hol dir dort deine erste digitale Stempelkarte. Der Rest ergibt sich erfreulich von selbst.";
+          body.textContent = copy.emptyStates.noCardsText;
         }
         if (cta) {
-          cta.textContent = "Caf\u00e9s entdecken";
+          cta.textContent = copy.actions.discoverCafes;
         }
         var nodes = el.walletEmpty.childNodes || [];
         for (var i = nodes.length - 1; i >= 0; i--) {
@@ -3037,17 +2873,12 @@
     return "KAFFEESPEZIALITAETEN";
   }
 
-  function getCardFrontKicker(threshold) {
-    return "JEDER " + String(threshold) + ". KAFFEE GRATIS";
-  }
-
-
   function getCardFrontNote(card, about) {
     var note = card && card.cardBackText ? String(card.cardBackText || "").trim() : "";
     if (note) return note;
     var fallback = String(about || "").trim();
     if (!fallback) return "";
-    return fallback.length > 120 ? fallback.slice(0, 117).trim() + "..." : fallback;
+    return fallback.length > 90 ? fallback.slice(0, 87).trim() + "..." : fallback;
   }
 
   function getCardStampStyle(card) {
@@ -3072,30 +2903,7 @@
     return "bean";
   }
 
-  function getRewardSideNote(label, isFull) {
-    if (isFull) return "PRAEMIE BEREIT";
-    var src = String(label || "").trim();
-    if (!src) return "GRATIS";
-    var normalized = src
-      .replace(/^1\s+/i, "")
-      .replace(/freigetr[a\u00e4]nk/i, "gratis")
-      .replace(/free cup/i, "gratis")
-      .replace(/free/i, "gratis")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toUpperCase();
-    if (!normalized) return "GRATIS";
-    return normalized.length > 18 ? "GRATIS" : normalized;
-  }
-
-  function getCardFooterLabel(card) {
-    var address = stripCardMarkup(card && card.address ? card.address : "");
-    if (address) {
-      var shortAddress = address.split(",")[0] || address;
-      shortAddress = String(shortAddress).trim();
-      if (shortAddress && shortAddress.length <= 24)
-        return shortAddress.toUpperCase();
-    }
+  function getCardFooterLabel() {
     return "KAFFEEKARTE";
   }
 
@@ -3169,6 +2977,8 @@
     }
     var seedKey = getStampSeedKey();
     container.innerHTML = "";
+    container.classList.toggle("stampGridTen", threshold === 10);
+    container.classList.toggle("stampGridFive", threshold === 5);
     for (var i = 0; i < threshold; i++) {
       var cell = document.createElement("div");
       var filled = i < n;
@@ -3639,10 +3449,16 @@
           : "Kaffeekarte";
       }
       if (el.qrSheetSub) {
-        var countEl = passEl.querySelector(".passCountLine");
-        el.qrSheetSub.textContent = countEl
-          ? String(countEl.textContent || "QR wird geladen\u2026")
-          : "QR wird geladen\u2026";
+        var stampsForSub = getPassStampCount(passEl);
+        var thresholdForSub = getPassRewardThreshold(passEl);
+        el.qrSheetSub.textContent =
+          stampsForSub != null
+            ? formatStampCountLine(
+                stampsForSub,
+                thresholdForSub,
+                Math.max(0, stampsForSub - thresholdForSub),
+              )
+            : "QR wird geladen\u2026";
       }
       if (el.qrSheetHint) {
         var stamps = getPassStampCount(passEl);
@@ -3872,7 +3688,6 @@
     var cafeAddress = String(card.cafeAddress || "");
     var cafeId = Number(card.cafeId);
     var title = String(card.name || "Caf\u00e9");
-    var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
@@ -3896,11 +3711,8 @@
       ? cafeAddress.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6)
       : "";
     if (!serialTail) serialTail = "STAMP";
-    var kickerText = getCardFrontKicker(rewardThreshold);
     var subtitle = getCardPrintSubtitle(card);
-    var rewardSideNote = getRewardSideNote(rewardLabel, isFull);
     var footerLabel = getCardFooterLabel(card);
-    var countLine = formatStampCountLine(stampCount, rewardThreshold, extra);
 
     var passCard = document.createElement("div");
     passCard.className = "passCard";
@@ -3934,7 +3746,15 @@
     mainBtn.className = "passMain";
     mainBtn.setAttribute("role", "button");
     mainBtn.setAttribute("tabindex", "0");
-    mainBtn.setAttribute("aria-label", "QR-Code öffnen");
+    mainBtn.setAttribute(
+      "aria-label",
+      (isFull ? "Belohnung einlösen bei " : "Karte zeigen für ") + title,
+    );
+
+    mainBtn.setAttribute(
+      "aria-label",
+      (isFull ? "Belohnung einlösen bei " : "Im Café vorzeigen bei ") + title,
+    );
 
     var head = document.createElement("div");
     head.className = "passHead";
@@ -3942,10 +3762,6 @@
     var left = document.createElement("div");
     left.className = "stack";
     left.style.minWidth = "0";
-
-    var eyebrow = document.createElement("div");
-    eyebrow.className = "passEyebrow";
-    eyebrow.textContent = kickerText;
 
     var brandLockup = document.createElement("div");
     brandLockup.className = "passBrandLockup";
@@ -3989,10 +3805,27 @@
     titleBlock.appendChild(sub);
     brandLockup.appendChild(titleBlock);
 
-    left.appendChild(eyebrow);
     left.appendChild(brandLockup);
 
     head.appendChild(left);
+
+    var isFavoriteCard = !!card.isFavorite;
+    var starBtn = document.createElement("button");
+    starBtn.type = "button";
+    starBtn.className = "passStarBtn";
+    starBtn.setAttribute("aria-pressed", isFavoriteCard ? "true" : "false");
+    starBtn.setAttribute(
+      "aria-label",
+      isFavoriteCard ? "Favorit entfernen" : "Als Favorit markieren",
+    );
+    starBtn.textContent = isFavoriteCard ? "★" : "☆";
+    starBtn.addEventListener("click", function (ev) {
+      try {
+        ev.stopPropagation();
+      } catch (eStop) {}
+      toggleCardStar(cafeAddress);
+    });
+    head.appendChild(starBtn);
 
     var stampField = document.createElement("div");
     stampField.className = "passStampField";
@@ -4004,22 +3837,13 @@
     stampLead.className = "passStampLead";
     stampLead.textContent = "Fortschritt";
 
-    var stampNeed = document.createElement("div");
-    stampNeed.className = "passStampNeed";
-    stampNeed.textContent = countLine;
-
     stampGuide.appendChild(stampLead);
-    stampGuide.appendChild(stampNeed);
     stampField.appendChild(stampGuide);
 
     var grid = document.createElement("div");
     grid.className = "stampGrid";
     renderStampGrid(grid, stampCount);
     stampField.appendChild(grid);
-    var rewardNote = document.createElement("div");
-    rewardNote.className = "passRewardNote";
-    rewardNote.textContent = rewardSideNote;
-    stampField.appendChild(rewardNote);
 
     var infoBlock = document.createElement("div");
     infoBlock.className = "passInfoBlock";
@@ -4080,17 +3904,9 @@
     var progressHeadline = document.createElement("strong");
     progressHeadline.className = "passProgressHeadline";
     progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
-    var progressSub = document.createElement("span");
-    progressSub.className = "passProgressSub";
-    progressSub.textContent = formatNextStampLine(remaining, isFull);
     progressText.appendChild(progressHeadline);
-    progressText.appendChild(progressSub);
 
     metaRow.appendChild(progressText);
-
-    var hint = document.createElement("div");
-    hint.className = "passHint";
-    hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -4101,20 +3917,9 @@
     var serial = document.createElement("span");
     serial.className = "passSerial";
     serial.textContent = footerLabel;
-
-    var footerType = document.createElement("span");
-    footerType.className = "passCountLine";
-    footerType.textContent = countLine;
-
     footerMeta.appendChild(serial);
-    footerMeta.appendChild(footerType);
-
-    var footerVisit = document.createElement("div");
-    footerVisit.className = "passFooterVisit";
-    footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
 
     footer.appendChild(footerMeta);
-    footer.appendChild(footerVisit);
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
@@ -4139,12 +3944,6 @@
     backClose.setAttribute("aria-label", "Karte schlie\u00dfen");
     backMeta.appendChild(backClose);
 
-    if (address) {
-      var backAddr = document.createElement("div");
-      backAddr.className = "passBackAddr";
-      backAddr.textContent = address;
-      backMeta.appendChild(backAddr);
-    }
     qr.appendChild(backMeta);
 
     var backText = document.createElement("div");
@@ -4686,8 +4485,9 @@
       if (!a) continue;
       favNorm.push(a);
     }
+    favNorm = sortWalletAddressesByPriority(favNorm);
 
-    // Stable cache key: order matters (we preserve user ordering).
+    // Stable cache key: order matters (favorites + reward-proximity decide it).
     var favKey = favNorm.join("|");
 
     // If nothing changed and cards already exist, avoid tearing down the DOM.
@@ -4720,7 +4520,6 @@
       walletState.lastFavKey = "";
       walletState.lastCardCount = 0;
       setWalletEmptyVisible(true);
-      renderWelcomeCards();
       return;
     }
 
@@ -4740,6 +4539,7 @@
           name: meta.name,
           address: meta.address,
           about: (cafe && cafe.about) || "",
+          isFavorite: !!(serverCard && serverCard.isFavorite),
           netStamps:
             Number(serverStats.netStamps || (serverCard && serverCard.netStamps) || 0) || 0,
           program: serverCard && serverCard.program ? serverCard.program : null,
@@ -4773,7 +4573,6 @@
     if (WALLET_MODE === "snap") enableWalletSnapMode(el.walletList);
     if (WALLET_MODE === "carousel") enableWalletCarouselMode(el.walletList);
 
-    renderWelcomeCards();
     scheduleWalletStampsRefresh(40);
   }
 
@@ -4844,7 +4643,7 @@
       walletState.stampsInFlight = {};
       walletServerCardsByCafe = {};
       walletServerCardsDigest = "";
-      closeWalletOverlay({ silent: true });
+      resetWalletCardsUI();
 
       setAuthedUI();
       currentPageMode = "map";
@@ -4949,11 +4748,20 @@
     }
 
     bindModeButton(el.bottomModeWallet, "wallet");
+    bindModeButton(el.bottomModeMap, "map");
+    bindModeButton(el.bottomModeHistory, "history");
     bindModeButton(el.mainModeMap, "map");
     bindModeButton(el.mainModeWallet, "wallet");
     bindModeButton(el.mainModeHistory, "history");
+    if (el.topProfileBtn) {
+      el.topProfileBtn.addEventListener("click", function () {
+        navSetActive("account");
+        location.href = "/customer-profile";
+      });
+    }
     if (el.mainModeAccount) {
       el.mainModeAccount.addEventListener("click", function () {
+        navSetActive("account");
         location.href = "/customer-profile";
       });
     }
@@ -5009,6 +4817,53 @@
         cards[i].style.pointerEvents = "auto";
       }
     } catch (e) {}
+    updateCarouselFocusZIndex(scroller);
+    wireCarouselFocusTracking(scroller);
+  }
+
+  // Whichever card sits nearest the scroller's center (the one the user is
+  // currently looking at) should overlap its neighbours in the fan, not just
+  // whichever card happens to be the favorite.
+  function updateCarouselFocusZIndex(scroller) {
+    if (!scroller) return;
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      if (!cards.length) return;
+      var scrollerRect = scroller.getBoundingClientRect();
+      var centerX = scrollerRect.left + scrollerRect.width / 2;
+      var closest = null;
+      var closestDist = Infinity;
+      for (var i = 0; i < cards.length; i++) {
+        var r = cards[i].getBoundingClientRect();
+        var dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = cards[i];
+        }
+      }
+      for (var j = 0; j < cards.length; j++) {
+        cards[j].style.zIndex =
+          cards[j] === closest ? String(cards.length + 1) : String(cards.length - j);
+      }
+    } catch (e) {}
+  }
+
+  function wireCarouselFocusTracking(scroller) {
+    if (!scroller || scroller.__kkFocusTrackingBound) return;
+    scroller.__kkFocusTrackingBound = true;
+    var ticking = false;
+    scroller.addEventListener(
+      "scroll",
+      function () {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function () {
+          ticking = false;
+          updateCarouselFocusZIndex(scroller);
+        });
+      },
+      { passive: true },
+    );
   }
 
   function apiFetch(path, init) {
@@ -5053,10 +4908,6 @@
       0,
       rewardThreshold - clamp(stampCount, 0, rewardThreshold),
     );
-    var hint = passCardEl.querySelector(".passHint");
-    if (hint)
-      hint.textContent = isFull ? "QR zeigen und einl\u00f6sen" : "QR zeigen";
-
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
       var existing = "";
@@ -5116,11 +4967,6 @@
       countLine.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
     }
 
-    var stampNeed = passCardEl.querySelector(".passStampNeed");
-    if (stampNeed) {
-      stampNeed.textContent = formatStampCountLine(stampCount, rewardThreshold, extra);
-    }
-
     var progressHeadline = passCardEl.querySelector(".passProgressHeadline");
     if (progressHeadline) {
       progressHeadline.textContent = formatRewardProgressLine(
@@ -5128,24 +4974,6 @@
         isFull,
         passCardEl.getAttribute("data-reward-label") || "",
       );
-    }
-
-    var progressSub = passCardEl.querySelector(".passProgressSub");
-    if (progressSub) {
-      progressSub.textContent = formatNextStampLine(remaining, isFull);
-    }
-
-    var rewardNote = passCardEl.querySelector(".passRewardNote");
-    if (rewardNote) {
-      rewardNote.textContent = getRewardSideNote(
-        passCardEl.getAttribute("data-reward-label") || "",
-        isFull,
-      );
-    }
-
-    var footerVisit = passCardEl.querySelector(".passFooterVisit");
-    if (footerVisit) {
-      footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -5576,11 +5404,11 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "\ud83c\udf81 Gratiskaffee eingel\u00f6st"
+              ? "Gratiskaffee eingel\u00f6st"
               : t === "card_start"
                 ? "Neue Karte geholt"
                 : t === "stamp"
-                  ? "\u2615 Stempel gesammelt"
+                  ? "Stempel gesammelt"
                   : "Event";
           meta.textContent = (when ? when + " \u00b7 " : "") + verb;
 
@@ -5797,24 +5625,28 @@
     try {
       if (el.walletSubtitle) {
         el.walletSubtitle.textContent =
-          "W\u00e4hle eine Karte und zeig im Caf\u00e9 direkt deinen QR-Code.";
+          "Wähle deine Stempelkarte und zeig sie im Café direkt vor.";
       }
       if (el.utilityMapBtn) {
-        el.utilityMapBtn.textContent = "Caf\u00e9s";
+        el.utilityMapBtn.textContent = copy.navigation.cafes;
       }
       if (el.mainModeMap) {
         var lbl = el.mainModeMap.querySelector(".lbl");
-        if (lbl) lbl.textContent = "Entdecken";
+        if (lbl) lbl.textContent = copy.navigation.cafes;
       }
       if (el.mainModeWallet) {
         var walletLbl = el.mainModeWallet.querySelector(".lbl");
-        if (walletLbl) walletLbl.textContent = "Karten";
+        if (walletLbl) walletLbl.textContent = copy.navigation.cards;
+      }
+      if (el.bottomModeWallet) {
+        var bottomWalletLbl = el.bottomModeWallet.querySelector(".lbl");
+        if (bottomWalletLbl) bottomWalletLbl.textContent = copy.navigation.cards;
       }
       if (el.authPanel) {
         var authHint = el.authPanel.querySelector(".hint:last-of-type");
         if (authHint) {
           authHint.textContent =
-            "Kein Schl\u00fcssel, kein Technikstress. Stamp legt die technische Kunden-Adresse automatisch f\u00fcr dich an.";
+            "Kein Schl\u00fcssel, kein Technikstress. Kaffeekarte richtet dein Konto im Hintergrund automatisch ein.";
         }
       }
     } catch (eText) {}
@@ -5837,9 +5669,41 @@
     wireLogout();
     wireShellMenu();
     bindBrandLinksToWelcome();
+    try {
+      var kkNav =
+        window.stampUI && stampUI.mountBottomNav
+          ? stampUI.mountBottomNav({
+              theme: "espresso",
+              items: [
+                { id: "bottomModeMap", label: "Entdecken" },
+                { id: "bottomModeWallet", label: "Deine Wallet" },
+                { id: "bottomModeHistory", label: "Deine Checkins" },
+              ],
+            })
+          : null;
+      if (kkNav) {
+        el.bottomTabs = kkNav;
+        el.bottomModeMap = document.getElementById("bottomModeMap");
+        el.bottomModeWallet = document.getElementById("bottomModeWallet");
+        el.bottomModeHistory = document.getElementById("bottomModeHistory");
+        if (el.bottomModeWallet) el.bottomModeWallet.classList.add("kk-tab--featured");
+      }
+    } catch (eNav) {}
     wireNavigation();
     wireScreenPager();
     wireVisibility();
+    if (!document.__cafePinDelegationBound) {
+      document.__cafePinDelegationBound = true;
+      var onCafePinTap = function (ev) {
+        handleCafePinTapEvent(ev);
+      };
+      document.addEventListener("click", onCafePinTap, true);
+      document.addEventListener("pointerup", onCafePinTap, true);
+      document.addEventListener("touchend", onCafePinTap, {
+        capture: true,
+        passive: false,
+      });
+    }
     try {
       window.addEventListener("popstate", function () {
         currentPageMode = null;
@@ -5894,33 +5758,8 @@
     }
     if (el.walletEmptyMapBtn) {
       el.walletEmptyMapBtn.addEventListener("click", function () {
-        closeWalletOverlay({ silent: true });
+        resetWalletCardsUI();
         navigateToMode("map");
-      });
-    }
-    if (el.welcomePrimaryAction) {
-      el.welcomePrimaryAction.addEventListener("click", function () {
-        var hasCards = false;
-        try {
-          hasCards = getFavorites().length > 0;
-        } catch (eFav) {
-          hasCards = false;
-        }
-        if (hasCards) {
-          openWalletOverlay();
-          return;
-        }
-        navigateToMode("map");
-      });
-    }
-    if (el.walletOverlayBackdrop) {
-      el.walletOverlayBackdrop.addEventListener("click", function () {
-        closeWalletOverlay();
-      });
-    }
-    if (el.walletOverlayClose) {
-      el.walletOverlayClose.addEventListener("click", function () {
-        closeWalletOverlay();
       });
     }
 
