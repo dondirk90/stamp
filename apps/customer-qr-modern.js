@@ -2903,14 +2903,7 @@
     return "bean";
   }
 
-  function getCardFooterLabel(card) {
-    var address = stripCardMarkup(card && card.address ? card.address : "");
-    if (address) {
-      var shortAddress = address.split(",")[0] || address;
-      shortAddress = String(shortAddress).trim();
-      if (shortAddress && shortAddress.length <= 24)
-        return shortAddress.toUpperCase();
-    }
+  function getCardFooterLabel() {
     return "KAFFEEKARTE";
   }
 
@@ -3695,7 +3688,6 @@
     var cafeAddress = String(card.cafeAddress || "");
     var cafeId = Number(card.cafeId);
     var title = String(card.name || "Caf\u00e9");
-    var address = card && card.address ? String(card.address) : "";
     var about = card && card.about ? String(card.about) : "";
     var stampCount = clamp(Number(card.netStamps || 0) || 0, 0, 999);
     var theme = card.cardTheme ? String(card.cardTheme) : "clean";
@@ -3952,12 +3944,6 @@
     backClose.setAttribute("aria-label", "Karte schlie\u00dfen");
     backMeta.appendChild(backClose);
 
-    if (address) {
-      var backAddr = document.createElement("div");
-      backAddr.className = "passBackAddr";
-      backAddr.textContent = address;
-      backMeta.appendChild(backAddr);
-    }
     qr.appendChild(backMeta);
 
     var backText = document.createElement("div");
@@ -4829,11 +4815,55 @@
       for (var i = 0; i < cards.length; i++) {
         resetPassCardMotion(cards[i]);
         cards[i].style.pointerEvents = "auto";
-        // Cards are sorted favorite-first; without this, later (non-favorite)
-        // siblings would paint over the favorite in the overlapping fan.
-        cards[i].style.zIndex = String(cards.length - i);
       }
     } catch (e) {}
+    updateCarouselFocusZIndex(scroller);
+    wireCarouselFocusTracking(scroller);
+  }
+
+  // Whichever card sits nearest the scroller's center (the one the user is
+  // currently looking at) should overlap its neighbours in the fan, not just
+  // whichever card happens to be the favorite.
+  function updateCarouselFocusZIndex(scroller) {
+    if (!scroller) return;
+    try {
+      var cards = scroller.querySelectorAll(".passCard");
+      if (!cards.length) return;
+      var scrollerRect = scroller.getBoundingClientRect();
+      var centerX = scrollerRect.left + scrollerRect.width / 2;
+      var closest = null;
+      var closestDist = Infinity;
+      for (var i = 0; i < cards.length; i++) {
+        var r = cards[i].getBoundingClientRect();
+        var dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = cards[i];
+        }
+      }
+      for (var j = 0; j < cards.length; j++) {
+        cards[j].style.zIndex =
+          cards[j] === closest ? String(cards.length + 1) : String(cards.length - j);
+      }
+    } catch (e) {}
+  }
+
+  function wireCarouselFocusTracking(scroller) {
+    if (!scroller || scroller.__kkFocusTrackingBound) return;
+    scroller.__kkFocusTrackingBound = true;
+    var ticking = false;
+    scroller.addEventListener(
+      "scroll",
+      function () {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function () {
+          ticking = false;
+          updateCarouselFocusZIndex(scroller);
+        });
+      },
+      { passive: true },
+    );
   }
 
   function apiFetch(path, init) {
@@ -5645,9 +5675,9 @@
           ? stampUI.mountBottomNav({
               theme: "espresso",
               items: [
-                { id: "bottomModeMap", label: copy.navigation.cafes },
-                { id: "bottomModeWallet", label: "Kartenstapel" },
-                { id: "bottomModeHistory", label: copy.navigation.history },
+                { id: "bottomModeMap", label: "Entdecken" },
+                { id: "bottomModeWallet", label: "Deine Wallet" },
+                { id: "bottomModeHistory", label: "Deine Checkins" },
               ],
             })
           : null;
