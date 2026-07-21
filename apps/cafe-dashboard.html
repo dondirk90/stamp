@@ -805,6 +805,13 @@
           },
         );
 
+        if (window.stampUI && stampUI.mountCafeTopProfile) {
+          stampUI.mountCafeTopProfile({
+            name: overview && overview.cafe ? overview.cafe.name : cafe.name,
+            logoDataUrl: overview && overview.cafe ? overview.cafe.logoDataUrl : null,
+          });
+        }
+
         const stats = overview.stats || {};
         document.getElementById("stampsAwarded").textContent =
           stats.stampsAwarded ?? 0;

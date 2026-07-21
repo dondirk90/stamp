@@ -2159,6 +2159,7 @@
               </a>
             </div>
           </div>
+          <div class="row"></div>
         `;
 
         // Gemeinsame Bottom-Nav (cream auf dunklem Café-Theme). Die IDs
@@ -2976,6 +2977,22 @@
         }
         cafeBadge.style.display = "flex";
         if (cafeName) cafeName.textContent = cafe.name || "Barista App";
+        if (window.stampUI && stampUI.mountCafeTopProfile) {
+          stampUI.mountCafeTopProfile({ name: cafe.name });
+          fetch(`${apiBase}/cafes/me/overview`, {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data && data.cafe) {
+                stampUI.mountCafeTopProfile({
+                  name: data.cafe.name || cafe.name,
+                  logoDataUrl: data.cafe.logoDataUrl,
+                });
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       // Login

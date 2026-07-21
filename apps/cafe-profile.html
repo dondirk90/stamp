@@ -1991,6 +1991,13 @@
 
           renderProfile(overview && overview.cafe ? overview.cafe : null);
 
+          if (window.stampUI && stampUI.mountCafeTopProfile) {
+            stampUI.mountCafeTopProfile({
+              name: overview && overview.cafe ? overview.cafe.name : cafe.name,
+              logoDataUrl: overview && overview.cafe ? overview.cafe.logoDataUrl : null,
+            });
+          }
+
           await refreshGallery();
 
           document.getElementById("loadingCard").style.display = "none";

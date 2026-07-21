@@ -303,6 +303,60 @@
     return nav;
   }
 
+  var CAFE_TOP_PROFILE_CSS =
+    ".kk-cafeTopProfile{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;" +
+    "border:1px solid rgba(245,236,223,0.16) !important;border-radius:16px !important;" +
+    "background:linear-gradient(180deg,#3a2a1c,#241710) !important;" +
+    "display:inline-flex;align-items:center;justify-content:center;overflow:hidden;" +
+    "box-shadow:0 8px 18px rgba(0,0,0,0.28) !important;color:#f5ecdf !important;" +
+    "font-weight:900;font-size:15px;cursor:pointer;}" +
+    ".kk-cafeTopProfile img{width:100%;height:100%;object-fit:cover;display:block;}";
+
+  function injectCafeTopProfileCss() {
+    if (document.getElementById("kkCafeTopProfileStyles")) return;
+    var style = document.createElement("style");
+    style.id = "kkCafeTopProfileStyles";
+    style.textContent = CAFE_TOP_PROFILE_CSS;
+    document.head.appendChild(style);
+  }
+
+  // Top-right Avatar (Logo/Initiale) mit Link zum Cafe-Profil - Gegenstueck
+  // zum topProfileBtn der Kunden-App, ersetzt dort den "Karte"-Nav-Eintrag.
+  function mountCafeTopProfile(options) {
+    var o = options || {};
+    var row = document.querySelector(".topbar .row");
+    if (!row) return null;
+    injectCafeTopProfileCss();
+    var btn = document.getElementById("kkCafeTopProfileBtn");
+    var isNew = !btn;
+    if (isNew) {
+      btn = document.createElement("button");
+      btn.id = "kkCafeTopProfileBtn";
+      btn.type = "button";
+      btn.className = "kk-cafeTopProfile ghost";
+    }
+    btn.setAttribute(
+      "aria-label",
+      o.name ? "Profil von " + o.name : "Cafe-Profil",
+    );
+    btn.innerHTML = "";
+    if (o.logoDataUrl) {
+      var img = document.createElement("img");
+      img.src = o.logoDataUrl;
+      img.alt = "";
+      img.decoding = "async";
+      btn.appendChild(img);
+    } else {
+      var initial = String(o.name || "C").trim().slice(0, 1).toUpperCase() || "C";
+      btn.textContent = initial;
+    }
+    btn.onclick = function () {
+      location.href = o.href || "/cafe-profile";
+    };
+    if (isNew) row.insertBefore(btn, row.firstChild);
+    return btn;
+  }
+
   // Public API
   var api = (window.stampUI = window.stampUI || {});
   if (!api.copy) {
@@ -341,6 +395,7 @@
   }
   if (!api.isDebugEnabled) api.isDebugEnabled = isDebugEnabled;
   if (!api.mountBottomNav) api.mountBottomNav = mountBottomNav;
+  if (!api.mountCafeTopProfile) api.mountCafeTopProfile = mountCafeTopProfile;
   if (!api.userSafeErrorMessage)
     api.userSafeErrorMessage = userSafeErrorMessage;
 
