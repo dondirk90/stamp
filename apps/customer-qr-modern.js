@@ -2041,7 +2041,7 @@
     if (isFull) {
       return hasCustomReward
         ? "Der nächste geht aufs Haus"
-        : "Dein Gratiskaffee wartet \u2615";
+        : "Dein Gratiskaffee wartet";
     }
     if (hasCustomReward) {
       return remaining === 1
@@ -5404,11 +5404,11 @@
           var t = String(ev.__type || "");
           var verb =
             t === "redeem"
-              ? "\ud83c\udf81 Gratiskaffee eingel\u00f6st"
+              ? "Gratiskaffee eingel\u00f6st"
               : t === "card_start"
                 ? "Neue Karte geholt"
                 : t === "stamp"
-                  ? "\u2615 Stempel gesammelt"
+                  ? "Stempel gesammelt"
                   : "Event";
           meta.textContent = (when ? when + " \u00b7 " : "") + verb;
 
