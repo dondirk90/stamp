@@ -370,6 +370,25 @@
         overflow: hidden;
       }
 
+      /* Zentraler, hervorgehobener Nav-Button (Kartenstapel) - ragt wie ein
+         FAB ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen. */
+      .kk-tab--featured {
+        min-height: 58px !important;
+        padding: 0 26px !important;
+        font-size: 14px !important;
+        transform: translateY(-8px);
+        background:
+          linear-gradient(180deg, #fffaf3, #f5ecdf) !important;
+        color: #241710 !important;
+        box-shadow:
+          0 14px 26px rgba(20, 10, 4, 0.32),
+          0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
+      }
+
+      .kk-tab--featured:hover {
+        color: #241710 !important;
+      }
+
       .topProfileAvatar {
         width: 100%;
         height: 100%;
@@ -1150,7 +1169,7 @@
 
       .stampGrid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(28px, 36px));
         gap: 12px;
         padding: 0;
         border-radius: 0;
@@ -1220,13 +1239,11 @@
       }
 
       .passCard .stampGrid.stampGridTen,
-      .face .stampGrid.stampGridTen {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-
+      .face .stampGrid.stampGridTen,
       .passCard .stampGrid.stampGridFive,
       .face .stampGrid.stampGridFive {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 36px));
+        justify-content: center;
       }
 
       /* Wallet pass: simple empty circles; filled stamps get an ink mark */
@@ -2876,7 +2893,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: 22px 24px 28px;
+        padding: 16px 24px 18px;
         min-height: 44px;
         cursor: pointer;
         touch-action: pan-x;
@@ -2885,7 +2902,7 @@
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 10px;
         isolation: isolate;
       }
 
@@ -3115,7 +3132,7 @@
         position: relative;
         width: min(100%, 404px);
         margin: 0 auto;
-        padding: 14px 50px 12px 14px;
+        padding: 14px;
         border-radius: 22px;
         border: 1px solid
           color-mix(
@@ -3518,7 +3535,7 @@
 
         .passStampField {
           width: min(100%, 304px);
-          padding: 10px 38px 10px 10px;
+          padding: 10px;
         }
 
         .passStampGuide {
@@ -3557,7 +3574,8 @@
         .face .stampGrid.stampGridTen,
         .passCard .stampGrid.stampGridFive,
         .face .stampGrid.stampGridFive {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 32px));
+          justify-content: center;
         }
 
         .passCard .stamp {
@@ -3660,7 +3678,7 @@
 
         .passStampField {
           width: min(100%, 292px);
-          padding: 9px 36px 9px 10px;
+          padding: 9px 10px;
         }
 
         .passStampGuide {

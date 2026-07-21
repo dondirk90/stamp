@@ -96,7 +96,6 @@
 
     bottomModeMap: document.getElementById("bottomModeMap"),
     bottomModeWallet: document.getElementById("bottomModeWallet"),
-    bottomModeAccount: document.getElementById("bottomModeAccount"),
     bottomModeHistory: document.getElementById("bottomModeHistory"),
     topProfileBtn: document.getElementById("topProfileBtn"),
     topProfileImg: document.getElementById("topProfileImg"),
@@ -663,8 +662,6 @@
       el.bottomModeWallet.classList.toggle("active", w === "wallet");
     if (el.bottomModeHistory)
       el.bottomModeHistory.classList.toggle("active", w === "history");
-    if (el.bottomModeAccount)
-      el.bottomModeAccount.classList.toggle("active", w === "account");
     if (el.mainModeMap) el.mainModeMap.classList.toggle("active", w === "map");
     if (el.mainModeWallet)
       el.mainModeWallet.classList.toggle("active", w === "wallet");
@@ -2056,17 +2053,6 @@
       : "Noch " + remaining + " Kaffees bis zum Gratiskaffee.";
   }
 
-  function formatNextStampLine(remaining, isFull) {
-    if (isFull) return "Im Caf\u00e9 scannen lassen und deine Belohnung einl\u00f6sen.";
-    if (remaining === 1) return "Dein n\u00e4chster Stempel ist nur einen Kaffee entfernt.";
-    return "Im Caf\u00e9 scannen lassen und den n\u00e4chsten Stempel sammeln.";
-  }
-
-  function formatFooterProgressLine(remaining, isFull) {
-    if (isFull) return "GRATISKAFFEE WARTET";
-    return remaining === 1 ? "NOCH 1 KAFFEE" : "NOCH " + remaining + " KAFFEES";
-  }
-
   function getCampaignSeenMap() {
     try {
       var raw = localStorage.getItem(CAMPAIGN_SEEN_KEY);
@@ -2892,7 +2878,7 @@
     if (note) return note;
     var fallback = String(about || "").trim();
     if (!fallback) return "";
-    return fallback.length > 120 ? fallback.slice(0, 117).trim() + "..." : fallback;
+    return fallback.length > 90 ? fallback.slice(0, 87).trim() + "..." : fallback;
   }
 
   function getCardStampStyle(card) {
@@ -3926,18 +3912,9 @@
     var progressHeadline = document.createElement("strong");
     progressHeadline.className = "passProgressHeadline";
     progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
-    var progressSub = document.createElement("span");
-    progressSub.className = "passProgressSub";
-    progressSub.textContent = formatNextStampLine(remaining, isFull);
     progressText.appendChild(progressHeadline);
-    progressText.appendChild(progressSub);
 
     metaRow.appendChild(progressText);
-
-    var hint = document.createElement("div");
-    hint.className = "passHint";
-    hint.textContent = isFull ? "Vorzeigen & einlösen" : "Im Café vorzeigen";
-    metaRow.appendChild(hint);
 
     var footer = document.createElement("div");
     footer.className = "passFooter";
@@ -3950,12 +3927,7 @@
     serial.textContent = footerLabel;
     footerMeta.appendChild(serial);
 
-    var footerVisit = document.createElement("div");
-    footerVisit.className = "passFooterVisit";
-    footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
-
     footer.appendChild(footerMeta);
-    footer.appendChild(footerVisit);
 
     mainBtn.appendChild(head);
     mainBtn.appendChild(stampField);
@@ -4795,12 +4767,6 @@
     bindModeButton(el.mainModeMap, "map");
     bindModeButton(el.mainModeWallet, "wallet");
     bindModeButton(el.mainModeHistory, "history");
-    if (el.bottomModeAccount) {
-      el.bottomModeAccount.addEventListener("click", function () {
-        navSetActive("account");
-        location.href = "/customer-profile";
-      });
-    }
     if (el.topProfileBtn) {
       el.topProfileBtn.addEventListener("click", function () {
         navSetActive("account");
@@ -4863,6 +4829,9 @@
       for (var i = 0; i < cards.length; i++) {
         resetPassCardMotion(cards[i]);
         cards[i].style.pointerEvents = "auto";
+        // Cards are sorted favorite-first; without this, later (non-favorite)
+        // siblings would paint over the favorite in the overlapping fan.
+        cards[i].style.zIndex = String(cards.length - i);
       }
     } catch (e) {}
   }
@@ -4909,10 +4878,6 @@
       0,
       rewardThreshold - clamp(stampCount, 0, rewardThreshold),
     );
-    var hint = passCardEl.querySelector(".passHint");
-    if (hint)
-      hint.textContent = isFull ? "Vorzeigen & einlösen" : "Im Café vorzeigen";
-
     var backText = passCardEl.querySelector(".passBackText");
     if (backText) {
       var existing = "";
@@ -4979,16 +4944,6 @@
         isFull,
         passCardEl.getAttribute("data-reward-label") || "",
       );
-    }
-
-    var progressSub = passCardEl.querySelector(".passProgressSub");
-    if (progressSub) {
-      progressSub.textContent = formatNextStampLine(remaining, isFull);
-    }
-
-    var footerVisit = passCardEl.querySelector(".passFooterVisit");
-    if (footerVisit) {
-      footerVisit.textContent = formatFooterProgressLine(remaining, isFull);
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -5691,9 +5646,8 @@
               theme: "espresso",
               items: [
                 { id: "bottomModeMap", label: copy.navigation.cafes },
-                { id: "bottomModeWallet", label: copy.navigation.cards },
+                { id: "bottomModeWallet", label: "Kartenstapel" },
                 { id: "bottomModeHistory", label: copy.navigation.history },
-                { id: "bottomModeAccount", label: copy.navigation.profile },
               ],
             })
           : null;
@@ -5702,7 +5656,7 @@
         el.bottomModeMap = document.getElementById("bottomModeMap");
         el.bottomModeWallet = document.getElementById("bottomModeWallet");
         el.bottomModeHistory = document.getElementById("bottomModeHistory");
-        el.bottomModeAccount = document.getElementById("bottomModeAccount");
+        if (el.bottomModeWallet) el.bottomModeWallet.classList.add("kk-tab--featured");
       }
     } catch (eNav) {}
     wireNavigation();
