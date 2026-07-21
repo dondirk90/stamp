@@ -19,10 +19,7 @@
 
       body {
         min-height: 100svh;
-        background:
-          radial-gradient(circle at top left, rgba(213, 173, 132, 0.24), rgba(213, 173, 132, 0) 34%),
-          radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 28%),
-          linear-gradient(180deg, #fbf7f1 0%, #f4ede4 48%, #efe6dc 100%);
+        background: var(--color-background);
         color: var(--text);
       }
 
@@ -226,7 +223,7 @@
         padding: 18px 16px 16px;
         border-radius: 44px;
         border: 1px solid rgba(17, 17, 17, 0.08);
-        background: linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(243, 232, 220, 0.96));
+        background: var(--color-surface-elevated);
         box-shadow:
           0 30px 60px rgba(57, 34, 21, 0.16),
           0 1px 0 rgba(255, 255, 255, 0.84) inset;
@@ -518,9 +515,7 @@
         aspect-ratio: 16 / 10;
         border-radius: 24px;
         border: 1px solid rgba(81, 58, 40, 0.1);
-        background:
-          radial-gradient(circle at top right, rgba(217, 180, 141, 0.34), rgba(217, 180, 141, 0) 36%),
-          linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(239, 228, 216, 0.94));
+        background: var(--color-surface-elevated);
         position: relative;
         overflow: hidden;
         box-shadow:
