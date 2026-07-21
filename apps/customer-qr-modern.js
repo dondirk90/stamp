@@ -523,7 +523,10 @@
 
   function setAuthDetailsVisible(visible) {
     if (!el.authDetails) return;
-    el.authDetails.style.display = visible ? "" : "none";
+    // .authDetails defaults to display:none in CSS, so clearing the inline
+    // style back to "" would just fall through to that - it needs an explicit
+    // visible value (matching .stack's display: flex) to actually show it.
+    el.authDetails.style.display = visible ? "flex" : "none";
   }
 
   function loadSession() {
