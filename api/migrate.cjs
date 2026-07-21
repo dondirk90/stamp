@@ -28,17 +28,21 @@ function listMigrationFiles() {
   return files.map((f) => ({ id: f, filePath: path.join(dir, f) }));
 }
 
-async function getAppliedMigrations(client) {
-  const res = await client.query("SELECT id FROM schema_migrations");
-  return new Set(res.rows.map((r) => String(r.id)));
-}
-
+// Every migration file must stay written with IF NOT EXISTS / ADD COLUMN IF
+// NOT EXISTS guards (all of them are, as of writing) - that's what makes it
+// safe to unconditionally re-apply every file on every deploy below, instead
+// of trusting schema_migrations bookkeeping to say a file is already done.
+// A restored/rebuilt DB volume can have that bookkeeping without the actual
+// schema changes (this happened once in prod: schema_migrations said
+// migration 007 was applied, but customers.avatar_mime didn't exist) - so
+// re-running is the safety net, not just an optimization to skip.
 async function applyMigration(client, id, sql) {
   await client.query("BEGIN");
   try {
     await client.query(sql);
     await client.query(
-      "INSERT INTO schema_migrations (id, applied_at) VALUES ($1, $2)",
+      "INSERT INTO schema_migrations (id, applied_at) VALUES ($1, $2) " +
+        "ON CONFLICT (id) DO UPDATE SET applied_at = EXCLUDED.applied_at",
       [id, Date.now()]
     );
     await client.query("COMMIT");
@@ -57,19 +61,15 @@ async function main() {
   try {
     await ensureMigrationsTable(client);
 
-    const applied = await getAppliedMigrations(client);
     const migrations = listMigrationFiles();
 
-    let ran = 0;
     for (const m of migrations) {
-      if (applied.has(m.id)) continue;
       const sql = fs.readFileSync(m.filePath, "utf8");
       console.log(`Applying migration ${m.id}...`);
       await applyMigration(client, m.id, sql);
-      ran++;
     }
 
-    console.log(`Migrations complete. Applied ${ran} new migration(s).`);
+    console.log(`Migrations complete. Re-applied ${migrations.length} migration(s) (idempotent).`);
   } finally {
     await client.end();
   }
