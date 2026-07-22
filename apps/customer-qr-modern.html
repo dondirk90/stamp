@@ -872,38 +872,12 @@
         line-height: 1.55;
       }
 
-      .authPerks {
-        display: grid;
-        gap: 10px;
-      }
-
-      .authPerk {
-        display: grid;
-        grid-template-columns: 26px minmax(0, 1fr);
-        gap: 10px;
-        align-items: start;
-      }
-
-      .authPerkNo {
-        width: 26px;
-        height: 26px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #6b452c;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-      }
-
-      .authPerkText {
+      .authSteps {
+        margin: 0;
         font-size: 13px;
-        line-height: 1.45;
-        color: var(--text-muted);
-      }
-
-      .authPerkText strong {
-        color: var(--text);
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: var(--pass-ink, var(--brand-700));
       }
 
       .fieldHint {
@@ -4964,28 +4938,7 @@
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
                 betretenes Schweigen an der Kasse.
               </p>
-              <div class="authPerks">
-                <div class="authPerk">
-                  <div class="authPerkNo">1</div>
-                  <div class="authPerkText">
-                    <strong>Alles an einem Ort:</strong> mehrere Caf&eacute;s, mehrere Karten,
-                    aber nur ein klarer Einstieg.
-                  </div>
-                </div>
-                <div class="authPerk">
-                  <div class="authPerkNo">2</div>
-                  <div class="authPerkText">
-                    <strong>Reward im Blick:</strong> du siehst sofort, wie nah
-                    du an deiner n&auml;chsten Belohnung bist.
-                  </div>
-                </div>
-                <div class="authPerk">
-                  <div class="authPerkNo">3</div>
-                  <div class="authPerkText">
-                    <strong>Schnell im Caf&eacute;:</strong> Stempelkarte &ouml;ffnen, vorzeigen, Kaffee genie&szlig;en.
-                  </div>
-                </div>
-              </div>
+              <p class="authSteps">QR scannen. Karte im Wallet. Fertig.</p>
             </div>
 
             <div class="actions">
