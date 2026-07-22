@@ -1,6 +1,5 @@
-# TODO once the Apple Developer Program membership + App Store Connect app
-# record exist (see native-apps plan, Phase A step 7): fill in your Team ID.
-# Find it at https://developer.apple.com/account -> Membership details.
 app_identifier("app.kaffeekarte.customer")
 apple_id(ENV["FASTLANE_APPLE_ID"] || "")
-team_id(ENV["FASTLANE_TEAM_ID"] || "")
+# Apple Developer Program Team ID (developer.apple.com/account -> Membership
+# details). Not a secret - safe to commit. Still overridable via env for CI.
+team_id(ENV["FASTLANE_TEAM_ID"] || "P7633QY6QK")
