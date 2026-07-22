@@ -5360,6 +5360,12 @@
       </div>
     </div>
 
+    <!-- Harmless in a plain browser tab (Capacitor's web fallback just uses
+         navigator.vibrate/no-ops); gives the native iOS/Android wrapper apps
+         a real bridge + native Haptics + App-lifecycle events. -->
+    <script src="/vendor/capacitor/capacitor.js"></script>
+    <script src="/vendor/capacitor/app.js"></script>
+    <script src="/vendor/capacitor/haptics.js"></script>
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js?v=20260714a"></script>
     <script src="/customer-qr-modern.js?v=20260714a"></script>

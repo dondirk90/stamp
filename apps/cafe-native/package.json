@@ -1,0 +1,20 @@
+{
+  "name": "kaffeekarte-cafe-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor native shell (iOS + Android) wrapping the Kaffeekarte cafe/barista web app. Currently a minimal spike to de-risk in-app QR camera scanning before building out full CI/store tooling (see Phase A step 2 of the native-apps plan).",
+  "scripts": {
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.8",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.8",
+    "@capacitor/ios": "^7.6.8"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.8"
+  }
+}

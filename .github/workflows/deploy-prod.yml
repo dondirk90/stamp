@@ -83,6 +83,8 @@ jobs:
             --exclude='node_modules' \
             --exclude='api/.api.*.log' \
             --exclude='apps/.apps-server.*.log' \
+            --exclude='apps/customer-native' \
+            --exclude='apps/cafe-native' \
             -czf .deploy/stamp-prod.tgz .
 
       - name: Upload archive to server

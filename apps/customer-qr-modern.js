@@ -355,16 +355,38 @@
     }, 3200);
   }
 
-  // Vibration API is a no-op on browsers/devices that don't support it
-  // (notably iOS Safari) - the try/catch is enough, no feature branching needed.
+  // Prefer the Capacitor Haptics plugin (vendored in /vendor/capacitor/) when
+  // present - it's a real Taptic Engine call on native iOS, where
+  // navigator.vibrate doesn't exist at all. Its own web fallback just calls
+  // navigator.vibrate internally, so this covers browser + Android + iOS
+  // through one path; falls back to raw navigator.vibrate if the vendored
+  // scripts didn't load for some reason.
+  function getCapacitorHaptics() {
+    try {
+      return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function triggerHapticStamp() {
     try {
+      var haptics = getCapacitorHaptics();
+      if (haptics) {
+        Promise.resolve(haptics.impact({ style: "LIGHT" })).catch(function () {});
+        return;
+      }
       if (navigator.vibrate) navigator.vibrate(12);
     } catch (e) {}
   }
 
   function triggerHapticReward() {
     try {
+      var haptics = getCapacitorHaptics();
+      if (haptics) {
+        Promise.resolve(haptics.notification({ type: "SUCCESS" })).catch(function () {});
+        return;
+      }
       if (navigator.vibrate) navigator.vibrate([15, 60, 15]);
     } catch (e) {}
   }
@@ -4720,6 +4742,20 @@
         onVisible();
       });
     } catch (e4) {}
+
+    // Belt-and-suspenders for the native wrapper apps: iOS suspends WKWebView
+    // JS/network shortly after backgrounding without reliably firing the web
+    // visibility events above first, silently killing the SSE connection.
+    // Capacitor's own appStateChange event is the native-level signal.
+    try {
+      var appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if (appPlugin && appPlugin.addListener) {
+        appPlugin.addListener("appStateChange", function (state) {
+          if (state && state.isActive) onVisible();
+          else onHidden();
+        });
+      }
+    } catch (e5) {}
   }
 
   function wireAccount() {

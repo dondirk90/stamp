@@ -10,6 +10,15 @@
 
   function reloadOnce() {
     if (reloading) return;
+    // In the native wrapper apps (Capacitor), a mid-session reload reads as
+    // the app randomly restarting on the user, not the silent
+    // browser-tab-refresh this was designed for - skip it there and let the
+    // new SW simply take over for the next natural app resume/relaunch.
+    try {
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        return;
+      }
+    } catch (eNative) {}
     reloading = true;
     try {
       window.location.reload();
