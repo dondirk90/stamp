@@ -3826,6 +3826,12 @@
         aspect-ratio: auto;
       }
 
+      /* Redemption QR should read differently from a routine collection QR at a glance. */
+      .passCard[data-reward-ready="true"] .passQrBox {
+        border: 1px solid var(--color-butter, #d8bd75);
+        background: color-mix(in srgb, var(--color-butter, #d8bd75) 10%, rgba(255, 255, 255, 0.82));
+      }
+
       .ios .passCard.isSwapping {
         animation: iosPassSwap 460ms cubic-bezier(0.18, 0.88, 0.22, 1);
       }
@@ -4795,6 +4801,11 @@
       @media (prefers-reduced-motion: reduce) {
         .rewardBalloons {
           display: none !important;
+        }
+
+        .passCard .stamp.filled.isNew .stampIcon,
+        .face .stamp.filled.isNew .stampIcon {
+          animation: none;
         }
       }
 

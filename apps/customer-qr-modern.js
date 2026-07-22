@@ -355,6 +355,20 @@
     }, 3200);
   }
 
+  // Vibration API is a no-op on browsers/devices that don't support it
+  // (notably iOS Safari) - the try/catch is enough, no feature branching needed.
+  function triggerHapticStamp() {
+    try {
+      if (navigator.vibrate) navigator.vibrate(12);
+    } catch (e) {}
+  }
+
+  function triggerHapticReward() {
+    try {
+      if (navigator.vibrate) navigator.vibrate([15, 60, 15]);
+    } catch (e) {}
+  }
+
   function isIOS() {
     try {
       var ua = navigator.userAgent || "";
@@ -2036,12 +2050,18 @@
     return line;
   }
 
-  function formatRewardProgressLine(remaining, isFull, rewardLabel) {
+  function formatRewardProgressLine(remaining, isFull, rewardLabel, threshold) {
     var hasCustomReward = !!String(rewardLabel || "").trim();
     if (isFull) {
       return hasCustomReward
         ? "Der nächste geht aufs Haus"
         : "Dein Gratiskaffee wartet";
+    }
+    // Not every step needs to be a countdown: at the halfway point, a warm
+    // human line beats another "noch X Kaffees" - see BRAND.md Microinteractions.
+    var half = Math.round(clamp(Number(threshold || 0) || 0, 2, 50) / 2);
+    if (half > 0 && remaining === half) {
+      return "Schön, dass du wieder da bist.";
     }
     if (hasCustomReward) {
       return remaining === 1
@@ -3724,6 +3744,7 @@
     passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
     passCard.setAttribute("data-reward-label", rewardLabel || "");
     passCard.setAttribute("data-stamp-style", getCardStampStyle(card));
+    passCard.setAttribute("data-reward-ready", isFull ? "true" : "false");
 
     if (card && card.cardBackgroundDataUrl) {
       try {
@@ -3903,7 +3924,7 @@
     progressText.className = "passProgressText";
     var progressHeadline = document.createElement("strong");
     progressHeadline.className = "passProgressHeadline";
-    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
+    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel, rewardThreshold);
     progressText.appendChild(progressHeadline);
 
     metaRow.appendChild(progressText);
@@ -4973,7 +4994,19 @@
         remaining,
         isFull,
         passCardEl.getAttribute("data-reward-label") || "",
+        rewardThreshold,
       );
+    }
+
+    try {
+      passCardEl.setAttribute("data-reward-ready", isFull ? "true" : "false");
+    } catch (eReady) {}
+
+    var qrCaption = passCardEl.querySelector(".passQrCaption");
+    if (qrCaption) {
+      qrCaption.textContent = isFull
+        ? "Im Café scannen lassen, um die Belohnung einzulösen."
+        : "Im Café scannen lassen und den nächsten Stempel sammeln.";
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -4981,11 +5014,16 @@
       renderStampGrid(grid, stampCount, prevCount);
     }
 
+    if (prevCount != null && stampCount > Number(prevCount)) {
+      triggerHapticStamp();
+    }
+
     if (
       prevCount != null &&
       Number(prevCount) < rewardThreshold &&
       stampCount >= rewardThreshold
     ) {
+      triggerHapticReward();
       launchRewardCelebration();
     }
   }
@@ -5128,6 +5166,7 @@
               } catch (eOpt) {}
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
+              triggerHapticReward();
               launchRedeemCelebration();
               showToast(
                 "Belohnung eingel\u00f6st. Lass dir dein Getr\u00e4nk schmecken." +
