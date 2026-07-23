@@ -83,6 +83,8 @@
     authSubmit: document.getElementById("authSubmit"),
     authGoogle: document.getElementById("authGoogle"),
     authGoogleLabel: document.getElementById("authGoogleLabel"),
+    authApple: document.getElementById("authApple"),
+    authAppleLabel: document.getElementById("authAppleLabel"),
     authDetails: document.getElementById("authDetails"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
@@ -629,6 +631,8 @@
       el.authSubmit.textContent = "Mit E-Mail fortfahren";
     if (el.authGoogleLabel)
       el.authGoogleLabel.textContent = "Mit Google fortfahren";
+    if (el.authAppleLabel)
+      el.authAppleLabel.textContent = "Mit Apple fortfahren";
 
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
@@ -1122,19 +1126,29 @@
     if (oauthError) {
       clearOauthParamsFromUrl();
       setAuthMode("login");
-      var msg = "Google-Anmeldung fehlgeschlagen.";
-      if (oauthError === "google_no_account") {
+      var providerLabel = /^apple_/.test(oauthError) ? "Apple" : "Google";
+      var msg = providerLabel + "-Anmeldung fehlgeschlagen.";
+      if (oauthError === "google_no_account" || oauthError === "apple_no_account") {
         msg =
-          "Zu dieser Google-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
-      } else if (oauthError === "google_auth_not_configured") {
+          "Zu dieser " + providerLabel + "-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
+      } else if (
+        oauthError === "google_auth_not_configured" ||
+        oauthError === "apple_auth_not_configured"
+      ) {
         msg =
-          "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
-      } else if (oauthError === "google_legal_required") {
+          providerLabel + "-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pruefe die Konfiguration auf dem Server.";
+      } else if (
+        oauthError === "google_legal_required" ||
+        oauthError === "apple_legal_required"
+      ) {
         msg =
-          "Bitte bestätige vor der Google-Registrierung Datenschutz und AGB.";
-      } else if (oauthError === "google_email_not_verified") {
+          "Bitte bestätige vor der " + providerLabel + "-Registrierung Datenschutz und AGB.";
+      } else if (
+        oauthError === "google_email_not_verified" ||
+        oauthError === "apple_email_not_verified"
+      ) {
         msg =
-          "Google hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte Google-Adresse.";
+          providerLabel + " hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte " + providerLabel + "-Adresse.";
       }
       showMsg("danger", msg);
       return Promise.resolve(false);
@@ -1161,7 +1175,8 @@
         setAuthedUI();
         bootAuthed();
         applyPageMode(getPageMode());
-        showMsg("success", "Du bist jetzt mit Google angemeldet.");
+        var loggedInLabel = data.provider === "apple" ? "Apple" : "Google";
+        showMsg("success", "Du bist jetzt mit " + loggedInLabel + " angemeldet.");
         return true;
       })
       .catch(function (e) {
@@ -1172,8 +1187,8 @@
         showMsg(
           "danger",
           window.stampUI
-            ? stampUI.userSafeErrorMessage(e, "Google-Anmeldung fehlgeschlagen.")
-            : "Google-Anmeldung fehlgeschlagen.",
+            ? stampUI.userSafeErrorMessage(e, "Anmeldung fehlgeschlagen.")
+            : "Anmeldung fehlgeschlagen.",
         );
         return false;
       });
@@ -4661,6 +4676,10 @@
       el.authGoogle.addEventListener("click", function () {
         handleGoogleAuthStart();
       });
+    if (el.authApple)
+      el.authApple.addEventListener("click", function () {
+        handleAppleAuthStart();
+      });
   }
 
   function wireLogout() {
@@ -5348,7 +5367,7 @@
       });
   }
 
-  function handleGoogleAuthStart() {
+  function startCustomerOauth(provider) {
     clearMsg();
     var username = el.username ? String(el.username.value || "").trim() : "";
     var email = el.email ? String(el.email.value || "").trim() : "";
@@ -5394,7 +5413,13 @@
     if (authMode === "register") qs.set("acceptLegal", "1");
     if (username || email)
       qs.set("username", username || deriveUsernameFromEmail(email));
-    window.location.assign("/api/auth/google/start?" + qs.toString());
+    window.location.assign("/api/auth/" + provider + "/start?" + qs.toString());
+  }
+  function handleGoogleAuthStart() {
+    startCustomerOauth("google");
+  }
+  function handleAppleAuthStart() {
+    startCustomerOauth("apple");
   }
   function refreshHistory() {
     if (!el.historyList) return;
