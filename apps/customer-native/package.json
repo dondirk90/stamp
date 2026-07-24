@@ -2,6 +2,7 @@
   "name": "kaffeekarte-customer-native",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.20.0",
   "description": "Capacitor native shell (iOS + Android) wrapping the Kaffeekarte customer web app.",
   "scripts": {
     "sync": "cap sync",
