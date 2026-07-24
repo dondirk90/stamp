@@ -43,6 +43,13 @@ platform :ios do
   desc "Build the .ipa (release, TestFlight-bound)"
   lane :build do
     certificates
+    # CURRENT_PROJECT_VERSION is a static "1" in the checked-in project -
+    # TestFlight rejects re-uploads with a build number it's already seen,
+    # so give every CI run a unique one.
+    increment_build_number(
+      xcodeproj: "ios/App/App.xcodeproj",
+      build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.strftime("%Y%m%d%H%M"),
+    )
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "ios/App/App.xcodeproj",
