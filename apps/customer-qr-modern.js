@@ -105,6 +105,7 @@
     password: document.getElementById("password"),
     confirmPassword: document.getElementById("confirmPassword"),
     confirmPasswordWrap: document.getElementById("confirmPasswordWrap"),
+    passwordHint: document.getElementById("passwordHint"),
     authSubmit: document.getElementById("authSubmit"),
     authGoogle: document.getElementById("authGoogle"),
     authGoogleLabel: document.getElementById("authGoogleLabel"),
@@ -590,12 +591,6 @@
     // style back to "" would just fall through to that - it needs an explicit
     // visible value (matching .stack's display: flex) to actually show it.
     el.authDetails.style.display = visible ? "flex" : "none";
-    // Resending a verification link only makes sense once someone is
-    // actually going through the email/password flow (Google/Apple verify
-    // the email themselves, no confirmation link involved there).
-    if (el.authResendGroup) {
-      el.authResendGroup.style.display = visible ? "inline" : "none";
-    }
   }
 
   function loadSession() {
@@ -677,8 +672,13 @@
     if (el.confirmPasswordWrap)
       el.confirmPasswordWrap.style.display =
         authMode === "register" ? "" : "none";
+    if (el.passwordHint)
+      el.passwordHint.style.display = authMode === "register" ? "" : "none";
+    if (el.authResendGroup)
+      el.authResendGroup.style.display = authMode === "login" ? "inline" : "none";
     if (el.authSubmit)
-      el.authSubmit.textContent = "Mit E-Mail fortfahren";
+      el.authSubmit.textContent =
+        authMode === "register" ? "Registrieren" : "Einloggen";
     if (el.authGoogleLabel)
       el.authGoogleLabel.textContent = "Mit Google fortfahren";
     if (el.authAppleLabel)
@@ -700,7 +700,7 @@
           ? "Starte mit Apple, Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
           : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
-    setAuthDetailsVisible(false);
+    setAuthDetailsVisible(true);
 
     if (el.authForgotToggle)
       el.authForgotToggle.style.display =
@@ -5329,12 +5329,6 @@
 
     if (!email) {
       showMsg("danger", "Bitte gib deine E-Mail ein.");
-      return;
-    }
-
-    if (el.authDetails && el.authDetails.style.display === "none") {
-      setAuthDetailsVisible(true);
-      if (el.password) el.password.focus();
       return;
     }
 
