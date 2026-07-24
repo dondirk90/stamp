@@ -32,6 +32,10 @@ platform :ios do
       type: "appstore",
       api_key: api_key,
       readonly: false,
+      # TEMPORARY: force a fresh provisioning profile so it picks up the
+      # Associated Domains capability just added to the App ID. Revert to
+      # false once a build with the new profile has succeeded once.
+      force: true,
       git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"],
     )
   end
