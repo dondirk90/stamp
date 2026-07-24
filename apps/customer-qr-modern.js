@@ -114,6 +114,7 @@
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
+    authResendGroup: document.getElementById("authResendGroup"),
     authResendVerificationBtn: document.getElementById(
       "authResendVerificationBtn",
     ),
@@ -589,6 +590,12 @@
     // style back to "" would just fall through to that - it needs an explicit
     // visible value (matching .stack's display: flex) to actually show it.
     el.authDetails.style.display = visible ? "flex" : "none";
+    // Resending a verification link only makes sense once someone is
+    // actually going through the email/password flow (Google/Apple verify
+    // the email themselves, no confirmation link involved there).
+    if (el.authResendGroup) {
+      el.authResendGroup.style.display = visible ? "inline" : "none";
+    }
   }
 
   function loadSession() {

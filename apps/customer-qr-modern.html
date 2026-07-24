@@ -854,7 +854,10 @@
         transform: scale(0.99);
       }
 
-      .authGoogleBtn {
+      /* theme.css's .btn.primary (2 classes) beats .authGoogleBtn (1 class)
+         on specificity even with !important on both - the #authGoogle ID
+         selector guarantees this wins regardless of source order. */
+      #authGoogle.authGoogleBtn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -874,7 +877,7 @@
         flex: 0 0 auto;
       }
 
-      .authAppleBtn {
+      #authApple.authAppleBtn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -932,14 +935,6 @@
         font-size: 25px;
         line-height: 1.08;
         letter-spacing: -0.03em;
-      }
-
-      .authTrustBadge {
-        margin: 2px 0 0;
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--pass-ink, var(--brand-700));
-        opacity: 0.8;
       }
 
       .authLead {
@@ -5029,7 +5024,6 @@
                 betretenes Schweigen an der Kasse.
               </p>
               <p class="authSteps">QR scannen. Karte im Wallet. Fertig.</p>
-              <p class="authTrustBadge">&#10003; Bereits in vielen Caf&eacute;s nutzbar</p>
             </div>
 
             <div class="actions">
@@ -5147,25 +5141,27 @@
               >
                 Passwort vergessen?
               </button>
-              <span style="opacity: 0.35; margin: 0 8px">|</span>
-              <button
-                id="authResendVerificationBtn"
-                type="button"
-                class="btn secondary"
-                style="
-                  width: auto;
-                  min-height: 0;
-                  margin: 0;
-                  padding: 0;
-                  background: transparent !important;
-                  border: none !important;
-                  color: var(--text-muted) !important;
-                  font-size: 12px;
-                  font-weight: 600;
-                "
-              >
-                Best&auml;tigungslink erneut senden
-              </button>
+              <span id="authResendGroup" style="display: none">
+                <span style="opacity: 0.35; margin: 0 8px">|</span>
+                <button
+                  id="authResendVerificationBtn"
+                  type="button"
+                  class="btn secondary"
+                  style="
+                    width: auto;
+                    min-height: 0;
+                    margin: 0;
+                    padding: 0;
+                    background: transparent !important;
+                    border: none !important;
+                    color: var(--text-muted) !important;
+                    font-size: 12px;
+                    font-weight: 600;
+                  "
+                >
+                  Best&auml;tigungslink erneut senden
+                </button>
+              </span>
             </div>
 
             <div
