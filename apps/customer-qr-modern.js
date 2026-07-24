@@ -655,17 +655,17 @@
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
         authMode === "register"
-          ? "Neu bei Kaffeekarte?"
+          ? "Willkommen bei Kaffeekarte"
           : "Willkommen zur\u00fcck";
     if (el.authIntroTitle)
       el.authIntroTitle.textContent =
         authMode === "register"
-          ? "Good coffee deserves better loyalty."
+          ? "Collect coffee. Not paper cards."
           : "Sch\u00f6n, dass du wieder da bist.";
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Starte mit Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
+          ? "Starte mit Apple, Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
           : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
     setAuthDetailsVisible(false);

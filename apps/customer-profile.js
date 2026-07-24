@@ -22,6 +22,10 @@
     profileInfo: document.getElementById("profileInfo"),
     profileAdvancedInfo: document.getElementById("profileAdvancedInfo"),
 
+    newUsername: document.getElementById("newUsername"),
+    changeUsernameBtn: document.getElementById("changeUsernameBtn"),
+    changeUsernameMsg: document.getElementById("changeUsernameMsg"),
+
     currentPassword: document.getElementById("currentPassword"),
     newPassword: document.getElementById("newPassword"),
     newPassword2: document.getElementById("newPassword2"),
@@ -322,6 +326,52 @@
     }
 
     if (el.resetEmail && session.email) el.resetEmail.value = session.email;
+    if (el.newUsername && session.username) el.newUsername.value = session.username;
+  }
+
+  async function handleChangeUsername() {
+    const session = loadSession();
+    hideNotice(el.changeUsernameMsg);
+    if (!session || !session.email || !session.customer_id || !session.address) {
+      showNotice(el.changeUsernameMsg, "danger", "Bitte zuerst einloggen.");
+      return;
+    }
+
+    const username = String(el.newUsername?.value || "").trim();
+    if (!username || username.length < 2) {
+      showNotice(
+        el.changeUsernameMsg,
+        "danger",
+        "Benutzername muss mindestens 2 Zeichen haben.",
+      );
+      return;
+    }
+
+    try {
+      await apiFetch("/customers/change-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          customerId: session.customer_id,
+          address: session.address,
+          username,
+        }),
+      });
+    } catch (e) {
+      showNotice(
+        el.changeUsernameMsg,
+        "danger",
+        safeUiErrorMessage(e, "Benutzername konnte nicht geändert werden."),
+      );
+      return;
+    }
+
+    session.username = username;
+    saveSession(session);
+    renderProfile(session);
+
+    showNotice(el.changeUsernameMsg, "success", "Benutzername wurde geändert.");
   }
 
   async function handleChangePassword() {
@@ -618,13 +668,16 @@
     if (el.logoutBtn) {
       el.logoutBtn.addEventListener("click", () => {
         clearSession();
-        renderProfile(null);
-        showNotice(el.forgotPwMsg, "info", "Du wurdest ausgeloggt.");
+        location.href = "/wallet";
       });
     }
 
     if (el.changePwBtn) {
       el.changePwBtn.addEventListener("click", () => void handleChangePassword());
+    }
+
+    if (el.changeUsernameBtn) {
+      el.changeUsernameBtn.addEventListener("click", () => void handleChangeUsername());
     }
 
     if (el.deleteAccountBtn) {

@@ -1559,6 +1559,9 @@ const getCustomerByAddress = db.prepare(
 const setCustomerPasswordHashById = db.prepare(
   "UPDATE customers SET password_hash = ? WHERE id = ?",
 );
+const setCustomerUsernameById = db.prepare(
+  "UPDATE customers SET username = ? WHERE id = ?",
+);
 const setCustomerEmailVerifiedAtById = db.prepare(
   "UPDATE customers SET email_verified_at = ? WHERE id = ?",
 );
@@ -5705,6 +5708,44 @@ app.post("/customers/change-password", async (req, res) => {
     await setCustomerPasswordHashById.run(newHash, row.id);
 
     return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/change-username", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    const username =
+      req.body?.username != null ? String(req.body.username).trim() : "";
+
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ error: "missing_customer_identity" });
+    }
+    if (!username || username.length < 2 || username.length > 64) {
+      return res.status(400).json({ error: "invalid_username" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ error: "session_mismatch" });
+    }
+
+    await setCustomerUsernameById.run(username, row.id);
+
+    return res.json({ ok: true, username });
   } catch (e) {
     return res
       .status(500)

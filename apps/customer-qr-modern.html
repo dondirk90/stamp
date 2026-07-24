@@ -748,7 +748,9 @@
         border-radius: 0;
         padding: 8px 0;
         min-height: auto;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.7;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
@@ -799,11 +801,20 @@
         flex: 1;
       }
 
+      .authCtaActions {
+        margin-top: 22px;
+      }
+
+      .authCtaActions #authSubmit {
+        min-height: 58px;
+        box-shadow: 0 10px 22px rgba(41, 29, 21, 0.1);
+      }
+
       .authDivider {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin: 6px 0 2px;
+        margin: 16px 0 12px;
         color: rgba(59, 42, 31, 0.5);
         font-size: 11px;
         font-weight: 800;
@@ -819,13 +830,29 @@
         background: rgba(17, 17, 17, 0.08);
       }
 
+      .authGoogleBtn,
+      .authAppleBtn {
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .authGoogleBtn:hover,
+      .authAppleBtn:hover {
+        transform: scale(1.015);
+      }
+
+      .authGoogleBtn:active,
+      .authAppleBtn:active {
+        transform: scale(0.99);
+      }
+
       .authGoogleBtn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 10px;
         width: 100%;
-        min-height: 54px;
+        min-height: 56px;
+        padding-inline: 20px;
         border: 1px solid rgba(17, 17, 17, 0.14) !important;
         background: rgba(255, 255, 255, 0.94) !important;
         color: var(--text) !important;
@@ -833,8 +860,8 @@
       }
 
       .authGoogleLogo {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         flex: 0 0 auto;
       }
 
@@ -844,7 +871,8 @@
         justify-content: center;
         gap: 10px;
         width: 100%;
-        min-height: 54px;
+        min-height: 56px;
+        padding-inline: 20px;
         border: 1px solid rgba(17, 17, 17, 0.14) !important;
         background: #000 !important;
         color: #fff !important;
@@ -852,21 +880,33 @@
       }
 
       .authAppleLogo {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         flex: 0 0 auto;
         color: #fff;
       }
 
       .authIntro {
         display: grid;
-        gap: 14px;
-        margin-bottom: 18px;
-        padding: 18px;
+        gap: 10px;
+        margin-bottom: 22px;
+        padding: 14px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         border-radius: 22px;
         background:
           linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 243, 237, 0.92));
+        animation: authFadeIn 260ms ease;
+      }
+
+      @keyframes authFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .authEyebrow {
@@ -880,9 +920,17 @@
       .authTitle {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: 30px;
-        line-height: 1.04;
-        letter-spacing: -0.035em;
+        font-size: 25px;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+      }
+
+      .authTrustBadge {
+        margin: 2px 0 0;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--pass-ink, var(--brand-700));
+        opacity: 0.8;
       }
 
       .authLead {
@@ -912,7 +960,7 @@
       }
 
       .authEmailField {
-        margin-top: 8px;
+        margin-top: 4px;
       }
 
       .authEmailField input {
@@ -920,6 +968,11 @@
         border-radius: 18px;
         font-size: 18px;
         padding-inline: 18px;
+        transition: border-color 200ms ease, box-shadow 200ms ease;
+      }
+
+      .authEmailField input:focus {
+        box-shadow: 0 0 0 3px rgba(107, 69, 44, 0.14);
       }
 
       .authEmailField input::placeholder {
@@ -1681,6 +1734,14 @@
         backdrop-filter: none;
         align-content: start;
         justify-items: start;
+      }
+
+      /* The shared mobile-portrait rule above gives #authPanel a 96px top
+         padding (meant for panels with a back-button/header above the fold);
+         the login screen has no such header, so that just pushes the hero
+         card and login options far down. Override just the padding here. */
+      #authPanel {
+        padding-top: 28px;
       }
 
       .welcomeHero {
@@ -4942,7 +5003,7 @@
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2 id="authPanelTitle">Neu bei Kaffeekarte?</h2>
+            <h2 id="authPanelTitle">Willkommen bei Kaffeekarte</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
               <button id="modeRegister" class="active" type="button">Registrieren</button>
               <button id="modeLogin" type="button">Login</button>
@@ -4952,13 +5013,14 @@
           <div class="stack panelBody">
             <div class="authIntro">
               <div class="authEyebrow">Kaffee im Veedel</div>
-                <h3 class="authTitle" id="authIntroTitle">Good coffee deserves better loyalty.</h3>
+                <h3 class="authTitle" id="authIntroTitle">Collect coffee. Not paper cards.</h3>
               <p class="authLead" id="authIntroLead">
                 Melde dich an und behalte Stempel, Rewards und deine n&auml;chsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
                 betretenes Schweigen an der Kasse.
               </p>
               <p class="authSteps">QR scannen. Karte im Wallet. Fertig.</p>
+              <p class="authTrustBadge">&#10003; Bereits in vielen Caf&eacute;s nutzbar</p>
             </div>
 
             <div class="actions">
@@ -5010,11 +5072,11 @@
                 type="email"
                 inputmode="email"
                 autocomplete="email"
-                placeholder="Gib deine E-Mail ein"
+                placeholder="E-Mail-Adresse"
               />
             </div>
 
-            <div class="actions">
+            <div class="actions authCtaActions">
               <button class="btn primary" id="authSubmit" type="button">
                 Mit E-Mail fortfahren
               </button>
@@ -5088,7 +5150,9 @@
                   padding: 0;
                   background: transparent !important;
                   border: none !important;
-                  color: var(--brand) !important;
+                  color: var(--text-muted) !important;
+                  font-size: 12px;
+                  font-weight: 600;
                 "
               >
                 Best&auml;tigungslink erneut senden
@@ -5120,16 +5184,19 @@
                 border-top: 1px solid rgba(17, 17, 17, 0.08);
               "
             >
-              Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
-              <span style="display: block; margin-top: 8px">
+              <span style="display: block">
                 <a href="/impressum">Impressum</a> &middot;
                 <a href="/datenschutz">Datenschutz</a> &middot;
                 <a href="/agb">AGB</a>
               </span>
-            </div>
-            <div class="hint">
-              Keinen Schl&uuml;ssel eintippen. Im Hintergrund entsteht automatisch die
-              technische Adresse f&uuml;r deine Karte.
+              <details style="margin-top: 10px">
+                <summary style="cursor: pointer; color: var(--text-muted)">Mehr zu deinem Konto</summary>
+                <div style="margin-top: 8px">
+                  Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
+                  Keinen Schl&uuml;ssel eintippen. Im Hintergrund entsteht automatisch die
+                  technische Adresse f&uuml;r deine Karte.
+                </div>
+              </details>
             </div>
           </div>
         </div>
