@@ -1740,12 +1740,19 @@
         justify-items: start;
       }
 
-      /* The shared mobile-portrait rule above gives #authPanel a 96px top
-         padding (meant for panels with a back-button/header above the fold);
-         the login screen has no such header, so that just pushes the hero
-         card and login options far down. Override just the padding here. */
-      #authPanel {
-        padding-top: 28px;
+      /* The shared mobile-portrait rule above gives #authPanel/#welcomePanel
+         a 96px top padding, which felt like too much *inside* the card - but
+         cutting it down without limit was wrong too: on that same breakpoint
+         .topbar switches to position:fixed (floating over the content, not
+         taking up flow space - see its rule further up), so the content
+         underneath still needs enough clearance to not render *behind* it.
+         .topbar there sits at top: 8px + safe-top with min-height: 64px, so
+         content needs to start past that, not at a small fixed value. */
+      @media (max-width: 520px) and (orientation: portrait) {
+        #authPanel,
+        #welcomePanel {
+          padding-top: calc(88px + var(--safe-top, 0px));
+        }
       }
 
       .welcomeHero {

@@ -746,7 +746,7 @@
           </span>
         </a>
         <nav class="nav" aria-label="Produktnavigation">
-          <a href="#cafes">Cafés entdecken</a>
+          <a href="/wallet">Cafés entdecken</a>
           <a href="#ablauf">So funktioniert's</a>
           <a href="/fuer-cafes">Für Cafés</a>
           <a href="#cta">Karte holen</a>
@@ -761,7 +761,7 @@
           </p>
           <div class="heroActions" id="cta">
             <a class="btn primary" href="/wallet">Karte holen</a>
-            <a class="btn secondary" href="#cafes">Cafés entdecken</a>
+            <a class="btn secondary" href="/wallet">Cafés entdecken</a>
           </div>
           <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
         </div>
@@ -860,53 +860,6 @@
         <div class="manifestoClaim">Good coffee deserves better loyalty.</div>
       </section>
 
-      <div class="sectionHead" id="cafes">
-        <div class="sectionKicker">Support your local café</div>
-        <h2>Unabhängige Cafés, die schon dabei sind.</h2>
-      </div>
-
-            <section class="section cafeGrid">
-  <article class="cafe" data-cafe-slot="0">
-    <div class="cafeVisual" data-cafe-visual>
-      <div class="cafeVisualLogo">
-        <img src="/assets/stamp-bean.png?v=1" alt="" />
-      </div>
-    </div>
-    <div class="cafeBody">
-      <div class="cafeTag" data-cafe-tag>K&ouml;ln &middot; Lieblingscaf&eacute;</div>
-      <h2 data-cafe-name>Registriertes Caf&eacute;</h2>
-      <p class="cafeMeta" data-cafe-meta>Echte Caf&eacute;s aus Kaffeekarte erscheinen hier automatisch.</p>
-      <div class="cafeActions"></div>
-    </div>
-  </article>
-  <article class="cafe" data-cafe-slot="1">
-    <div class="cafeVisual" data-cafe-visual>
-      <div class="cafeVisualLogo">
-        <img src="/assets/stamp-bean.png?v=1" alt="" />
-      </div>
-    </div>
-    <div class="cafeBody">
-      <div class="cafeTag" data-cafe-tag>K&ouml;ln &middot; Lieblingscaf&eacute;</div>
-      <h2 data-cafe-name>Noch ein registriertes Caf&eacute;</h2>
-      <p class="cafeMeta" data-cafe-meta>Sobald weitere Caf&eacute;s live sind, aktualisiert sich diese Liste.</p>
-      <div class="cafeActions"></div>
-    </div>
-  </article>
-  <article class="cafe" data-cafe-slot="2">
-    <div class="cafeVisual" data-cafe-visual>
-      <div class="cafeVisualLogo">
-        <img src="/assets/stamp-bean.png?v=1" alt="" />
-      </div>
-    </div>
-    <div class="cafeBody">
-      <div class="cafeTag" data-cafe-tag>K&ouml;ln &middot; Lieblingscaf&eacute;s</div>
-      <h2 data-cafe-name>Weitere Caf&eacute;s folgen</h2>
-      <p class="cafeMeta" data-cafe-meta>Hier zeigen wir nur Caf&eacute;s, die wirklich registriert sind.</p>
-      <div class="cafeActions"></div>
-    </div>
-  </article>
-</section>
-
       <section class="section featureGrid">
         <article class="feature">
           <div class="featureIcon">☕</div>
@@ -971,26 +924,6 @@
     <script src="/ui.js?v=20260717a"></script>
     <script>
       (function () {
-        var copy = (window.stampUI && window.stampUI.copy) || null;
-        if (!copy) return;
-
-        var staticCafeCards = document.querySelectorAll(".cafe");
-        for (var cafeIndex = 0; cafeIndex < staticCafeCards.length; cafeIndex++) {
-          var staticCard = staticCafeCards[cafeIndex];
-          if (staticCard.querySelector(".btn")) continue;
-          var staticCta = document.createElement("a");
-          staticCta.className = "btn secondary";
-          staticCta.href = "/wallet";
-          staticCta.textContent =
-            cafeIndex === 0 ? copy.actions.getCard : copy.actions.viewCafe;
-          var staticActions = staticCard.querySelector(".cafeActions") || staticCard;
-          staticActions.appendChild(staticCta);
-        }
-
-      })();
-    </script>
-    <script>
-      (function () {
         function escapeHtml(value) {
           return String(value || "")
             .replace(/&/g, "&amp;")
@@ -1015,27 +948,9 @@
           return city + " · " + head;
         }
 
-        function buildMeta(cafe) {
-          var short = String((cafe && cafe.shortDescription) || "").trim();
-          if (short) return short;
-          var about = String((cafe && cafe.about) || "").trim();
-          if (about) return about;
-          return "Ein unabhängiges Café bei Kaffeekarte.";
-        }
-
         function setText(node, value) {
           if (!node) return;
           node.innerHTML = escapeHtml(value);
-        }
-
-        function getCafeVisual(cafe) {
-          if (cafe && cafe.cardBackgroundDataUrl) {
-            return String(cafe.cardBackgroundDataUrl);
-          }
-          if (cafe && cafe.logoDataUrl) {
-            return String(cafe.logoDataUrl);
-          }
-          return "";
         }
 
         fetch("/api/cafes/public", { cache: "no-store" })
@@ -1064,31 +979,6 @@
               if (!cafe) return;
               setText(card.querySelector("[data-featured-name]"), cafe.name);
               setText(card.querySelector("[data-featured-meta]"), buildTag(cafe));
-            });
-
-            var cafeSlots = Array.prototype.slice.call(
-              document.querySelectorAll("[data-cafe-slot]"),
-            );
-            cafeSlots.forEach(function (slot, index) {
-              var cafe = cafes[index];
-              if (!cafe) {
-                if (index >= cafes.length) slot.style.display = "none";
-                return;
-              }
-              var visual = slot.querySelector("[data-cafe-visual]");
-              var visualUrl = getCafeVisual(cafe);
-              if (visual && visualUrl) {
-                visual.style.backgroundImage =
-                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(34,24,16,0.16)), url('" +
-                  visualUrl.replace(/'/g, "%27") +
-                  "')";
-                visual.style.backgroundSize = "cover";
-                visual.style.backgroundPosition = "center";
-                visual.setAttribute("data-image-ready", "true");
-              }
-              setText(slot.querySelector("[data-cafe-tag]"), buildTag(cafe));
-              setText(slot.querySelector("[data-cafe-name]"), cafe.name);
-              setText(slot.querySelector("[data-cafe-meta]"), buildMeta(cafe));
             });
           })
           .catch(function () {
