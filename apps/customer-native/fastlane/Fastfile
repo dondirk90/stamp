@@ -39,6 +39,14 @@ platform :ios do
   desc "Build the .ipa (release, TestFlight-bound)"
   lane :build do
     certificates
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/App/App.xcodeproj",
+      team_id: ENV["FASTLANE_TEAM_ID"] || "P7633QY6QK",
+      code_sign_identity: "Apple Distribution",
+      profile_name: lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]["app.kaffeekarte.customer"],
+      bundle_identifier: "app.kaffeekarte.customer",
+    )
     build_app(
       workspace: "ios/App/App.xcworkspace",
       scheme: "App",
