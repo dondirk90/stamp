@@ -337,8 +337,11 @@ function pickCustomerUsername(preferredUsername, email, profileName) {
   const fromProfile = String(profileName || "").trim().slice(0, 64);
   if (fromProfile) return fromProfile;
   const em = String(email || "").trim();
+  // Apple's "Hide My Email" relay addresses (random-id@privaterelay.appleid.com)
+  // make an ugly, meaningless username - fall back to the generic default instead.
+  if (/@privaterelay\.appleid\.com$/i.test(em)) return "Kaffeefreund";
   const local = em.includes("@") ? em.split("@")[0] : em;
-  return String(local || "kaffeekarte").trim().slice(0, 64) || "kaffeekarte";
+  return String(local || "Kaffeefreund").trim().slice(0, 64) || "Kaffeefreund";
 }
 
 function customerAvatarDataUrlFromRow(row) {

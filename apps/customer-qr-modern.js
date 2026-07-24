@@ -595,16 +595,34 @@
     ) {
       s.avatarDataUrl = prev.avatarDataUrl;
     }
+    // Favorites live in a device-wide localStorage key, not scoped per
+    // customer. Without this, switching to a different account on the same
+    // device/browser leaks the previous account's favorited cafes into the
+    // new account's wallet (mergeFavorites only ever adds, never reconciles).
+    var switchedAccount =
+      prev &&
+      s &&
+      prev.address &&
+      s.address &&
+      normalizeAddr(prev.address) !== normalizeAddr(s.address);
     session = s;
     try {
       localStorage.setItem(STORAGE_KEY_V1, JSON.stringify(s));
     } catch (e) {}
+    if (switchedAccount) {
+      try {
+        localStorage.removeItem(FAVORITES_KEY_V1);
+      } catch (e) {}
+    }
   }
 
   function clearSession() {
     session = null;
     try {
       localStorage.removeItem(STORAGE_KEY_V1);
+    } catch (e) {}
+    try {
+      localStorage.removeItem(FAVORITES_KEY_V1);
     } catch (e) {}
   }
 
