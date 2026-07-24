@@ -404,7 +404,9 @@ const server = http.createServer((req, res) => {
     // Bestimme Content-Type
     const ext = path.extname(filePath).toLowerCase();
     let contentType = "text/plain";
-    if (ext === ".html") contentType = "text/html; charset=utf-8";
+    if (pathname === "/.well-known/apple-app-site-association")
+      contentType = "application/json; charset=utf-8";
+    else if (ext === ".html") contentType = "text/html; charset=utf-8";
     else if (ext === ".js")
       contentType = "application/javascript; charset=utf-8";
     else if (ext === ".json") contentType = "application/json; charset=utf-8";

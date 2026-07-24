@@ -4,14 +4,14 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // a locally bundled copy, so every web deploy updates the app instantly with
 // no store re-submission. Override via CAP_SERVER_URL for release (prod) CI
 // builds; defaults to staging so local/dev builds are safe by default.
-const serverUrl = process.env.CAP_SERVER_URL || "https://staging.kaffeekarte.app";
+const serverOrigin = process.env.CAP_SERVER_URL || "https://staging.kaffeekarte.app";
 
 const config: CapacitorConfig = {
   appId: "app.kaffeekarte.customer",
   appName: "Kaffeekarte",
   webDir: "www",
   server: {
-    url: serverUrl,
+    url: `${serverOrigin}/wallet`,
     cleartext: false,
   },
   ios: {

@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["P7633QY6QK.app.kaffeekarte.customer"],
+        "components": [
+          { "/": "/wallet*" },
+          { "/": "/auth/*" },
+          { "/": "/customer-*" }
+        ]
+      }
+    ]
+  }
+}
