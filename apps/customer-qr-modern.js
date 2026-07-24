@@ -8,6 +8,31 @@
   var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
   var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
 
+  // Rotated randomly once per page load for variety - see pickRandom() below.
+  var AUTH_HERO_TAGLINES = [
+    "Collect coffee. Not paper cards.",
+    "Good coffee deserves a better experience.",
+    "One Wallet. Every Café.",
+    "QR scannen. Stempel sammeln. Belohnung genießen.",
+  ];
+  var WELCOME_LEAD_VARIANTS = [
+    "Bereit für den nächsten Kaffee?",
+    "Willkommen zurück ☕",
+    "Schön, dass du da bist.",
+    "Bereit für deinen nächsten Lieblingskaffee?",
+    "Zeit für eine gute Tasse Kaffee?",
+  ];
+
+  function pickRandom(arr) {
+    if (!Array.isArray(arr) || !arr.length) return "";
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // Picked once per page load (not per re-render) so the tagline stays
+  // stable while the user interacts with the current screen.
+  var authHeroTagline = pickRandom(AUTH_HERO_TAGLINES);
+  var welcomeLeadVariant = pickRandom(WELCOME_LEAD_VARIANTS);
+
   var REWARD_THRESHOLD = 10;
   // Keep the wallet interaction model consistent across phone, tablet and notebook:
   // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
@@ -660,7 +685,7 @@
     if (el.authIntroTitle)
       el.authIntroTitle.textContent =
         authMode === "register"
-          ? "Collect coffee. Not paper cards."
+          ? authHeroTagline
           : "Sch\u00f6n, dass du wieder da bist.";
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
@@ -786,12 +811,7 @@
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
-        favCount > 0
-          ? "Bereit f\u00fcr den n\u00e4chsten Kaffee? Deine Karten warten schon."
-          : copy.emptyStates.noCardsText;
-    }
-    if (el.welcomeLead && favCount > 0) {
-      el.welcomeLead.textContent = "Bereit f\u00fcr den n\u00e4chsten Kaffee?";
+        favCount > 0 ? welcomeLeadVariant : copy.emptyStates.noCardsText;
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =

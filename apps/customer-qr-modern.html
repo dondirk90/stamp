@@ -525,6 +525,15 @@
           z-index: 71;
         }
 
+        /* .brand is centered across the *entire* fixed topbar width, which
+           ignores the profile button floating independently in the top-right
+           (it's position:fixed to escape .brand's width:100% squeeze - see
+           above). On narrow screens the centered wordmark can run under it.
+           Reserve the button's footprint so centering never overlaps it. */
+        .topbar .brandHead {
+          padding-right: 58px;
+        }
+
         .brand {
           gap: 0;
         }

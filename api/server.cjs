@@ -339,9 +339,26 @@ function pickCustomerUsername(preferredUsername, email, profileName) {
   const em = String(email || "").trim();
   // Apple's "Hide My Email" relay addresses (random-id@privaterelay.appleid.com)
   // make an ugly, meaningless username - fall back to the generic default instead.
-  if (/@privaterelay\.appleid\.com$/i.test(em)) return "Kaffeefreund";
+  if (/@privaterelay\.appleid\.com$/i.test(em)) return "Kaffee-Connaisseur";
   const local = em.includes("@") ? em.split("@")[0] : em;
-  return String(local || "Kaffeefreund").trim().slice(0, 64) || "Kaffeefreund";
+  return (
+    String(local || "Kaffee-Connaisseur").trim().slice(0, 64) ||
+    "Kaffee-Connaisseur"
+  );
+}
+
+// OAuth providers only hand us a real display name in specific moments
+// (Google: every time profile scope is granted; Apple: only on the very
+// first-ever authorization for this Services ID). If that moment lands on
+// an *existing* customer (matched by prior identity or by email) rather
+// than a brand-new signup, the name would otherwise be silently discarded -
+// this adopts it, but only if the account doesn't already have a username.
+async function maybeAdoptRealNameForExistingCustomer(customer, realName) {
+  const trimmed = String(realName || "").trim().slice(0, 64);
+  if (!trimmed || !customer || !customer.id) return customer;
+  if (String(customer.username || "").trim()) return customer;
+  await setCustomerUsernameById.run(trimmed, customer.id);
+  return { ...customer, username: trimmed };
 }
 
 function customerAvatarDataUrlFromRow(row) {
@@ -5181,6 +5198,11 @@ app.get("/auth/google/callback", async (req, res) => {
       return redirectWithError("google_account_failed");
     }
 
+    customer = await maybeAdoptRealNameForExistingCustomer(
+      customer,
+      profile.given_name || profile.name,
+    );
+
     await upsertCustomerOauthIdentity({
       customerId: customer.id,
       provider,
@@ -5367,6 +5389,11 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
     if (!customer || !customer.id) {
       return redirectWithError("apple_account_failed");
     }
+
+    customer = await maybeAdoptRealNameForExistingCustomer(
+      customer,
+      appleGivenName,
+    );
 
     await upsertCustomerOauthIdentity({
       customerId: customer.id,
