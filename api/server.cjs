@@ -253,12 +253,20 @@ const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 //      {API_BASE_URL}/auth/apple/callback and a verified domain.
 //   3. A "Sign In with Apple" key is created (Keys -> "+"), giving a Key ID
 //      and a .p8 private key.
-//   4. APPLE_TEAM_ID, APPLE_SERVICES_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY
-//      are set as real env vars (the .p8 contents, newlines kept literal).
+//   4. APPLE_TEAM_ID, APPLE_SERVICES_ID, APPLE_KEY_ID and
+//      APPLE_PRIVATE_KEY_BASE64 are set as real env vars. The key travels as
+//      base64 (same convention as ANDROID_KEYSTORE_BASE64 in the Fastfile)
+//      because a raw multi-line/quoted PEM value doesn't survive the
+//      GitHub-secret -> heredoc -> docker-compose env-file chain intact -
+//      confirmed in production by a `secretOrPrivateKey must be an
+//      asymmetric key` signing failure after the value got mangled in transit.
 const APPLE_TEAM_ID = sanitizeEnv("APPLE_TEAM_ID");
 const APPLE_SERVICES_ID = sanitizeEnv("APPLE_SERVICES_ID");
 const APPLE_KEY_ID = sanitizeEnv("APPLE_KEY_ID");
-const APPLE_PRIVATE_KEY_RAW = sanitizeEnv("APPLE_PRIVATE_KEY");
+const APPLE_PRIVATE_KEY_BASE64 = sanitizeEnv("APPLE_PRIVATE_KEY_BASE64");
+const APPLE_PRIVATE_KEY_RAW = APPLE_PRIVATE_KEY_BASE64
+  ? Buffer.from(APPLE_PRIVATE_KEY_BASE64, "base64").toString("utf8")
+  : "";
 const APPLE_AUTH_BASE = "https://appleid.apple.com/auth/authorize";
 const APPLE_TOKEN_URL = "https://appleid.apple.com/auth/token";
 const APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
@@ -288,7 +296,7 @@ function buildAppleClientSecret() {
       aud: "https://appleid.apple.com",
       sub: APPLE_SERVICES_ID,
     },
-    APPLE_PRIVATE_KEY_RAW.replace(/\\n/g, "\n"),
+    APPLE_PRIVATE_KEY_RAW,
     { algorithm: "ES256", keyid: APPLE_KEY_ID },
   );
 }
