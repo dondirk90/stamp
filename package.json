@@ -2,6 +2,7 @@
   "name": "digistamp",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@10.20.0",
   "engines": {
     "node": ">=18"
   },
