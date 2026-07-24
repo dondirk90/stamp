@@ -25,6 +25,8 @@ const https = require("https");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const os = require("os");
+const jwt = require("jsonwebtoken");
+const jwksRsa = require("jwks-rsa");
 
 const { z } = require("zod");
 
@@ -243,6 +245,82 @@ const GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
+// Sign in with Apple - scaffold (see native-apps plan). Will not work until:
+//   1. The App ID (app.kaffeekarte.customer) has the "Sign In with Apple"
+//      capability enabled (developer.apple.com -> Identifiers).
+//   2. A Services ID exists (a *separate* identifier, e.g.
+//      app.kaffeekarte.customer.web) with a Return URL of
+//      {API_BASE_URL}/auth/apple/callback and a verified domain.
+//   3. A "Sign In with Apple" key is created (Keys -> "+"), giving a Key ID
+//      and a .p8 private key.
+//   4. APPLE_TEAM_ID, APPLE_SERVICES_ID, APPLE_KEY_ID and
+//      APPLE_PRIVATE_KEY_BASE64 are set as real env vars. The key travels as
+//      base64 (same convention as ANDROID_KEYSTORE_BASE64 in the Fastfile)
+//      because a raw multi-line/quoted PEM value doesn't survive the
+//      GitHub-secret -> heredoc -> docker-compose env-file chain intact -
+//      confirmed in production by a `secretOrPrivateKey must be an
+//      asymmetric key` signing failure after the value got mangled in transit.
+const APPLE_TEAM_ID = sanitizeEnv("APPLE_TEAM_ID");
+const APPLE_SERVICES_ID = sanitizeEnv("APPLE_SERVICES_ID");
+const APPLE_KEY_ID = sanitizeEnv("APPLE_KEY_ID");
+const APPLE_PRIVATE_KEY_BASE64 = sanitizeEnv("APPLE_PRIVATE_KEY_BASE64");
+const APPLE_PRIVATE_KEY_RAW = APPLE_PRIVATE_KEY_BASE64
+  ? Buffer.from(APPLE_PRIVATE_KEY_BASE64, "base64").toString("utf8")
+  : "";
+const APPLE_AUTH_BASE = "https://appleid.apple.com/auth/authorize";
+const APPLE_TOKEN_URL = "https://appleid.apple.com/auth/token";
+const APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
+const appleJwksClient = jwksRsa({
+  jwksUri: APPLE_KEYS_URL,
+  cache: true,
+  cacheMaxAge: 24 * 60 * 60 * 1000,
+});
+
+function appleAuthConfigured() {
+  return !!(
+    APPLE_TEAM_ID &&
+    APPLE_SERVICES_ID &&
+    APPLE_KEY_ID &&
+    APPLE_PRIVATE_KEY_RAW
+  );
+}
+
+function buildAppleClientSecret() {
+  if (!appleAuthConfigured()) throw new Error("apple_auth_not_configured");
+  const now = Math.floor(Date.now() / 1000);
+  return jwt.sign(
+    {
+      iss: APPLE_TEAM_ID,
+      iat: now,
+      exp: now + 60 * 30,
+      aud: "https://appleid.apple.com",
+      sub: APPLE_SERVICES_ID,
+    },
+    APPLE_PRIVATE_KEY_RAW,
+    { algorithm: "ES256", keyid: APPLE_KEY_ID },
+  );
+}
+
+function verifyAppleIdToken(idToken) {
+  return new Promise((resolve, reject) => {
+    jwt.verify(
+      idToken,
+      (header, callback) => {
+        appleJwksClient.getSigningKey(header.kid, (err, key) => {
+          if (err) return callback(err);
+          callback(null, key.getPublicKey());
+        });
+      },
+      {
+        algorithms: ["RS256"],
+        audience: APPLE_SERVICES_ID,
+        issuer: "https://appleid.apple.com",
+      },
+      (err, decoded) => (err ? reject(err) : resolve(decoded)),
+    );
+  });
+}
+
 function randomHex(bytes) {
   return "0x" + crypto.randomBytes(bytes).toString("hex");
 }
@@ -259,8 +337,28 @@ function pickCustomerUsername(preferredUsername, email, profileName) {
   const fromProfile = String(profileName || "").trim().slice(0, 64);
   if (fromProfile) return fromProfile;
   const em = String(email || "").trim();
+  // Apple's "Hide My Email" relay addresses (random-id@privaterelay.appleid.com)
+  // make an ugly, meaningless username - fall back to the generic default instead.
+  if (/@privaterelay\.appleid\.com$/i.test(em)) return "Kaffee-Connaisseur";
   const local = em.includes("@") ? em.split("@")[0] : em;
-  return String(local || "kaffeekarte").trim().slice(0, 64) || "kaffeekarte";
+  return (
+    String(local || "Kaffee-Connaisseur").trim().slice(0, 64) ||
+    "Kaffee-Connaisseur"
+  );
+}
+
+// OAuth providers only hand us a real display name in specific moments
+// (Google: every time profile scope is granted; Apple: only on the very
+// first-ever authorization for this Services ID). If that moment lands on
+// an *existing* customer (matched by prior identity or by email) rather
+// than a brand-new signup, the name would otherwise be silently discarded -
+// this adopts it, but only if the account doesn't already have a username.
+async function maybeAdoptRealNameForExistingCustomer(customer, realName) {
+  const trimmed = String(realName || "").trim().slice(0, 64);
+  if (!trimmed || !customer || !customer.id) return customer;
+  if (String(customer.username || "").trim()) return customer;
+  await setCustomerUsernameById.run(trimmed, customer.id);
+  return { ...customer, username: trimmed };
 }
 
 function customerAvatarDataUrlFromRow(row) {
@@ -1477,6 +1575,9 @@ const getCustomerByAddress = db.prepare(
 );
 const setCustomerPasswordHashById = db.prepare(
   "UPDATE customers SET password_hash = ? WHERE id = ?",
+);
+const setCustomerUsernameById = db.prepare(
+  "UPDATE customers SET username = ? WHERE id = ?",
 );
 const setCustomerEmailVerifiedAtById = db.prepare(
   "UPDATE customers SET email_verified_at = ? WHERE id = ?",
@@ -5097,6 +5198,11 @@ app.get("/auth/google/callback", async (req, res) => {
       return redirectWithError("google_account_failed");
     }
 
+    customer = await maybeAdoptRealNameForExistingCustomer(
+      customer,
+      profile.given_name || profile.name,
+    );
+
     await upsertCustomerOauthIdentity({
       customerId: customer.id,
       provider,
@@ -5115,6 +5221,198 @@ app.get("/auth/google/callback", async (req, res) => {
       e && e.stack ? e.stack : e,
     );
     return redirectWithError("google_auth_failed");
+  }
+});
+
+app.get("/auth/apple/start", async (req, res) => {
+  try {
+    if (!appleAuthConfigured() || !OAUTH_STATE_SECRET) {
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+      return res.redirect(
+        `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent("apple_auth_not_configured")}`,
+      );
+    }
+
+    const modeRaw = String(req.query?.mode || "login").trim().toLowerCase();
+    const mode = modeRaw === "register" ? "register" : "login";
+    const acceptedLegal =
+      String(req.query?.acceptLegal || "").trim() === "1" ? 1 : 0;
+    const preferredUsername = String(req.query?.username || "")
+      .trim()
+      .slice(0, 64);
+    const payload = {
+      mode,
+      acceptedLegal,
+      preferredUsername,
+      ts: Date.now(),
+      nonce: crypto.randomBytes(12).toString("hex"),
+    };
+    const redirectUri = `${getApiBaseUrlFromRequest(req)}/auth/apple/callback`;
+    const state = signOauthState(payload);
+    const url = new URL(APPLE_AUTH_BASE);
+    url.searchParams.set("client_id", APPLE_SERVICES_ID);
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("response_mode", "form_post");
+    url.searchParams.set("scope", "name email");
+    url.searchParams.set("state", state);
+    return res.redirect(url.toString());
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+// Apple posts the callback as application/x-www-form-urlencoded (required
+// once "name email" scope is requested), not a GET redirect like Google.
+const appleFormBodyParser = express.urlencoded({ extended: false });
+
+app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
+  const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+  function redirectWithError(code) {
+    return res.redirect(
+      `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent(code || "apple_auth_failed")}`,
+    );
+  }
+
+  try {
+    if (req.body?.error) {
+      return redirectWithError(String(req.body.error || "apple_auth_rejected"));
+    }
+
+    const code = String(req.body?.code || "").trim();
+    const stateRaw = String(req.body?.state || "").trim();
+    if (!code || !stateRaw) return redirectWithError("apple_auth_invalid");
+
+    const state = verifyOauthState(stateRaw);
+    if (!state || !state.ts || Date.now() - Number(state.ts) > 10 * 60 * 1000) {
+      return redirectWithError("apple_auth_expired");
+    }
+
+    const redirectUri = `${getApiBaseUrlFromRequest(req)}/auth/apple/callback`;
+    const clientSecret = buildAppleClientSecret();
+    const params = new URLSearchParams();
+    params.set("code", code);
+    params.set("client_id", APPLE_SERVICES_ID);
+    params.set("client_secret", clientSecret);
+    params.set("redirect_uri", redirectUri);
+    params.set("grant_type", "authorization_code");
+
+    const tokenResponse = await fetch(APPLE_TOKEN_URL, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    const tokens = await tokenResponse.json().catch(() => null);
+    if (!tokenResponse.ok || !tokens || !tokens.id_token) {
+      const reason =
+        (tokens && (tokens.error_description || tokens.error)) ||
+        `http_${tokenResponse.status}`;
+      throw new Error(`apple_token_exchange_failed:${reason}`);
+    }
+
+    const claims = await verifyAppleIdToken(tokens.id_token);
+    const providerSubject = String(claims.sub || "").trim();
+    const email = String(claims.email || "").trim().toLowerCase();
+    const emailVerified =
+      claims.email_verified === true || claims.email_verified === "true";
+    if (!email || !providerSubject || !emailVerified) {
+      return redirectWithError("apple_email_not_verified");
+    }
+
+    // Apple only sends the user's name on the very first authorization ever,
+    // as a JSON string in the `user` form field - it never comes back again.
+    let appleGivenName = "";
+    const userRaw = String(req.body?.user || "").trim();
+    if (userRaw) {
+      try {
+        appleGivenName = String(
+          JSON.parse(userRaw)?.name?.firstName || "",
+        ).trim();
+      } catch {
+        // Apple sent something unparsable - fall back to email-derived name.
+      }
+    }
+
+    const provider = "apple";
+    const now = Date.now();
+    let customer = null;
+
+    const identity = await getCustomerOauthIdentity.get(provider, providerSubject);
+    if (identity && identity.customer_id) {
+      customer = await getCustomerById.get(identity.customer_id);
+    }
+
+    if (!customer) {
+      const existing = await getCustomerAuthByEmail.get(email);
+      if (existing && existing.id) {
+        customer = existing;
+        if (!existing.email_verified_at) {
+          await setCustomerEmailVerifiedAtById.run(now, existing.id);
+          customer = await getCustomerById.get(existing.id);
+        }
+      }
+    }
+
+    if (!customer) {
+      if (state.mode !== "register") {
+        return redirectWithError("apple_no_account");
+      }
+      if (!state.acceptedLegal) {
+        return redirectWithError("apple_legal_required");
+      }
+
+      const username = pickCustomerUsername(
+        state.preferredUsername,
+        email,
+        appleGivenName,
+      );
+      const info = {
+        customer_id: randomHex(8),
+        username,
+        email,
+        address: randomAddress(),
+        encrypted_key: null,
+        password_hash: null,
+        accepted_privacy_at: now,
+        accepted_terms_at: now,
+        privacy_version: LEGAL_VERSION,
+        terms_version: LEGAL_VERSION,
+        email_verified_at: now,
+        created_at: now,
+      };
+      await insertCustomer.run(info);
+      customer = await getCustomerAuthByEmail.get(email);
+    }
+
+    if (!customer || !customer.id) {
+      return redirectWithError("apple_account_failed");
+    }
+
+    customer = await maybeAdoptRealNameForExistingCustomer(
+      customer,
+      appleGivenName,
+    );
+
+    await upsertCustomerOauthIdentity({
+      customerId: customer.id,
+      provider,
+      providerSubject,
+      email,
+      now,
+    });
+
+    const grant = await issueCustomerAuthGrant(customer.id, provider);
+    return res.redirect(
+      `${appsBaseUrl}/wallet?oauthProvider=apple&oauthToken=${encodeURIComponent(grant)}`,
+    );
+  } catch (e) {
+    console.error(
+      "Error in /auth/apple/callback:",
+      e && e.stack ? e.stack : e,
+    );
+    return redirectWithError("apple_auth_failed");
   }
 });
 
@@ -5437,6 +5735,44 @@ app.post("/customers/change-password", async (req, res) => {
     await setCustomerPasswordHashById.run(newHash, row.id);
 
     return res.json({ ok: true });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ error: String(e && e.message ? e.message : e) });
+  }
+});
+
+app.post("/customers/change-username", async (req, res) => {
+  try {
+    const email = req.body?.email != null ? String(req.body.email).trim() : "";
+    const customerId =
+      req.body?.customerId != null ? String(req.body.customerId).trim() : "";
+    const address =
+      req.body?.address != null ? String(req.body.address).trim() : "";
+    const username =
+      req.body?.username != null ? String(req.body.username).trim() : "";
+
+    if (!email || !customerId || !address) {
+      return res.status(400).json({ error: "missing_customer_identity" });
+    }
+    if (!username || username.length < 2 || username.length > 64) {
+      return res.status(400).json({ error: "invalid_username" });
+    }
+
+    const row = await getCustomerAuthByEmail.get(email);
+    if (!row || !row.id) {
+      return res.status(404).json({ error: "not_found" });
+    }
+    if (
+      String(row.customer_id || "").trim() !== customerId ||
+      String(row.address || "").trim().toLowerCase() !== address.toLowerCase()
+    ) {
+      return res.status(401).json({ error: "session_mismatch" });
+    }
+
+    await setCustomerUsernameById.run(username, row.id);
+
+    return res.json({ ok: true, username });
   } catch (e) {
     return res
       .status(500)

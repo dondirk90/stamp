@@ -37,3 +37,12 @@ apps/.apps-server.*.log
 .env.local
 .env.staging
 .env.prod
+
+# Capacitor native projects (apps/*-native) - committed except dependency-
+# manager output and machine-specific IDE/build-cache state.
+apps/*-native/ios/**/Pods/
+apps/*-native/ios/**/xcuserdata/
+apps/*-native/ios/**/DerivedData/
+apps/*-native/android/.gradle/
+apps/*-native/android/local.properties
+apps/*-native/android/.idea/

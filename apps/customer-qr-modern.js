@@ -8,6 +8,31 @@
   var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
   var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
 
+  // Rotated randomly once per page load for variety - see pickRandom() below.
+  var AUTH_HERO_TAGLINES = [
+    "Collect coffee. Not paper cards.",
+    "Good coffee deserves a better experience.",
+    "One Wallet. Every Café.",
+    "QR scannen. Stempel sammeln. Belohnung genießen.",
+  ];
+  var WELCOME_LEAD_VARIANTS = [
+    "Bereit für den nächsten Kaffee?",
+    "Willkommen zurück ☕",
+    "Schön, dass du da bist.",
+    "Bereit für deinen nächsten Lieblingskaffee?",
+    "Zeit für eine gute Tasse Kaffee?",
+  ];
+
+  function pickRandom(arr) {
+    if (!Array.isArray(arr) || !arr.length) return "";
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // Picked once per page load (not per re-render) so the tagline stays
+  // stable while the user interacts with the current screen.
+  var authHeroTagline = pickRandom(AUTH_HERO_TAGLINES);
+  var welcomeLeadVariant = pickRandom(WELCOME_LEAD_VARIANTS);
+
   var REWARD_THRESHOLD = 10;
   // Keep the wallet interaction model consistent across phone, tablet and notebook:
   // cards move horizontally everywhere instead of switching to a vertical stack on desktop.
@@ -83,10 +108,13 @@
     authSubmit: document.getElementById("authSubmit"),
     authGoogle: document.getElementById("authGoogle"),
     authGoogleLabel: document.getElementById("authGoogleLabel"),
+    authApple: document.getElementById("authApple"),
+    authAppleLabel: document.getElementById("authAppleLabel"),
     authDetails: document.getElementById("authDetails"),
     authMsg: document.getElementById("authMsg"),
     credsPanel: document.getElementById("credsPanel"),
     authForgotToggle: document.getElementById("authForgotToggle"),
+    authResendGroup: document.getElementById("authResendGroup"),
     authResendVerificationBtn: document.getElementById(
       "authResendVerificationBtn",
     ),
@@ -355,6 +383,42 @@
     }, 3200);
   }
 
+  // Prefer the Capacitor Haptics plugin (vendored in /vendor/capacitor/) when
+  // present - it's a real Taptic Engine call on native iOS, where
+  // navigator.vibrate doesn't exist at all. Its own web fallback just calls
+  // navigator.vibrate internally, so this covers browser + Android + iOS
+  // through one path; falls back to raw navigator.vibrate if the vendored
+  // scripts didn't load for some reason.
+  function getCapacitorHaptics() {
+    try {
+      return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function triggerHapticStamp() {
+    try {
+      var haptics = getCapacitorHaptics();
+      if (haptics) {
+        Promise.resolve(haptics.impact({ style: "LIGHT" })).catch(function () {});
+        return;
+      }
+      if (navigator.vibrate) navigator.vibrate(12);
+    } catch (e) {}
+  }
+
+  function triggerHapticReward() {
+    try {
+      var haptics = getCapacitorHaptics();
+      if (haptics) {
+        Promise.resolve(haptics.notification({ type: "SUCCESS" })).catch(function () {});
+        return;
+      }
+      if (navigator.vibrate) navigator.vibrate([15, 60, 15]);
+    } catch (e) {}
+  }
+
   function isIOS() {
     try {
       var ua = navigator.userAgent || "";
@@ -526,6 +590,12 @@
     // style back to "" would just fall through to that - it needs an explicit
     // visible value (matching .stack's display: flex) to actually show it.
     el.authDetails.style.display = visible ? "flex" : "none";
+    // Resending a verification link only makes sense once someone is
+    // actually going through the email/password flow (Google/Apple verify
+    // the email themselves, no confirmation link involved there).
+    if (el.authResendGroup) {
+      el.authResendGroup.style.display = visible ? "inline" : "none";
+    }
   }
 
   function loadSession() {
@@ -557,16 +627,34 @@
     ) {
       s.avatarDataUrl = prev.avatarDataUrl;
     }
+    // Favorites live in a device-wide localStorage key, not scoped per
+    // customer. Without this, switching to a different account on the same
+    // device/browser leaks the previous account's favorited cafes into the
+    // new account's wallet (mergeFavorites only ever adds, never reconciles).
+    var switchedAccount =
+      prev &&
+      s &&
+      prev.address &&
+      s.address &&
+      normalizeAddr(prev.address) !== normalizeAddr(s.address);
     session = s;
     try {
       localStorage.setItem(STORAGE_KEY_V1, JSON.stringify(s));
     } catch (e) {}
+    if (switchedAccount) {
+      try {
+        localStorage.removeItem(FAVORITES_KEY_V1);
+      } catch (e) {}
+    }
   }
 
   function clearSession() {
     session = null;
     try {
       localStorage.removeItem(STORAGE_KEY_V1);
+    } catch (e) {}
+    try {
+      localStorage.removeItem(FAVORITES_KEY_V1);
     } catch (e) {}
   }
 
@@ -593,21 +681,23 @@
       el.authSubmit.textContent = "Mit E-Mail fortfahren";
     if (el.authGoogleLabel)
       el.authGoogleLabel.textContent = "Mit Google fortfahren";
+    if (el.authAppleLabel)
+      el.authAppleLabel.textContent = "Mit Apple fortfahren";
 
     if (el.authPanelTitle)
       el.authPanelTitle.textContent =
         authMode === "register"
-          ? "Neu bei Kaffeekarte?"
+          ? "Willkommen bei Kaffeekarte"
           : "Willkommen zur\u00fcck";
     if (el.authIntroTitle)
       el.authIntroTitle.textContent =
         authMode === "register"
-          ? "Good coffee deserves better loyalty."
+          ? authHeroTagline
           : "Sch\u00f6n, dass du wieder da bist.";
     if (el.authIntroLead)
       el.authIntroLead.innerHTML =
         authMode === "register"
-          ? "Starte mit Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
+          ? "Starte mit Apple, Google oder deiner E-Mail und behalte deine Karten und Lieblingscaf&eacute;s an einem Ort."
           : "Melde dich an und mach direkt dort weiter, wo dein n&auml;chster Kaffee schon auf dich wartet.";
 
     setAuthDetailsVisible(false);
@@ -728,12 +818,7 @@
     }
     if (el.welcomeLead) {
       el.welcomeLead.textContent =
-        favCount > 0
-          ? "Bereit f\u00fcr den n\u00e4chsten Kaffee? Deine Karten warten schon."
-          : copy.emptyStates.noCardsText;
-    }
-    if (el.welcomeLead && favCount > 0) {
-      el.welcomeLead.textContent = "Bereit f\u00fcr den n\u00e4chsten Kaffee?";
+        favCount > 0 ? welcomeLeadVariant : copy.emptyStates.noCardsText;
     }
     if (el.welcomeNextHint) {
       el.welcomeNextHint.textContent =
@@ -1086,19 +1171,29 @@
     if (oauthError) {
       clearOauthParamsFromUrl();
       setAuthMode("login");
-      var msg = "Google-Anmeldung fehlgeschlagen.";
-      if (oauthError === "google_no_account") {
+      var providerLabel = /^apple_/.test(oauthError) ? "Apple" : "Google";
+      var msg = providerLabel + "-Anmeldung fehlgeschlagen.";
+      if (oauthError === "google_no_account" || oauthError === "apple_no_account") {
         msg =
-          "Zu dieser Google-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
-      } else if (oauthError === "google_auth_not_configured") {
+          "Zu dieser " + providerLabel + "-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
+      } else if (
+        oauthError === "google_auth_not_configured" ||
+        oauthError === "apple_auth_not_configured"
+      ) {
         msg =
-          "Google-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pr\u00fcfe Client-ID, Secret und Callback-URL auf dem Server.";
-      } else if (oauthError === "google_legal_required") {
+          providerLabel + "-Anmeldung ist gerade noch nicht freigeschaltet. Bitte pruefe die Konfiguration auf dem Server.";
+      } else if (
+        oauthError === "google_legal_required" ||
+        oauthError === "apple_legal_required"
+      ) {
         msg =
-          "Bitte bestätige vor der Google-Registrierung Datenschutz und AGB.";
-      } else if (oauthError === "google_email_not_verified") {
+          "Bitte bestätige vor der " + providerLabel + "-Registrierung Datenschutz und AGB.";
+      } else if (
+        oauthError === "google_email_not_verified" ||
+        oauthError === "apple_email_not_verified"
+      ) {
         msg =
-          "Google hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte Google-Adresse.";
+          providerLabel + " hat keine verifizierte E-Mail geliefert. Bitte nutze eine verifizierte " + providerLabel + "-Adresse.";
       }
       showMsg("danger", msg);
       return Promise.resolve(false);
@@ -1125,7 +1220,8 @@
         setAuthedUI();
         bootAuthed();
         applyPageMode(getPageMode());
-        showMsg("success", "Du bist jetzt mit Google angemeldet.");
+        var loggedInLabel = data.provider === "apple" ? "Apple" : "Google";
+        showMsg("success", "Du bist jetzt mit " + loggedInLabel + " angemeldet.");
         return true;
       })
       .catch(function (e) {
@@ -1136,8 +1232,8 @@
         showMsg(
           "danger",
           window.stampUI
-            ? stampUI.userSafeErrorMessage(e, "Google-Anmeldung fehlgeschlagen.")
-            : "Google-Anmeldung fehlgeschlagen.",
+            ? stampUI.userSafeErrorMessage(e, "Anmeldung fehlgeschlagen.")
+            : "Anmeldung fehlgeschlagen.",
         );
         return false;
       });
@@ -2036,12 +2132,18 @@
     return line;
   }
 
-  function formatRewardProgressLine(remaining, isFull, rewardLabel) {
+  function formatRewardProgressLine(remaining, isFull, rewardLabel, threshold) {
     var hasCustomReward = !!String(rewardLabel || "").trim();
     if (isFull) {
       return hasCustomReward
         ? "Der nächste geht aufs Haus"
         : "Dein Gratiskaffee wartet";
+    }
+    // Not every step needs to be a countdown: at the halfway point, a warm
+    // human line beats another "noch X Kaffees" - see BRAND.md Microinteractions.
+    var half = Math.round(clamp(Number(threshold || 0) || 0, 2, 50) / 2);
+    if (half > 0 && remaining === half) {
+      return "Schön, dass du wieder da bist.";
     }
     if (hasCustomReward) {
       return remaining === 1
@@ -3724,6 +3826,7 @@
     passCard.setAttribute("data-reward-threshold", String(rewardThreshold));
     passCard.setAttribute("data-reward-label", rewardLabel || "");
     passCard.setAttribute("data-stamp-style", getCardStampStyle(card));
+    passCard.setAttribute("data-reward-ready", isFull ? "true" : "false");
 
     if (card && card.cardBackgroundDataUrl) {
       try {
@@ -3903,7 +4006,7 @@
     progressText.className = "passProgressText";
     var progressHeadline = document.createElement("strong");
     progressHeadline.className = "passProgressHeadline";
-    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel);
+    progressHeadline.textContent = formatRewardProgressLine(remaining, isFull, rewardLabel, rewardThreshold);
     progressText.appendChild(progressHeadline);
 
     metaRow.appendChild(progressText);
@@ -4618,6 +4721,10 @@
       el.authGoogle.addEventListener("click", function () {
         handleGoogleAuthStart();
       });
+    if (el.authApple)
+      el.authApple.addEventListener("click", function () {
+        handleAppleAuthStart();
+      });
   }
 
   function wireLogout() {
@@ -4699,6 +4806,20 @@
         onVisible();
       });
     } catch (e4) {}
+
+    // Belt-and-suspenders for the native wrapper apps: iOS suspends WKWebView
+    // JS/network shortly after backgrounding without reliably firing the web
+    // visibility events above first, silently killing the SSE connection.
+    // Capacitor's own appStateChange event is the native-level signal.
+    try {
+      var appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if (appPlugin && appPlugin.addListener) {
+        appPlugin.addListener("appStateChange", function (state) {
+          if (state && state.isActive) onVisible();
+          else onHidden();
+        });
+      }
+    } catch (e5) {}
   }
 
   function wireAccount() {
@@ -4973,7 +5094,19 @@
         remaining,
         isFull,
         passCardEl.getAttribute("data-reward-label") || "",
+        rewardThreshold,
       );
+    }
+
+    try {
+      passCardEl.setAttribute("data-reward-ready", isFull ? "true" : "false");
+    } catch (eReady) {}
+
+    var qrCaption = passCardEl.querySelector(".passQrCaption");
+    if (qrCaption) {
+      qrCaption.textContent = isFull
+        ? "Im Café scannen lassen, um die Belohnung einzulösen."
+        : "Im Café scannen lassen und den nächsten Stempel sammeln.";
     }
 
     var grid = passCardEl.querySelector(".stampGrid");
@@ -4981,11 +5114,16 @@
       renderStampGrid(grid, stampCount, prevCount);
     }
 
+    if (prevCount != null && stampCount > Number(prevCount)) {
+      triggerHapticStamp();
+    }
+
     if (
       prevCount != null &&
       Number(prevCount) < rewardThreshold &&
       stampCount >= rewardThreshold
     ) {
+      triggerHapticReward();
       launchRewardCelebration();
     }
   }
@@ -5128,6 +5266,7 @@
               } catch (eOpt) {}
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
+              triggerHapticReward();
               launchRedeemCelebration();
               showToast(
                 "Belohnung eingel\u00f6st. Lass dir dein Getr\u00e4nk schmecken." +
@@ -5273,7 +5412,7 @@
       });
   }
 
-  function handleGoogleAuthStart() {
+  function startCustomerOauth(provider) {
     clearMsg();
     var username = el.username ? String(el.username.value || "").trim() : "";
     var email = el.email ? String(el.email.value || "").trim() : "";
@@ -5319,7 +5458,13 @@
     if (authMode === "register") qs.set("acceptLegal", "1");
     if (username || email)
       qs.set("username", username || deriveUsernameFromEmail(email));
-    window.location.assign("/api/auth/google/start?" + qs.toString());
+    window.location.assign("/api/auth/" + provider + "/start?" + qs.toString());
+  }
+  function handleGoogleAuthStart() {
+    startCustomerOauth("google");
+  }
+  function handleAppleAuthStart() {
+    startCustomerOauth("apple");
   }
   function refreshHistory() {
     if (!el.historyList) return;

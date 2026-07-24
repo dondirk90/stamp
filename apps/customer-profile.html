@@ -439,9 +439,15 @@
 
       @media (max-width: 520px) {
         body {
+          /* env(safe-area-inset-bottom) only covers the home-indicator area
+             in standalone/PWA mode - it does *not* account for Safari's own
+             bottom toolbar when the page is open in a regular browser tab,
+             which can otherwise sit right on top of the last button on the
+             page (e.g. the delete-account button). Add a flat buffer on top
+             of the safe-area inset so there's always real clearance. */
           padding: calc(10px + env(safe-area-inset-top, 0px))
             10px
-            calc(12px + env(safe-area-inset-bottom, 0px))
+            calc(64px + env(safe-area-inset-bottom, 0px))
             10px;
         }
 
@@ -556,6 +562,19 @@
                   <div class="tokenBox" id="profileAdvancedInfo"></div>
                 </div>
               </details>
+            </div>
+
+            <div class="sectionCard">
+              <div class="sectionTitle">Benutzername &auml;ndern</div>
+              <div class="sectionLead">So wirst du in der App und im Caf&eacute; angezeigt.</div>
+              <div class="formRow">
+                <div class="stack" style="gap: 6px">
+                  <label for="newUsername">Benutzername</label>
+                  <input id="newUsername" type="text" autocomplete="nickname" maxlength="64" />
+                </div>
+              </div>
+              <button class="btn primary" id="changeUsernameBtn" type="button">Benutzername &auml;ndern</button>
+              <div id="changeUsernameMsg" class="notice" style="display: none"></div>
             </div>
 
             <div class="sectionCard">

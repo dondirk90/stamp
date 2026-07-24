@@ -1,0 +1,88 @@
+default_platform(:ios)
+
+# This Fastfile is a scaffold (see native-apps plan, Phase A step 7) - it will
+# not run successfully until:
+#   1. The Apple Developer Program membership exists (user is enrolling).
+#   2. An App Store Connect API key is generated (App Store Connect -> Users
+#      and Access -> Integrations -> Keys) and its .p8/Issuer ID/Key ID are
+#      stored as GitHub secrets (APP_STORE_CONNECT_KEY_ID, _ISSUER_ID, _KEY).
+#   3. A private git repo for `fastlane match` exists and MATCH_GIT_URL +
+#      MATCH_PASSWORD secrets are set - see https://docs.fastlane.tools/actions/match/
+#   4. The app record itself exists in App Store Connect (bundle id
+#      app.kaffeekarte.customer) - `fastlane produce` can create this once
+#      the Apple Developer account is ready.
+# None of this can be filled in without a real Apple Developer account, so
+# it's intentionally left as TODOs rather than guessed-at values.
+
+platform :ios do
+  desc "Fetch/create the Distribution certificate + provisioning profile via match"
+  lane :certificates do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
+      is_key_content_base64: true,
+    )
+    match(
+      type: "appstore",
+      api_key: api_key,
+      readonly: is_ci,
+    )
+  end
+
+  desc "Build the .ipa (release, TestFlight-bound)"
+  lane :build do
+    certificates
+    build_app(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      export_method: "app-store",
+    )
+  end
+
+  desc "Build and upload to TestFlight (internal testing)"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
+      is_key_content_base64: true,
+    )
+    build
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end
+
+platform :android do
+  # Scaffold (see native-apps plan, Phase A step 8) - needs:
+  #   1. An upload keystore (generate once, base64 it into ANDROID_KEYSTORE_BASE64
+  #      + ANDROID_KEYSTORE_PASSWORD/_KEY_ALIAS/_KEY_PASSWORD secrets).
+  #   2. Google Play App Signing enrolled for this app (Google holds the real
+  #      signing key; this upload key only needs to be safely rotatable).
+  #   3. A Play Console service-account JSON key with API access, stored as
+  #      the PLAY_JSON_KEY secret, for fastlane `supply` to authenticate.
+  #   4. The app already created once in Play Console (supply cannot create
+  #      the app listing itself, only upload builds to an existing one).
+  desc "Build and upload to the Play Console internal testing track"
+  lane :beta do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+      },
+    )
+    upload_to_play_store(
+      track: "internal",
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      aab: "android/app/build/outputs/bundle/release/app-release.aab",
+    )
+  end
+end

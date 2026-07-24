@@ -1,0 +1,76 @@
+name: Build iOS Customer App (TestFlight)
+
+# Manual only for now (Phase A proof-of-concept, see native-apps plan) - this
+# cannot succeed until the Apple Developer Program membership, App Store
+# Connect API key, and fastlane match cert repo all exist. Switch to
+# push-triggered once that's true and the pipeline has been proven manually.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which deployed web app to point the build at"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - prod
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/customer-native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate required secrets
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: |
+          test -n "$APP_STORE_CONNECT_KEY_ID"
+          test -n "$APP_STORE_CONNECT_ISSUER_ID"
+          test -n "$APP_STORE_CONNECT_KEY"
+          test -n "$MATCH_GIT_URL"
+          test -n "$MATCH_PASSWORD"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install web-app-level dependencies
+        working-directory: .
+        run: pnpm install --filter kaffeekarte-customer-native
+
+      - name: Sync Capacitor (copies web config into the native project)
+        env:
+          CAP_SERVER_URL: ${{ inputs.target == 'prod' && 'https://kaffeekarte.app' || 'https://staging.kaffeekarte.app' }}
+        run: pnpm exec cap sync ios
+
+      - name: Set up Ruby (Fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: fastlane beta

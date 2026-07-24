@@ -51,9 +51,7 @@
           calc(var(--space-5) + var(--safe-right, 0px))
           calc(var(--space-5) + var(--safe-bottom, 0px))
           calc(var(--space-5) + var(--safe-left, 0px));
-        background:
-          radial-gradient(circle at top, rgba(205, 166, 125, 0.22), rgba(205, 166, 125, 0) 34%),
-          linear-gradient(180deg, #fbf6f0 0%, #f4ede6 28%, #efe6dd 100%) !important;
+        background: var(--color-background) !important;
       }
 
       /* Boot fallback: visible only when JS boot takes too long. */
@@ -376,7 +374,6 @@
         min-height: 58px !important;
         padding: 0 26px !important;
         font-size: 14px !important;
-        transform: translateY(-8px);
         background:
           linear-gradient(180deg, #fffaf3, #f5ecdf) !important;
         color: #241710 !important;
@@ -526,6 +523,15 @@
           align-items: center;
           justify-content: center;
           z-index: 71;
+        }
+
+        /* .brand is centered across the *entire* fixed topbar width, which
+           ignores the profile button floating independently in the top-right
+           (it's position:fixed to escape .brand's width:100% squeeze - see
+           above). On narrow screens the centered wordmark can run under it.
+           Reserve the button's footprint so centering never overlaps it. */
+        .topbar .brandHead {
+          padding-right: 58px;
         }
 
         .brand {
@@ -751,7 +757,9 @@
         border-radius: 0;
         padding: 8px 0;
         min-height: auto;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.7;
         background: transparent !important;
         color: var(--text) !important;
         border: none;
@@ -802,11 +810,20 @@
         flex: 1;
       }
 
+      .authCtaActions {
+        margin-top: 22px;
+      }
+
+      .authCtaActions #authSubmit {
+        min-height: 58px;
+        box-shadow: 0 10px 22px rgba(41, 29, 21, 0.1);
+      }
+
       .authDivider {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin: 6px 0 2px;
+        margin: 16px 0 12px;
         color: rgba(59, 42, 31, 0.5);
         font-size: 11px;
         font-weight: 800;
@@ -822,13 +839,32 @@
         background: rgba(17, 17, 17, 0.08);
       }
 
-      .authGoogleBtn {
+      .authGoogleBtn,
+      .authAppleBtn {
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .authGoogleBtn:hover,
+      .authAppleBtn:hover {
+        transform: scale(1.015);
+      }
+
+      .authGoogleBtn:active,
+      .authAppleBtn:active {
+        transform: scale(0.99);
+      }
+
+      /* theme.css's .btn.primary (2 classes) beats .authGoogleBtn (1 class)
+         on specificity even with !important on both - the #authGoogle ID
+         selector guarantees this wins regardless of source order. */
+      #authGoogle.authGoogleBtn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 10px;
         width: 100%;
-        min-height: 54px;
+        min-height: 56px;
+        padding-inline: 20px;
         border: 1px solid rgba(17, 17, 17, 0.14) !important;
         background: rgba(255, 255, 255, 0.94) !important;
         color: var(--text) !important;
@@ -836,20 +872,53 @@
       }
 
       .authGoogleLogo {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+      }
+
+      #authApple.authAppleBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 56px;
+        padding-inline: 20px;
+        border: 1px solid rgba(17, 17, 17, 0.14) !important;
+        background: #000 !important;
+        color: #fff !important;
+        box-shadow: none !important;
+      }
+
+      .authAppleLogo {
         width: 18px;
         height: 18px;
         flex: 0 0 auto;
+        color: #fff;
       }
 
       .authIntro {
         display: grid;
-        gap: 14px;
-        margin-bottom: 18px;
-        padding: 18px;
+        gap: 10px;
+        margin-bottom: 22px;
+        padding: 14px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         border-radius: 22px;
         background:
           linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 243, 237, 0.92));
+        animation: authFadeIn 260ms ease;
+      }
+
+      @keyframes authFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .authEyebrow {
@@ -863,9 +932,9 @@
       .authTitle {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: 30px;
-        line-height: 1.04;
-        letter-spacing: -0.035em;
+        font-size: 25px;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
       }
 
       .authLead {
@@ -875,38 +944,12 @@
         line-height: 1.55;
       }
 
-      .authPerks {
-        display: grid;
-        gap: 10px;
-      }
-
-      .authPerk {
-        display: grid;
-        grid-template-columns: 26px minmax(0, 1fr);
-        gap: 10px;
-        align-items: start;
-      }
-
-      .authPerkNo {
-        width: 26px;
-        height: 26px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: #6b452c;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 900;
-      }
-
-      .authPerkText {
+      .authSteps {
+        margin: 0;
         font-size: 13px;
-        line-height: 1.45;
-        color: var(--text-muted);
-      }
-
-      .authPerkText strong {
-        color: var(--text);
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: var(--pass-ink, var(--brand-700));
       }
 
       .fieldHint {
@@ -921,7 +964,7 @@
       }
 
       .authEmailField {
-        margin-top: 8px;
+        margin-top: 4px;
       }
 
       .authEmailField input {
@@ -929,6 +972,11 @@
         border-radius: 18px;
         font-size: 18px;
         padding-inline: 18px;
+        transition: border-color 200ms ease, box-shadow 200ms ease;
+      }
+
+      .authEmailField input:focus {
+        box-shadow: 0 0 0 3px rgba(107, 69, 44, 0.14);
       }
 
       .authEmailField input::placeholder {
@@ -1681,8 +1729,8 @@
         width: min(1080px, calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px)));
         margin: auto;
         display: grid;
-        gap: 20px;
-        padding: 56px 24px 108px;
+        gap: 12px;
+        padding: 20px 24px 108px;
         min-height: 0;
         background: transparent;
         border: none;
@@ -1690,6 +1738,21 @@
         backdrop-filter: none;
         align-content: start;
         justify-items: start;
+      }
+
+      /* The shared mobile-portrait rule above gives #authPanel/#welcomePanel
+         a 96px top padding, which felt like too much *inside* the card - but
+         cutting it down without limit was wrong too: on that same breakpoint
+         .topbar switches to position:fixed (floating over the content, not
+         taking up flow space - see its rule further up), so the content
+         underneath still needs enough clearance to not render *behind* it.
+         .topbar there sits at top: 8px + safe-top with min-height: 64px, so
+         content needs to start past that, not at a small fixed value. */
+      @media (max-width: 520px) and (orientation: portrait) {
+        #authPanel,
+        #welcomePanel {
+          padding-top: calc(88px + var(--safe-top, 0px));
+        }
       }
 
       .welcomeHero {
@@ -1701,7 +1764,7 @@
 
       .welcomeIntro {
         display: grid;
-        gap: 10px;
+        gap: 6px;
         max-width: 30ch;
       }
 
@@ -1767,7 +1830,7 @@
 
       .welcomeDeck {
         display: grid;
-        gap: 18px;
+        gap: 10px;
         width: 100%;
       }
 
@@ -2536,7 +2599,7 @@
       }
 
       .walletCarousel.isCarousel {
-        --cardW: min(340px, 86vw);
+        --cardW: min(392px, 92vw);
         gap: 14px;
         overflow-x: auto;
         overflow-y: visible;
@@ -3488,7 +3551,7 @@
         }
 
         .walletCarousel.isCarousel {
-          --cardW: min(336px, 84vw);
+          --cardW: min(378px, 90vw);
           gap: 12px;
         }
 
@@ -3615,7 +3678,7 @@
         }
 
         .walletCarousel.isCarousel {
-          --cardW: min(318px, 84vw);
+          --cardW: min(358px, 90vw);
           gap: 10px;
           padding: 10px 12px 16px;
         }
@@ -3743,7 +3806,7 @@
         }
 
         .walletCarousel.isCarousel {
-          --cardW: min(300px, 82vw);
+          --cardW: min(336px, 88vw);
         }
 
         .walletCarousel.isCarousel .passCard + .passCard {
@@ -3826,6 +3889,12 @@
       .passCard.open .passQrBox,
       .passCard.forceBack .passQrBox {
         aspect-ratio: auto;
+      }
+
+      /* Redemption QR should read differently from a routine collection QR at a glance. */
+      .passCard[data-reward-ready="true"] .passQrBox {
+        border: 1px solid var(--color-butter, #d8bd75);
+        background: color-mix(in srgb, var(--color-butter, #d8bd75) 10%, rgba(255, 255, 255, 0.82));
       }
 
       .ios .passCard.isSwapping {
@@ -4798,6 +4867,11 @@
         .rewardBalloons {
           display: none !important;
         }
+
+        .passCard .stamp.filled.isNew .stampIcon,
+        .face .stamp.filled.isNew .stampIcon {
+          animation: none;
+        }
       }
 
       @media (max-width: 640px) {
@@ -4940,7 +5014,7 @@
       <div class="grid" id="layoutGrid">
         <div class="card panel" id="authPanel">
           <div class="panelHeader">
-            <h2 id="authPanelTitle">Neu bei Kaffeekarte?</h2>
+            <h2 id="authPanelTitle">Willkommen bei Kaffeekarte</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
               <button id="modeRegister" class="active" type="button">Registrieren</button>
               <button id="modeLogin" type="button">Login</button>
@@ -4950,34 +5024,13 @@
           <div class="stack panelBody">
             <div class="authIntro">
               <div class="authEyebrow">Kaffee im Veedel</div>
-                <h3 class="authTitle" id="authIntroTitle">Good coffee deserves better loyalty.</h3>
+                <h3 class="authTitle" id="authIntroTitle">Collect coffee. Not paper cards.</h3>
               <p class="authLead" id="authIntroLead">
                 Melde dich an und behalte Stempel, Rewards und deine n&auml;chsten
                 Belohnungen an einem Ort. Kein Papier, kein Suchen, kein
                 betretenes Schweigen an der Kasse.
               </p>
-              <div class="authPerks">
-                <div class="authPerk">
-                  <div class="authPerkNo">1</div>
-                  <div class="authPerkText">
-                    <strong>Alles an einem Ort:</strong> mehrere Caf&eacute;s, mehrere Karten,
-                    aber nur ein klarer Einstieg.
-                  </div>
-                </div>
-                <div class="authPerk">
-                  <div class="authPerkNo">2</div>
-                  <div class="authPerkText">
-                    <strong>Reward im Blick:</strong> du siehst sofort, wie nah
-                    du an deiner n&auml;chsten Belohnung bist.
-                  </div>
-                </div>
-                <div class="authPerk">
-                  <div class="authPerkNo">3</div>
-                  <div class="authPerkText">
-                    <strong>Schnell im Caf&eacute;:</strong> Stempelkarte &ouml;ffnen, vorzeigen, Kaffee genie&szlig;en.
-                  </div>
-                </div>
-              </div>
+              <p class="authSteps">QR scannen. Karte im Wallet. Fertig.</p>
             </div>
 
             <div class="actions">
@@ -5006,6 +5059,19 @@
                 </svg>
                 <span id="authGoogleLabel">Mit Google fortfahren</span>
               </button>
+              <button class="btn primary authAppleBtn" id="authApple" type="button">
+                <svg
+                  class="authAppleLogo"
+                  viewBox="0 0 384 512"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5c0 25.9 4.7 52.7 14.2 80.3 12.6 36.7 58.2 126.7 105.7 125.2 24.9-.6 42.5-17.7 74.9-17.7 31.5 0 47.8 17.7 75.6 17.7 47.9-.7 89.2-82.7 101.2-119.5-64.4-30.3-56.9-88.7-56.9-90.8zM256.8 88.1c26.9-32 24.5-61.2 23.7-71.7-23.8 1.4-51.3 16.4-67 34.9-17.3 19.8-27.5 44.4-25.3 71.9 25.8 2 49.4-11.2 68.6-35.1z"
+                  />
+                </svg>
+                <span id="authAppleLabel">Mit Apple fortfahren</span>
+              </button>
             </div>
 
             <div class="authDivider">ODER</div>
@@ -5016,11 +5082,11 @@
                 type="email"
                 inputmode="email"
                 autocomplete="email"
-                placeholder="Gib deine E-Mail ein"
+                placeholder="E-Mail-Adresse"
               />
             </div>
 
-            <div class="actions">
+            <div class="actions authCtaActions">
               <button class="btn primary" id="authSubmit" type="button">
                 Mit E-Mail fortfahren
               </button>
@@ -5082,23 +5148,27 @@
               >
                 Passwort vergessen?
               </button>
-              <span style="opacity: 0.35; margin: 0 8px">|</span>
-              <button
-                id="authResendVerificationBtn"
-                type="button"
-                class="btn secondary"
-                style="
-                  width: auto;
-                  min-height: 0;
-                  margin: 0;
-                  padding: 0;
-                  background: transparent !important;
-                  border: none !important;
-                  color: var(--brand) !important;
-                "
-              >
-                Best&auml;tigungslink erneut senden
-              </button>
+              <span id="authResendGroup" style="display: none">
+                <span style="opacity: 0.35; margin: 0 8px">|</span>
+                <button
+                  id="authResendVerificationBtn"
+                  type="button"
+                  class="btn secondary"
+                  style="
+                    width: auto;
+                    min-height: 0;
+                    margin: 0;
+                    padding: 0;
+                    background: transparent !important;
+                    border: none !important;
+                    color: var(--text-muted) !important;
+                    font-size: 12px;
+                    font-weight: 600;
+                  "
+                >
+                  Best&auml;tigungslink erneut senden
+                </button>
+              </span>
             </div>
 
             <div
@@ -5126,16 +5196,19 @@
                 border-top: 1px solid rgba(17, 17, 17, 0.08);
               "
             >
-              Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
-              <span style="display: block; margin-top: 8px">
+              <span style="display: block">
                 <a href="/impressum">Impressum</a> &middot;
                 <a href="/datenschutz">Datenschutz</a> &middot;
                 <a href="/agb">AGB</a>
               </span>
-            </div>
-            <div class="hint">
-              Keinen Schl&uuml;ssel eintippen. Im Hintergrund entsteht automatisch die
-              technische Adresse f&uuml;r deine Karte.
+              <details style="margin-top: 10px">
+                <summary style="cursor: pointer; color: var(--text-muted)">Mehr zu deinem Konto</summary>
+                <div style="margin-top: 8px">
+                  Mit deinem Konto nutzt du Stempelkarten, Caf&eacute;-Ansicht und Vorzeigen in einer ruhigen Oberfl&auml;che.
+                  Keinen Schl&uuml;ssel eintippen. Im Hintergrund entsteht automatisch die
+                  technische Adresse f&uuml;r deine Karte.
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -5399,6 +5472,12 @@
       </div>
     </div>
 
+    <!-- Harmless in a plain browser tab (Capacitor's web fallback just uses
+         navigator.vibrate/no-ops); gives the native iOS/Android wrapper apps
+         a real bridge + native Haptics + App-lifecycle events. -->
+    <script src="/vendor/capacitor/capacitor.js"></script>
+    <script src="/vendor/capacitor/app.js"></script>
+    <script src="/vendor/capacitor/haptics.js"></script>
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js?v=20260714a"></script>
     <script src="/customer-qr-modern.js?v=20260714a"></script>

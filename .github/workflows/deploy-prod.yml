@@ -83,6 +83,8 @@ jobs:
             --exclude='node_modules' \
             --exclude='api/.api.*.log' \
             --exclude='apps/.apps-server.*.log' \
+            --exclude='apps/customer-native' \
+            --exclude='apps/cafe-native' \
             -czf .deploy/stamp-prod.tgz .
 
       - name: Upload archive to server
@@ -136,6 +138,10 @@ jobs:
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             OAUTH_STATE_SECRET=${{ secrets.OAUTH_STATE_SECRET }}
+            APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}
+            APPLE_SERVICES_ID=${{ secrets.APPLE_SERVICES_ID }}
+            APPLE_KEY_ID=${{ secrets.APPLE_KEY_ID }}
+            APPLE_PRIVATE_KEY_BASE64=${{ secrets.APPLE_PRIVATE_KEY_BASE64 }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
@@ -144,16 +150,24 @@ jobs:
             cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
-              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -v ON_ERROR_STOP=1 -c \
-              "CREATE TABLE IF NOT EXISTS customer_oauth_identities (id BIGSERIAL PRIMARY KEY, customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE, provider TEXT NOT NULL, provider_subject TEXT NOT NULL, email TEXT, created_at BIGINT NOT NULL, last_used_at BIGINT); CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_oauth_identity_unique ON customer_oauth_identities(provider, provider_subject); CREATE INDEX IF NOT EXISTS idx_customer_oauth_identity_customer ON customer_oauth_identities(customer_id); CREATE TABLE IF NOT EXISTS customer_auth_grants (id BIGSERIAL PRIMARY KEY, customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, provider TEXT, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, used_at BIGINT); CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_auth_grants_hash ON customer_auth_grants(token_hash); CREATE INDEX IF NOT EXISTS idx_customer_auth_grants_customer ON customer_auth_grants(customer_id);"
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
-              psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -v ON_ERROR_STOP=1 -c \
-              "SELECT to_regclass('public.customer_oauth_identities') AS customer_oauth_identities, to_regclass('public.customer_auth_grants') AS customer_auth_grants;"
+
+            # migrate.cjs re-applies every migration file unconditionally (all are
+            # IF NOT EXISTS-guarded), so this is a generic schema sanity check
+            # covering all migrations, not just one hand-picked table pair. It
+            # fails the deploy (set -euo pipefail) before promoting new containers
+            # if the schema doesn't match what the migrations should have produced.
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T db \
               psql -U "${{ secrets.POSTGRES_USER }}" -d "${{ secrets.POSTGRES_DB }}" -tA -v ON_ERROR_STOP=1 -c \
-              "SELECT CASE WHEN to_regclass('public.customer_oauth_identities') IS NOT NULL AND to_regclass('public.customer_auth_grants') IS NOT NULL THEN 'ok' ELSE 'missing' END;" \
+              "SELECT CASE WHEN
+                 to_regclass('public.customer_oauth_identities') IS NOT NULL
+                 AND to_regclass('public.customer_auth_grants') IS NOT NULL
+                 AND to_regclass('public.customer_saved_cafes') IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'avatar_mime')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'email_verified_at')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customer_saved_cafes' AND column_name = 'is_favorite')
+               THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
+
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
 
             echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"
