@@ -47,6 +47,8 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/customer-native/package.json
 
       - name: Install web-app-level dependencies
         working-directory: .
