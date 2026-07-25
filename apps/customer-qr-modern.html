@@ -1571,8 +1571,20 @@
         touch-action: manipulation;
       }
 
+      @keyframes cafePinPop {
+        0% {
+          transform: scale(1);
+        }
+        55% {
+          transform: scale(1.22);
+        }
+        100% {
+          transform: scale(1.16);
+        }
+      }
+
       .cafePin.isActive {
-        transform: scale(1.16);
+        animation: cafePinPop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         border-color: rgba(107, 69, 44, 0.42);
         box-shadow:
           0 14px 30px rgba(68, 41, 22, 0.18),
@@ -2701,6 +2713,13 @@
         filter: saturate(var(--wheel-sat, 1)) brightness(var(--wheel-bright, 1));
       }
 
+      /* Quick press feedback on tap - reuses the existing --wheel-scale
+         transform pipeline, no JS needed. Skipped mid-drag/throw so it
+         doesn't fight the live gesture or the release spring. */
+      .walletCarousel:not(.isDragging) .passCard:not(.isSwapping):active {
+        --wheel-scale: 0.97;
+      }
+
       .passCard.isFocused,
       .walletOverlay .passCard.isFocused,
       .passCard.open {
@@ -3007,6 +3026,9 @@
         color: var(--pass-ink, var(--brand-700));
         opacity: 0.55;
         cursor: pointer;
+        transition:
+          opacity var(--motion-normal) var(--motion-ease),
+          color var(--motion-normal) var(--motion-ease);
       }
 
       .passStarBtn[aria-pressed="true"] {
