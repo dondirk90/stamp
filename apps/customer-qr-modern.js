@@ -4413,6 +4413,9 @@
         moved: false,
         activeEl: top,
         captured: false,
+        raf: 0,
+        pendingDx: 0,
+        pendingDy: 0,
       };
       try {
         top.style.transition = "none";
@@ -4455,28 +4458,47 @@
 
       var card = d.activeEl;
       if (!card) return;
-      var tx = clamp(dx * 0.025, -4, 4);
-      var ty = clamp(dy * 0.98, -180, 180);
-      var rz = clamp(dx / 110, -0.9, 0.9);
-      var ry = 0;
-      var op = 1;
-      var lift = clamp(Math.abs(ty) * 0.012, 0, 4);
 
-      card.style.setProperty("--wheel-tx", tx.toFixed(2) + "px");
-      card.style.setProperty("--stack-swipe-y", ty.toFixed(2) + "px");
-      card.style.setProperty("--wheel-rz", rz.toFixed(2) + "deg");
-      card.style.setProperty("--wheel-ry", String(ry.toFixed(2)) + "deg");
-      card.style.setProperty("--wheel-opacity", String(op.toFixed(3)));
-      card.style.setProperty("--wheel-sat", "1");
-      card.style.setProperty("--wheel-bright", "1");
-      card.style.setProperty("--wheel-tz", String(lift.toFixed(2)) + "px");
-      updateWalletStackFollowers(scroller, ty);
+      // Painting (style writes + the sibling-card querySelectorAll inside
+      // updateWalletStackFollowers) is coalesced to one rAF instead of
+      // running once per raw touchmove - touch events can fire faster than
+      // the display refreshes, and doing full DOM work on every single one
+      // is what made the swipe feel janky instead of silky.
+      d.pendingDx = dx;
+      d.pendingDy = dy;
+      if (!d.raf) {
+        d.raf = window.requestAnimationFrame(function () {
+          d.raf = 0;
+          var pdx = d.pendingDx || 0;
+          var pdy = d.pendingDy || 0;
+          var tx = clamp(pdx * 0.025, -4, 4);
+          var ty = clamp(pdy * 0.98, -180, 180);
+          var rz = clamp(pdx / 110, -0.9, 0.9);
+          var lift = clamp(Math.abs(ty) * 0.012, 0, 4);
+
+          card.style.setProperty("--wheel-tx", tx.toFixed(2) + "px");
+          card.style.setProperty("--stack-swipe-y", ty.toFixed(2) + "px");
+          card.style.setProperty("--wheel-rz", rz.toFixed(2) + "deg");
+          card.style.setProperty("--wheel-ry", "0deg");
+          card.style.setProperty("--wheel-opacity", "1");
+          card.style.setProperty("--wheel-sat", "1");
+          card.style.setProperty("--wheel-bright", "1");
+          card.style.setProperty("--wheel-tz", String(lift.toFixed(2)) + "px");
+          updateWalletStackFollowers(scroller, ty);
+        });
+      }
       return !!d.moved;
     }
 
     function endStackDrag(pointerId, clientX, clientY) {
       var d = walletState.stackDrag;
       if (!d || d.id !== pointerId) return;
+      if (d.raf) {
+        try {
+          window.cancelAnimationFrame(d.raf);
+        } catch (eRaf) {}
+        d.raf = 0;
+      }
       walletState.stackDrag = null;
       scroller.classList.remove("isDragging");
 
