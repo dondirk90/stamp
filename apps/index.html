@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="de">
   <head>
+    <script>
+      // Native app shell: land on the wallet, not the marketing page.
+      // Capacitor's server.url is a bare origin (a path there breaks
+      // in-app navigation to every other page), so this handles the
+      // "start on /wallet" behavior client-side instead.
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        location.replace("/wallet");
+      }
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Kaffeekarte - Der digitale Ort für deine Lieblingscafés</title>
