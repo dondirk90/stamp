@@ -4818,6 +4818,14 @@
           if (state && state.isActive) onVisible();
           else onHidden();
         });
+        // When Universal Links (e.g. the Google/Apple OAuth return trip)
+        // bring an already-running app back to the foreground, iOS does not
+        // reload the WebView on its own - without this, the page just sits
+        // on whatever it showed before the OAuth round trip and the
+        // oauthToken in the returned URL never gets processed.
+        appPlugin.addListener("appUrlOpen", function (data) {
+          if (data && data.url) window.location.href = data.url;
+        });
       }
     } catch (e5) {}
   }
