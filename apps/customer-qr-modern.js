@@ -283,6 +283,17 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  // Asymptotically approaches +/-max instead of hard-clamping - dragging
+  // further keeps giving a little, diminishing feedback (like pulling on a
+  // rubber band) instead of hitting a wall.
+  function rubberBand(value, max) {
+    var n = Number(value);
+    if (!isFinite(n) || !max) return 0;
+    var sign = n < 0 ? -1 : 1;
+    var abs = Math.abs(n);
+    return sign * max * (1 - 1 / (1 + abs / max));
+  }
+
   function ensureRewardCelebrationHost() {
     if (rewardCelebrationState.host) return rewardCelebrationState.host;
     try {
@@ -1329,26 +1340,101 @@
     reqSeq: 0,
     detailsOpen: false,
     cafe: null,
+    // The pin/list-row that was tapped to open the modal - used to grow the
+    // modal out of that element's position/size (FLIP) instead of always
+    // fading in from a fixed offset, so it reads as "the same thing getting
+    // bigger" rather than a new window popping up.
+    sourceEl: null,
   };
+
+  function computeFlipTransform(sourceRect, targetRect) {
+    if (!sourceRect || !targetRect || !targetRect.width || !targetRect.height) {
+      return "";
+    }
+    var scaleX = sourceRect.width / targetRect.width;
+    var scaleY = sourceRect.height / targetRect.height;
+    var tx =
+      sourceRect.left + sourceRect.width / 2 - (targetRect.left + targetRect.width / 2);
+    var ty =
+      sourceRect.top + sourceRect.height / 2 - (targetRect.top + targetRect.height / 2);
+    return (
+      "translate(" +
+      tx.toFixed(1) +
+      "px, " +
+      ty.toFixed(1) +
+      "px) scale(" +
+      scaleX.toFixed(3) +
+      ", " +
+      scaleY.toFixed(3) +
+      ")"
+    );
+  }
 
   function setCafeModalVisible(show) {
     if (!el.cafeModalBackdrop) return;
+    var modalEl = document.getElementById("cafeModal");
     try {
       if (show) {
         el.cafeModalBackdrop.style.display = "flex";
-        // Let display apply before starting the transition.
-        window.requestAnimationFrame(function () {
-          try {
-            el.cafeModalBackdrop.classList.add("open");
-          } catch (e1) {}
-        });
+        var sourceEl = cafeModalState.sourceEl;
+        var sourceRect =
+          sourceEl && sourceEl.isConnected ? sourceEl.getBoundingClientRect() : null;
+        if (modalEl && sourceRect && sourceRect.width > 0 && sourceRect.height > 0) {
+          // Measure the modal's real resting position/size (with .open
+          // already applied, transition off) so we know exactly what to
+          // grow FROM, then jump it there instantly before animating back.
+          modalEl.style.transition = "none";
+          el.cafeModalBackdrop.classList.add("open");
+          var targetRect = modalEl.getBoundingClientRect();
+          modalEl.style.transform = computeFlipTransform(sourceRect, targetRect);
+          modalEl.style.opacity = "0.4";
+          // Force layout so the browser commits the inverted starting point
+          // as its own frame instead of merging it with the transition below.
+          void modalEl.offsetHeight;
+          window.requestAnimationFrame(function () {
+            try {
+              modalEl.style.transition = "";
+              modalEl.style.transform = "";
+              modalEl.style.opacity = "";
+            } catch (eFlipOpen) {}
+          });
+        } else {
+          // No usable source element (e.g. reopened programmatically) -
+          // fall back to the plain fade/scale-up.
+          window.requestAnimationFrame(function () {
+            try {
+              el.cafeModalBackdrop.classList.add("open");
+            } catch (e1) {}
+          });
+        }
       } else {
+        var closeSourceEl = cafeModalState.sourceEl;
+        var closeSourceRect =
+          closeSourceEl && closeSourceEl.isConnected
+            ? closeSourceEl.getBoundingClientRect()
+            : null;
+        if (
+          modalEl &&
+          closeSourceRect &&
+          closeSourceRect.width > 0 &&
+          closeSourceRect.height > 0
+        ) {
+          var closeTargetRect = modalEl.getBoundingClientRect();
+          modalEl.style.transform = computeFlipTransform(closeSourceRect, closeTargetRect);
+          modalEl.style.opacity = "0.4";
+        }
         el.cafeModalBackdrop.classList.remove("open");
         // Wait for the transition so the close feels smooth.
         window.setTimeout(function () {
           try {
-            if (!cafeModalState.open)
+            if (!cafeModalState.open) {
               el.cafeModalBackdrop.style.display = "none";
+              if (modalEl) {
+                modalEl.style.transform = "";
+                modalEl.style.opacity = "";
+              }
+              cafeModalState.sourceEl = null;
+            }
           } catch (e2) {}
         }, 200);
       }
@@ -1673,6 +1759,7 @@
           try {
             ev.preventDefault();
           } catch (e) {}
+          cafeModalState.sourceEl = a;
           openCafeModal(cafe);
         });
 
@@ -2038,6 +2125,12 @@
 
     if (serverCard) serverCard.isFavorite = nextFavorite;
     else walletServerCardsByCafe[addr] = { isFavorite: nextFavorite };
+
+    // refreshWallet() rebuilds the pass cards from scratch, so the star
+    // button being clicked won't exist anymore right after - remember which
+    // card just became a favorite so its freshly-rendered star can play a
+    // one-off "pop" instead of just appearing already-filled.
+    if (nextFavorite) walletState.justFavoritedAddr = addr;
 
     try {
       walletState.lastFavKey = "";
@@ -2447,6 +2540,7 @@
           try {
             ev.preventDefault();
           } catch (e) {}
+          cafeModalState.sourceEl = a;
           openCafeModal(cafe);
         });
         el.mapList.appendChild(a);
@@ -2563,6 +2657,9 @@
             }
           } catch (eStop0) {}
           walletState.ignoreClickUntil = nowMs() + 420;
+          try {
+            cafeModalState.sourceEl = marker.getElement() || null;
+          } catch (eMarkerEl) {}
           openCafeModal(cafe2);
         };
         var marker = window.L.marker(
@@ -2667,6 +2764,7 @@
       if (ev.preventDefault) ev.preventDefault();
       if (ev.stopPropagation) ev.stopPropagation();
       walletState.ignoreClickUntil = nowMs() + 420;
+      cafeModalState.sourceEl = host;
       return openCafeModalByAddress(addr);
     } catch (eCafePinTap) {
       return false;
@@ -3928,6 +4026,24 @@
       } catch (eStop) {}
       toggleCardStar(cafeAddress);
     });
+    if (
+      isFavoriteCard &&
+      cafeAddress &&
+      walletState.justFavoritedAddr &&
+      normalizeAddr(cafeAddress) === walletState.justFavoritedAddr
+    ) {
+      walletState.justFavoritedAddr = null;
+      try {
+        starBtn.animate(
+          [
+            { transform: "scale(1)" },
+            { transform: "scale(1.35)" },
+            { transform: "scale(1)" },
+          ],
+          { duration: 260, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+        );
+      } catch (eStarPop) {}
+    }
     head.appendChild(starBtn);
 
     var stampField = document.createElement("div");
@@ -4272,7 +4388,9 @@
       // Slide the top card deeper into the stack without fading it away.
       cardEl.style.setProperty("--wheel-tx", String(tx) + "px");
       cardEl.style.setProperty("--stack-swipe-y", String(ty) + "px");
-      cardEl.style.setProperty("--wheel-rz", String(clamp(tx / 32, -0.8, 0.8)) + "deg");
+      // Small rotation kick in the throw direction so the tilt from the live
+      // drag carries through into the exit instead of snapping flat.
+      cardEl.style.setProperty("--wheel-rz", String(dir * 2.5) + "deg");
       cardEl.style.setProperty("--wheel-ry", "0deg");
       cardEl.style.setProperty(
         "--wheel-tz",
@@ -4311,6 +4429,83 @@
       resetVisiblePassesToFront(scroller);
       applyWalletStackVisibility(scroller);
     }, duration);
+  }
+
+  // Critically-damped-ish spring (slightly underdamped for a small natural
+  // settle wobble) driving a released-but-not-committed card back to rest.
+  // Replaces a fixed-duration CSS transition, which can't respond to how
+  // fast or far the card was actually moving when the finger lifted - that
+  // mismatch is what read as an abrupt, non-physical snap.
+  function springSnapBack(card, scroller, start) {
+    if (!card) return;
+    if (card.__springRaf) {
+      try {
+        window.cancelAnimationFrame(card.__springRaf);
+      } catch (eCancel) {}
+      card.__springRaf = 0;
+    }
+
+    var stiffness = 210;
+    var damping = 2 * Math.sqrt(stiffness) * 0.82;
+
+    var posY = start.ty || 0;
+    var velY = (start.vy || 0) * 1000; // px/ms -> px/s
+    var posX = start.tx || 0;
+    var velX = (start.vx || 0) * 1000;
+    var lastT = null;
+
+    try {
+      card.style.transition = "none";
+    } catch (ePrep) {}
+
+    function finish() {
+      card.style.setProperty("--wheel-tx", "0px");
+      card.style.setProperty("--stack-swipe-y", "0px");
+      card.style.setProperty("--wheel-rz", "0deg");
+      card.style.setProperty("--wheel-tz", "0px");
+      updateWalletStackFollowers(scroller, 0);
+      try {
+        card.style.transition = "";
+      } catch (eReset) {}
+      card.__springRaf = 0;
+    }
+
+    function step(now) {
+      if (lastT == null) lastT = now;
+      var dt = Math.min(0.032, Math.max(0, (now - lastT) / 1000));
+      lastT = now;
+
+      var accY = -stiffness * posY - damping * velY;
+      velY += accY * dt;
+      posY += velY * dt;
+
+      var accX = -stiffness * posX - damping * velX;
+      velX += accX * dt;
+      posX += velX * dt;
+
+      var settled =
+        Math.abs(posY) < 0.4 &&
+        Math.abs(velY) < 4 &&
+        Math.abs(posX) < 0.4 &&
+        Math.abs(velX) < 4;
+
+      if (settled) {
+        finish();
+        return;
+      }
+
+      var rz = clamp(posX / 26, -4, 4);
+      var lift = clamp(Math.abs(posY) * 0.012, 0, 4);
+      card.style.setProperty("--wheel-tx", posX.toFixed(2) + "px");
+      card.style.setProperty("--stack-swipe-y", posY.toFixed(2) + "px");
+      card.style.setProperty("--wheel-rz", rz.toFixed(2) + "deg");
+      card.style.setProperty("--wheel-tz", lift.toFixed(2) + "px");
+      updateWalletStackFollowers(scroller, posY);
+
+      card.__springRaf = window.requestAnimationFrame(step);
+    }
+
+    card.__springRaf = window.requestAnimationFrame(step);
   }
 
   function cycleTopToBottom(scroller, direction) {
@@ -4381,6 +4576,15 @@
       var top = scroller.querySelector(".passCard");
       if (!top) return;
 
+      // Grabbing the card again mid-settle should take over immediately,
+      // not fight with the still-running snap-back spring.
+      if (top.__springRaf) {
+        try {
+          window.cancelAnimationFrame(top.__springRaf);
+        } catch (eCancelSpring) {}
+        top.__springRaf = 0;
+      }
+
       // If the top card is open, first close it so the stack doesn't get stuck.
       // (Also restores swipe immediately after opening a pass.)
       try {
@@ -4416,6 +4620,9 @@
         raf: 0,
         pendingDx: 0,
         pendingDy: 0,
+        lastTx: 0,
+        lastTy: 0,
+        lastRz: 0,
       };
       try {
         top.style.transition = "none";
@@ -4472,9 +4679,15 @@
           var pdx = d.pendingDx || 0;
           var pdy = d.pendingDy || 0;
           var tx = clamp(pdx * 0.025, -4, 4);
-          var ty = clamp(pdy * 0.98, -180, 180);
-          var rz = clamp(pdx / 110, -0.9, 0.9);
+          var ty = rubberBand(pdy * 0.98, 180);
+          var rz = clamp(pdx / 26, -4, 4);
           var lift = clamp(Math.abs(ty) * 0.012, 0, 4);
+
+          // Remembered so a release can carry the current tilt/position into
+          // its snap-back or throw-away animation instead of resetting cold.
+          d.lastTx = tx;
+          d.lastTy = ty;
+          d.lastRz = rz;
 
           card.style.setProperty("--wheel-tx", tx.toFixed(2) + "px");
           card.style.setProperty("--stack-swipe-y", ty.toFixed(2) + "px");
@@ -4511,7 +4724,7 @@
       var h = Math.max(1, card.getBoundingClientRect().height || 0);
       var threshold = Math.min(96, Math.max(56, h * 0.16));
 
-      var ty = clamp(dy * 0.98, -180, 180);
+      var ty = rubberBand(dy * 0.98, 180);
       var dist = Math.abs(ty);
       var releaseSpeed = Math.abs(d.vy || 0);
       if (moved && (dist > threshold || (releaseSpeed > 0.32 && dist > 26))) {
@@ -4526,21 +4739,15 @@
         return;
       }
 
-      try {
-        card.style.transition =
-          "transform 300ms cubic-bezier(0.22, 0.82, 0.24, 1), opacity 220ms ease, filter 220ms ease";
-      } catch (e1) {}
-      updateWalletStackFollowers(scroller, 0);
-      card.style.setProperty("--wheel-tx", "0px");
-      card.style.setProperty("--stack-swipe-y", "0px");
-      card.style.setProperty("--wheel-rz", "0deg");
-      card.style.setProperty("--wheel-ry", "0deg");
-      card.style.setProperty("--wheel-tz", "0px");
-      card.style.setProperty("--wheel-opacity", "1");
-      card.style.setProperty("--wheel-scale", "1");
-      card.style.setProperty("--wheel-sat", "1");
-      card.style.setProperty("--wheel-bright", "1");
-      if (moved) walletState.ignoreClickUntil = nowMs() + 180;
+      if (moved) {
+        springSnapBack(card, scroller, {
+          tx: d.lastTx || 0,
+          ty: d.lastTy || 0,
+          vx: d.vx || 0,
+          vy: d.vy || 0,
+        });
+        walletState.ignoreClickUntil = nowMs() + 180;
+      }
     }
 
     function findTouchById(list, id) {
