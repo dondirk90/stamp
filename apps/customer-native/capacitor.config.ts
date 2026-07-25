@@ -11,7 +11,12 @@ const config: CapacitorConfig = {
   appName: "Kaffeekarte",
   webDir: "www",
   server: {
-    url: `${serverOrigin}/wallet`,
+    // Bare origin, no path: Capacitor's WKWebView navigation policy only
+    // reliably keeps same-host navigation in-app when server.url is just
+    // the origin - a full URL with a path here made every other in-app
+    // page (profile, cafe profile, ...) get kicked out to Safari. Landing
+    // on /wallet instead of the marketing page is handled client-side.
+    url: serverOrigin,
     cleartext: false,
   },
   ios: {
