@@ -5053,7 +5053,19 @@
         // on whatever it showed before the OAuth round trip and the
         // oauthToken in the returned URL never gets processed.
         appPlugin.addListener("appUrlOpen", function (data) {
-          if (data && data.url) window.location.href = data.url;
+          if (!data || !data.url) return;
+          var url = String(data.url);
+          // Our OAuth custom-scheme return (kaffeekarte-customer://oauth-callback?...)
+          // isn't a URL the WebView can navigate to directly - rebuild it as
+          // the equivalent in-app path so processCustomerOauthRedirect()
+          // picks up the same oauthProvider/oauthToken/oauthError params.
+          if (url.indexOf("kaffeekarte-customer://") === 0) {
+            var qIndex = url.indexOf("?");
+            var query = qIndex >= 0 ? url.slice(qIndex) : "";
+            window.location.href = "/wallet" + query;
+            return;
+          }
+          window.location.href = url;
         });
       }
     } catch (e5) {}
@@ -5719,6 +5731,19 @@
     if (authMode === "register") qs.set("acceptLegal", "1");
     if (username || email)
       qs.set("username", username || deriveUsernameFromEmail(email));
+    // Universal Links aren't guaranteed to catch the return trip through
+    // Google/Apple's own redirect chain - tell the server this login
+    // started from the native app so it sends the final hop back via our
+    // custom URL scheme instead, which iOS routes deterministically.
+    try {
+      if (
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      ) {
+        qs.set("native", "1");
+      }
+    } catch (eNativeCheck) {}
     window.location.assign("/api/auth/" + provider + "/start?" + qs.toString());
   }
   function handleGoogleAuthStart() {
