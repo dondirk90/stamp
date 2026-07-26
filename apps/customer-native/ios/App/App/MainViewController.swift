@@ -11,4 +11,11 @@ class MainViewController: CAPBridgeViewController {
         super.viewDidLoad()
         webView?.scrollView.bounces = true
     }
+
+    // Registers our local OAuthSessionPlugin (not a separate npm/Cocoapod
+    // package, so it needs manual registration) - capacitorDidLoad() is
+    // Capacitor's documented hook for exactly this.
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(OAuthSessionPlugin())
+    }
 }

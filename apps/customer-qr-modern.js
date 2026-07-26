@@ -4987,6 +4987,24 @@
     });
   }
 
+  // Turns a kaffeekarte-customer://oauth-callback?... return into the
+  // equivalent in-app /wallet?... navigation (a WebView can't load a
+  // non-http(s) URL directly), so processCustomerOauthRedirect() picks up
+  // the same oauthProvider/oauthToken/oauthError params either way. Shared
+  // by the ASWebAuthenticationSession path (startCustomerOauth) and the
+  // appUrlOpen/getLaunchUrl fallback path (wireVisibility) below.
+  function handleAppUrlOpen(rawUrl) {
+    if (!rawUrl) return;
+    var url = String(rawUrl);
+    if (url.indexOf("kaffeekarte-customer://") === 0) {
+      var qIndex = url.indexOf("?");
+      var query = qIndex >= 0 ? url.slice(qIndex) : "";
+      window.location.href = "/wallet" + query;
+      return;
+    }
+    window.location.href = url;
+  }
+
   function wireVisibility() {
     function onHidden() {
       try {
@@ -5048,68 +5066,23 @@
           else onHidden();
         });
 
-        // When Universal Links / our OAuth custom-scheme return trip bring
-        // the app back, iOS does not reload the WebView on its own -
-        // without this, the page just sits on whatever it showed before
-        // the OAuth round trip and the oauthToken in the returned URL
-        // never gets processed.
-        function handleAppUrlOpen(rawUrl) {
-          try {
-            window.alert("DEBUG handleAppUrlOpen: " + JSON.stringify(rawUrl));
-          } catch (eDebugAlert) {}
-          if (!rawUrl) return;
-          var url = String(rawUrl);
-          // Our OAuth custom-scheme return (kaffeekarte-customer://oauth-callback?...)
-          // isn't a URL the WebView can navigate to directly - rebuild it as
-          // the equivalent in-app path so processCustomerOauthRedirect()
-          // picks up the same oauthProvider/oauthToken/oauthError params.
-          if (url.indexOf("kaffeekarte-customer://") === 0) {
-            var qIndex = url.indexOf("?");
-            var query = qIndex >= 0 ? url.slice(qIndex) : "";
-            window.location.href = "/wallet" + query;
-            return;
-          }
-          window.location.href = url;
-        }
-
+        // Kept as a fallback for any other deep link into the app (the
+        // OAuth return itself now goes through ASWebAuthenticationSession
+        // in startCustomerOauth, which doesn't depend on these firing at
+        // all - see OAuthSessionPlugin.swift).
         appPlugin.addListener("appUrlOpen", function (data) {
           handleAppUrlOpen(data && data.url);
         });
-
-        // Belt-and-suspenders for a cold start: if the app was fully quit
-        // and iOS launches it directly via the custom-scheme URL, the
-        // appUrlOpen listener above may not be attached yet by the time
-        // the native side fires it. getLaunchUrl() is Capacitor's
-        // dedicated API for exactly this race - check it once at boot.
         if (appPlugin.getLaunchUrl) {
           appPlugin
             .getLaunchUrl()
             .then(function (result) {
-              try {
-                window.alert("DEBUG getLaunchUrl: " + JSON.stringify(result));
-              } catch (eDebugAlert2) {}
               handleAppUrlOpen(result && result.url);
             })
-            .catch(function (err) {
-              try {
-                window.alert("DEBUG getLaunchUrl error: " + String(err));
-              } catch (eDebugAlert3) {}
-            });
-        } else {
-          try {
-            window.alert("DEBUG getLaunchUrl not available on appPlugin");
-          } catch (eDebugAlert4) {}
+            .catch(function () {});
         }
-      } else {
-        try {
-          window.alert("DEBUG appPlugin missing or no addListener");
-        } catch (eDebugAlert5) {}
       }
-    } catch (e5) {
-      try {
-        window.alert("DEBUG wireVisibility native block threw: " + String(e5));
-      } catch (eDebugAlert6) {}
-    }
+    } catch (e5) {}
   }
 
   function wireAccount() {
@@ -5772,20 +5745,42 @@
     if (authMode === "register") qs.set("acceptLegal", "1");
     if (username || email)
       qs.set("username", username || deriveUsernameFromEmail(email));
-    // Universal Links aren't guaranteed to catch the return trip through
-    // Google/Apple's own redirect chain - tell the server this login
-    // started from the native app so it sends the final hop back via our
-    // custom URL scheme instead, which iOS routes deterministically.
+
+    var isNative = false;
     try {
-      if (
+      isNative = !!(
         window.Capacitor &&
         window.Capacitor.isNativePlatform &&
         window.Capacitor.isNativePlatform()
-      ) {
-        qs.set("native", "1");
-      }
+      );
     } catch (eNativeCheck) {}
-    window.location.assign("/api/auth/" + provider + "/start?" + qs.toString());
+    // Tell the server this login started from the native app so it sends
+    // the final hop back via our custom URL scheme instead of the plain
+    // wallet URL.
+    if (isNative) qs.set("native", "1");
+    var startUrl = "/api/auth/" + provider + "/start?" + qs.toString();
+
+    if (isNative) {
+      var oauthPlugin =
+        window.Capacitor.Plugins && window.Capacitor.Plugins.OAuthSession;
+      if (oauthPlugin && oauthPlugin.authenticate) {
+        oauthPlugin
+          .authenticate({
+            url: location.origin + startUrl,
+            callbackUrlScheme: "kaffeekarte-customer",
+          })
+          .then(function (result) {
+            handleAppUrlOpen(result && result.url);
+          })
+          .catch(function () {
+            // User closed the sheet or it errored - not worth alarming
+            // them with a scary error message for a simple cancel.
+            showMsg("danger", "Anmeldung wurde abgebrochen.");
+          });
+        return;
+      }
+    }
+    window.location.assign(startUrl);
   }
   function handleGoogleAuthStart() {
     startCustomerOauth("google");
