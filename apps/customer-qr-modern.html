@@ -521,9 +521,21 @@
 
         .topbar .row {
           display: flex;
-          position: fixed;
-          top: calc(18px + var(--safe-top, 0px));
-          right: calc(14px + var(--safe-right, 0px));
+          /* Was position:fixed with its own hand-picked "top" offset,
+             independent of .topbar's own fixed position - any mismatch
+             between the two hardcoded numbers threw the profile button
+             out of vertical alignment with the wordmark. .topbar is
+             itself position:fixed, so it's a valid containing block for
+             position:absolute here - centering on it directly can never
+             drift out of sync again. */
+          position: absolute;
+          top: 50%;
+          /* .topbar itself already sits 8px in from the viewport edge (its
+             own "right: calc(8px + ...)" below) - now that .row is measured
+             from .topbar's edge instead of the viewport's, 6px here lands
+             the button at the same ~14px-from-viewport spot as before. */
+          right: calc(6px + var(--safe-right, 0px));
+          transform: translateY(-50%);
           width: 44px;
           height: 44px;
           align-items: center;
@@ -937,8 +949,8 @@
 
       .authTitle {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 25px;
+        font-weight: 900;
+        font-size: 26px;
         line-height: 1.08;
         letter-spacing: -0.03em;
       }
@@ -1414,7 +1426,7 @@
       }
 
       .hint {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-muted);
       }
 
@@ -1863,9 +1875,9 @@
       .welcomeSectionTitle {
         font-size: 12px;
         font-weight: 900;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.62);
+        color: var(--text-muted);
       }
 
       .welcomeSectionMeta {
@@ -2005,8 +2017,8 @@
       }
 
       .welcomeOverviewTitle {
-        font-size: 22px;
-        font-weight: 950;
+        font-size: 26px;
+        font-weight: 900;
         letter-spacing: -0.04em;
         color: #241710;
       }
