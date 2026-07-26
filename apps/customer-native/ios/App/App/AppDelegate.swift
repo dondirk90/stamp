@@ -8,6 +8,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        //
+        // A cold launch via a custom URL scheme (e.g. our OAuth return,
+        // kaffeekarte-customer://oauth-callback?...) delivers the URL here,
+        // in launchOptions[.url] - NOT via application(_:open:options:),
+        // which iOS only calls when the app is already running. Without
+        // this, ApplicationDelegateProxy's lastURL never gets set and
+        // neither appUrlOpen nor getLaunchUrl() ever see the URL, which is
+        // exactly why the OAuth return silently failed after the "Open in
+        // Kaffeekarte?" confirmation - that confirmation only appears when
+        // the app needs a fresh (cold) launch.
+        if let url = launchOptions?[.url] as? URL {
+            _ = ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
+        }
         return true
     }
 
