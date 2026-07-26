@@ -2395,6 +2395,14 @@
         padding: var(--space-4);
       }
 
+      #cafeSearch {
+        /* iOS/WKWebView zoomt automatisch in die Seite, wenn ein
+           fokussiertes Eingabefeld kleiner als 16px ist (WebKit-Default
+           liegt darunter). Genau das faellt hier als "reinzoomen" beim
+           Suchen auf - 16px verhindert es zuverlaessig. */
+        font-size: 16px;
+      }
+
       .mapStage {
         position: relative;
         margin-top: var(--space-3);
