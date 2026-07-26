@@ -44,11 +44,23 @@ platform :ios do
   lane :build do
     certificates
     # CURRENT_PROJECT_VERSION is a static "1" in the checked-in project -
-    # TestFlight rejects re-uploads with a build number it's already seen,
-    # so give every CI run a unique one.
+    # TestFlight rejects re-uploads with a build number it's already seen.
+    # GITHUB_RUN_NUMBER alone isn't safe: re-running a workflow reuses the
+    # exact same run number, which caused a duplicate-build-number upload
+    # rejection. Ask App Store Connect what it last saw instead.
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
+      is_key_content_base64: true,
+    )
+    latest_build_number = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: "app.kaffeekarte.customer",
+    )
     increment_build_number(
       xcodeproj: "ios/App/App.xcodeproj",
-      build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.strftime("%Y%m%d%H%M"),
+      build_number: (latest_build_number + 1).to_s,
     )
     update_code_signing_settings(
       use_automatic_signing: false,
