@@ -5047,14 +5047,15 @@
           if (state && state.isActive) onVisible();
           else onHidden();
         });
-        // When Universal Links (e.g. the Google/Apple OAuth return trip)
-        // bring an already-running app back to the foreground, iOS does not
-        // reload the WebView on its own - without this, the page just sits
-        // on whatever it showed before the OAuth round trip and the
-        // oauthToken in the returned URL never gets processed.
-        appPlugin.addListener("appUrlOpen", function (data) {
-          if (!data || !data.url) return;
-          var url = String(data.url);
+
+        // When Universal Links / our OAuth custom-scheme return trip bring
+        // the app back, iOS does not reload the WebView on its own -
+        // without this, the page just sits on whatever it showed before
+        // the OAuth round trip and the oauthToken in the returned URL
+        // never gets processed.
+        function handleAppUrlOpen(rawUrl) {
+          if (!rawUrl) return;
+          var url = String(rawUrl);
           // Our OAuth custom-scheme return (kaffeekarte-customer://oauth-callback?...)
           // isn't a URL the WebView can navigate to directly - rebuild it as
           // the equivalent in-app path so processCustomerOauthRedirect()
@@ -5066,7 +5067,25 @@
             return;
           }
           window.location.href = url;
+        }
+
+        appPlugin.addListener("appUrlOpen", function (data) {
+          handleAppUrlOpen(data && data.url);
         });
+
+        // Belt-and-suspenders for a cold start: if the app was fully quit
+        // and iOS launches it directly via the custom-scheme URL, the
+        // appUrlOpen listener above may not be attached yet by the time
+        // the native side fires it. getLaunchUrl() is Capacitor's
+        // dedicated API for exactly this race - check it once at boot.
+        if (appPlugin.getLaunchUrl) {
+          appPlugin
+            .getLaunchUrl()
+            .then(function (result) {
+              handleAppUrlOpen(result && result.url);
+            })
+            .catch(function () {});
+        }
       }
     } catch (e5) {}
   }
