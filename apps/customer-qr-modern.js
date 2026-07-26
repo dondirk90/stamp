@@ -6142,9 +6142,21 @@
           ? stampUI.mountBottomNav({
               theme: "espresso",
               items: [
-                { id: "bottomModeMap", label: "Entdecken" },
-                { id: "bottomModeWallet", label: "Deine Wallet" },
-                { id: "bottomModeHistory", label: "Deine Checkins" },
+                {
+                  id: "bottomModeMap",
+                  label: "Entdecken",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.discover,
+                },
+                {
+                  id: "bottomModeWallet",
+                  label: "Wallet",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.wallet,
+                },
+                {
+                  id: "bottomModeHistory",
+                  label: "Checkins",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.history,
+                },
               ],
             })
           : null;

@@ -256,6 +256,7 @@
             <span class="kk-brandWord">Kaffeekarte</span>
           </span>
         </a>
+        <div class="row"></div>
       </div>
 
       <div class="profileCard">
@@ -319,15 +320,36 @@
     <script src="/ui.js"></script>
     <script>
       if (window.stampUI && stampUI.mountBottomNav) {
-        stampUI.mountBottomNav({
+        var tabIcons = (window.stampUI && stampUI.tabIcons) || {};
+        var kkNav = stampUI.mountBottomNav({
           theme: "espresso",
           items: [
-            { label: "Cafés", href: "/customer-map?view=map", active: true },
-            { label: "Karten", href: "/customer-wallet?view=cards" },
-            { label: "Verlauf", href: "/customer-history" },
-            { label: "Profil", href: "/customer-profile" },
+            {
+              id: "bottomModeMap",
+              label: "Entdecken",
+              icon: tabIcons.discover,
+              href: "/customer-map?view=map",
+              active: true,
+            },
+            {
+              id: "bottomModeWallet",
+              label: "Wallet",
+              icon: tabIcons.wallet,
+              href: "/customer-wallet?view=cards",
+            },
+            {
+              id: "bottomModeHistory",
+              label: "Checkins",
+              icon: tabIcons.history,
+              href: "/customer-history",
+            },
           ],
         });
+        var walletTab = document.getElementById("bottomModeWallet");
+        if (walletTab) walletTab.classList.add("kk-tab--featured");
+      }
+      if (window.stampUI && stampUI.mountCustomerTopProfile) {
+        stampUI.mountCustomerTopProfile({ href: "/customer-profile" });
       }
     </script>
     <script>

@@ -374,23 +374,8 @@
         overflow: hidden;
       }
 
-      /* Zentraler, hervorgehobener Nav-Button (Kartenstapel) - ragt wie ein
-         FAB ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen. */
-      .kk-tab--featured {
-        min-height: 58px !important;
-        padding: 0 26px !important;
-        font-size: 14px !important;
-        background:
-          linear-gradient(180deg, #fffaf3, #f5ecdf) !important;
-        color: #241710 !important;
-        box-shadow:
-          0 14px 26px rgba(20, 10, 4, 0.32),
-          0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
-      }
-
-      .kk-tab--featured:hover {
-        color: #241710 !important;
-      }
+      /* .kk-tab--featured now lives in ui.js's shared TABBAR_CSS so every
+         customer page gets the same raised/highlighted tab treatment. */
 
       .topProfileAvatar {
         width: 100%;

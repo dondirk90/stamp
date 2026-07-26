@@ -238,11 +238,20 @@
     "max-width:min(460px,calc(100vw - 20px));}" +
     // !important: App-Seiten stylen <button> global sehr aggressiv.
     ".kk-tab{appearance:none;border:none !important;background:transparent !important;" +
-    "min-height:48px;padding:0 18px;border-radius:999px !important;font:inherit;" +
-    "font-size:13px;font-weight:800;letter-spacing:0.01em;text-decoration:none;" +
-    "display:inline-flex;align-items:center;justify-content:center;cursor:pointer;" +
-    "white-space:nowrap;box-shadow:none !important;filter:none !important;" +
-    "transition:background 160ms ease,color 160ms ease;}" +
+    "min-height:52px;padding:6px 18px;border-radius:999px !important;font:inherit;" +
+    "display:inline-flex;flex-direction:column;align-items:center;justify-content:center;" +
+    "gap:2px;cursor:pointer;white-space:nowrap;box-shadow:none !important;filter:none !important;" +
+    "text-decoration:none;transition:background 160ms ease,color 160ms ease;}" +
+    ".kk-tabIcon{display:flex;align-items:center;justify-content:center;width:20px;height:20px;}" +
+    ".kk-tabIcon svg{width:100%;height:100%;display:block;}" +
+    ".kk-tabLabel{font-size:11px;font-weight:800;letter-spacing:0.01em;}" +
+    // Zentraler, hervorgehobener Nav-Button (z.B. Wallet) - ragt wie ein FAB
+    // ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen.
+    ".kk-tab--featured{min-height:62px !important;padding:8px 26px !important;" +
+    "background:linear-gradient(180deg,#fffaf3,#f5ecdf) !important;color:#241710 !important;" +
+    "box-shadow:0 14px 26px rgba(20,10,4,0.32),0 1px 0 rgba(255,255,255,0.9) inset !important;}" +
+    ".kk-tab--featured:hover{color:#241710 !important;}" +
+    ".kk-tab--featured .kk-tabLabel{font-size:12px;}" +
     ".kk-tabbar--espresso{background:linear-gradient(180deg,#2c1e15,#1d130d);" +
     "border:1px solid rgba(255,241,233,0.1);" +
     "box-shadow:0 18px 40px rgba(30,18,10,0.35),0 1px 0 rgba(255,255,255,0.06) inset;}" +
@@ -262,7 +271,24 @@
     "body.kk-hasTabbar{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));}" +
     "body.installHintOpen .kk-tabbar{opacity:0;pointer-events:none;}" +
     "@media (max-width:520px){.kk-tabbar{width:calc(100vw - 20px);}" +
-    ".kk-tab{flex:1 1 0;padding:0 6px;font-size:12px;}}";
+    ".kk-tab{flex:1 1 0;padding:6px 4px;}.kk-tabLabel{font-size:10px;}}";
+
+  // Simple single-color stroke icons (currentColor) - no external assets,
+  // so they automatically pick up the tab's existing hover/active/featured
+  // color rules.
+  var TAB_ICON_DISCOVER =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/></svg>';
+  var TAB_ICON_WALLET =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>' +
+    '<circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/></svg>';
+  var TAB_ICON_HISTORY =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.3 1.9"/></svg>';
 
   function injectTabbarCss() {
     if (document.getElementById("kkTabbarStyles")) return;
@@ -293,7 +319,16 @@
         if (item.id) node.id = item.id;
         if (item.href) node.href = item.href;
         else node.type = "button";
-        node.textContent = item.label;
+        if (item.icon) {
+          var iconSpan = document.createElement("span");
+          iconSpan.className = "kk-tabIcon";
+          iconSpan.innerHTML = item.icon;
+          node.appendChild(iconSpan);
+        }
+        var labelSpan = document.createElement("span");
+        labelSpan.className = "kk-tabLabel";
+        labelSpan.textContent = item.label;
+        node.appendChild(labelSpan);
         if (item.onClick) node.addEventListener("click", item.onClick);
         nav.appendChild(node);
       })(items[i]);
@@ -357,6 +392,59 @@
     return btn;
   }
 
+  var CUSTOMER_TOP_PROFILE_CSS =
+    ".kk-customerTopProfile{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;" +
+    "border:1px solid rgba(81,58,40,0.1) !important;border-radius:16px !important;" +
+    "background:linear-gradient(180deg,rgba(255,252,247,0.98),rgba(247,238,228,0.96)) !important;" +
+    "display:inline-flex;align-items:center;justify-content:center;overflow:hidden;" +
+    "box-shadow:0 8px 18px rgba(68,41,22,0.08) !important;color:#6b452c !important;" +
+    "font-weight:900;font-size:15px;cursor:pointer;}" +
+    ".kk-customerTopProfile img{width:100%;height:100%;object-fit:cover;display:block;}";
+
+  function injectCustomerTopProfileCss() {
+    if (document.getElementById("kkCustomerTopProfileStyles")) return;
+    var style = document.createElement("style");
+    style.id = "kkCustomerTopProfileStyles";
+    style.textContent = CUSTOMER_TOP_PROFILE_CSS;
+    document.head.appendChild(style);
+  }
+
+  // Top-right Avatar (Foto/Initiale) mit Link zum Kundenprofil - fuer Seiten
+  // ohne eigenes topProfileBtn (customer-qr-modern.html hat sein eigenes,
+  // bereits fertiges - dieses hier ist fuer die anderen Kunden-Seiten wie
+  // cafe-public.html, analog zu mountCafeTopProfile fuer die Cafe-Seite).
+  function mountCustomerTopProfile(options) {
+    var o = options || {};
+    var row = document.querySelector(".topbar .row");
+    if (!row) return null;
+    injectCustomerTopProfileCss();
+    var btn = document.getElementById("kkCustomerTopProfileBtn");
+    var isNew = !btn;
+    if (isNew) {
+      btn = document.createElement("button");
+      btn.id = "kkCustomerTopProfileBtn";
+      btn.type = "button";
+      btn.className = "kk-customerTopProfile ghost";
+    }
+    btn.setAttribute("aria-label", "Profil öffnen");
+    btn.innerHTML = "";
+    if (o.avatarDataUrl) {
+      var img = document.createElement("img");
+      img.src = o.avatarDataUrl;
+      img.alt = "";
+      img.decoding = "async";
+      btn.appendChild(img);
+    } else {
+      var initial = String(o.initial || "P").trim().slice(0, 1).toUpperCase() || "P";
+      btn.textContent = initial;
+    }
+    btn.onclick = function () {
+      location.href = o.href || "/customer-profile";
+    };
+    if (isNew) row.insertBefore(btn, row.firstChild);
+    return btn;
+  }
+
   // Public API
   var api = (window.stampUI = window.stampUI || {});
   if (!api.copy) {
@@ -396,6 +484,14 @@
   if (!api.isDebugEnabled) api.isDebugEnabled = isDebugEnabled;
   if (!api.mountBottomNav) api.mountBottomNav = mountBottomNav;
   if (!api.mountCafeTopProfile) api.mountCafeTopProfile = mountCafeTopProfile;
+  if (!api.mountCustomerTopProfile)
+    api.mountCustomerTopProfile = mountCustomerTopProfile;
+  if (!api.tabIcons)
+    api.tabIcons = {
+      discover: TAB_ICON_DISCOVER,
+      wallet: TAB_ICON_WALLET,
+      history: TAB_ICON_HISTORY,
+    };
   if (!api.userSafeErrorMessage)
     api.userSafeErrorMessage = userSafeErrorMessage;
 
