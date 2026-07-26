@@ -5054,6 +5054,9 @@
         // the OAuth round trip and the oauthToken in the returned URL
         // never gets processed.
         function handleAppUrlOpen(rawUrl) {
+          try {
+            window.alert("DEBUG handleAppUrlOpen: " + JSON.stringify(rawUrl));
+          } catch (eDebugAlert) {}
           if (!rawUrl) return;
           var url = String(rawUrl);
           // Our OAuth custom-scheme return (kaffeekarte-customer://oauth-callback?...)
@@ -5082,12 +5085,31 @@
           appPlugin
             .getLaunchUrl()
             .then(function (result) {
+              try {
+                window.alert("DEBUG getLaunchUrl: " + JSON.stringify(result));
+              } catch (eDebugAlert2) {}
               handleAppUrlOpen(result && result.url);
             })
-            .catch(function () {});
+            .catch(function (err) {
+              try {
+                window.alert("DEBUG getLaunchUrl error: " + String(err));
+              } catch (eDebugAlert3) {}
+            });
+        } else {
+          try {
+            window.alert("DEBUG getLaunchUrl not available on appPlugin");
+          } catch (eDebugAlert4) {}
         }
+      } else {
+        try {
+          window.alert("DEBUG appPlugin missing or no addListener");
+        } catch (eDebugAlert5) {}
       }
-    } catch (e5) {}
+    } catch (e5) {
+      try {
+        window.alert("DEBUG wireVisibility native block threw: " + String(e5));
+      } catch (eDebugAlert6) {}
+    }
   }
 
   function wireAccount() {
