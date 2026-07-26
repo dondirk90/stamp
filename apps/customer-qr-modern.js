@@ -5224,6 +5224,36 @@
     );
   }
 
+  // Vertical page scrolling (wallet/discover/history, all plain document
+  // scroll) had nothing responding to it at all. This solidifies the
+  // floating mobile topbar once you scroll past the top, and gives the
+  // native overscroll bounce a visible stretch instead of being invisible.
+  function wireTopbarScrollResponse() {
+    var topbar = document.querySelector(".topbar");
+    if (!topbar || topbar.__kkScrollResponseBound) return;
+    topbar.__kkScrollResponseBound = true;
+
+    var ticking = false;
+    function paint() {
+      ticking = false;
+      var y = window.scrollY || window.pageYOffset || 0;
+      topbar.classList.toggle("topbar--solid", y > 20);
+      if (y < 0) {
+        var stretch = clamp(-y / 90, 0, 1);
+        topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+      } else {
+        topbar.style.setProperty("--topbar-stretch", "1");
+      }
+    }
+    function schedule() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(paint);
+    }
+    window.addEventListener("scroll", schedule, { passive: true });
+    paint();
+  }
+
   function apiFetch(path, init) {
     var url = apiBase + path;
     return fetch(url, init).then(function (res) {
@@ -6068,6 +6098,7 @@
     wireNavigation();
     wireScreenPager();
     wireVisibility();
+    wireTopbarScrollResponse();
     if (!document.__cafePinDelegationBound) {
       document.__cafePinDelegationBound = true;
       var onCafePinTap = function (ev) {
