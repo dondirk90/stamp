@@ -1,4 +1,5 @@
 import Capacitor
+import UIKit
 
 // Capacitor's own CAPBridgeViewController hardcodes
 // `webView.scrollView.bounces = false` (see CAPBridgeViewController.swift in
@@ -10,6 +11,16 @@ class MainViewController: CAPBridgeViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         webView?.scrollView.bounces = true
+
+        // The WKWebView's own background defaults to black, so the
+        // rubber-band overscroll area flashes black at the top/bottom
+        // instead of matching the app's page background (--color-background
+        // in theme.css). Match it so the bounce blends in.
+        let appBackground = UIColor(red: 0xf7 / 255.0, green: 0xf4 / 255.0, blue: 0xef / 255.0, alpha: 1.0)
+        view.backgroundColor = appBackground
+        webView?.isOpaque = true
+        webView?.backgroundColor = appBackground
+        webView?.scrollView.backgroundColor = appBackground
     }
 
     // Registers our local OAuthSessionPlugin (not a separate npm/Cocoapod
