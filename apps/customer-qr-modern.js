@@ -3121,6 +3121,31 @@
             .toLowerCase()
         : "bean";
     } catch (eThreshold0) {}
+
+    // Tippen auf ein Kaffeesymbol oeffnet das Kurzprofil des Cafes statt die
+    // Karte umzudrehen (mainBtn hat einen eigenen Click-Handler dafuer, der
+    // auf jeden Klick im Kartenkoerper reagiert - hier vorher abfangen).
+    // Der Grid-Container bleibt ueber Re-Renders hinweg derselbe Knoten
+    // (nur sein innerHTML wird geleert), daher genuegt einmaliges Binden.
+    if (container && !container.__stampTapBound) {
+      container.__stampTapBound = true;
+      container.addEventListener("click", function (ev) {
+        try {
+          var stampCell =
+            ev.target && ev.target.closest ? ev.target.closest(".stamp") : null;
+          if (!stampCell) return;
+          var passEl = container.closest
+            ? container.closest(".passCard, .face")
+            : null;
+          var addr = passEl ? passEl.getAttribute("data-cafe") : "";
+          if (!addr) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          openCafeModalByAddress(addr);
+        } catch (eStampTap) {}
+      });
+    }
+
     function hash32(str) {
       var s = String(str || "");
       var h = 2166136261;

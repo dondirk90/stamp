@@ -247,19 +247,19 @@
     ".kk-tabLabel{font-size:11px;font-weight:800;letter-spacing:0.01em;}" +
     // Zentraler, hervorgehobener Nav-Button (z.B. Wallet) - ragt wie ein FAB
     // ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen.
-    ".kk-tab--featured{min-height:62px !important;padding:8px 26px !important;" +
+    ".kk-tab--featured{min-height:58px !important;padding:7px 24px !important;" +
     "background:linear-gradient(180deg,#fffaf3,#f5ecdf) !important;color:#241710 !important;" +
-    "box-shadow:0 14px 26px rgba(20,10,4,0.32),0 1px 0 rgba(255,255,255,0.9) inset !important;}" +
+    "box-shadow:0 8px 16px rgba(20,10,4,0.18),0 1px 0 rgba(255,255,255,0.7) inset !important;}" +
     ".kk-tab--featured:hover{color:#241710 !important;}" +
     ".kk-tab--featured .kk-tabLabel{font-size:12px;}" +
     ".kk-tabbar--espresso{background:linear-gradient(180deg,#2c1e15,#1d130d);" +
     "border:1px solid rgba(255,241,233,0.1);" +
-    "box-shadow:0 18px 40px rgba(30,18,10,0.35),0 1px 0 rgba(255,255,255,0.06) inset;}" +
+    "box-shadow:0 10px 22px rgba(30,18,10,0.2),0 1px 0 rgba(255,255,255,0.06) inset;}" +
     ".kk-tabbar--espresso .kk-tab{background:transparent !important;" +
     "border:none !important;color:rgba(242,228,216,0.62) !important;}" +
     ".kk-tabbar--espresso .kk-tab:hover{color:rgba(255,248,241,0.92) !important;}" +
     ".kk-tabbar--espresso .kk-tab.active{background:#f5ecdf !important;color:#241710 !important;" +
-    "box-shadow:0 6px 14px rgba(0,0,0,0.25) !important;}" +
+    "box-shadow:0 4px 10px rgba(0,0,0,0.16) !important;}" +
     ".kk-tabbar--cream{background:linear-gradient(180deg,rgba(252,248,242,0.98),rgba(240,229,216,0.96));" +
     "border:1px solid rgba(81,58,40,0.14);" +
     "box-shadow:0 18px 40px rgba(20,12,7,0.45),0 1px 0 rgba(255,255,255,0.85) inset;}" +
