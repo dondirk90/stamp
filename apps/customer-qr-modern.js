@@ -3107,6 +3107,78 @@
     return "KAFFEEKARTE";
   }
 
+  var stampHistoryCache = { promise: null, eventsByCafe: null };
+
+  function ensureStampHistoryLoaded() {
+    if (stampHistoryCache.eventsByCafe) return Promise.resolve(stampHistoryCache.eventsByCafe);
+    if (stampHistoryCache.promise) return stampHistoryCache.promise;
+    if (!session || !session.address) return Promise.resolve(null);
+    stampHistoryCache.promise = apiFetch(
+      "/stamps/history/" + encodeURIComponent(session.address),
+    )
+      .then(function (data) {
+        var events = Array.isArray(data) ? data : (data && data.events) || [];
+        var byCafe = {};
+        for (var i = 0; i < events.length; i++) {
+          var e = events[i] || {};
+          var cafeAddr = normalizeAddr(e.cafe || "");
+          if (!cafeAddr) continue;
+          if (!byCafe[cafeAddr]) byCafe[cafeAddr] = [];
+          byCafe[cafeAddr].push(e);
+        }
+        stampHistoryCache.eventsByCafe = byCafe;
+        return byCafe;
+      })
+      .catch(function () {
+        stampHistoryCache.promise = null;
+        return null;
+      });
+    return stampHistoryCache.promise;
+  }
+
+  // Rekonstruiert aus dem Event-Ledger, wann welche Bohne der *aktuellen*
+  // (noch nicht eingeloesten) Stempelrunde gesammelt wurde: chronologisch
+  // durchlaufen, bei einem Redeem beginnt eine neue Runde bei Index 0.
+  // Die History deckt nur die letzten 50 Events der Kundin/des Kunden ab
+  // (ueber alle Cafes), aeltere Runden liefern daher bewusst "unbekannt".
+  function getStampVisitTimestamp(cafeAddress, beanIndex) {
+    var byCafe = stampHistoryCache.eventsByCafe;
+    if (!byCafe) return null;
+    var addr = normalizeAddr(cafeAddress || "");
+    var events = byCafe[addr];
+    if (!events || !events.length) return null;
+
+    var chrono = events.slice().sort(function (a, b) {
+      return Number(a.timestamp || 0) - Number(b.timestamp || 0);
+    });
+
+    var cycle = [];
+    for (var i = 0; i < chrono.length; i++) {
+      var e = chrono[i] || {};
+      var type = String(e.eventType || e.event_type || "");
+      var delta = Number(e.delta || 0);
+      if (type === "redeem" || delta < 0) {
+        cycle = [];
+        continue;
+      }
+      if (type === "stamp" || delta > 0) {
+        var n = Math.max(1, Math.round(delta) || 1);
+        for (var k = 0; k < n; k++) cycle.push(e.timestamp);
+      }
+    }
+
+    if (beanIndex < 0 || beanIndex >= cycle.length) return null;
+    return cycle[beanIndex];
+  }
+
+  function showStampVisitTimestamp(cafeAddress, beanIndex) {
+    ensureStampHistoryLoaded().then(function () {
+      var ts = getStampVisitTimestamp(cafeAddress, beanIndex);
+      var when = ts ? formatTs(ts) : "";
+      showToast(when ? "Stempel vom " + when : "Zeitpunkt nicht mehr verfügbar");
+    });
+  }
+
   function renderStampGrid(container, count) {
     var threshold = REWARD_THRESHOLD;
     var stampStyle = "bean";
@@ -3122,11 +3194,11 @@
         : "bean";
     } catch (eThreshold0) {}
 
-    // Tippen auf ein Kaffeesymbol oeffnet das Kurzprofil des Cafes statt die
-    // Karte umzudrehen (mainBtn hat einen eigenen Click-Handler dafuer, der
-    // auf jeden Klick im Kartenkoerper reagiert - hier vorher abfangen).
-    // Der Grid-Container bleibt ueber Re-Renders hinweg derselbe Knoten
-    // (nur sein innerHTML wird geleert), daher genuegt einmaliges Binden.
+    // Tippen auf eine Stempelbohne zeigt den Zeitpunkt des jeweiligen Besuchs
+    // (mainBtn hat einen eigenen Click-Handler, der auf jeden Klick im
+    // Kartenkoerper reagiert - hier vorher abfangen). Der Grid-Container
+    // bleibt ueber Re-Renders hinweg derselbe Knoten (nur sein innerHTML wird
+    // geleert), daher genuegt einmaliges Binden.
     if (container && !container.__stampTapBound) {
       container.__stampTapBound = true;
       container.addEventListener("click", function (ev) {
@@ -3134,14 +3206,16 @@
           var stampCell =
             ev.target && ev.target.closest ? ev.target.closest(".stamp") : null;
           if (!stampCell) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (!stampCell.classList.contains("filled")) return;
           var passEl = container.closest
             ? container.closest(".passCard, .face")
             : null;
           var addr = passEl ? passEl.getAttribute("data-cafe") : "";
           if (!addr) return;
-          ev.preventDefault();
-          ev.stopPropagation();
-          openCafeModalByAddress(addr);
+          var idx = Array.prototype.indexOf.call(container.children, stampCell);
+          showStampVisitTimestamp(addr, idx);
         } catch (eStampTap) {}
       });
     }
@@ -4014,6 +4088,33 @@
       fallbackLogoWrap.className = "passLogoWrap";
       fallbackLogoWrap.appendChild(buildPassLogoFallback(title));
       brandLockup.appendChild(fallbackLogoWrap);
+    }
+
+    // Logo oben links oeffnet das Kurzprofil des Cafes, statt die Karte
+    // umzudrehen (mainBtn hat einen eigenen Click-Handler dafuer).
+    if (cafeAddress) {
+      var logoWrapNode = brandLockup.querySelector(".passLogoWrap");
+      if (logoWrapNode) {
+        logoWrapNode.setAttribute("role", "button");
+        logoWrapNode.setAttribute("tabindex", "0");
+        logoWrapNode.setAttribute("aria-label", "Kurzprofil von " + title);
+        logoWrapNode.addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openCafeModalByAddress(cafeAddress);
+        });
+        logoWrapNode.addEventListener("keydown", function (ev) {
+          var key = ev && ev.key ? String(ev.key) : "";
+          if (key !== "Enter" && key !== " ") return;
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openCafeModalByAddress(cafeAddress);
+        });
+      }
     }
 
     var titleBlock = document.createElement("div");
@@ -5430,6 +5531,13 @@
     var grid = passCardEl.querySelector(".stampGrid");
     if (grid) {
       renderStampGrid(grid, stampCount, prevCount);
+    }
+
+    if (prevCount != null && stampCount !== Number(prevCount)) {
+      // Neuer Stempel oder Einlösung seit dem letzten Abgleich - die
+      // gecachte Event-History für die Besuchszeitpunkte ist jetzt veraltet.
+      stampHistoryCache.promise = null;
+      stampHistoryCache.eventsByCafe = null;
     }
 
     if (prevCount != null && stampCount > Number(prevCount)) {
