@@ -295,6 +295,12 @@
           0 1px 0 rgba(255, 255, 255, 0.68) inset;
         position: relative;
         z-index: 1;
+        /* Gives the native overscroll bounce (already active, never
+           disabled) a visible reaction instead of nothing happening as you
+           pull past the top of the page. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
+        transition: background 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
       }
 
       .brandHead {
@@ -499,7 +505,7 @@
           margin: 0;
           padding: 0;
           border: none;
-          border-radius: 0;
+          border-radius: 24px;
           background: transparent;
           box-shadow: none;
           backdrop-filter: none;
@@ -510,6 +516,21 @@
 
         .topbar .brand,
         .topbar .row {
+          pointer-events: auto;
+        }
+
+        /* Floats bare over the hero content at rest; once the page is
+           scrolled it solidifies into the same translucent card the
+           wider-viewport topbar already always has, like an iOS nav bar
+           gaining a hairline once content sits behind it. */
+        .topbar.topbar--solid {
+          padding: 10px 18px;
+          border: 1px solid rgba(17, 17, 17, 0.08);
+          background: rgba(255, 252, 248, 0.72);
+          backdrop-filter: blur(18px);
+          box-shadow:
+            0 10px 24px rgba(68, 41, 22, 0.05),
+            0 1px 0 rgba(255, 255, 255, 0.68) inset;
           pointer-events: auto;
         }
 

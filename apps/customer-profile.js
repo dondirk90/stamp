@@ -652,8 +652,34 @@
     }
   }
 
+  function wireTopbarScrollResponse() {
+    const topbar = document.querySelector(".topbar");
+    if (!topbar) return;
+
+    let ticking = false;
+    function paint() {
+      ticking = false;
+      const y = window.scrollY || window.pageYOffset || 0;
+      topbar.classList.toggle("topbar--solid", y > 20);
+      if (y < 0) {
+        const stretch = Math.min(1, Math.max(0, -y / 90));
+        topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+      } else {
+        topbar.style.setProperty("--topbar-stretch", "1");
+      }
+    }
+    function schedule() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(paint);
+    }
+    window.addEventListener("scroll", schedule, { passive: true });
+    paint();
+  }
+
   function boot() {
     wireUtilityMenu();
+    wireTopbarScrollResponse();
 
     const session = loadSession();
     renderProfile(session);
