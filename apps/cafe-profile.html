@@ -1058,10 +1058,20 @@
         var nav = stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "utilityStartBtn", label: "Start" },
-            { id: "utilityCardBtn", label: "Karte", active: !advanced },
-            { id: "utilityDashboardBtn", label: "Dashboard" },
-            { id: "utilityAdminBtn", label: "Verwaltung", active: advanced },
+            { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
+            {
+              id: "utilityCardBtn",
+              label: "Karte",
+              icon: stampUI.tabIcons.card,
+              active: !advanced,
+            },
+            { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
+            {
+              id: "utilityAdminBtn",
+              label: "Verwaltung",
+              icon: stampUI.tabIcons.settings,
+              active: advanced,
+            },
           ],
         });
         nav.id = "bottomTabs";

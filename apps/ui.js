@@ -290,6 +290,32 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.3 1.9"/></svg>';
 
+  // Barista-App Icons (gleicher Stil: viewBox 24, stroke currentColor 1.8,
+  // runde Kappen - siehe TAB_ICON_DISCOVER/WALLET/HISTORY oben).
+  var TAB_ICON_SCAN =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>' +
+    '<path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>' +
+    '<line x1="4" y1="12" x2="20" y2="12"/></svg>';
+  var TAB_ICON_HOME =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 11.5 12 4.8l8 6.7"/>' +
+    '<path d="M6 10.2V19a1 1 0 0 0 1 1h3.2v-5.4h3.6V20H17a1 1 0 0 0 1-1v-8.8"/></svg>';
+  var TAB_ICON_DASHBOARD =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 20V11"/><path d="M12 20V6"/><path d="M20 20v-6.5"/></svg>';
+  var TAB_ICON_SETTINGS =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>' +
+    '<line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>' +
+    '<line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>' +
+    '<line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>' +
+    '<line x1="17" y1="16" x2="23" y2="16"/></svg>';
+
   function injectTabbarCss() {
     if (document.getElementById("kkTabbarStyles")) return;
     var style = document.createElement("style");
@@ -491,6 +517,11 @@
       discover: TAB_ICON_DISCOVER,
       wallet: TAB_ICON_WALLET,
       history: TAB_ICON_HISTORY,
+      scan: TAB_ICON_SCAN,
+      home: TAB_ICON_HOME,
+      card: TAB_ICON_WALLET,
+      dashboard: TAB_ICON_DASHBOARD,
+      settings: TAB_ICON_SETTINGS,
     };
   if (!api.userSafeErrorMessage)
     api.userSafeErrorMessage = userSafeErrorMessage;

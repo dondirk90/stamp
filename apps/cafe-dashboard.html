@@ -589,10 +589,15 @@
         stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "utilityStartBtn", label: "Start" },
-            { id: "utilityCardBtn", label: "Karte" },
-            { id: "utilityDashboardBtn", label: "Dashboard", active: true },
-            { id: "utilityAdminBtn", label: "Verwaltung" },
+            { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
+            { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
+            {
+              id: "utilityDashboardBtn",
+              label: "Dashboard",
+              icon: stampUI.tabIcons.dashboard,
+              active: true,
+            },
+            { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
           ],
         });
       })();

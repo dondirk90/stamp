@@ -2179,16 +2179,18 @@
               {
                 id: "bottomModeScanner",
                 label: "Scanner",
+                icon: stampUI.tabIcons.scan,
                 active: initialViewIsScan,
               },
               {
                 id: "utilityWelcomeBtn",
                 label: "Start",
+                icon: stampUI.tabIcons.home,
                 active: !initialViewIsScan,
               },
-              { id: "utilityCardBtn", label: "Karte" },
-              { id: "utilityDashboardBtn", label: "Dashboard" },
-              { id: "utilityAdminBtn", label: "Verwaltung" },
+              { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
+              { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
+              { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
             ],
           });
           nav.id = "bottomTabs";
