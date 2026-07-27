@@ -1781,7 +1781,14 @@
          content needs to start past that, not at a small fixed value. */
       @media (max-width: 520px) and (orientation: portrait) {
         #authPanel,
-        #welcomePanel {
+        #welcomePanel,
+        #mapPanel,
+        #historyPanel {
+          /* Same clearance for every subpage so they all start at the same
+             height below the floating topbar - #mapPanel/#historyPanel were
+             missing this override, so a later, viewport-agnostic .mapHero
+             padding rule (padding: var(--space-4)) quietly won out and left
+             the map hugging the header. */
           padding-top: calc(88px + var(--safe-top, 0px));
         }
       }
