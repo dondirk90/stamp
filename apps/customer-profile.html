@@ -603,18 +603,15 @@
                   <label for="deletePassword">Aktuelles Passwort (falls gesetzt)</label>
                   <input id="deletePassword" type="password" autocomplete="current-password" />
                 </div>
-                <div class="stack" style="gap: 6px">
-                  <label for="deleteConfirmText">Zur Best&auml;tigung `DELETE` eingeben</label>
-                  <input id="deleteConfirmText" type="text" autocomplete="off" spellcheck="false" />
-                </div>
               </div>
               <div class="smallHint">
-                Bei Passwort-Logins pr&uuml;fen wir dein Passwort. Bei reinen Google-Konten reicht die aktive Session zusammen mit `DELETE`.
+                Bei Passwort-Logins pr&uuml;fen wir dein Passwort. Bei reinen Google-Konten reicht die aktive Session.
               </div>
               <button
                 class="btn"
                 id="deleteAccountBtn"
                 type="button"
+                data-armed="false"
                 style="margin-top: 12px; background: var(--danger); color: white; border-color: var(--danger)"
               >
                 Profil jetzt l&ouml;schen
