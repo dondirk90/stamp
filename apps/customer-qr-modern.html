@@ -4034,43 +4034,18 @@
       .modal {
         position: relative;
         width: min(620px, 96vw);
-        border-radius: 30px;
-        border: 1px solid rgba(133, 102, 73, 0.18);
-        background:
-          linear-gradient(
-            180deg,
-            rgba(255, 251, 245, 0.98),
-            rgba(250, 243, 233, 0.985)
-          );
+        border-radius: var(--radius);
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: var(--color-surface-elevated);
         box-shadow:
-          0 28px 68px rgba(53, 35, 23, 0.18),
-          0 10px 22px rgba(53, 35, 23, 0.08);
+          0 28px 60px rgba(68, 41, 22, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.74) inset;
         overflow: hidden;
         transform: translateY(16px) scale(0.985);
         opacity: 0;
         transition:
           transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
-          opacity 180ms ease,
-          box-shadow 220ms ease;
-      }
-
-      .modal::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.42),
-            rgba(255, 255, 255, 0) 38%
-          ),
-          repeating-linear-gradient(
-            -11deg,
-            rgba(126, 96, 70, 0.028) 0 2px,
-            transparent 2px 12px
-          );
-        opacity: 0.7;
-        pointer-events: none;
+          opacity 180ms ease;
       }
 
       .modalBackdrop.open .modal {
@@ -4087,7 +4062,7 @@
         content: "";
         display: block;
         margin-top: 18px;
-        border-bottom: 1px solid rgba(119, 91, 65, 0.14);
+        border-bottom: 1px solid var(--border);
       }
 
       .modalHeroRow {
@@ -4111,8 +4086,8 @@
         display: none;
         place-items: center;
         border-radius: 18px;
-        border: 1px solid rgba(133, 102, 73, 0.16);
-        background: rgba(255, 252, 247, 0.92);
+        border: 1px solid var(--border);
+        background: var(--color-surface-elevated);
         box-shadow: 0 10px 18px rgba(66, 44, 28, 0.08);
         overflow: hidden;
       }
@@ -4126,11 +4101,11 @@
 
       .modalKicker {
         margin: 0 0 8px;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.22em;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(109, 83, 60, 0.68);
+        color: var(--text-muted);
       }
 
       .modalTitle {
@@ -4139,7 +4114,7 @@
         font-size: clamp(28px, 4.2vw, 38px);
         line-height: 0.98;
         letter-spacing: -0.03em;
-        color: #2f2218;
+        color: var(--text);
       }
 
       .modalAddr {
@@ -4147,7 +4122,7 @@
         max-width: 38ch;
         font-size: 13px;
         line-height: 1.45;
-        color: rgba(82, 61, 44, 0.78);
+        color: var(--text-muted);
       }
 
       .modalMetaRow {
@@ -4172,15 +4147,15 @@
       }
 
       .modalMetaPill {
-        border: 1px dashed rgba(128, 98, 70, 0.24);
-        color: rgba(92, 68, 48, 0.82);
-        background: rgba(255, 252, 247, 0.7);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        background: var(--color-surface);
       }
 
       .modalStatusPill {
-        border: 1px solid rgba(108, 80, 57, 0.14);
-        color: rgba(73, 53, 37, 0.92);
-        background: rgba(245, 234, 219, 0.86);
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--surface-muted);
       }
 
       .modalImage {
@@ -4188,8 +4163,8 @@
         display: grid;
         place-items: center;
         border-radius: 22px;
-        border: 1px solid rgba(129, 100, 73, 0.14);
-        background: rgba(255, 252, 247, 0.84);
+        border: 1px solid var(--border);
+        background: var(--color-surface);
         overflow: hidden;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
@@ -4217,12 +4192,11 @@
 
       .modalAbout {
         border-radius: 20px;
-        border: 1px dashed rgba(128, 98, 71, 0.22);
-        background: rgba(255, 253, 249, 0.62);
+        background: var(--surface-muted);
         padding: 16px 18px;
         font-size: 14px;
         line-height: 1.6;
-        color: rgba(56, 39, 26, 0.88);
+        color: var(--text);
         white-space: pre-line;
         /* Kurzprofil zeigt nur einen Teaser; die ganze Story lebt im Vollprofil. */
         display: -webkit-box;
@@ -4757,14 +4731,14 @@
         min-height: 42px;
         padding: 0 16px;
         border-radius: 999px;
-        border: 1px solid rgba(128, 98, 70, 0.16);
-        background: rgba(255, 252, 247, 0.88);
-        color: rgba(92, 68, 48, 0.82);
+        border: 1px solid var(--border);
+        background: var(--color-surface);
+        color: var(--text-muted);
         box-shadow: 0 8px 16px rgba(69, 45, 29, 0.06);
       }
 
       #cafeModalClose:hover {
-        background: rgba(255, 252, 247, 0.96);
+        background: var(--color-surface-elevated);
       }
 
       #cafeModalAddBtn {
@@ -4775,7 +4749,7 @@
 
       #cafeModalAboutEmpty {
         padding: 4px 2px 0;
-        color: rgba(95, 71, 51, 0.72);
+        color: var(--text-muted);
       }
 
       .rewardBalloons {

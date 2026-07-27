@@ -6192,6 +6192,16 @@
 
         cafesVersion = (cafesVersion || 0) + 1;
 
+        // Bis diese Liste da ist, kennt ein bereits offenes Kurzprofil oft
+        // noch keine Cafe-Id (buildCafeProfileUrl braucht sie fuer "Cafe
+        // ansehen") - jetzt nachziehen statt stumm zu warten, bis das Modal
+        // neu geoeffnet wird.
+        if (cafeModalState.open) {
+          try {
+            syncCafeModalDetails();
+          } catch (eModalSync) {}
+        }
+
         // The map page uses the searchable list (#cafeResults). A second list would duplicate items.
         wireCafeSearch();
         syncMapMarkers();
