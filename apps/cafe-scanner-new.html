@@ -1293,7 +1293,13 @@
         #scannerScreen {
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
           max-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
-          overflow: hidden;
+          /* Was overflow:hidden - the 176px chrome-height guess doesn't hold
+             on every Android device/browser-chrome combination, and content
+             taller than that guess got silently clipped instead of just
+             scrolling. Scrolling here can never lose content, unlike a fixed
+             clip. */
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           display: flex;
           flex-direction: column;
           justify-content: center;
