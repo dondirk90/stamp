@@ -121,5 +121,23 @@ platform :android do
       json_key: ENV["PLAY_JSON_KEY_PATH"],
       aab: "android/app/build/outputs/bundle/release/app-release.aab",
     )
+    # Play Console's internal testing track needs testers whose devices meet
+    # its own tester requirements - unrelated to the app's actual
+    # minSdkVersion (23 = Android 6.0, see variables.gradle). A signed .apk
+    # sideloads directly onto any device that satisfies that minSdkVersion,
+    # bypassing Play Console testing entirely. .aab alone can't be
+    # installed directly (needs Play Store's bundletool), hence this
+    # separate "assemble" build alongside "bundle" above.
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+      },
+    )
   end
 end

@@ -93,3 +93,14 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           PLAY_JSON_KEY_PATH: ${{ github.workspace }}/apps/customer-native/play-service-account.json
         run: fastlane android beta
+
+      # Play Console's testing tracks have their own tester/device
+      # requirements, separate from the app's actual minSdkVersion - this
+      # signed .apk sideloads directly onto any device new enough to run the
+      # app (Android 6.0+), no Play Console involved.
+      - name: Upload signed APK for direct sideload
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaffeekarte-customer-${{ inputs.target }}.apk
+          path: apps/customer-native/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
