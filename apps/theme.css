@@ -333,6 +333,17 @@ a:hover {
     background var(--motion-normal) var(--motion-ease);
 }
 
+/* Editorial-Grid-Sprache (BRAND.md §8/§11 Phase 1c) - Hairline-Variante von
+   .card fuer Flaechen, die nicht wirklich schweben (Seiten-Panels). Modals,
+   QR-Sheet und die Stempelkarte selbst behalten bewusst ihren Schatten - sie
+   sind die Objekte, die "wirklich schweben" (siehe BRAND.md §8). Opt-in statt
+   .card selbst zu aendern, damit die Cafe-App (Phase 1d) unabhaengig
+   entscheiden kann. */
+.card--hairline {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
 /* Editorial-Grid-Sprache (BRAND.md §8/§11 Phase 1a) - Randspalten-Nummerierung
    und ein kurzer Akzent-Strich statt Bohnen-Wasserzeichen. Marketing-only:
    Nummerierung ergibt auf funktionalen App-Screens keinen Sinn (siehe BRAND.md). */

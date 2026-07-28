@@ -618,17 +618,8 @@
           margin: auto;
           padding: 96px 16px 28px;
           border-radius: 30px;
-          background: rgba(251, 246, 240, 0.52);
-          border: 1px solid rgba(17, 17, 17, 0.05);
-          box-shadow:
-            0 12px 28px rgba(68, 41, 22, 0.04),
-            0 1px 0 rgba(255, 255, 255, 0.58) inset;
-          backdrop-filter: blur(10px);
-        }
-
-        #welcomePanel {
           background: transparent;
-          border: none;
+          border: 1px solid var(--border);
           box-shadow: none;
           backdrop-filter: none;
         }
@@ -5046,7 +5037,7 @@
       </div>
 
       <div class="grid" id="layoutGrid">
-        <div class="card panel" id="authPanel">
+        <div class="card card--hairline panel" id="authPanel">
           <div class="panelHeader">
             <h2 id="authPanelTitle">Willkommen bei Kaffeekarte</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
@@ -5252,7 +5243,7 @@
 
           <div class="home screenPager" id="screenPager" aria-label="Start">
             <div class="screenSlide" data-mode="welcome">
-            <div class="card panel" id="welcomePanel">
+            <div class="card card--hairline panel" id="welcomePanel">
               <div class="welcomeHero">
                 <div class="welcomeIntro">
                   <div class="welcomeKicker">Deine Kaffeekarte</div>
@@ -5303,7 +5294,7 @@
             </div>
 
             <div class="screenSlide" data-mode="map">
-            <div class="card panel mapHero" id="mapPanel">
+            <div class="card card--hairline panel mapHero" id="mapPanel">
               <div class="walletDockHead">
                 <div class="stack tight">
                   <div class="badge" id="welcomeBadge">Willkommen</div>
@@ -5360,7 +5351,7 @@
             </div>
 
             <div class="screenSlide" data-mode="history">
-            <div class="card panel" id="historyPanel">
+            <div class="card card--hairline panel" id="historyPanel">
               <div class="panelHeader">
                 <h3>Deine letzten Besuche</h3>
               </div>
