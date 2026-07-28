@@ -91,7 +91,15 @@ kein Rewrite:
 2. Braun aus Flächen/Karten herausziehen, nur noch in CTAs, Stempeln, aktiven Zuständen
 3. Beide Apps + Landing gegen die neuen Tokens sichten (Screenshots vorher/nachher)
 
-**Timing: nach dem Livegang als eigenes Arbeitspaket, nicht davor.**
+**Timing:** angestoßen 2026-07-28 im Rahmen der Editorial-Grid-Sprache (siehe §8), Rollout in
+Phasen (siehe §11).
+
+### Editoriale Referenzen
+
+Externe Referenzbilder (z. B. Layout-Konzepte mit hohem Schwarz/Weiß-Kontrast) dürfen **Struktur**
+liefern — Rasterlinien, Kontrastprinzip, Typografie-Mut — aber **nie die Farbe**. Akzent bleibt
+immer Espresso/Terracotta aus der Tabelle oben, niemals Rot oder andere Fremdfarben aus einer
+Referenz. Entschieden 2026-07-28.
 
 ---
 
@@ -159,6 +167,27 @@ gibt), Rösterei-Partner, Brühmethoden, Öffnungszeiten, optional Instagram/Web
 - **Dark = Arbeit:** Der dunkle Espresso-Modus gehört dem Café (Scanner, Theke) und dem Manifest.
   Gäste-Flows bleiben hell.
 
+### Editorial-Grid-Sprache (entschieden 2026-07-28)
+
+Ergänzung zu "Weißraum vor Dekoration" — löst weiche Karten-Schatten als Standard-Trenner ab, wo
+kein echtes Schweben gemeint ist:
+
+- **Hairlines statt Schatten als Standard-Trenner.** `border-top: 1px solid var(--border)`
+  zwischen Sektionen statt Karten-Schatten. Schatten bleiben reserviert für Dinge, die *wirklich
+  über dem Inhalt schweben* — Modals, QR-Sheet, der eine dunkle Kontrast-Panel pro Ansicht (siehe
+  „Dark = Arbeit" oben) — nicht für gewöhnliche Content-Blöcke.
+- **Nummerierte Abschnitte** — nur auf Marketing-Seiten (Landing, Für-Cafés), nur ab Desktop-Breite:
+  `01`, `02`, `03…` in `var(--font-mono)` oder `var(--font-sans)` mit tabular-nums,
+  `var(--text-muted)`, linksbündig in einer schmalen Randspalte. Auf Mobile ausgeblendet — dort
+  ohne Platz und ohne Navigationsfunktion.
+- **Editoriale Headline-Skala:** Hero-Headlines dürfen größer/enger sein als der bisherige Rahmen
+  (`clamp(46px,7vw,76px)`) — Serif bleibt exklusiv für Headlines/Café-Namen, nie für UI-Labels.
+- **Kurzer Akzent-Strich** statt Bohnen-Wasserzeichen als Deko: ein schmaler
+  `border-bottom: 3px solid var(--brand)` unter Eyebrow- oder Lead-Zeile.
+- **Geltungsbereich:** Farbdisziplin, Hairlines-vor-Schatten und Typografie-Schärfe gelten
+  **überall** (Marketing, Customer-App, Café-App). Nummerierung + Randspalte sind **Marketing-only**
+  — auf funktionalen App-Screens (Wallet, Formulare, Scanner) ohne Zweck und nicht vorgesehen.
+
 ---
 
 ## 9. Microinteractions
@@ -198,9 +227,13 @@ Community-Spotlight (ein Café pro Woche). Kaffeekarte wird Teil der Szene, nich
 
 | Phase | Inhalt | Timing |
 | --- | --- | --- |
-| 0 | Livegang mit konsistentem Ist-Stand (Creme-Palette, Serif-Signale, ein Name) | jetzt |
-| 1 | Farb-Token-Migration in `theme.css` (Warm White dominant, Braun als Akzent), Logo-Varianten (Outline, Stempel) | nach Livegang |
+| 0 | Livegang mit konsistentem Ist-Stand (Creme-Palette, Serif-Signale, ein Name) | erledigt |
+| 1 | Farb-Token-Migration in `theme.css` (Warm White dominant, Braun als Akzent), Logo-Varianten (Outline, Stempel) | läuft, siehe 1a–1d |
+| 1a | Editorial-Grid-Sprache + Farbmigration auf `index.html` (Landing) | jetzt |
+| 1b | Editorial-Grid-Sprache auf `fuer-cafes.html` | als Nächstes |
+| 1c | Farbdisziplin + Hairlines auf die Customer-App (`customer-qr-modern.html`, `customer-profile.html`, `cafe-public.html`), ohne Nummerierung | danach |
+| 1d | Farbdisziplin + Hairlines auf die Café-App (`cafe-dashboard.html`, `cafe-profile.html`, `cafe-scanner-new.html`), dunkle Palette | danach |
 | 2 | Microinteractions (Stempel-Pop, Haptik, Celebration), reduziertes Onboarding | danach |
-| 3 | Content-Aufbau: Café-Stories, Fotografie, Aufsteller & Sticker, Instagram-Vorlagen | parallel zu 1–2 |
+| 3 | Content-Aufbau: Café-Stories, Fotografie (u. a. ein kuratiertes Hero-Foto für die Landing, siehe §7), Aufsteller & Sticker, Instagram-Vorlagen | parallel zu 1–2 |
 
 Jede Phase wird mit Vorher/Nachher-Screenshots abgenommen, bevor die nächste startet.

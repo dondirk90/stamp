@@ -333,6 +333,46 @@ a:hover {
     background var(--motion-normal) var(--motion-ease);
 }
 
+/* Editorial-Grid-Sprache (BRAND.md §8/§11 Phase 1a) - Randspalten-Nummerierung
+   und ein kurzer Akzent-Strich statt Bohnen-Wasserzeichen. Marketing-only:
+   Nummerierung ergibt auf funktionalen App-Screens keinen Sinn (siehe BRAND.md). */
+.editorialGrid {
+  display: block;
+}
+
+.editorialIndex {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+@media (min-width: 1080px) {
+  .editorialGrid {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .editorialIndex {
+    display: block;
+    padding-top: 4px;
+  }
+}
+
+.accentRule {
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: var(--space-3) 0;
+  background: var(--brand);
+  border: none;
+  border-radius: 2px;
+}
+
 h1,
 h2,
 h3 {

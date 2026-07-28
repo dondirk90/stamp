@@ -43,6 +43,8 @@
         gap: 18px;
         flex-wrap: wrap;
         margin-bottom: clamp(48px, 8vw, 88px);
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
       }
 
       .brand {
@@ -128,8 +130,8 @@
       .heroTitle {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: clamp(46px, 6.4vw, 72px);
-        line-height: 0.94;
+        font-size: clamp(52px, 7vw, 84px);
+        line-height: 0.92;
         letter-spacing: -0.06em;
       }
 
@@ -146,6 +148,10 @@
         gap: 12px;
         flex-wrap: wrap;
         margin-top: 6px;
+      }
+
+      .heroCard .accentRule {
+        margin: 4px 0 2px;
       }
 
       .heroFacts {
@@ -549,6 +555,7 @@
       <section class="hero">
         <div class="heroCard">
           <h1 class="heroTitle">Dein Lieblingscafé.<br />Immer dabei.</h1>
+          <span class="accentRule" aria-hidden="true"></span>
           <p class="heroLead">
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
@@ -640,82 +647,97 @@
         </div>
       </section>
 
-      <section class="section manifesto">
-        <div class="sectionKicker">Warum es Kaffeekarte gibt</div>
-        <h2>Mehr Cafégefühl,<br />weniger Interface.</h2>
-        <p>
-          Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
-          gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
-        </p>
-        <p>
-          Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
-          lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
-        </p>
-        <div class="manifestoClaim">Good coffee deserves better loyalty.</div>
-      </section>
-
-      <section class="section section--divider featureGrid">
-        <article class="feature">
-          <div class="featureIcon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>
-              <circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/>
-            </svg>
+      <section class="section">
+        <div class="editorialGrid">
+          <div class="editorialIndex">01</div>
+          <div class="manifesto">
+            <div class="sectionKicker">Warum es Kaffeekarte gibt</div>
+            <h2>Mehr Cafégefühl,<br />weniger Interface.</h2>
+            <p>
+              Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
+              gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
+            </p>
+            <p>
+              Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
+              lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
+            </p>
+            <div class="manifestoClaim">Good coffee deserves better loyalty.</div>
           </div>
-          <div class="sectionKicker">Karten</div>
-          <h2>Alle Karten an einem Ort</h2>
-          <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>
-              <path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>
-              <line x1="4" y1="12" x2="20" y2="12"/>
-            </svg>
-          </div>
-          <div class="sectionKicker">Karte zeigen</div>
-          <h2>Karte zeigen, Stempel sammeln</h2>
-          <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/>
-            </svg>
-          </div>
-          <div class="sectionKicker">Cafés entdecken</div>
-          <h2>Lieblingscafés entdecken</h2>
-          <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
-        </article>
-      </section>
-
-      <section class="section section--divider journey" id="ablauf">
-        <div class="sectionHead">
-          <div class="sectionKicker">So funktioniert's</div>
-          <h2>Entdecken, Karte zeigen, wiederkommen.</h2>
-          <p>Ein klarer Ablauf vom ersten Cafébesuch bis zum nächsten Kaffee aufs Haus.</p>
         </div>
-        <div class="journeyList">
-          <div class="journeyStep">
-            <div class="journeyNo">1</div>
-            <div>
-              <div class="journeyStepTitle">Café entdecken</div>
-              <p>Finde ein Café, das du magst, und hol dir seine digitale Karte.</p>
-            </div>
+      </section>
+
+      <section class="section section--divider">
+        <div class="editorialGrid">
+          <div class="editorialIndex">02</div>
+          <div class="featureGrid">
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>
+                  <circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Karten</div>
+              <h2>Alle Karten an einem Ort</h2>
+              <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
+            </article>
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>
+                  <path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>
+                  <line x1="4" y1="12" x2="20" y2="12"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Karte zeigen</div>
+              <h2>Karte zeigen, Stempel sammeln</h2>
+              <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
+            </article>
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Cafés entdecken</div>
+              <h2>Lieblingscafés entdecken</h2>
+              <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
+            </article>
           </div>
-          <div class="journeyStep">
-            <div class="journeyNo">2</div>
-            <div>
-              <div class="journeyStepTitle">Karte zeigen</div>
-              <p>Öffne deine Karte beim Bestellen und sammle deinen nächsten Stempel.</p>
+        </div>
+      </section>
+
+      <section class="section section--divider" id="ablauf">
+        <div class="editorialGrid">
+          <div class="editorialIndex">03</div>
+          <div class="journey">
+            <div class="sectionHead">
+              <div class="sectionKicker">So funktioniert's</div>
+              <h2>Entdecken, Karte zeigen, wiederkommen.</h2>
+              <p>Ein klarer Ablauf vom ersten Cafébesuch bis zum nächsten Kaffee aufs Haus.</p>
             </div>
-          </div>
-          <div class="journeyStep">
-            <div class="journeyNo">3</div>
-            <div>
-              <div class="journeyStepTitle">Wiederkommen</div>
-              <p>Behalte deine Belohnung im Blick und freu dich auf den nächsten Kaffee.</p>
+            <div class="journeyList">
+              <div class="journeyStep">
+                <div class="journeyNo">1</div>
+                <div>
+                  <div class="journeyStepTitle">Café entdecken</div>
+                  <p>Finde ein Café, das du magst, und hol dir seine digitale Karte.</p>
+                </div>
+              </div>
+              <div class="journeyStep">
+                <div class="journeyNo">2</div>
+                <div>
+                  <div class="journeyStepTitle">Karte zeigen</div>
+                  <p>Öffne deine Karte beim Bestellen und sammle deinen nächsten Stempel.</p>
+                </div>
+              </div>
+              <div class="journeyStep">
+                <div class="journeyNo">3</div>
+                <div>
+                  <div class="journeyStepTitle">Wiederkommen</div>
+                  <p>Behalte deine Belohnung im Blick und freu dich auf den nächsten Kaffee.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
