@@ -228,11 +228,11 @@ Community-Spotlight (ein Café pro Woche). Kaffeekarte wird Teil der Szene, nich
 | Phase | Inhalt | Timing |
 | --- | --- | --- |
 | 0 | Livegang mit konsistentem Ist-Stand (Creme-Palette, Serif-Signale, ein Name) | erledigt |
-| 1 | Farb-Token-Migration in `theme.css` (Warm White dominant, Braun als Akzent), Logo-Varianten (Outline, Stempel) | läuft, siehe 1a–1d |
-| 1a | Editorial-Grid-Sprache + Farbmigration auf `index.html` (Landing) | jetzt |
-| 1b | Editorial-Grid-Sprache auf `fuer-cafes.html` | als Nächstes |
-| 1c | Farbdisziplin + Hairlines auf die Customer-App (`customer-qr-modern.html`, `customer-profile.html`, `cafe-public.html`), ohne Nummerierung | danach |
-| 1d | Farbdisziplin + Hairlines auf die Café-App (`cafe-dashboard.html`, `cafe-profile.html`, `cafe-scanner-new.html`), dunkle Palette | danach |
+| 1 | Farb-Token-Migration in `theme.css` (Warm White dominant, Braun als Akzent), Logo-Varianten (Outline, Stempel) | 1a–1d erledigt, Logo-Varianten offen |
+| 1a | Editorial-Grid-Sprache + Farbmigration auf `index.html` (Landing) | erledigt 2026-07-28 |
+| 1b | Editorial-Grid-Sprache auf `fuer-cafes.html` | erledigt 2026-07-28 |
+| 1c | Farbdisziplin + Hairlines auf die Customer-App (`customer-qr-modern.html`, `customer-profile.html`, `cafe-public.html`), ohne Nummerierung | erledigt 2026-07-28 |
+| 1d | Farbdisziplin + Hairlines auf die Café-App (`cafe-dashboard.html`, `cafe-profile.html`, `cafe-scanner-new.html`), dunkle Palette | erledigt 2026-07-28 |
 | 2 | Microinteractions (Stempel-Pop, Haptik, Celebration), reduziertes Onboarding | danach |
 | 3 | Content-Aufbau: Café-Stories, Fotografie (u. a. ein kuratiertes Hero-Foto für die Landing, siehe §7), Aufsteller & Sticker, Instagram-Vorlagen | parallel zu 1–2 |
 
