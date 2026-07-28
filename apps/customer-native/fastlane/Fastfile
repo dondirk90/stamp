@@ -114,6 +114,11 @@ platform :android do
         "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
         "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
         "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        # The upload keystore was generated as PKCS12 (openssl, no local
+        # keytool available) and saved with a .jks extension by the decode
+        # step in the workflow - explicit here so AGP doesn't guess wrong
+        # based on the extension.
+        "android.injected.signing.store.type" => "PKCS12",
       },
     )
     upload_to_play_store(
@@ -137,6 +142,11 @@ platform :android do
         "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
         "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
         "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        # The upload keystore was generated as PKCS12 (openssl, no local
+        # keytool available) and saved with a .jks extension by the decode
+        # step in the workflow - explicit here so AGP doesn't guess wrong
+        # based on the extension.
+        "android.injected.signing.store.type" => "PKCS12",
       },
     )
   end
