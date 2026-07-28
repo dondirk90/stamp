@@ -5683,13 +5683,23 @@
                 null,
               );
               try {
-                if (cafeAddr) {
-                  var passEl = findWalletPassCardByCafe(cafeAddr);
-                  var prev = getPassStampCount(passEl);
-                  if (passEl && prev != null)
-                    setPassCardStamps(passEl, prev + delta);
+                var passEl = cafeAddr ? findWalletPassCardByCafe(cafeAddr) : null;
+                var prev = passEl ? getPassStampCount(passEl) : null;
+                if (passEl && prev != null) {
+                  setPassCardStamps(passEl, prev + delta);
+                } else {
+                  // Optimistic prev+delta needs both an already-rendered card
+                  // for this café and a known previous count - either one
+                  // missing used to fail silently (no update, no "isNew" pop
+                  // animation). Fall back to an authoritative refresh so the
+                  // card still catches up correctly.
+                  refreshWalletStamps();
                 }
-              } catch (eOpt) {}
+              } catch (eOpt) {
+                try {
+                  refreshWalletStamps();
+                } catch (eOpt2) {}
+              }
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
               triggerHapticReward();
