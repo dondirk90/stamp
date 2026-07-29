@@ -208,6 +208,13 @@
            bounce so that (already-active) physics gets a visible response. */
         transform: scale(var(--topbar-stretch, 1));
         transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -2225,36 +2232,75 @@
         var topbar = document.querySelector(".topbar");
         if (!topbar) return;
 
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
         // Unlike the other app pages, #homeScreen/#scannerScreen become their
         // own scrollable containers on narrow viewports (see the mainPanel
-        // sizing fix above) instead of the document itself scrolling - the
-        // overscroll bounce (and its momentary negative scroll offset) can
-        // happen on either, so both are watched alongside window.
-        var homeScreen = document.getElementById("homeScreen");
-        var scannerScreen = document.getElementById("scannerScreen");
+        // sizing fix above) instead of the document itself scrolling. A
+        // nested overflow:auto element's scrollTop never actually goes
+        // negative on iOS the way window.scrollY does during the native
+        // bounce - it stays clamped at 0 even while the bounce is visibly
+        // happening - so that trick (used on the other pages) can't detect
+        // the pull here. Tracking the raw touch drag while already at
+        // scrollTop 0 works regardless of that clamping.
+        [document.getElementById("homeScreen"), document.getElementById("scannerScreen")]
+          .filter(Boolean)
+          .forEach(function (el) {
+            var startY = null;
+            el.addEventListener(
+              "touchstart",
+              function (e) {
+                startY = el.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null;
+                topbar.classList.add("topbar--pulling");
+              },
+              { passive: true },
+            );
+            el.addEventListener(
+              "touchmove",
+              function (e) {
+                if (startY == null) return;
+                var dy = e.touches[0].clientY - startY;
+                if (dy > 0 && el.scrollTop <= 0) {
+                  setStretch(dy);
+                } else {
+                  startY = null;
+                  clearStretch();
+                }
+              },
+              { passive: true },
+            );
+            function release() {
+              startY = null;
+              topbar.classList.remove("topbar--pulling");
+              clearStretch();
+            }
+            el.addEventListener("touchend", release, { passive: true });
+            el.addEventListener("touchcancel", release, { passive: true });
+          });
 
+        // Desktop/wide-viewport fallback, where the shell itself scrolls
+        // instead of #homeScreen/#scannerScreen (see the min-width media
+        // query above) - same window.scrollY trick as the other pages.
         var ticking = false;
-        function paint() {
+        function paintWindowScroll() {
           ticking = false;
           var y = window.scrollY || window.pageYOffset || 0;
-          if (homeScreen && homeScreen.scrollTop < y) y = homeScreen.scrollTop;
-          if (scannerScreen && scannerScreen.scrollTop < y) y = scannerScreen.scrollTop;
-          if (y < 0) {
-            var stretch = Math.min(1, Math.max(0, -y / 90));
-            topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
-          } else {
-            topbar.style.setProperty("--topbar-stretch", "1");
-          }
+          if (y < 0) setStretch(-y);
+          else clearStretch();
         }
         function schedule() {
           if (ticking) return;
           ticking = true;
-          window.requestAnimationFrame(paint);
+          window.requestAnimationFrame(paintWindowScroll);
         }
         window.addEventListener("scroll", schedule, { passive: true });
-        if (homeScreen) homeScreen.addEventListener("scroll", schedule, { passive: true });
-        if (scannerScreen) scannerScreen.addEventListener("scroll", schedule, { passive: true });
-        paint();
+        paintWindowScroll();
       })();
     </script>
 
