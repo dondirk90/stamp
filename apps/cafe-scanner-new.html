@@ -704,10 +704,15 @@
       }
       .featureCard,
       .homeCard {
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 241, 233, 0.10);
+        /* Free-floating instead of boxed: these sit inside #loginCard /
+           #homeScreen, which is already the one framed panel on this
+           screen (see BRAND.md's hairlines-over-shadows principle) - a
+           background+border here on top of that just stacks boxes. */
+        padding: 16px 0 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid rgba(255, 241, 233, 0.10);
       }
       .featureCard strong,
       .homeCard strong {
@@ -1368,8 +1373,7 @@
 
         .scannerStage {
           margin-top: 10px;
-          padding: 12px;
-          border-radius: 18px;
+          padding: 0;
         }
 
         #videoContainer {
@@ -1469,11 +1473,13 @@
       }
 
       .scannerStage {
+        /* Already inside #scannerScreen, the one framed panel on this
+           screen - no border/background of its own needed. */
         margin-top: 18px;
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
       }
 
       .scannerWorkspace {
@@ -1485,11 +1491,11 @@
 
       .scannerMain,
       .scannerSideCard {
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(255, 248, 241, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        padding: 18px 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
       }
 
       .scannerMainHead {
@@ -1598,16 +1604,21 @@
 
       .quickLinkCard {
         display: block;
-        padding: 14px;
-        border-radius: 18px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 12px 4px;
+        border-radius: 10px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         color: inherit;
         text-decoration: none;
       }
 
+      .quickLinkCard:last-child {
+        border-bottom: none;
+      }
+
       .quickLinkCard:hover {
-        background: rgba(255, 248, 241, 0.1);
+        background: rgba(255, 248, 241, 0.06);
       }
 
       .quickLinkCard strong {

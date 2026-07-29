@@ -259,14 +259,36 @@
       }
 
       .card,
-      .viewSection,
-      .heroCard,
-      .cardSection,
       .cardBgPreview,
       #profileAboutPreview {
         background: rgba(255, 248, 241, 0.05) !important;
         border: 1px solid rgba(255, 241, 233, 0.10) !important;
         box-shadow: none !important;
+      }
+
+      /* These sit nested inside #profileCard/#loginCard, which is already
+         the one legitimate framed panel per screen (see BRAND.md's
+         hairlines-over-shadows principle) - giving each subsection its own
+         border+background too stacked "frame inside frame" boxes all the
+         way down. A hairline divider separates them instead. */
+      .viewSection,
+      .cardSection,
+      .heroCard {
+        background: transparent !important;
+        border: none !important;
+        border-top: 1px solid var(--border) !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: 18px !important;
+      }
+
+      /* Exception: the destructive action needs to stay visually contained
+         so it doesn't read as just another plain settings row. */
+      #sectionDeleteProfile {
+        border: 1px solid rgba(180, 35, 24, 0.26) !important;
+        border-radius: var(--radius) !important;
+        background: rgba(180, 35, 24, 0.08) !important;
+        padding: var(--space-4) !important;
       }
 
       .bottomTabs {
@@ -622,7 +644,7 @@
             </div>
           </div>
 
-          <div id="sectionProgramCampaigns" class="card" style="padding: var(--space-4); margin-top: 8px">
+          <div id="sectionProgramCampaigns" class="viewSection">
             <h3 id="programSectionTitle" style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
               Stempelprogramm
             </h3>
