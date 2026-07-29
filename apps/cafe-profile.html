@@ -71,6 +71,10 @@
           0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
+        /* Reacts to scroll: stretches slightly on the native overscroll
+           bounce so that (already-active) physics gets a visible response. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
       }
 
       .brand {
@@ -1073,6 +1077,31 @@
           ],
         });
         nav.id = "bottomTabs";
+      })();
+    </script>
+    <script>
+      (function () {
+        var topbar = document.querySelector(".topbar");
+        if (!topbar) return;
+
+        var ticking = false;
+        function paint() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (y < 0) {
+            var stretch = Math.min(1, Math.max(0, -y / 90));
+            topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+          } else {
+            topbar.style.setProperty("--topbar-stretch", "1");
+          }
+        }
+        function schedule() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paint);
+        }
+        window.addEventListener("scroll", schedule, { passive: true });
+        paint();
       })();
     </script>
     <script>

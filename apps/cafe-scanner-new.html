@@ -204,6 +204,10 @@
           0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
+        /* Reacts to scroll: stretches slightly on the native overscroll
+           bounce so that (already-active) physics gets a visible response. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
       }
 
       .brand {
@@ -1211,6 +1215,8 @@
           backdrop-filter: blur(18px);
           justify-content: center;
           z-index: 70;
+          transform: scale(var(--topbar-stretch, 1));
+          transform-origin: top center;
         }
 
         .topbar .row {
@@ -2201,6 +2207,43 @@
           });
           nav.id = "bottomTabs";
         }
+      })();
+    </script>
+    <script>
+      (function () {
+        var topbar = document.querySelector(".topbar");
+        if (!topbar) return;
+
+        // Unlike the other app pages, #homeScreen/#scannerScreen become their
+        // own scrollable containers on narrow viewports (see the mainPanel
+        // sizing fix above) instead of the document itself scrolling - the
+        // overscroll bounce (and its momentary negative scroll offset) can
+        // happen on either, so both are watched alongside window.
+        var homeScreen = document.getElementById("homeScreen");
+        var scannerScreen = document.getElementById("scannerScreen");
+
+        var ticking = false;
+        function paint() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (homeScreen && homeScreen.scrollTop < y) y = homeScreen.scrollTop;
+          if (scannerScreen && scannerScreen.scrollTop < y) y = scannerScreen.scrollTop;
+          if (y < 0) {
+            var stretch = Math.min(1, Math.max(0, -y / 90));
+            topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+          } else {
+            topbar.style.setProperty("--topbar-stretch", "1");
+          }
+        }
+        function schedule() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paint);
+        }
+        window.addEventListener("scroll", schedule, { passive: true });
+        if (homeScreen) homeScreen.addEventListener("scroll", schedule, { passive: true });
+        if (scannerScreen) scannerScreen.addEventListener("scroll", schedule, { passive: true });
+        paint();
       })();
     </script>
 
