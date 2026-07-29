@@ -24,14 +24,17 @@ class MainViewController: CAPBridgeViewController {
 
     // server.url must be a bare origin (see capacitor.config.ts - a path
     // there breaks in-app navigation to every other page, a fix already
-    // proven on the customer app). That means this app cold-starts on the
-    // guest marketing page instead of the barista login/scanner screen.
-    // A client-side redirect in index.html can't tell this app apart from
-    // the customer app (both load the exact same origin), so send it to the
-    // right place here instead, once per launch after the bridge is ready.
+    // proven on the customer app). That means this app would otherwise
+    // cold-start on the guest marketing page instead of the barista
+    // login/scanner screen.
+    //
+    // A first attempt redirected via webView?.evaluateJavaScript() from here,
+    // but that races against index.html's own inline <head> script (which
+    // unconditionally sends any native app to /wallet) and reliably lost -
+    // the café app kept landing on the customer wallet. Registering this
+    // plugin instead lets index.html itself ask "which app am I in" and
+    // decide correctly, no race involved.
     override func capacitorDidLoad() {
-        webView?.evaluateJavaScript(
-            "if (location.pathname === '/' || location.pathname === '/index.html') { location.replace('/cafe-scanner'); }"
-        )
+        bridge?.registerPluginInstance(AppIdentityPlugin())
     }
 }

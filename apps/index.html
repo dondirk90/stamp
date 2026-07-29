@@ -2,12 +2,29 @@
 <html lang="de">
   <head>
     <script>
-      // Native app shell: land on the wallet, not the marketing page.
+      // Native app shell: land on the right screen, not the marketing page.
       // Capacitor's server.url is a bare origin (a path there breaks
       // in-app navigation to every other page), so this handles the
-      // "start on /wallet" behavior client-side instead.
+      // "start on /wallet" (customer app) / "start on /cafe-scanner"
+      // (café app) behavior client-side instead. Both native apps load this
+      // exact same origin, so they're told apart via a plugin that only
+      // exists in the café app (apps/cafe-native's AppIdentityPlugin) -
+      // no plugin found simply means the customer app, which is the
+      // existing behavior kept unchanged.
       if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-        location.replace("/wallet");
+        var identity = window.Capacitor.Plugins && window.Capacitor.Plugins.AppIdentity;
+        if (identity && typeof identity.whoAmI === "function") {
+          identity
+            .whoAmI()
+            .then(function (r) {
+              location.replace(r && r.appId === "cafe" ? "/cafe-scanner" : "/wallet");
+            })
+            .catch(function () {
+              location.replace("/wallet");
+            });
+        } else {
+          location.replace("/wallet");
+        }
       }
     </script>
     <meta charset="utf-8" />
