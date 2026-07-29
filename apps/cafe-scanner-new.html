@@ -1751,10 +1751,16 @@
         width: 18px;
         height: 26px;
         border-radius: 50%;
-        background: #6b452c;
+        background: #8a6142;
+        /* The customer wallet uses this same brown on a light cream
+           background, where it stands out fine. Here the app itself is
+           dark - plain #6b452c on that background barely registers, so a
+           light contrast ring is added around the bean. */
         box-shadow:
-          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
-          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
+          0 0 0 2px rgba(255, 241, 233, 0.4),
+          0 0 12px 2px rgba(255, 200, 130, 0.35),
+          inset -4px -5px 0 rgba(0, 0, 0, 0.18),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.16);
         animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
       }
 
@@ -1772,39 +1778,39 @@
 
       /* A small flat coffee cup: rounded mug body, a lighter "coffee"
          ellipse near the rim, and a handle ring on the right. */
+      /* A to-go paper cup silhouette (wide rim, tapering to a narrow base,
+         no handle) - deliberately far from the bean's plain oval so it
+         can't be mistaken for "more beans" mid-burst. */
       .rewardCup {
-        width: 22px;
-        height: 20px;
-        margin-top: 3px;
-        border-radius: 3px 3px 9px 9px;
+        width: 20px;
+        height: 26px;
+        margin-top: 2px;
         background: #f6ede1;
-        box-shadow:
-          inset -3px -4px 0 rgba(107, 69, 44, 0.14),
-          inset 2px 2px 0 rgba(255, 255, 255, 0.5);
+        clip-path: polygon(0% 0%, 100% 0%, 84% 100%, 16% 100%);
         animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
       }
 
       .rewardCup::before {
+        /* lid */
         content: "";
         position: absolute;
-        left: 3px;
-        right: 3px;
-        top: 2px;
-        height: 5px;
-        border-radius: 50%;
+        left: -2px;
+        right: -2px;
+        top: -1px;
+        height: 4px;
+        border-radius: 2px;
         background: #6b452c;
       }
 
       .rewardCup::after {
+        /* cardboard sleeve band */
         content: "";
         position: absolute;
-        right: -7px;
-        top: 4px;
-        width: 8px;
-        height: 9px;
-        border: 2px solid #f6ede1;
-        border-left: none;
-        border-radius: 0 8px 8px 0;
+        left: 12%;
+        right: 12%;
+        top: 44%;
+        height: 6px;
+        background: rgba(107, 69, 44, 0.55);
       }
 
       .rewardSpark {
@@ -1864,59 +1870,8 @@
         }
       }
 
-      /* Single bean pop for a regular stamp - much lighter than the
-         redeem/reward bursts, just a little "acknowledged" bounce. */
-      .stampBeanPop {
-        position: absolute;
-        left: 50%;
-        bottom: 100%;
-        width: 20px;
-        height: 28px;
-        margin-left: -10px;
-        margin-bottom: 6px;
-        border-radius: 50%;
-        background: #6b452c;
-        box-shadow:
-          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
-          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
-        pointer-events: none;
-        opacity: 0;
-        animation: stampBeanPopIn 1.1s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
-      }
-
-      .stampBeanPop::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 2px;
-        bottom: 2px;
-        width: 2px;
-        border-radius: 999px;
-        background: rgba(242, 230, 215, 0.78);
-        transform: translateX(-50%) rotate(12deg);
-      }
-
-      @keyframes stampBeanPopIn {
-        0% {
-          transform: translateY(0) scale(0.5) rotate(-8deg);
-          opacity: 0;
-        }
-        30% {
-          opacity: 1;
-        }
-        55% {
-          transform: translateY(-38px) scale(1.05) rotate(6deg);
-          opacity: 1;
-        }
-        100% {
-          transform: translateY(-64px) scale(0.9) rotate(6deg);
-          opacity: 0;
-        }
-      }
-
       @media (prefers-reduced-motion: reduce) {
-        .rewardBalloons,
-        .stampBeanPop {
+        .rewardBalloons {
           display: none !important;
         }
       }
@@ -3807,25 +3762,45 @@
         }, 3200);
       }
 
-      // Small pop right above the award button for an ordinary stamp -
-      // much quieter than the full-card/redeem celebrations.
+      // A small full-screen bean burst for an ordinary stamp - quieter and
+      // shorter than the reward/redeem bursts (fewer beans, smaller
+      // distance, no sparks), but on the same fixed overlay so it's always
+      // visible regardless of scroll position or where the button sits,
+      // unlike a pop tucked right next to the button.
       function launchStampBeanPop(count) {
         if (rewardCelebrationState.prefersReducedMotion) return;
-        const wrap = document.getElementById("awardBtnWrap");
-        if (!wrap) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active", "isStamp");
+        } catch (e0) {}
+
         const n = Math.max(1, Math.min(5, Number(count) || 1));
         for (let i = 0; i < n; i++) {
           const bean = document.createElement("span");
-          bean.className = "stampBeanPop";
-          bean.style.left = `calc(50% + ${(i - (n - 1) / 2) * 22}px)`;
-          bean.style.animationDelay = (i * 0.07).toFixed(2) + "s";
-          wrap.appendChild(bean);
-          window.setTimeout(() => {
-            try {
-              bean.remove();
-            } catch (e) {}
-          }, 1300);
+          bean.className = "rewardBean";
+          bean.style.left = 50 - n * 4 + i * 8 + "%";
+          bean.style.top = "48%";
+          bean.style.animationDelay = (i * 0.06).toFixed(2) + "s";
+          bean.style.animationDuration = "1s";
+          bean.style.setProperty("--burst-x", (Math.random() * 60 - 30).toFixed(0) + "px");
+          bean.style.setProperty("--burst-y", (-90 - Math.random() * 40).toFixed(0) + "px");
+          bean.style.setProperty("--burst-rot", (Math.random() * 200 - 100).toFixed(0) + "deg");
+          bean.style.setProperty("--burst-scale", "1");
+          host.appendChild(bean);
         }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active", "isStamp");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 1400);
       }
 
       // Award stamps
