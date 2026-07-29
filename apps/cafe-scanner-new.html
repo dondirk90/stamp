@@ -1685,6 +1685,241 @@
         border: 2px solid rgba(245, 236, 223, 0.92);
         box-shadow: 0 0 0 9999px rgba(10, 6, 4, 0.3);
       }
+
+      /* Stamp/reward celebration overlay - same mechanism as the customer
+         wallet (see customer-qr-modern.html's .rewardBalloons/.rewardBean),
+         plus a café-side-only single bean pop for a regular stamp and a
+         cup burst (instead of beans) for redeeming, so staff get the same
+         kind of feedback as guests do. */
+      .rewardBalloons {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 10050;
+      }
+
+      .rewardBalloon {
+        position: absolute;
+        bottom: -18vh;
+        width: 30px;
+        height: 40px;
+        border-radius: 50% 50% 46% 46%;
+        background: var(--balloon-color, #d7b98e);
+        box-shadow:
+          inset -6px -8px 0 rgba(0, 0, 0, 0.08),
+          inset 4px 6px 0 rgba(255, 255, 255, 0.18);
+        transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+        animation: rewardBalloonFloat 5.4s ease-in forwards;
+      }
+
+      .rewardBalloon::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 10px;
+        height: 10px;
+        background: inherit;
+        transform: translateX(-50%) rotate(45deg);
+        border-radius: 2px;
+      }
+
+      .rewardBalloon::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 2px);
+        width: 1.5px;
+        height: 64px;
+        background: rgba(255, 241, 233, 0.35);
+        transform: translateX(-50%);
+      }
+
+      .rewardBean,
+      .rewardCup,
+      .rewardSpark {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .rewardBean {
+        width: 18px;
+        height: 26px;
+        border-radius: 50%;
+        background: #6b452c;
+        box-shadow:
+          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
+        animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
+      }
+
+      .rewardBean::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        border-radius: 999px;
+        background: rgba(242, 230, 215, 0.78);
+        transform: translateX(-50%) rotate(12deg);
+      }
+
+      /* A small flat coffee cup: rounded mug body, a lighter "coffee"
+         ellipse near the rim, and a handle ring on the right. */
+      .rewardCup {
+        width: 22px;
+        height: 20px;
+        margin-top: 3px;
+        border-radius: 3px 3px 9px 9px;
+        background: #f6ede1;
+        box-shadow:
+          inset -3px -4px 0 rgba(107, 69, 44, 0.14),
+          inset 2px 2px 0 rgba(255, 255, 255, 0.5);
+        animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
+      }
+
+      .rewardCup::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        top: 2px;
+        height: 5px;
+        border-radius: 50%;
+        background: #6b452c;
+      }
+
+      .rewardCup::after {
+        content: "";
+        position: absolute;
+        right: -7px;
+        top: 4px;
+        width: 8px;
+        height: 9px;
+        border: 2px solid #f6ede1;
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+      }
+
+      .rewardSpark {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 246, 187, 1) 0%, rgba(255, 215, 125, 0.95) 38%, rgba(255, 215, 125, 0) 72%);
+        animation: rewardSparkBurst 1.8s ease-out forwards;
+      }
+
+      @keyframes rewardBeanBurst {
+        0% {
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.3);
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--burst-x, 0px), var(--burst-y, -180px), 0)
+            rotate(var(--burst-rot, 0deg))
+            scale(var(--burst-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardSparkBurst {
+        0% {
+          transform: translate3d(0, 0, 0) scale(0.2);
+          opacity: 0;
+        }
+        18% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(calc(var(--burst-x, 0px) * 0.8), calc(var(--burst-y, -160px) * 0.82), 0)
+            scale(calc(var(--burst-scale, 1) * 1.15));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardBalloonFloat {
+        0% {
+          transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--balloon-drift, 0px), -120vh, 0)
+            scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      /* Single bean pop for a regular stamp - much lighter than the
+         redeem/reward bursts, just a little "acknowledged" bounce. */
+      .stampBeanPop {
+        position: absolute;
+        left: 50%;
+        bottom: 100%;
+        width: 20px;
+        height: 28px;
+        margin-left: -10px;
+        margin-bottom: 6px;
+        border-radius: 50%;
+        background: #6b452c;
+        box-shadow:
+          inset -4px -5px 0 rgba(0, 0, 0, 0.12),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.12);
+        pointer-events: none;
+        opacity: 0;
+        animation: stampBeanPopIn 1.1s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+      }
+
+      .stampBeanPop::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        border-radius: 999px;
+        background: rgba(242, 230, 215, 0.78);
+        transform: translateX(-50%) rotate(12deg);
+      }
+
+      @keyframes stampBeanPopIn {
+        0% {
+          transform: translateY(0) scale(0.5) rotate(-8deg);
+          opacity: 0;
+        }
+        30% {
+          opacity: 1;
+        }
+        55% {
+          transform: translateY(-38px) scale(1.05) rotate(6deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-64px) scale(0.9) rotate(6deg);
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .rewardBalloons,
+        .stampBeanPop {
+          display: none !important;
+        }
+      }
     </style>
   </head>
   <body class="theme-invert">
@@ -2155,9 +2390,11 @@
                     <span id="stampAmountValue">1</span> Stempel
                   </div>
                 </div>
-                <button id="awardBtn" style="margin: 0; flex: 2">
-                  Stempel vergeben
-                </button>
+                <div id="awardBtnWrap" style="position: relative; flex: 2">
+                  <button id="awardBtn" style="margin: 0; width: 100%">
+                    Stempel vergeben
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2368,6 +2605,7 @@
         location.protocol === "file:"
           ? "http://127.0.0.1:3000"
           : `${location.origin}/api`;
+      let rewardThreshold = 10;
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
@@ -3143,6 +3381,7 @@
             name: loginData.cafe?.name || null,
           };
           localStorage.setItem("cafe_session", JSON.stringify(cafe));
+          void refreshRewardThreshold();
 
           // Update UI
           updateCafeBadge();
@@ -3453,6 +3692,142 @@
         }
       }
 
+      // Café's own reward threshold ("Stempel für Belohnung"), needed to tell
+      // whether a regular stamp just completed the card (-> balloons) or not
+      // (-> the small bean pop). Not part of the /stamp-by-cafe response, so
+      // it's fetched once after login instead.
+      async function refreshRewardThreshold() {
+        if (!cafe || !cafe.token) return;
+        try {
+          const res = await fetch(`${apiBase}/cafes/me/overview?eventsLimit=1&customers=1`, {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const v = data && data.cafe && data.cafe.program ? data.cafe.program.stampsForReward : null;
+          if (v != null && Number.isFinite(Number(v))) rewardThreshold = Number(v);
+        } catch (e) {}
+      }
+
+      // Stamp/reward celebration (balloons on a full card, a cup burst on
+      // redeem, a single bean pop on a regular stamp) - same visual language
+      // as the customer wallet's own celebration, kept café-side so staff
+      // get the same kind of feedback guests do.
+      const rewardCelebrationState = {
+        host: null,
+        timer: 0,
+        prefersReducedMotion: !!(
+          window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ),
+      };
+
+      function ensureRewardCelebrationHost() {
+        if (rewardCelebrationState.host) return rewardCelebrationState.host;
+        try {
+          const host = document.createElement("div");
+          host.className = "rewardBalloons";
+          host.setAttribute("aria-hidden", "true");
+          document.body.appendChild(host);
+          rewardCelebrationState.host = host;
+        } catch (e) {
+          rewardCelebrationState.host = null;
+        }
+        return rewardCelebrationState.host;
+      }
+
+      function launchRewardCelebration() {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active");
+        } catch (e0) {}
+
+        const colors = ["#f2c94c", "#e58f65", "#d66853", "#6b452c", "#8fb996", "#d7b98e"];
+        for (let i = 0; i < 14; i++) {
+          const balloon = document.createElement("span");
+          balloon.className = "rewardBalloon";
+          balloon.style.left = 4 + i * 7 + Math.random() * 6 + "%";
+          balloon.style.animationDelay = (Math.random() * 0.45).toFixed(2) + "s";
+          balloon.style.animationDuration = (4.6 + Math.random() * 1.4).toFixed(2) + "s";
+          balloon.style.setProperty("--balloon-color", colors[i % colors.length]);
+          balloon.style.setProperty("--balloon-drift", (Math.random() * 90 - 45).toFixed(0) + "px");
+          balloon.style.setProperty("--balloon-scale", (0.86 + Math.random() * 0.42).toFixed(2));
+          host.appendChild(balloon);
+        }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 6200);
+      }
+
+      // Same burst mechanic as the customer wallet's redeem celebration, but
+      // cups instead of beans - the café side should read "a reward just
+      // went out the door", not "a stamp was given".
+      function launchRedeemCelebration() {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active", "isRedeem");
+        } catch (e0) {}
+
+        for (let i = 0; i < 20; i++) {
+          const burst = document.createElement("span");
+          burst.className = i % 4 === 0 ? "rewardSpark" : "rewardCup";
+          burst.style.left = 16 + Math.random() * 68 + "%";
+          burst.style.top = 26 + Math.random() * 24 + "%";
+          burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
+          burst.style.animationDuration = (1.6 + Math.random() * 0.9).toFixed(2) + "s";
+          burst.style.setProperty("--burst-x", (Math.random() * 320 - 160).toFixed(0) + "px");
+          burst.style.setProperty("--burst-y", (-140 - Math.random() * 180).toFixed(0) + "px");
+          burst.style.setProperty("--burst-rot", (Math.random() * 420 - 210).toFixed(0) + "deg");
+          burst.style.setProperty("--burst-scale", (0.8 + Math.random() * 0.7).toFixed(2));
+          host.appendChild(burst);
+        }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active", "isRedeem");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 3200);
+      }
+
+      // Small pop right above the award button for an ordinary stamp -
+      // much quieter than the full-card/redeem celebrations.
+      function launchStampBeanPop(count) {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const wrap = document.getElementById("awardBtnWrap");
+        if (!wrap) return;
+        const n = Math.max(1, Math.min(5, Number(count) || 1));
+        for (let i = 0; i < n; i++) {
+          const bean = document.createElement("span");
+          bean.className = "stampBeanPop";
+          bean.style.left = `calc(50% + ${(i - (n - 1) / 2) * 22}px)`;
+          bean.style.animationDelay = (i * 0.07).toFixed(2) + "s";
+          wrap.appendChild(bean);
+          window.setTimeout(() => {
+            try {
+              bean.remove();
+            } catch (e) {}
+          }, 1300);
+        }
+      }
+
       // Award stamps
       awardBtn.onclick = async () => {
         if (!scannedCustomer || !cafe) return;
@@ -3582,16 +3957,23 @@
 
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;
-            currentStamps.textContent = Math.max(0, cur - 10);
+            currentStamps.textContent = Math.max(0, cur - rewardThreshold);
             showToast("Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
+            launchRedeemCelebration();
           } else if (isReset) {
             currentStamps.textContent = 0;
             showToast("Neue Karte gestartet. QR ist jetzt ungültig.");
           } else {
             // Update stamps display
-            currentStamps.textContent =
-              (parseInt(currentStamps.textContent) || 0) + amount;
+            const prevCount = parseInt(currentStamps.textContent) || 0;
+            const nextCount = prevCount + amount;
+            currentStamps.textContent = nextCount;
             showToast(`${amount} Stempel vergeben`);
+            if (prevCount < rewardThreshold && nextCount >= rewardThreshold) {
+              launchRewardCelebration();
+            } else {
+              launchStampBeanPop(amount);
+            }
           }
 
           // Reset after 2 seconds
@@ -3658,6 +4040,9 @@
               cafe.cafeId = ovData.cafe?.id || cafe.cafeId;
               cafe.cafeAddress = ovData.cafe?.address || cafe.cafeAddress;
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
+              if (ovData.cafe?.program?.stampsForReward != null) {
+                rewardThreshold = Number(ovData.cafe.program.stampsForReward);
+              }
             } catch (err) {
               dwarn("Session validation failed", err);
             }
