@@ -3933,7 +3933,8 @@
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;
             currentStamps.textContent = Math.max(0, cur - rewardThreshold);
-            showToast("Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
+            showToast("☕ Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
+            dlog("Celebration: redeem (cups)");
             launchRedeemCelebration();
           } else if (isReset) {
             currentStamps.textContent = 0;
@@ -3943,10 +3944,13 @@
             const prevCount = parseInt(currentStamps.textContent) || 0;
             const nextCount = prevCount + amount;
             currentStamps.textContent = nextCount;
-            showToast(`${amount} Stempel vergeben`);
             if (prevCount < rewardThreshold && nextCount >= rewardThreshold) {
+              showToast(`🎉 Karte voll! ${amount} Stempel vergeben`);
+              dlog("Celebration: card full (balloons)", { prevCount, nextCount, rewardThreshold });
               launchRewardCelebration();
             } else {
+              showToast(`🫘 ${amount} Stempel vergeben`);
+              dlog("Celebration: stamp (bean)", { prevCount, nextCount, rewardThreshold });
               launchStampBeanPop(amount);
             }
           }
