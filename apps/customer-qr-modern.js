@@ -348,6 +348,12 @@
     }, 6200);
   }
 
+  // Same floating mechanic as launchRewardCelebration's balloons - cups
+  // instead of beans, drifting calmly upward instead of bursting outward.
+  // A fast, spinning, multi-directional burst (the previous version)
+  // turned out too quick/chaotic to actually recognize the shape
+  // mid-flight; this reuses the balloon motion, which is already proven
+  // legible.
   function launchRedeemCelebration() {
     if (rewardCelebrationState.prefersReducedMotion) return;
     var host = ensureRewardCelebrationHost();
@@ -358,30 +364,21 @@
       host.classList.add("active", "isRedeem");
     } catch (e0) {}
 
-    for (var i = 0; i < 20; i++) {
-      var burst = document.createElement("span");
-      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardCup";
-      burst.style.left = 16 + Math.random() * 68 + "%";
-      burst.style.top = 26 + Math.random() * 24 + "%";
-      burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
-      burst.style.animationDuration = (2.4 + Math.random() * 1.0).toFixed(2) + "s";
-      burst.style.setProperty(
-        "--burst-x",
-        (Math.random() * 320 - 160).toFixed(0) + "px",
+    for (var i = 0; i < 8; i++) {
+      var cup = document.createElement("span");
+      cup.className = "rewardCup";
+      cup.style.left = 10 + i * 11 + Math.random() * 6 + "%";
+      cup.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+      cup.style.animationDuration = (4.4 + Math.random() * 1.2).toFixed(2) + "s";
+      cup.style.setProperty(
+        "--balloon-drift",
+        (Math.random() * 60 - 30).toFixed(0) + "px",
       );
-      burst.style.setProperty(
-        "--burst-y",
-        (-140 - Math.random() * 180).toFixed(0) + "px",
+      cup.style.setProperty(
+        "--balloon-scale",
+        (0.9 + Math.random() * 0.3).toFixed(2),
       );
-      burst.style.setProperty(
-        "--burst-rot",
-        (Math.random() * 420 - 210).toFixed(0) + "deg",
-      );
-      burst.style.setProperty(
-        "--burst-scale",
-        (0.8 + Math.random() * 0.7).toFixed(2),
-      );
-      host.appendChild(burst);
+      host.appendChild(cup);
     }
 
     try {
@@ -392,7 +389,7 @@
         host.classList.remove("active", "isRedeem");
         host.innerHTML = "";
       } catch (e2) {}
-    }, 4400);
+    }, 6200);
   }
 
   // Prefer the Capacitor Haptics plugin (vendored in /vendor/capacitor/) when
