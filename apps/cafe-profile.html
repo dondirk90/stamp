@@ -75,6 +75,13 @@
            bounce so that (already-active) physics gets a visible response. */
         transform: scale(var(--topbar-stretch, 1));
         transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -1106,24 +1113,69 @@
         var topbar = document.querySelector(".topbar");
         if (!topbar) return;
 
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
+        // window.scrollY going negative during the native bounce (the
+        // original approach here) turned out unreliable in practice - the
+        // café scanner screen's equivalent fix (tracking the raw touch drag
+        // while already scrolled to the top) is the one that's actually
+        // proven to work, so this page uses the same approach now instead.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            startY = e.touches.length === 1 && atTop ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            if (dy > 0 && atTop) {
+              setStretch(dy);
+            } else {
+              startY = null;
+              clearStretch();
+              topbar.classList.remove("topbar--pulling");
+            }
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
+
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk.
         var ticking = false;
-        function paint() {
+        function paintWindowScroll() {
           ticking = false;
           var y = window.scrollY || window.pageYOffset || 0;
-          if (y < 0) {
-            var stretch = Math.min(1, Math.max(0, -y / 90));
-            topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
-          } else {
-            topbar.style.setProperty("--topbar-stretch", "1");
-          }
+          if (y < 0) setStretch(-y);
+          else if (startY == null) clearStretch();
         }
         function schedule() {
           if (ticking) return;
           ticking = true;
-          window.requestAnimationFrame(paint);
+          window.requestAnimationFrame(paintWindowScroll);
         }
         window.addEventListener("scroll", schedule, { passive: true });
-        paint();
+        paintWindowScroll();
       })();
     </script>
     <script>
@@ -1267,6 +1319,71 @@
           reader.onload = () => resolve(String(reader.result || ""));
           reader.readAsDataURL(file);
         });
+      }
+
+      function loadImageElement(dataUrl) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("image_decode_failed"));
+          img.src = dataUrl;
+        });
+      }
+
+      function approxDataUrlBytes(dataUrl) {
+        const idx = dataUrl.indexOf(",");
+        const b64 = idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl;
+        return Math.ceil((b64.length * 3) / 4);
+      }
+
+      // Phone camera photos routinely come in at several MB - rejecting
+      // anything over the server's size limit (the previous behaviour)
+      // left uploads failing almost every time with no way to fix it short
+      // of finding separate editing software. This downscales/recompresses
+      // client-side instead, so an oversized photo just gets fit to the
+      // limit rather than bounced.
+      async function fitImageToLimit(file, opts) {
+        const maxDim = (opts && opts.maxDim) || 1200;
+        const maxBytes = (opts && opts.maxBytes) || 400 * 1024;
+        const mimeType = (opts && opts.mimeType) || "image/jpeg";
+
+        const srcDataUrl = await readFileAsDataUrl(file);
+        const img = await loadImageElement(srcDataUrl);
+
+        // Already within both budgets (common for small PNG logos) - skip
+        // the lossy re-encode entirely, e.g. to keep PNG transparency intact.
+        if (file.size <= maxBytes && Math.max(img.width, img.height) <= maxDim) {
+          return srcDataUrl;
+        }
+
+        let width = img.width;
+        let height = img.height;
+        const scale = Math.min(1, maxDim / Math.max(width, height));
+        width = Math.max(1, Math.round(width * scale));
+        height = Math.max(1, Math.round(height * scale));
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        let quality = 0.88;
+        let out = srcDataUrl;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          canvas.width = width;
+          canvas.height = height;
+          ctx.clearRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          out =
+            mimeType === "image/jpeg"
+              ? canvas.toDataURL(mimeType, quality)
+              : canvas.toDataURL(mimeType);
+          if (approxDataUrlBytes(out) <= maxBytes) break;
+          if (mimeType === "image/jpeg" && quality > 0.45) {
+            quality -= 0.12;
+          } else {
+            width = Math.round(width * 0.85);
+            height = Math.round(height * 0.85);
+          }
+        }
+        return out;
       }
       function escapeHtml(s) {
         return String(s || "")
@@ -1982,12 +2099,37 @@
                     ? logoInput.files[0]
                     : null;
                 if (!file) return;
-                if (file.size > 220 * 1024) {
-                  setMsg("Logo zu groß (max ~220KB).");
+                if (file.size > 20 * 1024 * 1024) {
+                  setMsg("Logo zu groß zum Verkleinern (max 20MB Ausgangsdatei).");
                   logoInput.value = "";
                   return;
                 }
-                const dataUrl = await readFileAsDataUrl(file);
+                // SVGs are vector/text-based - resizing them via canvas would
+                // rasterize away exactly what makes them worth uploading, and
+                // they're essentially never large enough to need it anyway.
+                if (file.type === "image/svg+xml") {
+                  if (file.size > 200 * 1024) {
+                    setMsg("Logo zu groß (max ~200KB für SVG).");
+                    logoInput.value = "";
+                    return;
+                  }
+                  const dataUrl = await readFileAsDataUrl(file);
+                  profileState.logoDataUrl = dataUrl;
+                  logoPreview.src = dataUrl;
+                  logoPreview.style.display = "block";
+                  setMsg("Logo ausgewählt (noch nicht gespeichert)");
+                  return;
+                }
+                setMsg("Logo wird verkleinert…");
+                const dataUrl = await fitImageToLimit(file, {
+                  maxDim: 800,
+                  // Server hard limit is ~225KB decoded (300,000 base64
+                  // chars) - a bit of margin below that.
+                  maxBytes: 200 * 1024,
+                  // PNGs (the common case for logos) keep transparency -
+                  // only photos get re-encoded as JPEG.
+                  mimeType: file.type === "image/png" ? "image/png" : "image/jpeg",
+                });
                 profileState.logoDataUrl = dataUrl;
                 logoPreview.src = dataUrl;
                 logoPreview.style.display = "block";
@@ -2008,12 +2150,19 @@
                     ? cardBgInput.files[0]
                     : null;
                 if (!file) return;
-                if (file.size > 520 * 1024) {
-                  setMsg("Hintergrund zu groß (max ~520KB).");
+                if (file.size > 20 * 1024 * 1024) {
+                  setMsg("Hintergrund zu groß zum Verkleinern (max 20MB Ausgangsdatei).");
                   cardBgInput.value = "";
                   return;
                 }
-                const dataUrl = await readFileAsDataUrl(file);
+                setMsg("Hintergrund wird verkleinert…");
+                const dataUrl = await fitImageToLimit(file, {
+                  maxDim: 1400,
+                  // Server hard limit is ~487KB decoded (650,000 base64
+                  // chars) - a bit of margin below that.
+                  maxBytes: 450 * 1024,
+                  mimeType: "image/jpeg",
+                });
                 profileState.cardBgDataUrl = dataUrl;
                 cardBgPreview.src = dataUrl;
                 cardBgPreview.style.display = "block";

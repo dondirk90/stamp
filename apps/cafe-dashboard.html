@@ -77,6 +77,13 @@
            bounce so that (already-active) physics gets a visible response. */
         transform: scale(var(--topbar-stretch, 1));
         transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -609,24 +616,69 @@
         var topbar = document.querySelector(".topbar");
         if (!topbar) return;
 
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
+        // window.scrollY going negative during the native bounce (the
+        // original approach here) turned out unreliable in practice - the
+        // café scanner screen's equivalent fix (tracking the raw touch drag
+        // while already scrolled to the top) is the one that's actually
+        // proven to work, so this page uses the same approach now instead.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            startY = e.touches.length === 1 && atTop ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            if (dy > 0 && atTop) {
+              setStretch(dy);
+            } else {
+              startY = null;
+              clearStretch();
+              topbar.classList.remove("topbar--pulling");
+            }
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
+
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk.
         var ticking = false;
-        function paint() {
+        function paintWindowScroll() {
           ticking = false;
           var y = window.scrollY || window.pageYOffset || 0;
-          if (y < 0) {
-            var stretch = Math.min(1, Math.max(0, -y / 90));
-            topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
-          } else {
-            topbar.style.setProperty("--topbar-stretch", "1");
-          }
+          if (y < 0) setStretch(-y);
+          else if (startY == null) clearStretch();
         }
         function schedule() {
           if (ticking) return;
           ticking = true;
-          window.requestAnimationFrame(paint);
+          window.requestAnimationFrame(paintWindowScroll);
         }
         window.addEventListener("scroll", schedule, { passive: true });
-        paint();
+        paintWindowScroll();
       })();
     </script>
     <script>
