@@ -4013,6 +4013,13 @@
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
+    // setPassCardStamps() reads this back as "the previous count" to decide
+    // which cells are new (isNew, drives the ink-stamp pop animation) - if
+    // it's never set here, the very first live stamp update after a page
+    // load has no previous value to compare against, falls back to
+    // treating the new count as its own previous count, and the pop
+    // animation silently never fires for that first update.
+    passCard.setAttribute("data-stamps", String(stampCount));
     if (Number.isFinite(cafeId) && cafeId > 0) {
       passCard.setAttribute("data-cafe-id", String(cafeId));
     }
