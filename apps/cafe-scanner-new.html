@@ -786,24 +786,16 @@
         margin-bottom: 8px;
         margin-top: 20px;
       }
+      /* Was its own underlined-field style with a dark placeholder color
+         (rgba(79,56,39,...), i.e. tuned for a light background) - on this
+         app's actual dark background that read as barely-visible text on
+         barely-visible borders. Falls back to theme.css's shared rounded
+         field style (already fixed for .theme-invert pages) instead of
+         diverging from cafe-dashboard.html/cafe-profile.html, which never
+         had their own override and didn't have this problem. */
       input {
         width: 100%;
-        padding: 12px 12px;
-        border: none;
-        border-bottom: 1px solid var(--border);
-        border-radius: 0;
         font-size: 16px;
-        transition: border-color 0.15s ease;
-        background: transparent;
-        color: var(--paper-text);
-      }
-      input::placeholder {
-        color: rgba(79, 56, 39, 0.62);
-      }
-      input:focus {
-        outline: none;
-        border-color: var(--brand);
-        box-shadow: 0 0 0 3px var(--focus);
       }
       button {
         width: 100%;

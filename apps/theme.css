@@ -438,6 +438,31 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--focus);
 }
 
+/* The base rule above hardcodes a light, near-white field background -
+   fine against the light customer-app palette, but on .theme-invert
+   (café app) pages it left near-white input text sitting on a
+   near-white box (only the text color was ever overridden per-page,
+   not the field itself), i.e. barely readable form fields. */
+.theme-invert input,
+.theme-invert select,
+.theme-invert textarea {
+  background: rgba(255, 248, 241, 0.05);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.theme-invert input:focus,
+.theme-invert select:focus,
+.theme-invert textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.theme-invert input::placeholder,
+.theme-invert textarea::placeholder {
+  color: var(--text-muted);
+}
+
 button {
   background: var(--brand);
   color: var(--on-brand, #fff);
