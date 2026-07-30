@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v16-20260729-barista-redesign";
+const CACHE_VERSION = "stamp-shell-v17-20260730-save-fix";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",

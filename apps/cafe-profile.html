@@ -506,7 +506,16 @@
          page's --brand/--text etc.), since that's what guests actually see
          regardless of this app's own dark theme. */
       .previewCardWrap {
-        margin-bottom: var(--space-4);
+        /* Sticky so it stays visible while scrolling through the theme/
+           logo/background settings further down, instead of having to
+           scroll back up every time to see what a change actually did. */
+        position: sticky;
+        top: calc(var(--safe-top, 0px) + 8px);
+        z-index: 5;
+        margin: 0 calc(-1 * var(--space-5)) var(--space-4);
+        padding: 14px var(--space-5) 18px;
+        background: rgba(42, 29, 24, 0.92);
+        backdrop-filter: blur(18px);
       }
 
       .previewCardLabel {
@@ -2023,33 +2032,16 @@
         setMsg("Speichere…");
 
         try {
-          let logoDataUrl = profileState.logoDataUrl;
-          const file =
-            logoInput && logoInput.files && logoInput.files[0]
-              ? logoInput.files[0]
-              : null;
-          if (file) {
-            if (file.size > 220 * 1024) {
-              throw new Error(
-                "Logo zu groß (max ~220KB). Bitte kleineres Bild wählen.",
-              );
-            }
-            logoDataUrl = await readFileAsDataUrl(file);
-          }
-
-          let cardBgDataUrl = profileState.cardBgDataUrl;
-          const bgFile =
-            cardBgInput && cardBgInput.files && cardBgInput.files[0]
-              ? cardBgInput.files[0]
-              : null;
-          if (bgFile) {
-            if (bgFile.size > 520 * 1024) {
-              throw new Error(
-                "Hintergrund zu groß (max ~520KB). Bitte kleineres Bild wählen.",
-              );
-            }
-            cardBgDataUrl = await readFileAsDataUrl(bgFile);
-          }
+          // profileState.logoDataUrl/cardBgDataUrl are already the resized/
+          // recompressed versions from fitImageToLimit() (set when the file
+          // input's change handler ran) - re-reading logoInput/cardBgInput's
+          // raw File here and re-checking it against the old, much stricter
+          // byte limits defeated that resize entirely: the preview showed
+          // the shrunk image, but saving re-read the original multi-MB file,
+          // failed the size check, and threw "Speichern fehlgeschlagen" even
+          // though everything looked fine a moment earlier.
+          const logoDataUrl = profileState.logoDataUrl;
+          const cardBgDataUrl = profileState.cardBgDataUrl;
 
           const cardBackText = cardBackEl
             ? String(cardBackEl.value || "").trim()

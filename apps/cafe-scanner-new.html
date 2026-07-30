@@ -2460,8 +2460,12 @@
         }
         function isAtTop() {
           var el = activeScrollEl();
-          if (el) return el.scrollTop <= 0;
-          return (window.scrollY || window.pageYOffset || 0) <= 0;
+          // A couple of px of tolerance instead of an exact <= 0 - some
+          // devices settle at a fractional/near-zero scroll offset (safe
+          // area/rounding) that never quite reaches exactly 0, which would
+          // otherwise permanently block the pull from ever starting.
+          if (el) return el.scrollTop <= 2;
+          return (window.scrollY || window.pageYOffset || 0) <= 2;
         }
 
         // A nested overflow:auto element's scrollTop never actually goes
