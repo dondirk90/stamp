@@ -430,6 +430,11 @@ textarea {
     transform var(--motion-fast) var(--motion-ease);
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -555,6 +560,13 @@ button.ghost {
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
+}
+
+/* Same hardcoded-light-background issue as input/select/textarea above -
+   near-white text (the .theme-invert value of --text) on a near-white
+   chip. */
+.theme-invert .badge {
+  background: rgba(255, 248, 241, 0.08);
 }
 
 .btn {

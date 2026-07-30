@@ -501,7 +501,6 @@
         <div class="pageMeta">
           <h1 class="pageMetaTitle" id="cafeName">Café Dashboard</h1>
           <div class="pageMetaSub">Die Dinge im Blick, die im Caféalltag wirklich zählen.</div>
-          <div class="pageMetaSub" id="buildBadge">dashboard · ui-20260603c</div>
           <span id="cafeAvatar" hidden aria-hidden="true"></span>
           <div class="sourceRow">
           <span class="badge" id="sourceBadge">Quelle: —</span>
@@ -780,14 +779,6 @@
             .toUpperCase();
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Dashboard";
-
-          document.getElementById("buildBadge").textContent =
-            `dashboard · ui-20260603b · API: ${apiBase}`;
-
-          document.getElementById("cafeName").textContent =
-            cafe.name || "Café Dashboard";
-          document.getElementById("buildBadge").textContent =
-            `dashboard · ui-20260603c · API: ${apiBase}`;
           wireUtilityMenu();
 
           // Default source badges (updated on refreshAll)

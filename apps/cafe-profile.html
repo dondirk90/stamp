@@ -580,7 +580,6 @@
       <div class="pageMeta">
         <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
         <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
-        <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -1927,8 +1926,6 @@
 
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
-          document.getElementById("buildBadge").textContent =
-            `profile · ui-20260603c · API: ${apiBase}`;
           applyProfileViewMode(getProfileViewMode());
           wireUtilityMenu();
 
