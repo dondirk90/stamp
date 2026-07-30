@@ -498,6 +498,173 @@
         display: none;
       }
 
+      /* Live preview of the actual guest-facing stamp card, using the same
+         theme/logo/stamp-style/background settings edited below - lets a
+         café see the effect of a change immediately instead of guessing or
+         switching over to the customer app to check. Colors here are the
+         customer app's own light-theme card palette (hardcoded, not this
+         page's --brand/--text etc.), since that's what guests actually see
+         regardless of this app's own dark theme. */
+      .previewCardWrap {
+        margin-bottom: var(--space-4);
+      }
+
+      .previewCardLabel {
+        margin-bottom: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+
+      .previewCard {
+        --pass-card-ratio: 1.34;
+        width: min(320px, 100%);
+        aspect-ratio: var(--pass-card-ratio);
+        margin: 0 auto;
+        position: relative;
+        border-radius: 24px;
+        padding: 18px 20px;
+        overflow: hidden;
+        background-color: var(--pass-bg, #fffdf8);
+        color: var(--pass-ink, #171412);
+        border: 1px solid var(--pass-border, rgba(23, 20, 18, 0.14));
+        box-shadow:
+          0 16px 28px rgba(41, 29, 21, 0.12),
+          0 8px 18px rgba(41, 29, 21, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .previewCard::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: var(--pass-card-bg, none);
+        background-size: cover;
+        background-position: center;
+        opacity: 0.5;
+      }
+
+      .previewCard > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .previewCard[data-pass-theme="paper"] {
+        --pass-bg: #fffdf8;
+        --pass-ink: #171412;
+        --pass-border: rgba(23, 20, 18, 0.14);
+        --pass-stamp-ring: rgba(23, 20, 18, 0.2);
+      }
+      .previewCard[data-pass-theme="clean"] {
+        --pass-bg: #ffffff;
+        --pass-ink: #131313;
+        --pass-border: rgba(19, 19, 19, 0.12);
+        --pass-stamp-ring: rgba(19, 19, 19, 0.18);
+      }
+      .previewCard[data-pass-theme="ink"] {
+        --pass-bg: #241c15;
+        --pass-ink: #fbf3ea;
+        --pass-border: rgba(242, 233, 224, 0.22);
+        --pass-stamp-ring: rgba(242, 233, 224, 0.22);
+      }
+      .previewCard[data-pass-theme="brand"] {
+        --pass-bg: #6b452c;
+        --pass-ink: #ffffff;
+        --pass-border: rgba(255, 255, 255, 0.28);
+        --pass-stamp-ring: rgba(255, 255, 255, 0.24);
+      }
+      .previewCard[data-pass-theme="latte"] {
+        --pass-bg: #fbf6ef;
+        --pass-ink: #211a15;
+        --pass-border: rgba(33, 26, 21, 0.14);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.18);
+      }
+      .previewCard[data-pass-theme="mono"] {
+        --pass-bg: #fffefe;
+        --pass-ink: rgba(0, 0, 0, 0.86);
+        --pass-border: rgba(0, 0, 0, 0.12);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.14);
+      }
+
+      .previewCardHead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .previewCardLogoWrap {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--pass-border);
+        background: rgba(0, 0, 0, 0.04);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        font-weight: 900;
+      }
+
+      .previewCardLogo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .previewCardTitleBlock {
+        min-width: 0;
+      }
+
+      .previewCardTitle {
+        font-weight: 900;
+        font-size: 16px;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .previewCardSub {
+        font-size: 12px;
+        opacity: 0.68;
+      }
+
+      .previewStampGrid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .previewStamp {
+        aspect-ratio: 1 / 1;
+        border-radius: 999px;
+        border: 1.5px solid var(--pass-stamp-ring, rgba(23, 20, 18, 0.2));
+        display: grid;
+        place-items: center;
+      }
+
+      .previewStamp img,
+      .previewStamp svg {
+        width: 62%;
+        height: 62%;
+        color: var(--pass-ink);
+        display: block;
+      }
+
+      .previewStamp.empty img,
+      .previewStamp.empty svg {
+        opacity: 0.22;
+      }
+
+      .previewCardReward {
+        margin-top: auto;
+        font-size: 12px;
+        opacity: 0.72;
+      }
+
       .muted {
         color: var(--text-muted);
       }
@@ -615,6 +782,29 @@
               klar und hochwertig wirkt. 3. Pflege später in der Verwaltung
               Kampagnen, Standort und Zusatzinhalte.
             </p>
+          </div>
+
+          <div class="previewCardWrap">
+            <div class="previewCardLabel">Vorschau: so sieht die Karte bei deinen Gästen aus</div>
+            <div class="previewCard" id="cardPreview" data-pass-theme="paper">
+              <div class="previewCardHead">
+                <div class="previewCardLogoWrap" id="previewCardLogoWrap">
+                  <span id="previewCardLogoFallback"></span>
+                  <img
+                    class="previewCardLogo"
+                    id="previewCardLogo"
+                    alt=""
+                    style="display: none"
+                  />
+                </div>
+                <div class="previewCardTitleBlock">
+                  <div class="previewCardTitle" id="previewCardTitle">Café</div>
+                  <div class="previewCardSub">Digitale Stempelkarte</div>
+                </div>
+              </div>
+              <div class="previewStampGrid" id="previewStampGrid"></div>
+              <div class="previewCardReward" id="previewCardReward"></div>
+            </div>
           </div>
         </div>
         <div
@@ -1583,6 +1773,95 @@
             cardBgPreview.style.display = "none";
           }
         }
+
+        renderCardPreview();
+      }
+
+      // Same stamp icon markup as the customer wallet's buildStampSvg() -
+      // "cup" has no dedicated art there either and is aliased to the bean.
+      function buildPreviewStampIcon(filled, style) {
+        const kind = String(style || "bean").trim().toLowerCase();
+        if (kind === "star") {
+          return filled
+            ? '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="currentColor" opacity="0.92"></path></svg>'
+            : '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="none" stroke="currentColor" stroke-width="4.8" opacity="0.4" stroke-linejoin="round"></path></svg>';
+        }
+        if (kind === "circle") {
+          return filled
+            ? '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="26" fill="currentColor" opacity="0.92"></circle></svg>'
+            : '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle></svg>';
+        }
+        return `<img src="/assets/stamp-bean.png" alt="" style="opacity:${filled ? 0.96 : 0.22}" />`;
+      }
+
+      // Live mirror of the actual guest-facing card (see buildPassCard() in
+      // customer-qr-modern.js) - kept intentionally lighter than that (no 3D
+      // flip, no QR, no swipe physics) since this only needs to show the
+      // visual identity a café is currently editing, not be interactive.
+      function renderCardPreview() {
+        const previewEl = document.getElementById("cardPreview");
+        if (!previewEl) return;
+
+        const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+
+        const theme = themeEl && themeEl.value ? themeEl.value : "paper";
+        const stampStyle = stampStyleEl && stampStyleEl.value ? stampStyleEl.value : "bean";
+        const threshold = Math.max(
+          1,
+          Math.min(50, parseInt((rewardThresholdEl && rewardThresholdEl.value) || "10", 10) || 10),
+        );
+
+        previewEl.setAttribute("data-pass-theme", theme);
+        previewEl.style.setProperty(
+          "--pass-card-bg",
+          profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
+        );
+
+        const titleEl = document.getElementById("previewCardTitle");
+        if (titleEl) titleEl.textContent = (cafe && cafe.name) || "Café";
+
+        const logoImg = document.getElementById("previewCardLogo");
+        const logoFallback = document.getElementById("previewCardLogoFallback");
+        if (profileState.logoDataUrl) {
+          if (logoImg) {
+            logoImg.src = profileState.logoDataUrl;
+            logoImg.style.display = "block";
+          }
+          if (logoFallback) logoFallback.style.display = "none";
+        } else {
+          if (logoImg) logoImg.style.display = "none";
+          if (logoFallback) {
+            logoFallback.style.display = "block";
+            logoFallback.textContent = ((cafe && cafe.name) || "C").charAt(0).toUpperCase();
+          }
+        }
+
+        const grid = document.getElementById("previewStampGrid");
+        if (grid) {
+          grid.innerHTML = "";
+          // A few filled cells demonstrate both states at once, rather than
+          // showing an all-empty (or all-full) card that only tells half
+          // the story.
+          const filledDemo = Math.min(3, threshold);
+          for (let i = 0; i < threshold; i++) {
+            const cell = document.createElement("div");
+            const filled = i < filledDemo;
+            cell.className = "previewStamp" + (filled ? "" : " empty");
+            cell.innerHTML = buildPreviewStampIcon(filled, stampStyle);
+            grid.appendChild(cell);
+          }
+        }
+
+        const rewardEl = document.getElementById("previewCardReward");
+        if (rewardEl) {
+          const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+          const label = rewardDescriptionEl && rewardDescriptionEl.value
+            ? rewardDescriptionEl.value
+            : "Belohnung";
+          rewardEl.textContent = `Bei ${threshold} Stempeln: ${label}`;
+        }
       }
 
       function renderGallery(images) {
@@ -2118,6 +2397,7 @@
                   logoPreview.src = dataUrl;
                   logoPreview.style.display = "block";
                   setMsg("Logo ausgewählt (noch nicht gespeichert)");
+                  renderCardPreview();
                   return;
                 }
                 setMsg("Logo wird verkleinert…");
@@ -2134,6 +2414,7 @@
                 logoPreview.src = dataUrl;
                 logoPreview.style.display = "block";
                 setMsg("Logo ausgewählt (noch nicht gespeichert)");
+                renderCardPreview();
               } catch (e) {
                 setMsg("Logo konnte nicht geladen werden");
               }
@@ -2167,6 +2448,7 @@
                 cardBgPreview.src = dataUrl;
                 cardBgPreview.style.display = "block";
                 setMsg("Hintergrund ausgewählt (noch nicht gespeichert)");
+                renderCardPreview();
               } catch (e) {
                 setMsg("Hintergrund konnte nicht geladen werden");
               }
@@ -2185,8 +2467,19 @@
               const inp = document.getElementById("profileCardBg");
               if (inp) inp.value = "";
               setMsg("Hintergrund entfernt (noch nicht gespeichert)");
+              renderCardPreview();
             });
           }
+
+          [
+            "profileCardTheme",
+            "profileStampStyle",
+            "profileRewardThreshold",
+            "profileRewardDescription",
+          ].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("input", renderCardPreview);
+          });
 
           const overview = await apiFetch(
             "/cafes/me/overview?eventsLimit=5&customers=5",
