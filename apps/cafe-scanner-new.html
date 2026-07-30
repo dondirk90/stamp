@@ -1383,19 +1383,14 @@
           padding: 0;
         }
 
-        #videoContainer {
-          max-width: min(100%, 320px);
-          margin: 0 auto;
-        }
-
         #video {
-          aspect-ratio: 1 / 1.04;
-          max-height: min(40svh, 340px);
+          aspect-ratio: 3 / 4;
+          max-height: min(56svh, 520px);
         }
 
         .scan-overlay {
-          width: min(50vw, 188px);
-          height: min(50vw, 188px);
+          width: min(58vw, 220px);
+          height: min(58vw, 220px);
         }
 
         .scannerStatus,
@@ -1664,18 +1659,20 @@
       }
 
       #videoContainer {
+        /* No boxed frame around the camera preview - it already sits
+           inside #scannerScreen, the one framed panel on this screen, and
+           a real-time camera view needs the space, not a border eating
+           into it. */
         max-width: 100%;
         margin: 0;
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.26);
       }
 
       #video {
+        width: 100%;
         aspect-ratio: 4 / 5;
         object-fit: cover;
         background: #120d0b;
+        border-radius: 18px;
       }
 
       .scan-overlay {
@@ -2432,59 +2429,84 @@
           topbar.style.setProperty("--topbar-stretch", "1");
         }
 
-        // Unlike the other app pages, #homeScreen/#scannerScreen become their
-        // own scrollable containers on narrow viewports (see the mainPanel
-        // sizing fix above) instead of the document itself scrolling. A
-        // nested overflow:auto element's scrollTop never actually goes
+        // This file has three different screens (login, #homeScreen,
+        // #scannerScreen), and on narrow viewports the latter two become
+        // their own scrollable containers (see the mainPanel sizing fix
+        // above) instead of the document itself scrolling - the login
+        // screen and the desktop/wide layout both still scroll at the
+        // document level. Checking fresh on every touch (rather than
+        // binding to one fixed element) means this keeps working no matter
+        // which screen is currently showing.
+        function activeScrollEl() {
+          var homeScreen = document.getElementById("homeScreen");
+          var scannerScreen = document.getElementById("scannerScreen");
+          if (
+            homeScreen &&
+            homeScreen.offsetParent !== null &&
+            homeScreen.scrollHeight > homeScreen.clientHeight
+          ) {
+            return homeScreen;
+          }
+          if (
+            scannerScreen &&
+            scannerScreen.offsetParent !== null &&
+            scannerScreen.scrollHeight > scannerScreen.clientHeight
+          ) {
+            return scannerScreen;
+          }
+          return null;
+        }
+        function isAtTop() {
+          var el = activeScrollEl();
+          if (el) return el.scrollTop <= 0;
+          return (window.scrollY || window.pageYOffset || 0) <= 0;
+        }
+
+        // A nested overflow:auto element's scrollTop never actually goes
         // negative on iOS the way window.scrollY does during the native
         // bounce - it stays clamped at 0 even while the bounce is visibly
-        // happening - so that trick (used on the other pages) can't detect
-        // the pull here. Tracking the raw touch drag while already at
-        // scrollTop 0 works regardless of that clamping.
-        [document.getElementById("homeScreen"), document.getElementById("scannerScreen")]
-          .filter(Boolean)
-          .forEach(function (el) {
-            var startY = null;
-            el.addEventListener(
-              "touchstart",
-              function (e) {
-                startY = el.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null;
-                topbar.classList.add("topbar--pulling");
-              },
-              { passive: true },
-            );
-            el.addEventListener(
-              "touchmove",
-              function (e) {
-                if (startY == null) return;
-                var dy = e.touches[0].clientY - startY;
-                if (dy > 0 && el.scrollTop <= 0) {
-                  setStretch(dy);
-                } else {
-                  startY = null;
-                  clearStretch();
-                }
-              },
-              { passive: true },
-            );
-            function release() {
+        // happening - so tracking the raw touch drag while already at the
+        // top works regardless of which of the two cases above applies.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            startY = e.touches.length === 1 && isAtTop() ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            if (dy > 0 && isAtTop()) {
+              setStretch(dy);
+            } else {
               startY = null;
-              topbar.classList.remove("topbar--pulling");
               clearStretch();
+              topbar.classList.remove("topbar--pulling");
             }
-            el.addEventListener("touchend", release, { passive: true });
-            el.addEventListener("touchcancel", release, { passive: true });
-          });
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
 
-        // Desktop/wide-viewport fallback, where the shell itself scrolls
-        // instead of #homeScreen/#scannerScreen (see the min-width media
-        // query above) - same window.scrollY trick as the other pages.
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk, same trick as the other app pages.
         var ticking = false;
         function paintWindowScroll() {
           ticking = false;
           var y = window.scrollY || window.pageYOffset || 0;
           if (y < 0) setStretch(-y);
-          else clearStretch();
+          else if (startY == null) clearStretch();
         }
         function schedule() {
           if (ticking) return;
