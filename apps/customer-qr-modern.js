@@ -360,11 +360,11 @@
 
     for (var i = 0; i < 20; i++) {
       var burst = document.createElement("span");
-      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardBean";
+      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardCup";
       burst.style.left = 16 + Math.random() * 68 + "%";
       burst.style.top = 26 + Math.random() * 24 + "%";
       burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
-      burst.style.animationDuration = (1.6 + Math.random() * 0.9).toFixed(2) + "s";
+      burst.style.animationDuration = (2.4 + Math.random() * 1.0).toFixed(2) + "s";
       burst.style.setProperty(
         "--burst-x",
         (Math.random() * 320 - 160).toFixed(0) + "px",
@@ -392,7 +392,7 @@
         host.classList.remove("active", "isRedeem");
         host.innerHTML = "";
       } catch (e2) {}
-    }, 3200);
+    }, 4400);
   }
 
   // Prefer the Capacitor Haptics plugin (vendored in /vendor/capacitor/) when
