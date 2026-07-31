@@ -149,7 +149,13 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build db
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --rm migrate
+            # --build here matters: without it, `run` reuses whatever
+            # `migrate` image already exists locally instead of rebuilding
+            # from the freshly uploaded source, silently running stale
+            # migration code on every deploy (that's what happened above -
+            # this ran a build from before the schema-drift fix, which is
+            # exactly the kind of drift that fix was meant to catch).
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod run --build --rm migrate
 
             # migrate.cjs re-applies every migration file unconditionally (all are
             # IF NOT EXISTS-guarded), so this is a generic schema sanity check
