@@ -61,6 +61,14 @@ jobs:
           CAP_SERVER_URL: ${{ inputs.target == 'prod' && 'https://kaffeekarte.app' || 'https://staging.kaffeekarte.app' }}
         run: pnpm exec cap sync android
 
+      # gradlew was committed from a Windows machine without the executable
+      # bit set (git tracked it as 100644), so fastlane's `gradle` action
+      # failed with "Permission denied" before ever reaching Gradle itself.
+      # Fixed in the repo now too, but this is a cheap belt-and-suspenders
+      # guard against it silently regressing again.
+      - name: Ensure gradlew is executable
+        run: chmod +x android/gradlew
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
