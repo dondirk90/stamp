@@ -2818,12 +2818,19 @@
       }
 
       /* Built-in card templates (selected by cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©s) */
+      /* Each --pass-bg/--pass-ink below is a fixed literal, not a
+         var(--brand*) reference - --brand/--brand-700 are page-context
+         tokens that flip to near-white on .theme-invert (café UI) pages,
+         which used to make "ink" resolve almost identically to "brand"
+         (both landed in the same coffee-brown), so cafés only ever saw two
+         visually distinct outcomes (white vs. brown) no matter which of
+         the six themes they picked. */
       .passCard[data-pass-theme="paper"] {
-        --pass-bg: #fffdf8;
+        --pass-bg: #f7efe1;
         --pass-ink: #171412;
         --pass-border: rgba(23, 20, 18, 0.14);
         --pass-stamp-ring: rgba(23, 20, 18, 0.2);
-        --stamp-seam: #fffdf8;
+        --stamp-seam: #f7efe1;
         --pass-badge-bg: rgba(23, 20, 18, 0.05);
         --pass-badge-ink: #171412;
         --pass-hi: rgba(255, 255, 255, 0.76);
@@ -2855,20 +2862,20 @@
       }
 
       .passCard[data-pass-theme="ink"] {
-        --pass-bg: var(--brand-700);
-        --pass-ink: var(--brand-50);
+        --pass-bg: #201811;
+        --pass-ink: #f4e9da;
         --pass-border: rgba(242, 233, 224, 0.22);
         --pass-stamp-ring: rgba(242, 233, 224, 0.22);
-        --stamp-seam: var(--brand-700);
+        --stamp-seam: #201811;
         --pass-badge-bg: rgba(242, 233, 224, 0.14);
-        --pass-badge-ink: var(--brand-50);
+        --pass-badge-ink: #f4e9da;
         --pass-hi: rgba(255, 255, 255, 0.08);
         --pass-lo: rgba(0, 0, 0, 0.18);
       }
 
       /* Extra themes (cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© selectable) */
       .passCard[data-pass-theme="brand"] {
-        --pass-bg: var(--brand);
+        --pass-bg: #6b452c;
         --pass-ink: #ffffff;
         --pass-border: rgba(255, 255, 255, 0.28);
         --pass-stamp-ring: rgba(255, 255, 255, 0.24);
@@ -2880,27 +2887,27 @@
       }
 
       .passCard[data-pass-theme="latte"] {
-        --pass-bg: #fbf6ef;
+        --pass-bg: #ecd7b4;
         --pass-ink: #211a15;
-        --pass-border: rgba(33, 26, 21, 0.14);
-        --pass-stamp-ring: rgba(33, 26, 21, 0.18);
-        --stamp-seam: #fbf6ef;
-        --pass-badge-bg: rgba(33, 26, 21, 0.05);
+        --pass-border: rgba(33, 26, 21, 0.16);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.2);
+        --stamp-seam: #ecd7b4;
+        --pass-badge-bg: rgba(33, 26, 21, 0.06);
         --pass-badge-ink: #211a15;
-        --pass-hi: rgba(255, 255, 255, 0.7);
-        --pass-lo: rgba(0, 0, 0, 0.04);
+        --pass-hi: rgba(255, 255, 255, 0.6);
+        --pass-lo: rgba(0, 0, 0, 0.05);
       }
 
       .passCard[data-pass-theme="mono"] {
-        --pass-bg: #fffefe;
-        --pass-ink: rgba(0, 0, 0, 0.86);
-        --pass-border: rgba(0, 0, 0, 0.12);
-        --pass-stamp-ring: rgba(0, 0, 0, 0.14);
-        --stamp-seam: #fffefe;
+        --pass-bg: #eef0ee;
+        --pass-ink: #111111;
+        --pass-border: rgba(0, 0, 0, 0.14);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.16);
+        --stamp-seam: #eef0ee;
         --pass-badge-bg: rgba(0, 0, 0, 0.06);
-        --pass-badge-ink: rgba(0, 0, 0, 0.86);
-        --pass-hi: rgba(255, 255, 255, 0.78);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-badge-ink: #111111;
+        --pass-hi: rgba(255, 255, 255, 0.7);
+        --pass-lo: rgba(0, 0, 0, 0.07);
       }
 
       .passCard .badge {
@@ -2945,8 +2952,48 @@
         opacity: 0.12;
       }
 
+      .passCard[data-pass-theme="latte"] .passFlip::after {
+        opacity: 0.14;
+      }
+
+      .passCard[data-pass-theme="mono"] .passFlip::after {
+        opacity: 0.12;
+      }
+
+      /* Multiply only darkens - fine on the light themes above, but on
+         "brand"'s mid-brown and "ink"'s near-black bg it would crush the
+         uploaded image to near-invisible instead of just texturing it, so
+         these two get a lighten-leaning blend instead. */
+      .passCard[data-pass-theme="brand"] .passFlip::after {
+        opacity: 0.3;
+        mix-blend-mode: soft-light;
+      }
+
       .passCard[data-pass-theme="ink"] .passFlip::after {
-        opacity: 0.08;
+        opacity: 0.24;
+        mix-blend-mode: screen;
+      }
+
+      /* The card's permanent glossy paper sheen (.passFlip's own
+         background-image, and ::before) is tuned for light bg colors - on
+         "ink"'s near-black bg that same sheen washes it out toward the same
+         mid-brown "brand" already occupies, undoing the point of a dark
+         theme. Dial both down so "ink" actually reads as dark. */
+      .passCard[data-pass-theme="ink"] .passFlip {
+        background-image:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0.02) 100%),
+          linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+      }
+
+      .passCard[data-pass-theme="ink"] .passFlip::before {
+        background:
+          radial-gradient(circle at 14% 20%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 18%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0) 30%),
+          repeating-linear-gradient(
+            -12deg,
+            rgba(255, 255, 255, 0.02) 0 1px,
+            rgba(255, 255, 255, 0) 1px 8px
+          );
       }
 
       /* 3D flip: flip an inner wrapper so swipe/stack transforms stay stable. */

@@ -533,7 +533,7 @@
         border-radius: 24px;
         padding: 18px 20px;
         overflow: hidden;
-        background-color: var(--pass-bg, #fffdf8);
+        background-color: var(--pass-bg, #f7efe1);
         color: var(--pass-ink, #171412);
         border: 1px solid var(--pass-border, rgba(23, 20, 18, 0.14));
         box-shadow:
@@ -567,8 +567,25 @@
         opacity: 0.12;
       }
 
+      .previewCard[data-pass-theme="latte"]::after {
+        opacity: 0.14;
+      }
+
+      .previewCard[data-pass-theme="mono"]::after {
+        opacity: 0.12;
+      }
+
+      /* Same reasoning as customer-qr-modern.html's .passFlip::after: plain
+         multiply crushes the image to near-invisible on brand's mid-brown
+         and ink's near-black bg, so these two lighten instead of darken. */
+      .previewCard[data-pass-theme="brand"]::after {
+        opacity: 0.3;
+        mix-blend-mode: soft-light;
+      }
+
       .previewCard[data-pass-theme="ink"]::after {
-        opacity: 0.08;
+        opacity: 0.24;
+        mix-blend-mode: screen;
       }
 
       .previewCard > * {
@@ -576,8 +593,12 @@
         z-index: 1;
       }
 
+      /* Colors are fixed literals matching customer-qr-modern.html's
+         .passCard[data-pass-theme] exactly, not tied to var(--brand*) -
+         see that file for why (those tokens mean something different on
+         .theme-invert pages like this one). */
       .previewCard[data-pass-theme="paper"] {
-        --pass-bg: #fffdf8;
+        --pass-bg: #f7efe1;
         --pass-ink: #171412;
         --pass-border: rgba(23, 20, 18, 0.14);
         --pass-stamp-ring: rgba(23, 20, 18, 0.2);
@@ -589,8 +610,8 @@
         --pass-stamp-ring: rgba(19, 19, 19, 0.18);
       }
       .previewCard[data-pass-theme="ink"] {
-        --pass-bg: #241c15;
-        --pass-ink: #fbf3ea;
+        --pass-bg: #201811;
+        --pass-ink: #f4e9da;
         --pass-border: rgba(242, 233, 224, 0.22);
         --pass-stamp-ring: rgba(242, 233, 224, 0.22);
       }
@@ -601,16 +622,16 @@
         --pass-stamp-ring: rgba(255, 255, 255, 0.24);
       }
       .previewCard[data-pass-theme="latte"] {
-        --pass-bg: #fbf6ef;
+        --pass-bg: #ecd7b4;
         --pass-ink: #211a15;
-        --pass-border: rgba(33, 26, 21, 0.14);
-        --pass-stamp-ring: rgba(33, 26, 21, 0.18);
+        --pass-border: rgba(33, 26, 21, 0.16);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.2);
       }
       .previewCard[data-pass-theme="mono"] {
-        --pass-bg: #fffefe;
-        --pass-ink: rgba(0, 0, 0, 0.86);
-        --pass-border: rgba(0, 0, 0, 0.12);
-        --pass-stamp-ring: rgba(0, 0, 0, 0.14);
+        --pass-bg: #eef0ee;
+        --pass-ink: #111111;
+        --pass-border: rgba(0, 0, 0, 0.14);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.16);
       }
 
       .previewCardHead {
