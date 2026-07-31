@@ -44,11 +44,23 @@ platform :ios do
   lane :build do
     certificates
     # CURRENT_PROJECT_VERSION is a static "1" in the checked-in project -
-    # TestFlight rejects re-uploads with a build number it's already seen,
-    # so give every CI run a unique one.
+    # TestFlight rejects re-uploads with a build number it's already seen.
+    # GITHUB_RUN_NUMBER alone isn't safe: re-running a workflow reuses the
+    # exact same run number, which caused a duplicate-build-number upload
+    # rejection. Ask App Store Connect what it last saw instead.
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
+      is_key_content_base64: true,
+    )
+    latest_build_number = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: "app.kaffeekarte.customer",
+    )
     increment_build_number(
       xcodeproj: "ios/App/App.xcodeproj",
-      build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.strftime("%Y%m%d%H%M"),
+      build_number: (latest_build_number + 1).to_s,
     )
     update_code_signing_settings(
       use_automatic_signing: false,
@@ -102,12 +114,40 @@ platform :android do
         "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
         "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
         "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        # The upload keystore was generated as PKCS12 (openssl, no local
+        # keytool available) and saved with a .jks extension by the decode
+        # step in the workflow - explicit here so AGP doesn't guess wrong
+        # based on the extension.
+        "android.injected.signing.store.type" => "PKCS12",
       },
     )
     upload_to_play_store(
       track: "internal",
       json_key: ENV["PLAY_JSON_KEY_PATH"],
       aab: "android/app/build/outputs/bundle/release/app-release.aab",
+    )
+    # Play Console's internal testing track needs testers whose devices meet
+    # its own tester requirements - unrelated to the app's actual
+    # minSdkVersion (23 = Android 6.0, see variables.gradle). A signed .apk
+    # sideloads directly onto any device that satisfies that minSdkVersion,
+    # bypassing Play Console testing entirely. .aab alone can't be
+    # installed directly (needs Play Store's bundletool), hence this
+    # separate "assemble" build alongside "bundle" above.
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        # The upload keystore was generated as PKCS12 (openssl, no local
+        # keytool available) and saved with a .jks extension by the decode
+        # step in the workflow - explicit here so AGP doesn't guess wrong
+        # based on the extension.
+        "android.injected.signing.store.type" => "PKCS12",
+      },
     )
   end
 end

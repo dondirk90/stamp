@@ -32,7 +32,6 @@
     changePwBtn: document.getElementById("changePwBtn"),
     changePwMsg: document.getElementById("changePwMsg"),
     deletePassword: document.getElementById("deletePassword"),
-    deleteConfirmText: document.getElementById("deleteConfirmText"),
     deleteAccountBtn: document.getElementById("deleteAccountBtn"),
     deleteAccountMsg: document.getElementById("deleteAccountMsg"),
 
@@ -470,6 +469,40 @@
     }
   }
 
+  let deleteArmTimer = null;
+  const DELETE_BTN_DEFAULT_LABEL = "Profil jetzt löschen";
+  const DELETE_BTN_ARMED_LABEL = "Wirklich unwiderruflich löschen?";
+  const DELETE_BTN_ARM_TIMEOUT_MS = 6000;
+
+  function disarmDeleteButton() {
+    if (deleteArmTimer) {
+      window.clearTimeout(deleteArmTimer);
+      deleteArmTimer = null;
+    }
+    if (el.deleteAccountBtn) {
+      el.deleteAccountBtn.dataset.armed = "false";
+      el.deleteAccountBtn.textContent = DELETE_BTN_DEFAULT_LABEL;
+    }
+  }
+
+  // Ersetzt das bisherige "DELETE" tippen: erster Klick bewaffnet den Button
+  // nur kurz (Label wechselt, automatischer Reset nach ein paar Sekunden),
+  // erst der zweite Klick loescht wirklich.
+  async function handleDeleteAccountClick() {
+    if (!el.deleteAccountBtn) return;
+    const armed = el.deleteAccountBtn.dataset.armed === "true";
+    if (!armed) {
+      hideNotice(el.deleteAccountMsg);
+      el.deleteAccountBtn.dataset.armed = "true";
+      el.deleteAccountBtn.textContent = DELETE_BTN_ARMED_LABEL;
+      if (deleteArmTimer) window.clearTimeout(deleteArmTimer);
+      deleteArmTimer = window.setTimeout(disarmDeleteButton, DELETE_BTN_ARM_TIMEOUT_MS);
+      return;
+    }
+    disarmDeleteButton();
+    await handleDeleteAccount();
+  }
+
   async function handleDeleteAccount() {
     const session = loadSession();
     hideNotice(el.deleteAccountMsg);
@@ -483,19 +516,6 @@
     }
 
     const currentPassword = String(el.deletePassword?.value || "");
-    const confirmText = String(el.deleteConfirmText?.value || "").trim();
-    if (confirmText !== "DELETE") {
-      showNotice(
-        el.deleteAccountMsg,
-        "danger",
-        "Bitte zur Bestätigung genau DELETE eingeben.",
-      );
-      return;
-    }
-
-    if (!window.confirm("Willst du dein Kundenprofil wirklich endgültig löschen?")) {
-      return;
-    }
 
     if (el.deleteAccountBtn) el.deleteAccountBtn.disabled = true;
     try {
@@ -505,7 +525,7 @@
         body: JSON.stringify({
           email: session.email,
           currentPassword,
-          confirmText,
+          confirmText: "DELETE",
           customerId: session.customer_id,
           address: session.address,
         }),
@@ -513,7 +533,6 @@
       clearSession();
       renderProfile(null);
       if (el.deletePassword) el.deletePassword.value = "";
-      if (el.deleteConfirmText) el.deleteConfirmText.value = "";
       showNotice(
         el.forgotPwMsg,
         "success",
@@ -707,7 +726,7 @@
     }
 
     if (el.deleteAccountBtn) {
-      el.deleteAccountBtn.addEventListener("click", () => void handleDeleteAccount());
+      el.deleteAccountBtn.addEventListener("click", () => void handleDeleteAccountClick());
     }
 
     if (el.profileAvatarChooseBtn && el.profileAvatarInput) {

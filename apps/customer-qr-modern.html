@@ -374,23 +374,8 @@
         overflow: hidden;
       }
 
-      /* Zentraler, hervorgehobener Nav-Button (Kartenstapel) - ragt wie ein
-         FAB ueber die Bottom-Bar hinaus statt nur bei "active" aufzufallen. */
-      .kk-tab--featured {
-        min-height: 58px !important;
-        padding: 0 26px !important;
-        font-size: 14px !important;
-        background:
-          linear-gradient(180deg, #fffaf3, #f5ecdf) !important;
-        color: #241710 !important;
-        box-shadow:
-          0 14px 26px rgba(20, 10, 4, 0.32),
-          0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
-      }
-
-      .kk-tab--featured:hover {
-        color: #241710 !important;
-      }
+      /* .kk-tab--featured now lives in ui.js's shared TABBAR_CSS so every
+         customer page gets the same raised/highlighted tab treatment. */
 
       .topProfileAvatar {
         width: 100%;
@@ -536,9 +521,21 @@
 
         .topbar .row {
           display: flex;
-          position: fixed;
-          top: calc(18px + var(--safe-top, 0px));
-          right: calc(14px + var(--safe-right, 0px));
+          /* Was position:fixed with its own hand-picked "top" offset,
+             independent of .topbar's own fixed position - any mismatch
+             between the two hardcoded numbers threw the profile button
+             out of vertical alignment with the wordmark. .topbar is
+             itself position:fixed, so it's a valid containing block for
+             position:absolute here - centering on it directly can never
+             drift out of sync again. */
+          position: absolute;
+          top: 50%;
+          /* .topbar itself already sits 8px in from the viewport edge (its
+             own "right: calc(8px + ...)" below) - now that .row is measured
+             from .topbar's edge instead of the viewport's, 6px here lands
+             the button at the same ~14px-from-viewport spot as before. */
+          right: calc(6px + var(--safe-right, 0px));
+          transform: translateY(-50%);
           width: 44px;
           height: 44px;
           align-items: center;
@@ -621,17 +618,8 @@
           margin: auto;
           padding: 96px 16px 28px;
           border-radius: 30px;
-          background: rgba(251, 246, 240, 0.52);
-          border: 1px solid rgba(17, 17, 17, 0.05);
-          box-shadow:
-            0 12px 28px rgba(68, 41, 22, 0.04),
-            0 1px 0 rgba(255, 255, 255, 0.58) inset;
-          backdrop-filter: blur(10px);
-        }
-
-        #welcomePanel {
           background: transparent;
-          border: none;
+          border: 1px solid var(--border);
           box-shadow: none;
           backdrop-filter: none;
         }
@@ -952,8 +940,8 @@
 
       .authTitle {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 25px;
+        font-weight: 900;
+        font-size: 26px;
         line-height: 1.08;
         letter-spacing: -0.03em;
       }
@@ -1256,6 +1244,7 @@
         font-weight: 900;
         color: var(--text-muted);
         user-select: none;
+        cursor: pointer;
         --stamp-icon-size: 60%;
         --stamp-jx: 0px;
         --stamp-jy: 0px;
@@ -1429,7 +1418,7 @@
       }
 
       .hint {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-muted);
       }
 
@@ -1783,8 +1772,15 @@
          content needs to start past that, not at a small fixed value. */
       @media (max-width: 520px) and (orientation: portrait) {
         #authPanel,
-        #welcomePanel {
-          padding-top: calc(88px + var(--safe-top, 0px));
+        #welcomePanel,
+        #mapPanel,
+        #historyPanel {
+          /* Same clearance for every subpage so they all start at the same
+             height below the floating topbar - #mapPanel/#historyPanel were
+             missing this override, so a later, viewport-agnostic .mapHero
+             padding rule (padding: var(--space-4)) quietly won out and left
+             the map hugging the header. */
+          padding-top: calc(74px + var(--safe-top, 0px));
         }
       }
 
@@ -1878,9 +1874,9 @@
       .welcomeSectionTitle {
         font-size: 12px;
         font-weight: 900;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.62);
+        color: var(--text-muted);
       }
 
       .welcomeSectionMeta {
@@ -2020,8 +2016,8 @@
       }
 
       .welcomeOverviewTitle {
-        font-size: 22px;
-        font-weight: 950;
+        font-size: 26px;
+        font-weight: 900;
         letter-spacing: -0.04em;
         color: #241710;
       }
@@ -2396,6 +2392,14 @@
 
       .mapHero {
         padding: var(--space-4);
+      }
+
+      #cafeSearch {
+        /* iOS/WKWebView zoomt automatisch in die Seite, wenn ein
+           fokussiertes Eingabefeld kleiner als 16px ist (WebKit-Default
+           liegt darunter). Genau das faellt hier als "reinzoomen" beim
+           Suchen auf - 16px verhindert es zuverlaessig. */
+        font-size: 16px;
       }
 
       .mapStage {
@@ -2814,12 +2818,19 @@
       }
 
       /* Built-in card templates (selected by cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©s) */
+      /* Each --pass-bg/--pass-ink below is a fixed literal, not a
+         var(--brand*) reference - --brand/--brand-700 are page-context
+         tokens that flip to near-white on .theme-invert (café UI) pages,
+         which used to make "ink" resolve almost identically to "brand"
+         (both landed in the same coffee-brown), so cafés only ever saw two
+         visually distinct outcomes (white vs. brown) no matter which of
+         the six themes they picked. */
       .passCard[data-pass-theme="paper"] {
-        --pass-bg: #fffdf8;
+        --pass-bg: #f7efe1;
         --pass-ink: #171412;
         --pass-border: rgba(23, 20, 18, 0.14);
         --pass-stamp-ring: rgba(23, 20, 18, 0.2);
-        --stamp-seam: #fffdf8;
+        --stamp-seam: #f7efe1;
         --pass-badge-bg: rgba(23, 20, 18, 0.05);
         --pass-badge-ink: #171412;
         --pass-hi: rgba(255, 255, 255, 0.76);
@@ -2833,8 +2844,13 @@
 
       .passCard[data-pass-theme="paper"] .passFlip::after {
         opacity: 0.1;
-        background-size: 62% auto, auto, auto, auto;
-        background-position: center 56%, center, center, center;
+        /* Used to shrink the uploaded background photo (the first
+           background-image layer, var(--pass-card-bg)) to a small 62%-wide
+           centered watermark instead of covering the card - that predates
+           cafés being able to upload their own background photo, and once
+           they could, it meant "paper" (the default theme) cropped/placed
+           the photo completely differently than every other theme and than
+           the cafe-profile.html preview, both of which use plain `cover`. */
       }
 
       .passCard[data-pass-theme="clean"] {
@@ -2851,20 +2867,20 @@
       }
 
       .passCard[data-pass-theme="ink"] {
-        --pass-bg: var(--brand-700);
-        --pass-ink: var(--brand-50);
+        --pass-bg: #201811;
+        --pass-ink: #f4e9da;
         --pass-border: rgba(242, 233, 224, 0.22);
         --pass-stamp-ring: rgba(242, 233, 224, 0.22);
-        --stamp-seam: var(--brand-700);
+        --stamp-seam: #201811;
         --pass-badge-bg: rgba(242, 233, 224, 0.14);
-        --pass-badge-ink: var(--brand-50);
+        --pass-badge-ink: #f4e9da;
         --pass-hi: rgba(255, 255, 255, 0.08);
         --pass-lo: rgba(0, 0, 0, 0.18);
       }
 
       /* Extra themes (cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© selectable) */
       .passCard[data-pass-theme="brand"] {
-        --pass-bg: var(--brand);
+        --pass-bg: #6b452c;
         --pass-ink: #ffffff;
         --pass-border: rgba(255, 255, 255, 0.28);
         --pass-stamp-ring: rgba(255, 255, 255, 0.24);
@@ -2876,27 +2892,27 @@
       }
 
       .passCard[data-pass-theme="latte"] {
-        --pass-bg: #fbf6ef;
+        --pass-bg: #ecd7b4;
         --pass-ink: #211a15;
-        --pass-border: rgba(33, 26, 21, 0.14);
-        --pass-stamp-ring: rgba(33, 26, 21, 0.18);
-        --stamp-seam: #fbf6ef;
-        --pass-badge-bg: rgba(33, 26, 21, 0.05);
+        --pass-border: rgba(33, 26, 21, 0.16);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.2);
+        --stamp-seam: #ecd7b4;
+        --pass-badge-bg: rgba(33, 26, 21, 0.06);
         --pass-badge-ink: #211a15;
-        --pass-hi: rgba(255, 255, 255, 0.7);
-        --pass-lo: rgba(0, 0, 0, 0.04);
+        --pass-hi: rgba(255, 255, 255, 0.6);
+        --pass-lo: rgba(0, 0, 0, 0.05);
       }
 
       .passCard[data-pass-theme="mono"] {
-        --pass-bg: #fffefe;
-        --pass-ink: rgba(0, 0, 0, 0.86);
-        --pass-border: rgba(0, 0, 0, 0.12);
-        --pass-stamp-ring: rgba(0, 0, 0, 0.14);
-        --stamp-seam: #fffefe;
+        --pass-bg: #eef0ee;
+        --pass-ink: #111111;
+        --pass-border: rgba(0, 0, 0, 0.14);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.16);
+        --stamp-seam: #eef0ee;
         --pass-badge-bg: rgba(0, 0, 0, 0.06);
-        --pass-badge-ink: rgba(0, 0, 0, 0.86);
-        --pass-hi: rgba(255, 255, 255, 0.78);
-        --pass-lo: rgba(0, 0, 0, 0.06);
+        --pass-badge-ink: #111111;
+        --pass-hi: rgba(255, 255, 255, 0.7);
+        --pass-lo: rgba(0, 0, 0, 0.07);
       }
 
       .passCard .badge {
@@ -2941,8 +2957,48 @@
         opacity: 0.12;
       }
 
+      .passCard[data-pass-theme="latte"] .passFlip::after {
+        opacity: 0.14;
+      }
+
+      .passCard[data-pass-theme="mono"] .passFlip::after {
+        opacity: 0.12;
+      }
+
+      /* Multiply only darkens - fine on the light themes above, but on
+         "brand"'s mid-brown and "ink"'s near-black bg it would crush the
+         uploaded image to near-invisible instead of just texturing it, so
+         these two get a lighten-leaning blend instead. */
+      .passCard[data-pass-theme="brand"] .passFlip::after {
+        opacity: 0.3;
+        mix-blend-mode: soft-light;
+      }
+
       .passCard[data-pass-theme="ink"] .passFlip::after {
-        opacity: 0.08;
+        opacity: 0.24;
+        mix-blend-mode: screen;
+      }
+
+      /* The card's permanent glossy paper sheen (.passFlip's own
+         background-image, and ::before) is tuned for light bg colors - on
+         "ink"'s near-black bg that same sheen washes it out toward the same
+         mid-brown "brand" already occupies, undoing the point of a dark
+         theme. Dial both down so "ink" actually reads as dark. */
+      .passCard[data-pass-theme="ink"] .passFlip {
+        background-image:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05) 36%, rgba(255, 255, 255, 0.02) 100%),
+          linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+      }
+
+      .passCard[data-pass-theme="ink"] .passFlip::before {
+        background:
+          radial-gradient(circle at 14% 20%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 18%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0) 30%),
+          repeating-linear-gradient(
+            -12deg,
+            rgba(255, 255, 255, 0.02) 0 1px,
+            rgba(255, 255, 255, 0) 1px 8px
+          );
       }
 
       /* 3D flip: flip an inner wrapper so swipe/stack transforms stay stable. */
@@ -3084,6 +3140,7 @@
         flex: 0 0 auto;
         overflow: hidden;
         box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+        cursor: pointer;
       }
 
       .passLogo {
@@ -4027,43 +4084,18 @@
       .modal {
         position: relative;
         width: min(620px, 96vw);
-        border-radius: 30px;
-        border: 1px solid rgba(133, 102, 73, 0.18);
-        background:
-          linear-gradient(
-            180deg,
-            rgba(255, 251, 245, 0.98),
-            rgba(250, 243, 233, 0.985)
-          );
+        border-radius: var(--radius);
+        border: 1px solid rgba(17, 17, 17, 0.08);
+        background: var(--color-surface-elevated);
         box-shadow:
-          0 28px 68px rgba(53, 35, 23, 0.18),
-          0 10px 22px rgba(53, 35, 23, 0.08);
+          0 28px 60px rgba(68, 41, 22, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.74) inset;
         overflow: hidden;
         transform: translateY(16px) scale(0.985);
         opacity: 0;
         transition:
           transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
-          opacity 180ms ease,
-          box-shadow 220ms ease;
-      }
-
-      .modal::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.42),
-            rgba(255, 255, 255, 0) 38%
-          ),
-          repeating-linear-gradient(
-            -11deg,
-            rgba(126, 96, 70, 0.028) 0 2px,
-            transparent 2px 12px
-          );
-        opacity: 0.7;
-        pointer-events: none;
+          opacity 180ms ease;
       }
 
       .modalBackdrop.open .modal {
@@ -4073,14 +4105,14 @@
 
       .modalHero {
         position: relative;
-        padding: 26px 26px 18px;
+        padding: 34px 32px 18px;
       }
 
       .modalHero::after {
         content: "";
         display: block;
         margin-top: 18px;
-        border-bottom: 1px solid rgba(119, 91, 65, 0.14);
+        border-bottom: 1px solid var(--border);
       }
 
       .modalHeroRow {
@@ -4104,8 +4136,8 @@
         display: none;
         place-items: center;
         border-radius: 18px;
-        border: 1px solid rgba(133, 102, 73, 0.16);
-        background: rgba(255, 252, 247, 0.92);
+        border: 1px solid var(--border);
+        background: var(--color-surface-elevated);
         box-shadow: 0 10px 18px rgba(66, 44, 28, 0.08);
         overflow: hidden;
       }
@@ -4119,11 +4151,11 @@
 
       .modalKicker {
         margin: 0 0 8px;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.22em;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(109, 83, 60, 0.68);
+        color: var(--text-muted);
       }
 
       .modalTitle {
@@ -4132,7 +4164,7 @@
         font-size: clamp(28px, 4.2vw, 38px);
         line-height: 0.98;
         letter-spacing: -0.03em;
-        color: #2f2218;
+        color: var(--text);
       }
 
       .modalAddr {
@@ -4140,7 +4172,7 @@
         max-width: 38ch;
         font-size: 13px;
         line-height: 1.45;
-        color: rgba(82, 61, 44, 0.78);
+        color: var(--text-muted);
       }
 
       .modalMetaRow {
@@ -4165,15 +4197,15 @@
       }
 
       .modalMetaPill {
-        border: 1px dashed rgba(128, 98, 70, 0.24);
-        color: rgba(92, 68, 48, 0.82);
-        background: rgba(255, 252, 247, 0.7);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        background: var(--color-surface);
       }
 
       .modalStatusPill {
-        border: 1px solid rgba(108, 80, 57, 0.14);
-        color: rgba(73, 53, 37, 0.92);
-        background: rgba(245, 234, 219, 0.86);
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--surface-muted);
       }
 
       .modalImage {
@@ -4181,8 +4213,8 @@
         display: grid;
         place-items: center;
         border-radius: 22px;
-        border: 1px solid rgba(129, 100, 73, 0.14);
-        background: rgba(255, 252, 247, 0.84);
+        border: 1px solid var(--border);
+        background: var(--color-surface);
         overflow: hidden;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
       }
@@ -4202,7 +4234,7 @@
 
       .modalBody {
         position: relative;
-        padding: 0 26px 26px;
+        padding: 0 32px 26px;
         display: flex;
         flex-direction: column;
         gap: 18px;
@@ -4210,12 +4242,11 @@
 
       .modalAbout {
         border-radius: 20px;
-        border: 1px dashed rgba(128, 98, 71, 0.22);
-        background: rgba(255, 253, 249, 0.62);
+        background: var(--surface-muted);
         padding: 16px 18px;
         font-size: 14px;
         line-height: 1.6;
-        color: rgba(56, 39, 26, 0.88);
+        color: var(--text);
         white-space: pre-line;
         /* Kurzprofil zeigt nur einen Teaser; die ganze Story lebt im Vollprofil. */
         display: -webkit-box;
@@ -4750,14 +4781,14 @@
         min-height: 42px;
         padding: 0 16px;
         border-radius: 999px;
-        border: 1px solid rgba(128, 98, 70, 0.16);
-        background: rgba(255, 252, 247, 0.88);
-        color: rgba(92, 68, 48, 0.82);
+        border: 1px solid var(--border);
+        background: var(--color-surface);
+        color: var(--text-muted);
         box-shadow: 0 8px 16px rgba(69, 45, 29, 0.06);
       }
 
       #cafeModalClose:hover {
-        background: rgba(255, 252, 247, 0.96);
+        background: var(--color-surface-elevated);
       }
 
       #cafeModalAddBtn {
@@ -4768,7 +4799,7 @@
 
       #cafeModalAboutEmpty {
         padding: 4px 2px 0;
-        color: rgba(95, 71, 51, 0.72);
+        color: var(--text-muted);
       }
 
       .rewardBalloons {
@@ -4776,7 +4807,10 @@
         inset: 0;
         overflow: hidden;
         pointer-events: none;
-        z-index: 120;
+        /* Was 120 - sat behind the QR sheet (200), the café modal (9999)
+           and the toast (10000), so the celebration silently played behind
+           whatever else was open at the time. Above all of them now. */
+        z-index: 10050;
       }
 
       .rewardBalloon {
@@ -4847,6 +4881,54 @@
         border-radius: 999px;
         background: rgba(242, 230, 215, 0.78);
         transform: translateX(-50%) rotate(12deg);
+      }
+
+      /* A café cup on a saucer, with a handle - used for redeeming a
+         reward instead of another bean burst. A fast multi-directional
+         burst (like the beans use) turned out too quick/chaotic to
+         actually recognize the shape mid-flight, so this floats calmly
+         upward instead - same proven-legible motion as the balloon
+         celebration, just re-skinned as cups and without their spin. */
+      .rewardCup {
+        position: absolute;
+        bottom: -18vh;
+        width: 34px;
+        height: 24px;
+        border-radius: 3px 3px 14px 14px;
+        background:
+          radial-gradient(ellipse at 50% 22%, #6b452c 0%, #6b452c 42%, transparent 46%),
+          #f6ede1;
+        box-shadow:
+          inset -4px -5px 0 rgba(107, 69, 44, 0.14),
+          inset 3px 3px 0 rgba(255, 255, 255, 0.5);
+        transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+        animation: rewardBalloonFloat 4.8s ease-in forwards;
+      }
+
+      .rewardCup::before {
+        /* saucer */
+        content: "";
+        position: absolute;
+        left: -7px;
+        right: -7px;
+        bottom: -7px;
+        height: 6px;
+        border-radius: 50%;
+        background: #f6ede1;
+        box-shadow: inset 0 -2px 0 rgba(107, 69, 44, 0.16);
+      }
+
+      .rewardCup::after {
+        /* handle */
+        content: "";
+        position: absolute;
+        right: -10px;
+        top: 4px;
+        width: 11px;
+        height: 13px;
+        border: 3px solid #f6ede1;
+        border-left: none;
+        border-radius: 0 11px 11px 0;
       }
 
       .rewardSpark {
@@ -5055,7 +5137,7 @@
       </div>
 
       <div class="grid" id="layoutGrid">
-        <div class="card panel" id="authPanel">
+        <div class="card card--hairline panel" id="authPanel">
           <div class="panelHeader">
             <h2 id="authPanelTitle">Willkommen bei Kaffeekarte</h2>
             <div class="seg" role="tablist" aria-label="Auth Mode">
@@ -5261,7 +5343,7 @@
 
           <div class="home screenPager" id="screenPager" aria-label="Start">
             <div class="screenSlide" data-mode="welcome">
-            <div class="card panel" id="welcomePanel">
+            <div class="card card--hairline panel" id="welcomePanel">
               <div class="welcomeHero">
                 <div class="welcomeIntro">
                   <div class="welcomeKicker">Deine Kaffeekarte</div>
@@ -5312,24 +5394,12 @@
             </div>
 
             <div class="screenSlide" data-mode="map">
-            <div class="card panel mapHero" id="mapPanel">
+            <div class="card card--hairline panel mapHero" id="mapPanel">
               <div class="walletDockHead">
                 <div class="stack tight">
                   <div class="badge" id="welcomeBadge">Willkommen</div>
                   <div class="hint" id="mapHint">
                     Tippe auf ein Caf&eacute; und schau kurz hinein.
-                  </div>
-                  <div
-                    class="stack"
-                    style="gap: 8px; margin-top: var(--space-3)"
-                  >
-                    <div class="muted" style="font-size: 12px">Neues Lieblingscaf&eacute; finden</div>
-                    <input
-                      id="cafeSearch"
-                      type="search"
-                      placeholder="Name eingeben..."
-                      autocomplete="off"
-                    />
                   </div>
                   <div
                     class="muted"
@@ -5363,12 +5433,25 @@
                 </div>
               </div>
 
+              <div
+                class="stack"
+                style="gap: 8px; margin-top: var(--space-4)"
+              >
+                <div class="muted" style="font-size: 12px">Neues Lieblingscaf&eacute; finden</div>
+                <input
+                  id="cafeSearch"
+                  type="search"
+                  placeholder="Name eingeben..."
+                  autocomplete="off"
+                />
+              </div>
+
               <div id="cafeResults" class="mapList"></div>
             </div>
             </div>
 
             <div class="screenSlide" data-mode="history">
-            <div class="card panel" id="historyPanel">
+            <div class="card card--hairline panel" id="historyPanel">
               <div class="panelHeader">
                 <h3>Deine letzten Besuche</h3>
               </div>

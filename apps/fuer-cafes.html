@@ -12,8 +12,7 @@
     <style>
       :root {
         --page-max: 1180px;
-        --glass: rgba(255, 251, 246, 0.82);
-        --line: rgba(81, 58, 40, 0.1);
+        --line: rgba(81, 58, 40, 0.12);
       }
 
       body {
@@ -25,7 +24,7 @@
       .page {
         width: min(var(--page-max), calc(100% - 28px));
         margin: 0 auto;
-        padding: 22px 0 48px;
+        padding: calc(28px + var(--safe-top, 0px)) 0 56px;
       }
 
       .header {
@@ -33,15 +32,10 @@
         align-items: center;
         justify-content: space-between;
         gap: 18px;
-        margin-bottom: 26px;
-        position: sticky;
-        top: calc(10px + var(--safe-top, 0px));
-        z-index: 10;
-        padding: 14px 16px;
-        border-radius: 24px;
-        border: 1px solid rgba(81, 58, 40, 0.08);
-        background: rgba(252, 248, 242, 0.78);
-        backdrop-filter: blur(18px);
+        flex-wrap: wrap;
+        margin-bottom: clamp(48px, 8vw, 88px);
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
       }
 
       .brand {
@@ -92,14 +86,10 @@
       }
 
       .nav {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 252, 248, 0.72);
-        backdrop-filter: blur(14px);
+        gap: clamp(16px, 3vw, 28px);
+        flex-wrap: wrap;
       }
 
       .nav a {
@@ -108,39 +98,17 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         text-decoration: none;
-        color: rgba(59, 42, 31, 0.76);
+        color: rgba(59, 42, 31, 0.7);
       }
 
-      .heroCard,
-      .panel {
-        border-radius: 34px;
-        border: 1px solid var(--line);
-        background: var(--glass);
-        backdrop-filter: blur(20px);
-        box-shadow:
-          0 22px 44px rgba(68, 41, 22, 0.09),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      .nav a:hover {
+        color: var(--text);
       }
 
       .heroCard {
-        padding: clamp(28px, 5vw, 48px);
         display: grid;
         align-content: start;
         gap: 18px;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .heroCard::after {
-        content: "";
-        position: absolute;
-        right: -18px;
-        bottom: -16px;
-        width: 168px;
-        height: 168px;
-        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
-        opacity: 0.08;
-        pointer-events: none;
       }
 
       .sectionKicker {
@@ -154,10 +122,10 @@
       .heroTitle {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: clamp(40px, 6vw, 64px);
+        font-size: clamp(44px, 6.4vw, 72px);
         line-height: 0.94;
         letter-spacing: -0.055em;
-        max-width: 14ch;
+        max-width: 16ch;
       }
 
       .heroLead {
@@ -172,17 +140,26 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+        margin-top: 6px;
+      }
+
+      .heroCard .accentRule {
+        margin: 4px 0 2px;
+      }
+
+      .section {
+        margin-top: clamp(56px, 9vw, 104px);
+      }
+
+      .section--divider {
+        padding-top: clamp(56px, 9vw, 104px);
+        border-top: 1px solid var(--line);
       }
 
       .grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
-        margin-top: 26px;
-      }
-
-      .panel {
-        padding: 24px;
+        gap: clamp(28px, 4vw, 48px);
       }
 
       .panel h2 {
@@ -199,20 +176,16 @@
       }
 
       .panelNo {
-        width: 46px;
-        height: 46px;
-        display: grid;
-        place-items: center;
-        margin-bottom: 14px;
-        border-radius: 999px;
-        background: var(--color-coffee);
-        color: #fff;
-        font-size: 14px;
-        font-weight: 900;
+        font-family: var(--font-serif);
+        font-size: 30px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--brand);
+        margin-bottom: 8px;
       }
 
       .footerNote {
-        margin: 24px 0 14px;
+        margin-bottom: 14px;
         color: rgba(59, 42, 31, 0.7);
         line-height: 1.55;
         max-width: 46ch;
@@ -240,27 +213,15 @@
       @media (max-width: 760px) {
         .page {
           width: min(100% - 20px, var(--page-max));
-          padding-top: 14px;
         }
 
         .header {
           flex-direction: column;
           align-items: stretch;
-          position: static;
-          padding: 0;
-          border: none;
-          background: transparent;
-          backdrop-filter: none;
         }
 
         .nav {
           justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .heroCard,
-        .panel {
-          border-radius: 28px;
         }
 
         .heroActions {
@@ -295,6 +256,7 @@
       <section class="heroCard">
         <div class="sectionKicker">Für Cafés</div>
         <h1 class="heroTitle">Ein Werkzeug für den Caféalltag.</h1>
+        <span class="accentRule" aria-hidden="true"></span>
         <p class="heroLead">
           QR zeigen, Karten und Verwaltung leben in derselben ruhigen Oberfläche.
           Schnell genug für die Theke, hochwertig genug fürs Produktgefühl –
@@ -306,40 +268,50 @@
         </div>
       </section>
 
-      <section class="grid" aria-label="Vorteile">
-        <article class="panel">
-          <h2>Ein Klick zum QR</h2>
-          <p>Keine Umwege, keine Theken-Hektik. Der Arbeitsmodus zeigt genau das, was an der Theke gebraucht wird.</p>
-        </article>
-        <article class="panel">
-          <h2>Eigene Karte pflegen</h2>
-          <p>Reward, Beschreibung, Website und Bild an einem Ort – deine Karte sieht so aus, wie dein Café sich anfühlt.</p>
-        </article>
-        <article class="panel">
-          <h2>Stammgäste, die wiederkommen</h2>
-          <p>Deine Gäste sammeln Stempel digital statt auf Papier und haben dein Café immer dabei.</p>
-        </article>
+      <section class="section section--divider">
+        <div class="editorialGrid">
+          <div class="editorialIndex">01</div>
+          <div class="grid" aria-label="Vorteile">
+            <article class="panel">
+              <h2>Ein Klick zum QR</h2>
+              <p>Keine Umwege, keine Theken-Hektik. Der Arbeitsmodus zeigt genau das, was an der Theke gebraucht wird.</p>
+            </article>
+            <article class="panel">
+              <h2>Eigene Karte pflegen</h2>
+              <p>Reward, Beschreibung, Website und Bild an einem Ort – deine Karte sieht so aus, wie dein Café sich anfühlt.</p>
+            </article>
+            <article class="panel">
+              <h2>Stammgäste, die wiederkommen</h2>
+              <p>Deine Gäste sammeln Stempel digital statt auf Papier und haben dein Café immer dabei.</p>
+            </article>
+          </div>
+        </div>
       </section>
 
-      <section class="grid" aria-label="So startest du">
-        <article class="panel">
-          <div class="panelNo">1</div>
-          <h2>Registrieren</h2>
-          <p>Café anlegen, Zugang erhalten – in wenigen Minuten, ohne Setup-Projekt.</p>
-        </article>
-        <article class="panel">
-          <div class="panelNo">2</div>
-          <h2>Karte gestalten</h2>
-          <p>Reward festlegen, Beschreibung und Bild hinterlegen. Deine Karte, deine Sprache.</p>
-        </article>
-        <article class="panel">
-          <div class="panelNo">3</div>
-          <h2>QR an die Theke</h2>
-          <p>Gäste zeigen ihren QR, du stempelst. Mehr braucht der Alltag nicht.</p>
-        </article>
+      <section class="section section--divider">
+        <div class="editorialGrid">
+          <div class="editorialIndex">02</div>
+          <div class="grid" aria-label="So startest du">
+            <article class="panel">
+              <div class="panelNo">1</div>
+              <h2>Registrieren</h2>
+              <p>Café anlegen, Zugang erhalten – in wenigen Minuten, ohne Setup-Projekt.</p>
+            </article>
+            <article class="panel">
+              <div class="panelNo">2</div>
+              <h2>Karte gestalten</h2>
+              <p>Reward festlegen, Beschreibung und Bild hinterlegen. Deine Karte, deine Sprache.</p>
+            </article>
+            <article class="panel">
+              <div class="panelNo">3</div>
+              <h2>QR an die Theke</h2>
+              <p>Gäste zeigen ihren QR, du stempelst. Mehr braucht der Alltag nicht.</p>
+            </article>
+          </div>
+        </div>
       </section>
 
-      <p class="footerNote">
+      <p class="footerNote section section--divider">
         Kaffeekarte ist für unabhängige Cafés gebaut: weniger Software,
         mehr Cafégefühl – und Gäste, die gerne wiederkommen.
       </p>

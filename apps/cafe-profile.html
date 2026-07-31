@@ -71,6 +71,17 @@
           0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
+        /* Reacts to scroll: stretches slightly on the native overscroll
+           bounce so that (already-active) physics gets a visible response. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -255,16 +266,36 @@
       }
 
       .card,
-      .viewSection,
-      .heroCard,
-      .cardSection,
       .cardBgPreview,
       #profileAboutPreview {
         background: rgba(255, 248, 241, 0.05) !important;
         border: 1px solid rgba(255, 241, 233, 0.10) !important;
-        box-shadow:
-          0 18px 40px rgba(0, 0, 0, 0.16),
-          0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+        box-shadow: none !important;
+      }
+
+      /* These sit nested inside #profileCard/#loginCard, which is already
+         the one legitimate framed panel per screen (see BRAND.md's
+         hairlines-over-shadows principle) - giving each subsection its own
+         border+background too stacked "frame inside frame" boxes all the
+         way down. A hairline divider separates them instead. */
+      .viewSection,
+      .cardSection,
+      .heroCard {
+        background: transparent !important;
+        border: none !important;
+        border-top: 1px solid var(--border) !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: 18px !important;
+      }
+
+      /* Exception: the destructive action needs to stay visually contained
+         so it doesn't read as just another plain settings row. */
+      #sectionDeleteProfile {
+        border: 1px solid rgba(180, 35, 24, 0.26) !important;
+        border-radius: var(--radius) !important;
+        background: rgba(180, 35, 24, 0.08) !important;
+        padding: var(--space-4) !important;
       }
 
       .bottomTabs {
@@ -467,6 +498,242 @@
         display: none;
       }
 
+      /* Live preview of the actual guest-facing stamp card, using the same
+         theme/logo/stamp-style/background settings edited below - lets a
+         café see the effect of a change immediately instead of guessing or
+         switching over to the customer app to check. Colors here are the
+         customer app's own light-theme card palette (hardcoded, not this
+         page's --brand/--text etc.), since that's what guests actually see
+         regardless of this app's own dark theme. */
+      .previewCardWrap {
+        /* Sticky so it stays visible while scrolling through the theme/
+           logo/background settings further down, instead of having to
+           scroll back up every time to see what a change actually did. */
+        position: sticky;
+        top: calc(var(--safe-top, 0px) + 8px);
+        z-index: 5;
+        margin: 0 calc(-1 * var(--space-5)) var(--space-4);
+        padding: 14px var(--space-5) 18px;
+        background: rgba(42, 29, 24, 0.92);
+        backdrop-filter: blur(18px);
+      }
+
+      .previewCardLabel {
+        margin-bottom: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+
+      .previewCard {
+        --pass-card-ratio: 1.34;
+        width: min(320px, 100%);
+        aspect-ratio: var(--pass-card-ratio);
+        margin: 0 auto;
+        position: relative;
+        border-radius: 24px;
+        padding: 18px 20px;
+        overflow: hidden;
+        background-color: var(--pass-bg, #f7efe1);
+        color: var(--pass-ink, #171412);
+        border: 1px solid var(--pass-border, rgba(23, 20, 18, 0.14));
+        box-shadow:
+          0 16px 28px rgba(41, 29, 21, 0.12),
+          0 8px 18px rgba(41, 29, 21, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      /* Same --pass-card-ratio breakpoints as customer-qr-modern.html's
+         .passCard (source order matters here exactly like it does there,
+         since later matching rules win at equal specificity) - the actual
+         card goes noticeably more square on phones, which is how nearly
+         every guest sees it. Without this the preview stayed at the wide
+         1.34 desktop ratio no matter the viewport, so a background image
+         cropped to look right here got cropped completely differently by
+         `background-size: cover` on the real, more-square mobile card. */
+      @media (max-width: 420px) {
+        .previewCard {
+          --pass-card-ratio: 1.08;
+        }
+      }
+      @media (max-width: 520px) and (orientation: portrait) {
+        .previewCard {
+          --pass-card-ratio: 1.08;
+        }
+      }
+      @media (max-width: 520px) and (max-height: 760px) {
+        .previewCard {
+          --pass-card-ratio: 1.04;
+        }
+      }
+
+      .previewCard::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: var(--pass-card-bg, none);
+        background-size: cover;
+        background-position: center;
+        /* Matches customer-qr-modern.html's .passFlip::after exactly (same
+           opacity/blend-mode/filter) - this preview used to show the
+           uploaded background at a much stronger opacity with no blend
+           mode, so it looked clearly visible here but came out barely
+           visible on the actual card guests see. */
+        opacity: 0.2;
+        mix-blend-mode: multiply;
+        filter: saturate(0.96) contrast(1.01);
+      }
+
+      .previewCard[data-pass-theme="clean"]::after {
+        opacity: 0.12;
+      }
+
+      .previewCard[data-pass-theme="latte"]::after {
+        opacity: 0.14;
+      }
+
+      .previewCard[data-pass-theme="mono"]::after {
+        opacity: 0.12;
+      }
+
+      /* Same reasoning as customer-qr-modern.html's .passFlip::after: plain
+         multiply crushes the image to near-invisible on brand's mid-brown
+         and ink's near-black bg, so these two lighten instead of darken. */
+      .previewCard[data-pass-theme="brand"]::after {
+        opacity: 0.3;
+        mix-blend-mode: soft-light;
+      }
+
+      .previewCard[data-pass-theme="ink"]::after {
+        opacity: 0.24;
+        mix-blend-mode: screen;
+      }
+
+      .previewCard > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Colors are fixed literals matching customer-qr-modern.html's
+         .passCard[data-pass-theme] exactly, not tied to var(--brand*) -
+         see that file for why (those tokens mean something different on
+         .theme-invert pages like this one). */
+      .previewCard[data-pass-theme="paper"] {
+        --pass-bg: #f7efe1;
+        --pass-ink: #171412;
+        --pass-border: rgba(23, 20, 18, 0.14);
+        --pass-stamp-ring: rgba(23, 20, 18, 0.2);
+      }
+      .previewCard[data-pass-theme="clean"] {
+        --pass-bg: #ffffff;
+        --pass-ink: #131313;
+        --pass-border: rgba(19, 19, 19, 0.12);
+        --pass-stamp-ring: rgba(19, 19, 19, 0.18);
+      }
+      .previewCard[data-pass-theme="ink"] {
+        --pass-bg: #201811;
+        --pass-ink: #f4e9da;
+        --pass-border: rgba(242, 233, 224, 0.22);
+        --pass-stamp-ring: rgba(242, 233, 224, 0.22);
+      }
+      .previewCard[data-pass-theme="brand"] {
+        --pass-bg: #6b452c;
+        --pass-ink: #ffffff;
+        --pass-border: rgba(255, 255, 255, 0.28);
+        --pass-stamp-ring: rgba(255, 255, 255, 0.24);
+      }
+      .previewCard[data-pass-theme="latte"] {
+        --pass-bg: #ecd7b4;
+        --pass-ink: #211a15;
+        --pass-border: rgba(33, 26, 21, 0.16);
+        --pass-stamp-ring: rgba(33, 26, 21, 0.2);
+      }
+      .previewCard[data-pass-theme="mono"] {
+        --pass-bg: #eef0ee;
+        --pass-ink: #111111;
+        --pass-border: rgba(0, 0, 0, 0.14);
+        --pass-stamp-ring: rgba(0, 0, 0, 0.16);
+      }
+
+      .previewCardHead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .previewCardLogoWrap {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--pass-border);
+        background: rgba(0, 0, 0, 0.04);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        font-weight: 900;
+      }
+
+      .previewCardLogo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .previewCardTitleBlock {
+        min-width: 0;
+      }
+
+      .previewCardTitle {
+        font-weight: 900;
+        font-size: 16px;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .previewCardSub {
+        font-size: 12px;
+        opacity: 0.68;
+      }
+
+      .previewStampGrid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .previewStamp {
+        aspect-ratio: 1 / 1;
+        border-radius: 999px;
+        border: 1.5px solid var(--pass-stamp-ring, rgba(23, 20, 18, 0.2));
+        display: grid;
+        place-items: center;
+      }
+
+      .previewStamp img,
+      .previewStamp svg {
+        width: 62%;
+        height: 62%;
+        color: var(--pass-ink);
+        display: block;
+      }
+
+      .previewStamp.empty img,
+      .previewStamp.empty svg {
+        opacity: 0.22;
+      }
+
+      .previewCardReward {
+        margin-top: auto;
+        font-size: 12px;
+        opacity: 0.72;
+      }
+
       .muted {
         color: var(--text-muted);
       }
@@ -556,7 +823,6 @@
       <div class="pageMeta">
         <h1 class="pageMetaTitle" id="cafeName">Café Profil</h1>
         <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
-        <div class="pageMetaSub" id="buildBadge">profile · ui-20260603c</div>
       </div>
 
       <div class="card" id="loadingCard" style="padding: var(--space-5)">
@@ -585,6 +851,29 @@
               klar und hochwertig wirkt. 3. Pflege später in der Verwaltung
               Kampagnen, Standort und Zusatzinhalte.
             </p>
+          </div>
+
+          <div class="previewCardWrap">
+            <div class="previewCardLabel">Vorschau: so sieht die Karte bei deinen Gästen aus</div>
+            <div class="previewCard" id="cardPreview" data-pass-theme="paper">
+              <div class="previewCardHead">
+                <div class="previewCardLogoWrap" id="previewCardLogoWrap">
+                  <span id="previewCardLogoFallback"></span>
+                  <img
+                    class="previewCardLogo"
+                    id="previewCardLogo"
+                    alt=""
+                    style="display: none"
+                  />
+                </div>
+                <div class="previewCardTitleBlock">
+                  <div class="previewCardTitle" id="previewCardTitle">Café</div>
+                  <div class="previewCardSub">Digitale Stempelkarte</div>
+                </div>
+              </div>
+              <div class="previewStampGrid" id="previewStampGrid"></div>
+              <div class="previewCardReward" id="previewCardReward"></div>
+            </div>
           </div>
         </div>
         <div
@@ -620,7 +909,7 @@
             </div>
           </div>
 
-          <div id="sectionProgramCampaigns" class="card" style="padding: var(--space-4); margin-top: 8px">
+          <div id="sectionProgramCampaigns" class="viewSection">
             <h3 id="programSectionTitle" style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
               Stempelprogramm
             </h3>
@@ -928,7 +1217,7 @@
             <div id="galleryList" class="galleryList"></div>
           </div>
 
-          <div id="sectionChangePassword" class="cardSection">
+          <div id="sectionChangePassword" class="viewSection">
             <div class="muted" style="margin-bottom: 6px; font-weight: 700">
               Passwort ändern
             </div>
@@ -980,7 +1269,7 @@
 
           <div
             id="sectionDeleteProfile"
-            class="cardSection"
+            class="viewSection"
             style="border-color: rgba(180, 35, 24, 0.26); background: rgba(180, 35, 24, 0.08)"
           >
             <div
@@ -1058,13 +1347,94 @@
         var nav = stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "utilityStartBtn", label: "Start" },
-            { id: "utilityCardBtn", label: "Karte", active: !advanced },
-            { id: "utilityDashboardBtn", label: "Dashboard" },
-            { id: "utilityAdminBtn", label: "Verwaltung", active: advanced },
+            { id: "bottomModeScanner", label: "Scanner", icon: stampUI.tabIcons.scan },
+            { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
+            {
+              id: "utilityCardBtn",
+              label: "Karte",
+              icon: stampUI.tabIcons.card,
+              active: !advanced,
+            },
+            { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
+            {
+              id: "utilityAdminBtn",
+              label: "Verwaltung",
+              icon: stampUI.tabIcons.settings,
+              active: advanced,
+            },
           ],
         });
         nav.id = "bottomTabs";
+      })();
+    </script>
+    <script>
+      (function () {
+        var topbar = document.querySelector(".topbar");
+        if (!topbar) return;
+
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
+        // window.scrollY going negative during the native bounce (the
+        // original approach here) turned out unreliable in practice - the
+        // café scanner screen's equivalent fix (tracking the raw touch drag
+        // while already scrolled to the top) is the one that's actually
+        // proven to work, so this page uses the same approach now instead.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            startY = e.touches.length === 1 && atTop ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            if (dy > 0 && atTop) {
+              setStretch(dy);
+            } else {
+              startY = null;
+              clearStretch();
+              topbar.classList.remove("topbar--pulling");
+            }
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
+
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk.
+        var ticking = false;
+        function paintWindowScroll() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (y < 0) setStretch(-y);
+          else if (startY == null) clearStretch();
+        }
+        function schedule() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paintWindowScroll);
+        }
+        window.addEventListener("scroll", schedule, { passive: true });
+        paintWindowScroll();
       })();
     </script>
     <script>
@@ -1208,6 +1578,71 @@
           reader.onload = () => resolve(String(reader.result || ""));
           reader.readAsDataURL(file);
         });
+      }
+
+      function loadImageElement(dataUrl) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("image_decode_failed"));
+          img.src = dataUrl;
+        });
+      }
+
+      function approxDataUrlBytes(dataUrl) {
+        const idx = dataUrl.indexOf(",");
+        const b64 = idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl;
+        return Math.ceil((b64.length * 3) / 4);
+      }
+
+      // Phone camera photos routinely come in at several MB - rejecting
+      // anything over the server's size limit (the previous behaviour)
+      // left uploads failing almost every time with no way to fix it short
+      // of finding separate editing software. This downscales/recompresses
+      // client-side instead, so an oversized photo just gets fit to the
+      // limit rather than bounced.
+      async function fitImageToLimit(file, opts) {
+        const maxDim = (opts && opts.maxDim) || 1200;
+        const maxBytes = (opts && opts.maxBytes) || 400 * 1024;
+        const mimeType = (opts && opts.mimeType) || "image/jpeg";
+
+        const srcDataUrl = await readFileAsDataUrl(file);
+        const img = await loadImageElement(srcDataUrl);
+
+        // Already within both budgets (common for small PNG logos) - skip
+        // the lossy re-encode entirely, e.g. to keep PNG transparency intact.
+        if (file.size <= maxBytes && Math.max(img.width, img.height) <= maxDim) {
+          return srcDataUrl;
+        }
+
+        let width = img.width;
+        let height = img.height;
+        const scale = Math.min(1, maxDim / Math.max(width, height));
+        width = Math.max(1, Math.round(width * scale));
+        height = Math.max(1, Math.round(height * scale));
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        let quality = 0.88;
+        let out = srcDataUrl;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          canvas.width = width;
+          canvas.height = height;
+          ctx.clearRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          out =
+            mimeType === "image/jpeg"
+              ? canvas.toDataURL(mimeType, quality)
+              : canvas.toDataURL(mimeType);
+          if (approxDataUrlBytes(out) <= maxBytes) break;
+          if (mimeType === "image/jpeg" && quality > 0.45) {
+            quality -= 0.12;
+          } else {
+            width = Math.round(width * 0.85);
+            height = Math.round(height * 0.85);
+          }
+        }
+        return out;
       }
       function escapeHtml(s) {
         return String(s || "")
@@ -1407,6 +1842,95 @@
             cardBgPreview.style.display = "none";
           }
         }
+
+        renderCardPreview();
+      }
+
+      // Same stamp icon markup as the customer wallet's buildStampSvg() -
+      // "cup" has no dedicated art there either and is aliased to the bean.
+      function buildPreviewStampIcon(filled, style) {
+        const kind = String(style || "bean").trim().toLowerCase();
+        if (kind === "star") {
+          return filled
+            ? '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="currentColor" opacity="0.92"></path></svg>'
+            : '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z" fill="none" stroke="currentColor" stroke-width="4.8" opacity="0.4" stroke-linejoin="round"></path></svg>';
+        }
+        if (kind === "circle") {
+          return filled
+            ? '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="26" fill="currentColor" opacity="0.92"></circle></svg>'
+            : '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle></svg>';
+        }
+        return `<img src="/assets/stamp-bean.png" alt="" style="opacity:${filled ? 0.96 : 0.22}" />`;
+      }
+
+      // Live mirror of the actual guest-facing card (see buildPassCard() in
+      // customer-qr-modern.js) - kept intentionally lighter than that (no 3D
+      // flip, no QR, no swipe physics) since this only needs to show the
+      // visual identity a café is currently editing, not be interactive.
+      function renderCardPreview() {
+        const previewEl = document.getElementById("cardPreview");
+        if (!previewEl) return;
+
+        const themeEl = document.getElementById("profileCardTheme");
+        const stampStyleEl = document.getElementById("profileStampStyle");
+        const rewardThresholdEl = document.getElementById("profileRewardThreshold");
+
+        const theme = themeEl && themeEl.value ? themeEl.value : "paper";
+        const stampStyle = stampStyleEl && stampStyleEl.value ? stampStyleEl.value : "bean";
+        const threshold = Math.max(
+          1,
+          Math.min(50, parseInt((rewardThresholdEl && rewardThresholdEl.value) || "10", 10) || 10),
+        );
+
+        previewEl.setAttribute("data-pass-theme", theme);
+        previewEl.style.setProperty(
+          "--pass-card-bg",
+          profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
+        );
+
+        const titleEl = document.getElementById("previewCardTitle");
+        if (titleEl) titleEl.textContent = (cafe && cafe.name) || "Café";
+
+        const logoImg = document.getElementById("previewCardLogo");
+        const logoFallback = document.getElementById("previewCardLogoFallback");
+        if (profileState.logoDataUrl) {
+          if (logoImg) {
+            logoImg.src = profileState.logoDataUrl;
+            logoImg.style.display = "block";
+          }
+          if (logoFallback) logoFallback.style.display = "none";
+        } else {
+          if (logoImg) logoImg.style.display = "none";
+          if (logoFallback) {
+            logoFallback.style.display = "block";
+            logoFallback.textContent = ((cafe && cafe.name) || "C").charAt(0).toUpperCase();
+          }
+        }
+
+        const grid = document.getElementById("previewStampGrid");
+        if (grid) {
+          grid.innerHTML = "";
+          // A few filled cells demonstrate both states at once, rather than
+          // showing an all-empty (or all-full) card that only tells half
+          // the story.
+          const filledDemo = Math.min(3, threshold);
+          for (let i = 0; i < threshold; i++) {
+            const cell = document.createElement("div");
+            const filled = i < filledDemo;
+            cell.className = "previewStamp" + (filled ? "" : " empty");
+            cell.innerHTML = buildPreviewStampIcon(filled, stampStyle);
+            grid.appendChild(cell);
+          }
+        }
+
+        const rewardEl = document.getElementById("previewCardReward");
+        if (rewardEl) {
+          const rewardDescriptionEl = document.getElementById("profileRewardDescription");
+          const label = rewardDescriptionEl && rewardDescriptionEl.value
+            ? rewardDescriptionEl.value
+            : "Belohnung";
+          rewardEl.textContent = `Bei ${threshold} Stempeln: ${label}`;
+        }
       }
 
       function renderGallery(images) {
@@ -1568,33 +2092,16 @@
         setMsg("Speichere…");
 
         try {
-          let logoDataUrl = profileState.logoDataUrl;
-          const file =
-            logoInput && logoInput.files && logoInput.files[0]
-              ? logoInput.files[0]
-              : null;
-          if (file) {
-            if (file.size > 220 * 1024) {
-              throw new Error(
-                "Logo zu groß (max ~220KB). Bitte kleineres Bild wählen.",
-              );
-            }
-            logoDataUrl = await readFileAsDataUrl(file);
-          }
-
-          let cardBgDataUrl = profileState.cardBgDataUrl;
-          const bgFile =
-            cardBgInput && cardBgInput.files && cardBgInput.files[0]
-              ? cardBgInput.files[0]
-              : null;
-          if (bgFile) {
-            if (bgFile.size > 520 * 1024) {
-              throw new Error(
-                "Hintergrund zu groß (max ~520KB). Bitte kleineres Bild wählen.",
-              );
-            }
-            cardBgDataUrl = await readFileAsDataUrl(bgFile);
-          }
+          // profileState.logoDataUrl/cardBgDataUrl are already the resized/
+          // recompressed versions from fitImageToLimit() (set when the file
+          // input's change handler ran) - re-reading logoInput/cardBgInput's
+          // raw File here and re-checking it against the old, much stricter
+          // byte limits defeated that resize entirely: the preview showed
+          // the shrunk image, but saving re-read the original multi-MB file,
+          // failed the size check, and threw "Speichern fehlgeschlagen" even
+          // though everything looked fine a moment earlier.
+          const logoDataUrl = profileState.logoDataUrl;
+          const cardBgDataUrl = profileState.cardBgDataUrl;
 
           const cardBackText = cardBackEl
             ? String(cardBackEl.value || "").trim()
@@ -1867,8 +2374,6 @@
 
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Profil";
-          document.getElementById("buildBadge").textContent =
-            `profile · ui-20260603c · API: ${apiBase}`;
           applyProfileViewMode(getProfileViewMode());
           wireUtilityMenu();
 
@@ -1925,16 +2430,43 @@
                     ? logoInput.files[0]
                     : null;
                 if (!file) return;
-                if (file.size > 220 * 1024) {
-                  setMsg("Logo zu groß (max ~220KB).");
+                if (file.size > 20 * 1024 * 1024) {
+                  setMsg("Logo zu groß zum Verkleinern (max 20MB Ausgangsdatei).");
                   logoInput.value = "";
                   return;
                 }
-                const dataUrl = await readFileAsDataUrl(file);
+                // SVGs are vector/text-based - resizing them via canvas would
+                // rasterize away exactly what makes them worth uploading, and
+                // they're essentially never large enough to need it anyway.
+                if (file.type === "image/svg+xml") {
+                  if (file.size > 200 * 1024) {
+                    setMsg("Logo zu groß (max ~200KB für SVG).");
+                    logoInput.value = "";
+                    return;
+                  }
+                  const dataUrl = await readFileAsDataUrl(file);
+                  profileState.logoDataUrl = dataUrl;
+                  logoPreview.src = dataUrl;
+                  logoPreview.style.display = "block";
+                  setMsg("Logo ausgewählt (noch nicht gespeichert)");
+                  renderCardPreview();
+                  return;
+                }
+                setMsg("Logo wird verkleinert…");
+                const dataUrl = await fitImageToLimit(file, {
+                  maxDim: 800,
+                  // Server hard limit is ~225KB decoded (300,000 base64
+                  // chars) - a bit of margin below that.
+                  maxBytes: 200 * 1024,
+                  // PNGs (the common case for logos) keep transparency -
+                  // only photos get re-encoded as JPEG.
+                  mimeType: file.type === "image/png" ? "image/png" : "image/jpeg",
+                });
                 profileState.logoDataUrl = dataUrl;
                 logoPreview.src = dataUrl;
                 logoPreview.style.display = "block";
                 setMsg("Logo ausgewählt (noch nicht gespeichert)");
+                renderCardPreview();
               } catch (e) {
                 setMsg("Logo konnte nicht geladen werden");
               }
@@ -1951,16 +2483,24 @@
                     ? cardBgInput.files[0]
                     : null;
                 if (!file) return;
-                if (file.size > 520 * 1024) {
-                  setMsg("Hintergrund zu groß (max ~520KB).");
+                if (file.size > 20 * 1024 * 1024) {
+                  setMsg("Hintergrund zu groß zum Verkleinern (max 20MB Ausgangsdatei).");
                   cardBgInput.value = "";
                   return;
                 }
-                const dataUrl = await readFileAsDataUrl(file);
+                setMsg("Hintergrund wird verkleinert…");
+                const dataUrl = await fitImageToLimit(file, {
+                  maxDim: 1400,
+                  // Server hard limit is ~487KB decoded (650,000 base64
+                  // chars) - a bit of margin below that.
+                  maxBytes: 450 * 1024,
+                  mimeType: "image/jpeg",
+                });
                 profileState.cardBgDataUrl = dataUrl;
                 cardBgPreview.src = dataUrl;
                 cardBgPreview.style.display = "block";
                 setMsg("Hintergrund ausgewählt (noch nicht gespeichert)");
+                renderCardPreview();
               } catch (e) {
                 setMsg("Hintergrund konnte nicht geladen werden");
               }
@@ -1979,8 +2519,19 @@
               const inp = document.getElementById("profileCardBg");
               if (inp) inp.value = "";
               setMsg("Hintergrund entfernt (noch nicht gespeichert)");
+              renderCardPreview();
             });
           }
+
+          [
+            "profileCardTheme",
+            "profileStampStyle",
+            "profileRewardThreshold",
+            "profileRewardDescription",
+          ].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("input", renderCardPreview);
+          });
 
           const overview = await apiFetch(
             "/cafes/me/overview?eventsLimit=5&customers=5",

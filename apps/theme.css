@@ -333,6 +333,57 @@ a:hover {
     background var(--motion-normal) var(--motion-ease);
 }
 
+/* Editorial-Grid-Sprache (BRAND.md §8/§11 Phase 1c) - Hairline-Variante von
+   .card fuer Flaechen, die nicht wirklich schweben (Seiten-Panels). Modals,
+   QR-Sheet und die Stempelkarte selbst behalten bewusst ihren Schatten - sie
+   sind die Objekte, die "wirklich schweben" (siehe BRAND.md §8). Opt-in statt
+   .card selbst zu aendern, damit die Cafe-App (Phase 1d) unabhaengig
+   entscheiden kann. */
+.card--hairline {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+/* Editorial-Grid-Sprache (BRAND.md §8/§11 Phase 1a) - Randspalten-Nummerierung
+   und ein kurzer Akzent-Strich statt Bohnen-Wasserzeichen. Marketing-only:
+   Nummerierung ergibt auf funktionalen App-Screens keinen Sinn (siehe BRAND.md). */
+.editorialGrid {
+  display: block;
+}
+
+.editorialIndex {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+@media (min-width: 1080px) {
+  .editorialGrid {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  .editorialIndex {
+    display: block;
+    padding-top: 4px;
+  }
+}
+
+.accentRule {
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: var(--space-3) 0;
+  background: var(--brand);
+  border: none;
+  border-radius: 2px;
+}
+
 h1,
 h2,
 h3 {
@@ -369,6 +420,11 @@ textarea {
   border: 1px solid rgba(17, 17, 17, 0.1);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
+  /* iOS Safari auto-zooms the page on focus when a field's font-size is
+     below 16px - form controls don't inherit the body's font size, so
+     without this every input/select/textarea fell back to the browser's
+     (sub-16px) UA default. */
+  font-size: 16px;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.66) inset,
     0 8px 18px rgba(68, 41, 22, 0.04);
@@ -379,12 +435,42 @@ textarea {
     transform var(--motion-fast) var(--motion-ease);
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: rgba(107, 69, 44, 0.42);
   box-shadow: 0 0 0 3px var(--focus);
+}
+
+/* The base rule above hardcodes a light, near-white field background -
+   fine against the light customer-app palette, but on .theme-invert
+   (café app) pages it left near-white input text sitting on a
+   near-white box (only the text color was ever overridden per-page,
+   not the field itself), i.e. barely readable form fields. */
+.theme-invert input,
+.theme-invert select,
+.theme-invert textarea {
+  background: rgba(255, 248, 241, 0.05);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.theme-invert input:focus,
+.theme-invert select:focus,
+.theme-invert textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.theme-invert input::placeholder,
+.theme-invert textarea::placeholder {
+  color: var(--text-muted);
 }
 
 button {
@@ -479,6 +565,13 @@ button.ghost {
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
+}
+
+/* Same hardcoded-light-background issue as input/select/textarea above -
+   near-white text (the .theme-invert value of --text) on a near-white
+   chip. */
+.theme-invert .badge {
+  background: rgba(255, 248, 241, 0.08);
 }
 
 .btn {

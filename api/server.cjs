@@ -182,6 +182,24 @@ function verifyOauthState(raw) {
   return payload && typeof payload === "object" ? payload : null;
 }
 
+// iOS Universal Links aren't guaranteed to fire across a redirect chain
+// through a third-party domain (Google/Apple's own auth servers) before
+// landing back on ours - when they don't, the login finishes fine inside
+// Safari but the native app (a separate WKWebView/storage context) never
+// finds out. A custom URL scheme is deterministic: iOS always routes it to
+// the owning app. The "native" flag is threaded through the signed OAuth
+// state so we know, once the provider redirects back, whether to send the
+// browser to the app via that scheme instead of the normal wallet URL.
+const NATIVE_OAUTH_RETURN_URL = "kaffeekarte-customer://oauth-callback";
+
+function resolveOauthRedirectBase(appsBaseUrl, stateRaw) {
+  try {
+    const state = verifyOauthState(stateRaw);
+    if (state && state.native) return NATIVE_OAUTH_RETURN_URL;
+  } catch (e) {}
+  return `${appsBaseUrl}/wallet`;
+}
+
 const ENV = (() => {
   const schema = z
     .object({
@@ -5085,10 +5103,12 @@ app.get("/auth/google/start", async (req, res) => {
     const preferredUsername = String(req.query?.username || "")
       .trim()
       .slice(0, 64);
+    const native = String(req.query?.native || "").trim() === "1";
     const payload = {
       mode,
       acceptedLegal,
       preferredUsername,
+      native,
       ts: Date.now(),
       nonce: crypto.randomBytes(12).toString("hex"),
     };
@@ -5112,9 +5132,13 @@ app.get("/auth/google/start", async (req, res) => {
 
 app.get("/auth/google/callback", async (req, res) => {
   const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+  const redirectBase = resolveOauthRedirectBase(
+    appsBaseUrl,
+    String(req.query?.state || ""),
+  );
   function redirectWithError(code) {
     return res.redirect(
-      `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent(code || "google_auth_failed")}`,
+      `${redirectBase}?oauthError=${encodeURIComponent(code || "google_auth_failed")}`,
     );
   }
 
@@ -5213,7 +5237,7 @@ app.get("/auth/google/callback", async (req, res) => {
 
     const grant = await issueCustomerAuthGrant(customer.id, provider);
     return res.redirect(
-      `${appsBaseUrl}/wallet?oauthProvider=google&oauthToken=${encodeURIComponent(grant)}`,
+      `${redirectBase}?oauthProvider=google&oauthToken=${encodeURIComponent(grant)}`,
     );
   } catch (e) {
     console.error(
@@ -5240,10 +5264,12 @@ app.get("/auth/apple/start", async (req, res) => {
     const preferredUsername = String(req.query?.username || "")
       .trim()
       .slice(0, 64);
+    const native = String(req.query?.native || "").trim() === "1";
     const payload = {
       mode,
       acceptedLegal,
       preferredUsername,
+      native,
       ts: Date.now(),
       nonce: crypto.randomBytes(12).toString("hex"),
     };
@@ -5270,9 +5296,13 @@ const appleFormBodyParser = express.urlencoded({ extended: false });
 
 app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
   const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+  const redirectBase = resolveOauthRedirectBase(
+    appsBaseUrl,
+    String(req.body?.state || ""),
+  );
   function redirectWithError(code) {
     return res.redirect(
-      `${appsBaseUrl}/wallet?oauthError=${encodeURIComponent(code || "apple_auth_failed")}`,
+      `${redirectBase}?oauthError=${encodeURIComponent(code || "apple_auth_failed")}`,
     );
   }
 
@@ -5405,7 +5435,7 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
 
     const grant = await issueCustomerAuthGrant(customer.id, provider);
     return res.redirect(
-      `${appsBaseUrl}/wallet?oauthProvider=apple&oauthToken=${encodeURIComponent(grant)}`,
+      `${redirectBase}?oauthProvider=apple&oauthToken=${encodeURIComponent(grant)}`,
     );
   } catch (e) {
     console.error(

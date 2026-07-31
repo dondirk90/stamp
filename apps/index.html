@@ -2,12 +2,29 @@
 <html lang="de">
   <head>
     <script>
-      // Native app shell: land on the wallet, not the marketing page.
+      // Native app shell: land on the right screen, not the marketing page.
       // Capacitor's server.url is a bare origin (a path there breaks
       // in-app navigation to every other page), so this handles the
-      // "start on /wallet" behavior client-side instead.
+      // "start on /wallet" (customer app) / "start on /cafe-scanner"
+      // (café app) behavior client-side instead. Both native apps load this
+      // exact same origin, so they're told apart via a plugin that only
+      // exists in the café app (apps/cafe-native's AppIdentityPlugin) -
+      // no plugin found simply means the customer app, which is the
+      // existing behavior kept unchanged.
       if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-        location.replace("/wallet");
+        var identity = window.Capacitor.Plugins && window.Capacitor.Plugins.AppIdentity;
+        if (identity && typeof identity.whoAmI === "function") {
+          identity
+            .whoAmI()
+            .then(function (r) {
+              location.replace(r && r.appId === "cafe" ? "/cafe-scanner" : "/wallet");
+            })
+            .catch(function () {
+              location.replace("/wallet");
+            });
+        } else {
+          location.replace("/wallet");
+        }
       }
     </script>
     <meta charset="utf-8" />
@@ -21,9 +38,7 @@
     <style>
       :root {
         --page-max: 1180px;
-        --glass: rgba(255, 251, 246, 0.82);
-        --line: rgba(81, 58, 40, 0.1);
-        --line-strong: rgba(81, 58, 40, 0.18);
+        --line: rgba(81, 58, 40, 0.12);
       }
 
       body {
@@ -35,7 +50,7 @@
       .page {
         width: min(var(--page-max), calc(100% - 28px));
         margin: 0 auto;
-        padding: 22px 0 48px;
+        padding: calc(28px + var(--safe-top, 0px)) 0 56px;
       }
 
       .header {
@@ -43,15 +58,10 @@
         align-items: center;
         justify-content: space-between;
         gap: 18px;
-        margin-bottom: 26px;
-        position: sticky;
-        top: calc(10px + var(--safe-top, 0px));
-        z-index: 10;
-        padding: 14px 16px;
-        border-radius: 24px;
-        border: 1px solid rgba(81, 58, 40, 0.08);
-        background: rgba(252, 248, 242, 0.78);
-        backdrop-filter: blur(18px);
+        flex-wrap: wrap;
+        margin-bottom: clamp(48px, 8vw, 88px);
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
       }
 
       .brand {
@@ -102,14 +112,10 @@
       }
 
       .nav {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 252, 248, 0.72);
-        backdrop-filter: blur(14px);
+        gap: clamp(16px, 3vw, 28px);
+        flex-wrap: wrap;
       }
 
       .nav a {
@@ -118,63 +124,37 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         text-decoration: none;
-        color: rgba(59, 42, 31, 0.76);
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .nav a:hover {
+        color: var(--text);
       }
 
       .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-        gap: 26px;
-        align-items: stretch;
-      }
-
-      .heroCard,
-      .heroVisual,
-      .feature,
-      .cafe,
-      .journey {
-        border-radius: 34px;
-        border: 1px solid var(--line);
-        background: var(--glass);
-        backdrop-filter: blur(20px);
-        box-shadow:
-          0 22px 44px rgba(68, 41, 22, 0.09),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+        gap: clamp(32px, 5vw, 64px);
+        align-items: center;
       }
 
       .heroCard {
-        padding: 34px;
         display: grid;
-        align-content: start;
-        gap: 18px;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .heroCard::after {
-        content: "";
-        position: absolute;
-        right: -18px;
-        bottom: -16px;
-        width: 168px;
-        height: 168px;
-        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
-        opacity: 0.08;
-        filter: saturate(0.9);
-        pointer-events: none;
+        align-content: center;
+        gap: 20px;
       }
 
       .heroTitle {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: clamp(46px, 7vw, 76px);
+        font-size: clamp(52px, 7vw, 84px);
         line-height: 0.92;
         letter-spacing: -0.06em;
       }
 
       .heroLead {
         margin: 0;
-        max-width: 34ch;
+        max-width: 36ch;
         font-size: 20px;
         line-height: 1.55;
         color: rgba(59, 42, 31, 0.8);
@@ -184,57 +164,39 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+        margin-top: 6px;
+      }
+
+      .heroCard .accentRule {
+        margin: 4px 0 2px;
       }
 
       .heroFacts {
-        margin: 0;
+        margin: 4px 0 0;
         font-size: 13px;
         font-weight: 700;
         letter-spacing: 0.04em;
-        color: rgba(59, 42, 31, 0.62);
-      }
-
-      .cafeTag {
-        display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 0 14px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.6);
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.68);
+        color: rgba(59, 42, 31, 0.6);
       }
 
       .heroVisual {
-        position: relative;
-        padding: 32px 28px 28px;
-        overflow: hidden;
+        display: flex;
+        justify-content: center;
       }
 
-      .heroVisual::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          radial-gradient(circle at top right, rgba(219, 180, 140, 0.28), rgba(219, 180, 140, 0) 36%),
-          linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
-        pointer-events: none;
-      }
-
+      /* Der Handy-Mockup ist bewusst der eine "echte" Rahmen im Hero - er
+         stellt ein Geraet dar, ein Rahmen ist hier inhaltlich richtig statt
+         reine Deko wie bei den anderen Sektionen. */
       .mockup {
         position: relative;
-        width: min(420px, 100%);
+        width: min(400px, 100%);
         margin: 0 auto;
-        padding: 18px 16px 16px;
+        padding: 20px 18px 18px;
         border-radius: 44px;
         border: 1px solid rgba(17, 17, 17, 0.08);
         background: var(--color-surface-elevated);
         box-shadow:
-          0 30px 60px rgba(57, 34, 21, 0.16),
+          0 30px 60px rgba(57, 34, 21, 0.14),
           0 1px 0 rgba(255, 255, 255, 0.84) inset;
       }
 
@@ -242,7 +204,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
       }
 
       .mockupBrand {
@@ -267,31 +229,13 @@
 
       .mockupScreen {
         display: grid;
-        gap: 14px;
+        gap: 16px;
       }
 
       .miniCard {
         padding: 18px;
-        border-radius: 28px;
-        border: 1px solid rgba(81, 58, 40, 0.12);
-        background:
-          linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 237, 226, 0.94));
-        box-shadow:
-          0 16px 30px rgba(47, 31, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .miniCard::before {
-        content: "";
-        position: absolute;
-        inset: auto -10px -16px auto;
-        width: 96px;
-        height: 96px;
-        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
-        opacity: 0.06;
-        pointer-events: none;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.55);
       }
 
       .miniTop,
@@ -307,7 +251,7 @@
         font-weight: 900;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.62);
+        color: rgba(59, 42, 31, 0.6);
       }
 
       .miniMeta {
@@ -315,30 +259,29 @@
       }
 
       .miniLogo {
-        width: 58px;
-        height: 58px;
+        width: 52px;
+        height: 52px;
         display: grid;
         place-items: center;
-        border-radius: 18px;
-        border: 1px solid rgba(81, 58, 40, 0.1);
-        background: rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.85);
       }
 
       .miniLogo img {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
       }
 
       .miniCafe {
         margin: 0;
-        font-size: 34px;
+        font-size: 30px;
         line-height: 0.95;
         letter-spacing: -0.05em;
       }
 
       .miniSub {
         margin: 8px 0 0;
-        color: rgba(59, 42, 31, 0.76);
+        color: rgba(59, 42, 31, 0.74);
       }
 
       .miniProgress {
@@ -354,33 +297,31 @@
         gap: 10px;
         font-size: 12px;
         font-weight: 800;
-        color: rgba(59, 42, 31, 0.72);
+        color: rgba(59, 42, 31, 0.7);
       }
 
       .beanRow {
         display: grid;
         grid-template-columns: repeat(10, minmax(0, 1fr));
-        gap: 8px;
+        gap: 7px;
       }
 
       .bean {
         aspect-ratio: 1;
         border-radius: 999px;
-        border: 1px solid rgba(81, 58, 40, 0.12);
-        background: rgba(255, 255, 255, 0.72);
+        background: rgba(81, 58, 40, 0.12);
       }
 
       .bean.filled {
-        background: linear-gradient(180deg, rgba(109, 78, 50, 0.98), rgba(72, 47, 30, 0.98));
-        border-color: rgba(72, 47, 30, 0.44);
+        background: var(--color-coffee);
       }
 
       .mockupFooter {
         display: flex;
         justify-content: space-around;
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(81, 58, 40, 0.08);
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(81, 58, 40, 0.1);
       }
 
       .mockupFooter span {
@@ -396,53 +337,24 @@
       }
 
       .section {
-        margin-top: 26px;
+        margin-top: clamp(56px, 9vw, 104px);
       }
 
-      .featureGrid,
-      .cafeGrid {
-        display: grid;
-        gap: 18px;
+      .section--divider {
+        padding-top: clamp(56px, 9vw, 104px);
+        border-top: 1px solid var(--line);
       }
 
-      .featureGrid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      .sectionKicker {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
       }
 
-      .feature,
-      .cafe,
-      .journey {
-        padding: 24px;
-      }
-
-      .featureIcon {
-        width: 46px;
-        height: 46px;
-        display: grid;
-        place-items: center;
-        border-radius: 16px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.72);
-        font-size: 22px;
-      }
-
-      .feature h2,
-      .journey h2,
-      .cafe h2 {
-        margin: 14px 0 8px;
-        font-size: 28px;
-        line-height: 1;
-        letter-spacing: -0.04em;
-      }
-
-      .feature p,
-      .journey p,
-      .cafe p {
-        margin: 0;
-        color: rgba(59, 42, 31, 0.76);
-        line-height: 1.55;
-      }
-
+      /* Manifest bleibt der zweite bewusste "echte" Rahmen der Seite - ein
+         dunkler Kontrastanker, kein UI-Kaestchen wie die restigen Sektionen. */
       .manifesto {
         padding: clamp(40px, 7vw, 76px) clamp(24px, 6vw, 76px);
         border-radius: 34px;
@@ -457,7 +369,7 @@
         background-size: cover;
         background-position: center 30%;
         color: rgba(255, 247, 239, 0.94);
-        box-shadow: 0 28px 56px rgba(40, 24, 14, 0.24);
+        box-shadow: 0 28px 56px rgba(40, 24, 14, 0.2);
       }
 
       .manifesto .sectionKicker {
@@ -490,10 +402,9 @@
       }
 
       .sectionHead {
-        margin: 44px 4px 20px;
+        margin: 0 0 clamp(28px, 4vw, 44px);
         display: grid;
         gap: 8px;
-        scroll-margin-top: 110px;
       }
 
       .sectionHead h2 {
@@ -504,129 +415,64 @@
         letter-spacing: -0.04em;
       }
 
-      .sectionKicker {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.62);
+      .sectionHead p {
+        margin: 0;
+        max-width: 52ch;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
       }
 
-      .cafeGrid {
+      .featureGrid {
+        display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        align-items: stretch;
+        gap: clamp(28px, 4vw, 48px);
       }
 
-      .cafe {
-        display: grid;
-        gap: 16px;
-        align-content: start;
+      .featureIcon {
+        width: 30px;
+        height: 30px;
+        color: var(--brand);
+        margin-bottom: 10px;
       }
 
-      .cafeVisual {
-        aspect-ratio: 16 / 10;
-        border-radius: 24px;
-        border: 1px solid rgba(81, 58, 40, 0.1);
-        background: var(--color-surface-elevated);
-        position: relative;
-        overflow: hidden;
-        box-shadow:
-          0 18px 32px rgba(47, 31, 22, 0.08),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
+      .featureIcon svg {
+        width: 100%;
+        height: 100%;
+        display: block;
       }
 
-      .cafeVisual::before {
-        content: "";
-        position: absolute;
-        right: 16px;
-        bottom: 14px;
-        width: 86px;
-        height: 86px;
-        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
-        opacity: 0.12;
+      .feature h2 {
+        margin: 12px 0 8px;
+        font-size: 24px;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
       }
 
-      .cafeVisual[data-image-ready="true"]::before {
-        opacity: 0;
-      }
-
-      .cafeVisualLogo {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        width: 58px;
-        height: 58px;
-        display: grid;
-        place-items: center;
-        border-radius: 18px;
-        border: 1px solid rgba(81, 58, 40, 0.12);
-        background: rgba(255, 255, 255, 0.88);
-        box-shadow:
-          0 14px 24px rgba(47, 31, 22, 0.1),
-          0 1px 0 rgba(255, 255, 255, 0.82) inset;
-      }
-
-      .cafeVisualLogo img {
-        width: 28px;
-        height: 28px;
-        object-fit: contain;
-      }
-
-      .cafeBody {
-        display: grid;
-        gap: 10px;
-      }
-
-      .cafe h2 {
-        margin-top: 0;
-        font-size: 32px;
-        line-height: 0.96;
-      }
-
-      .cafeMeta {
-        margin-top: 0;
-        max-width: 28ch;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-
-      .cafeActions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 4px;
-      }
-
-      .cafe .btn {
-        min-height: 46px;
-        padding-inline: 16px;
+      .feature p {
+        margin: 0;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
       }
 
       .journeyList {
         display: grid;
-        gap: 14px;
-        margin-top: 18px;
+        gap: clamp(24px, 3vw, 36px);
+        margin-top: 4px;
       }
 
       .journeyStep {
         display: grid;
-        grid-template-columns: 46px minmax(0, 1fr);
-        gap: 14px;
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 18px;
         align-items: start;
       }
 
       .journeyNo {
-        width: 46px;
-        height: 46px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: var(--color-coffee);
-        color: #fff;
-        font-size: 14px;
-        font-weight: 900;
+        font-family: var(--font-serif);
+        font-size: 30px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--brand);
       }
 
       .journeyStepTitle {
@@ -635,25 +481,14 @@
         margin-bottom: 4px;
       }
 
-      .journey {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .journey::after {
-        content: "";
-        position: absolute;
-        right: -24px;
-        bottom: -14px;
-        width: 144px;
-        height: 144px;
-        background: url("/assets/stamp-bean.png?v=1") center / contain no-repeat;
-        opacity: 0.06;
-        pointer-events: none;
+      .journeyStep p {
+        margin: 0;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
       }
 
       .footerNote {
-        margin: 24px 0 14px;
+        margin-bottom: 14px;
         color: rgba(59, 42, 31, 0.7);
         line-height: 1.55;
         max-width: 46ch;
@@ -677,11 +512,11 @@
           grid-template-columns: 1fr;
         }
 
-        .featureGrid {
-          grid-template-columns: 1fr;
+        .heroVisual {
+          order: -1;
         }
 
-        .cafeGrid {
+        .featureGrid {
           grid-template-columns: 1fr;
         }
       }
@@ -689,43 +524,15 @@
       @media (max-width: 760px) {
         .page {
           width: min(100% - 20px, var(--page-max));
-          padding-top: 14px;
         }
 
         .header {
           flex-direction: column;
           align-items: stretch;
-          position: static;
-          padding: 0;
-          border: none;
-          background: transparent;
-          backdrop-filter: none;
         }
 
         .nav {
           justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .heroCard,
-        .heroVisual,
-        .feature,
-        .cafe,
-        .journey,
-        .manifesto {
-          border-radius: 28px;
-        }
-
-        .heroCard,
-        .heroVisual,
-        .feature,
-        .cafe,
-        .journey {
-          padding: 20px;
-        }
-
-        .featureGrid {
-          grid-template-columns: 1fr;
         }
 
         .heroActions {
@@ -737,7 +544,7 @@
         }
 
         .miniCafe {
-          font-size: 28px;
+          font-size: 26px;
         }
       }
     </style>
@@ -765,6 +572,7 @@
       <section class="hero">
         <div class="heroCard">
           <h1 class="heroTitle">Dein Lieblingscafé.<br />Immer dabei.</h1>
+          <span class="accentRule" aria-hidden="true"></span>
           <p class="heroLead">
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
@@ -853,73 +661,106 @@
             </div>
           </div>
         </div>
+        </div>
       </section>
 
-      <section class="section manifesto">
-        <div class="sectionKicker">Warum es Kaffeekarte gibt</div>
-        <h2>Mehr Cafégefühl,<br />weniger Interface.</h2>
-        <p>
-          Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
-          gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
-        </p>
-        <p>
-          Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
-          lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
-        </p>
-        <div class="manifestoClaim">Good coffee deserves better loyalty.</div>
-      </section>
-
-      <section class="section featureGrid">
-        <article class="feature">
-          <div class="featureIcon">☕</div>
-          <div class="sectionKicker">Karten</div>
-          <h2>Alle Karten an einem Ort</h2>
-          <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon">▣</div>
-          <div class="sectionKicker">Karte zeigen</div>
-          <h2>Karte zeigen, Stempel sammeln</h2>
-          <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
-        </article>
-        <article class="feature">
-          <div class="featureIcon">⌂</div>
-          <div class="sectionKicker">Cafés entdecken</div>
-          <h2>Lieblingscafés entdecken</h2>
-          <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
-        </article>
-      </section>
-
-      <section class="section journey" id="ablauf">
-        <div class="sectionKicker">So funktioniert's</div>
-        <h2>Entdecken, Karte zeigen, wiederkommen.</h2>
-        <p>Ein klarer Ablauf vom ersten Cafébesuch bis zum nächsten Kaffee aufs Haus.</p>
-        <div class="journeyList">
-          <div class="journeyStep">
-            <div class="journeyNo">1</div>
-            <div>
-              <div class="journeyStepTitle">Café entdecken</div>
-              <p>Finde ein Café, das du magst, und hol dir seine digitale Karte.</p>
-            </div>
+      <section class="section">
+        <div class="editorialGrid">
+          <div class="editorialIndex">01</div>
+          <div class="manifesto">
+            <div class="sectionKicker">Warum es Kaffeekarte gibt</div>
+            <h2>Mehr Cafégefühl,<br />weniger Interface.</h2>
+            <p>
+              Kaffeekarte soll sich anfühlen wie der Moment am Tresen: ruhige Atmosphäre,
+              gute Bohnen, ein kurzer Blick, ein eingespielter Handgriff.
+            </p>
+            <p>
+              Für unabhängige Cafés, für Stammgäste mit Routine und für alle, die gute Orte
+              lieber wiedersehen als zum hundertsten Mal dieselbe Papierkarte zu verlieren.
+            </p>
+            <div class="manifestoClaim">Good coffee deserves better loyalty.</div>
           </div>
-          <div class="journeyStep">
-            <div class="journeyNo">2</div>
-            <div>
-              <div class="journeyStepTitle">Karte zeigen</div>
-              <p>Öffne deine Karte beim Bestellen und sammle deinen nächsten Stempel.</p>
-            </div>
+        </div>
+      </section>
+
+      <section class="section section--divider">
+        <div class="editorialGrid">
+          <div class="editorialIndex">02</div>
+          <div class="featureGrid">
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>
+                  <circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Karten</div>
+              <h2>Alle Karten an einem Ort</h2>
+              <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
+            </article>
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>
+                  <path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>
+                  <line x1="4" y1="12" x2="20" y2="12"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Karte zeigen</div>
+              <h2>Karte zeigen, Stempel sammeln</h2>
+              <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
+            </article>
+            <article class="feature">
+              <div class="featureIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/>
+                </svg>
+              </div>
+              <div class="sectionKicker">Cafés entdecken</div>
+              <h2>Lieblingscafés entdecken</h2>
+              <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
+            </article>
           </div>
-          <div class="journeyStep">
-            <div class="journeyNo">3</div>
-            <div>
-              <div class="journeyStepTitle">Wiederkommen</div>
-              <p>Behalte deine Belohnung im Blick und freu dich auf den nächsten Kaffee.</p>
+        </div>
+      </section>
+
+      <section class="section section--divider" id="ablauf">
+        <div class="editorialGrid">
+          <div class="editorialIndex">03</div>
+          <div class="journey">
+            <div class="sectionHead">
+              <div class="sectionKicker">So funktioniert's</div>
+              <h2>Entdecken, Karte zeigen, wiederkommen.</h2>
+              <p>Ein klarer Ablauf vom ersten Cafébesuch bis zum nächsten Kaffee aufs Haus.</p>
+            </div>
+            <div class="journeyList">
+              <div class="journeyStep">
+                <div class="journeyNo">1</div>
+                <div>
+                  <div class="journeyStepTitle">Café entdecken</div>
+                  <p>Finde ein Café, das du magst, und hol dir seine digitale Karte.</p>
+                </div>
+              </div>
+              <div class="journeyStep">
+                <div class="journeyNo">2</div>
+                <div>
+                  <div class="journeyStepTitle">Karte zeigen</div>
+                  <p>Öffne deine Karte beim Bestellen und sammle deinen nächsten Stempel.</p>
+                </div>
+              </div>
+              <div class="journeyStep">
+                <div class="journeyNo">3</div>
+                <div>
+                  <div class="journeyStepTitle">Wiederkommen</div>
+                  <p>Behalte deine Belohnung im Blick und freu dich auf den nächsten Kaffee.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <p class="footerNote">
+      <p class="footerNote section section--divider">
         Kaffeekarte verbindet lokale Lieblingscafés mit ruhigen digitalen Karten
         für Menschen, die gute Routinen schätzen und Specialty Coffee ernst nehmen.
       </p>

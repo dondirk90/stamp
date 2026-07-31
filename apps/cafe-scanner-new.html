@@ -204,6 +204,17 @@
           0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
+        /* Reacts to scroll: stretches slightly on the native overscroll
+           bounce so that (already-active) physics gets a visible response. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -700,10 +711,15 @@
       }
       .featureCard,
       .homeCard {
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 241, 233, 0.10);
+        /* Free-floating instead of boxed: these sit inside #loginCard /
+           #homeScreen, which is already the one framed panel on this
+           screen (see BRAND.md's hairlines-over-shadows principle) - a
+           background+border here on top of that just stacks boxes. */
+        padding: 16px 0 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid rgba(255, 241, 233, 0.10);
       }
       .featureCard strong,
       .homeCard strong {
@@ -770,24 +786,16 @@
         margin-bottom: 8px;
         margin-top: 20px;
       }
+      /* Was its own underlined-field style with a dark placeholder color
+         (rgba(79,56,39,...), i.e. tuned for a light background) - on this
+         app's actual dark background that read as barely-visible text on
+         barely-visible borders. Falls back to theme.css's shared rounded
+         field style (already fixed for .theme-invert pages) instead of
+         diverging from cafe-dashboard.html/cafe-profile.html, which never
+         had their own override and didn't have this problem. */
       input {
         width: 100%;
-        padding: 12px 12px;
-        border: none;
-        border-bottom: 1px solid var(--border);
-        border-radius: 0;
         font-size: 16px;
-        transition: border-color 0.15s ease;
-        background: transparent;
-        color: var(--paper-text);
-      }
-      input::placeholder {
-        color: rgba(79, 56, 39, 0.62);
-      }
-      input:focus {
-        outline: none;
-        border-color: var(--brand);
-        box-shadow: 0 0 0 3px var(--focus);
       }
       button {
         width: 100%;
@@ -1192,7 +1200,14 @@
             calc(12px + var(--safe-bottom, 0px) + 88px)
             calc(var(--space-3) + var(--safe-left, 0px));
           overflow-x: hidden;
-          overscroll-behavior: none;
+          /* Axis-scoped (not the blanket `overscroll-behavior: none` this
+             used to be) - that killed the vertical rubber-band bounce
+             entirely, including the negative-scrollY the topbar's pull
+             stretch effect (see paintWindowScroll below) depends on to
+             ever fire, leaving Start/Scanner the only screens in the app
+             that scrolled rigidly instead of bouncing like everywhere
+             else. Horizontal is still blocked to avoid edge rubber-band. */
+          overscroll-behavior-x: none;
         }
 
         .topbar {
@@ -1211,6 +1226,8 @@
           backdrop-filter: blur(18px);
           justify-content: center;
           z-index: 70;
+          transform: scale(var(--topbar-stretch, 1));
+          transform-origin: top center;
         }
 
         .topbar .row {
@@ -1291,9 +1308,14 @@
 
         #homeScreen,
         #scannerScreen {
+          /* Used to be capped to a fixed max-height with its own
+             overflow-y:auto (a workaround for content getting clipped on
+             some Android devices), which meant scrolling inside a second,
+             nested frame instead of the page itself - and, like every
+             other page in this app, unnecessary: with only min-height
+             here, .mainPanel/#appShell (both min-height, not max) simply
+             grow with the content and the document scrolls normally. */
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
-          max-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
-          overflow: hidden;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -1356,23 +1378,17 @@
 
         .scannerStage {
           margin-top: 10px;
-          padding: 12px;
-          border-radius: 18px;
-        }
-
-        #videoContainer {
-          max-width: min(100%, 320px);
-          margin: 0 auto;
+          padding: 0;
         }
 
         #video {
-          aspect-ratio: 1 / 1.04;
-          max-height: min(40svh, 340px);
+          aspect-ratio: 3 / 4;
+          max-height: min(56svh, 520px);
         }
 
         .scan-overlay {
-          width: min(50vw, 188px);
-          height: min(50vw, 188px);
+          width: min(58vw, 220px);
+          height: min(58vw, 220px);
         }
 
         .scannerStatus,
@@ -1457,11 +1473,13 @@
       }
 
       .scannerStage {
+        /* Already inside #scannerScreen, the one framed panel on this
+           screen - no border/background of its own needed. */
         margin-top: 18px;
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
       }
 
       .scannerWorkspace {
@@ -1473,11 +1491,11 @@
 
       .scannerMain,
       .scannerSideCard {
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(255, 248, 241, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        padding: 18px 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
       }
 
       .scannerMainHead {
@@ -1586,16 +1604,21 @@
 
       .quickLinkCard {
         display: block;
-        padding: 14px;
-        border-radius: 18px;
-        background: rgba(255, 248, 241, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 12px 4px;
+        border-radius: 10px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         color: inherit;
         text-decoration: none;
       }
 
+      .quickLinkCard:last-child {
+        border-bottom: none;
+      }
+
       .quickLinkCard:hover {
-        background: rgba(255, 248, 241, 0.1);
+        background: rgba(255, 248, 241, 0.06);
       }
 
       .quickLinkCard strong {
@@ -1634,18 +1657,20 @@
       }
 
       #videoContainer {
+        /* No boxed frame around the camera preview - it already sits
+           inside #scannerScreen, the one framed panel on this screen, and
+           a real-time camera view needs the space, not a border eating
+           into it. */
         max-width: 100%;
         margin: 0;
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.26);
       }
 
       #video {
+        width: 100%;
         aspect-ratio: 4 / 5;
         object-fit: cover;
         background: #120d0b;
+        border-radius: 18px;
       }
 
       .scan-overlay {
@@ -1654,6 +1679,207 @@
         border-radius: 24px;
         border: 2px solid rgba(245, 236, 223, 0.92);
         box-shadow: 0 0 0 9999px rgba(10, 6, 4, 0.3);
+      }
+
+      /* Stamp/reward celebration overlay - same mechanism as the customer
+         wallet (see customer-qr-modern.html's .rewardBalloons/.rewardBean),
+         plus a café-side-only single bean pop for a regular stamp and a
+         cup burst (instead of beans) for redeeming, so staff get the same
+         kind of feedback as guests do. */
+      .rewardBalloons {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 10050;
+      }
+
+      .rewardBalloon {
+        position: absolute;
+        bottom: -18vh;
+        width: 30px;
+        height: 40px;
+        border-radius: 50% 50% 46% 46%;
+        background: var(--balloon-color, #d7b98e);
+        box-shadow:
+          inset -6px -8px 0 rgba(0, 0, 0, 0.08),
+          inset 4px 6px 0 rgba(255, 255, 255, 0.18);
+        transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+        animation: rewardBalloonFloat 5.4s ease-in forwards;
+      }
+
+      .rewardBalloon::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 10px;
+        height: 10px;
+        background: inherit;
+        transform: translateX(-50%) rotate(45deg);
+        border-radius: 2px;
+      }
+
+      .rewardBalloon::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 2px);
+        width: 1.5px;
+        height: 64px;
+        background: rgba(255, 241, 233, 0.35);
+        transform: translateX(-50%);
+      }
+
+      .rewardBean,
+      .rewardSpark {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .rewardBean {
+        width: 18px;
+        height: 26px;
+        border-radius: 50%;
+        background: #8a6142;
+        /* The customer wallet uses this same brown on a light cream
+           background, where it stands out fine. Here the app itself is
+           dark - plain #6b452c on that background barely registers, so a
+           light contrast ring is added around the bean. */
+        box-shadow:
+          0 0 0 2px rgba(255, 241, 233, 0.4),
+          0 0 12px 2px rgba(255, 200, 130, 0.35),
+          inset -4px -5px 0 rgba(0, 0, 0, 0.18),
+          inset 2px 3px 0 rgba(255, 255, 255, 0.16);
+        animation: rewardBeanBurst 2.2s cubic-bezier(0.18, 0.84, 0.22, 1) forwards;
+      }
+
+      .rewardBean::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        border-radius: 999px;
+        background: rgba(242, 230, 215, 0.78);
+        transform: translateX(-50%) rotate(12deg);
+      }
+
+      /* A café cup on a saucer, with a handle - a mug shape (unlike a
+         to-go cup) reads unmistakably as "a coffee", and the saucer plate
+         underneath is something a bean never has. A fast multi-directional
+         burst (like the beans use) turned out too quick/chaotic to
+         actually recognize the shape mid-flight, so this floats calmly
+         upward instead - same proven-legible motion as the balloon
+         celebration, just re-skinned as cups and without their spin. */
+      .rewardCup {
+        position: absolute;
+        bottom: -18vh;
+        width: 34px;
+        height: 24px;
+        border-radius: 3px 3px 14px 14px;
+        background:
+          radial-gradient(ellipse at 50% 22%, #6b452c 0%, #6b452c 42%, transparent 46%),
+          #f6ede1;
+        box-shadow:
+          inset -4px -5px 0 rgba(107, 69, 44, 0.14),
+          inset 3px 3px 0 rgba(255, 255, 255, 0.5);
+        transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+        animation: rewardBalloonFloat 4.8s ease-in forwards;
+      }
+
+      .rewardCup::before {
+        /* saucer */
+        content: "";
+        position: absolute;
+        left: -7px;
+        right: -7px;
+        bottom: -7px;
+        height: 6px;
+        border-radius: 50%;
+        background: #f6ede1;
+        box-shadow: inset 0 -2px 0 rgba(107, 69, 44, 0.16);
+      }
+
+      .rewardCup::after {
+        /* handle */
+        content: "";
+        position: absolute;
+        right: -10px;
+        top: 4px;
+        width: 11px;
+        height: 13px;
+        border: 3px solid #f6ede1;
+        border-left: none;
+        border-radius: 0 11px 11px 0;
+      }
+
+      .rewardSpark {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 246, 187, 1) 0%, rgba(255, 215, 125, 0.95) 38%, rgba(255, 215, 125, 0) 72%);
+        animation: rewardSparkBurst 1.8s ease-out forwards;
+      }
+
+      @keyframes rewardBeanBurst {
+        0% {
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.3);
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--burst-x, 0px), var(--burst-y, -180px), 0)
+            rotate(var(--burst-rot, 0deg))
+            scale(var(--burst-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardSparkBurst {
+        0% {
+          transform: translate3d(0, 0, 0) scale(0.2);
+          opacity: 0;
+        }
+        18% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(calc(var(--burst-x, 0px) * 0.8), calc(var(--burst-y, -160px) * 0.82), 0)
+            scale(calc(var(--burst-scale, 1) * 1.15));
+          opacity: 0;
+        }
+      }
+
+      @keyframes rewardBalloonFloat {
+        0% {
+          transform: translate3d(0, 0, 0) scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform:
+            translate3d(var(--balloon-drift, 0px), -120vh, 0)
+            scale(var(--balloon-scale, 1));
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .rewardBalloons {
+          display: none !important;
+        }
       }
     </style>
   </head>
@@ -2125,9 +2351,11 @@
                     <span id="stampAmountValue">1</span> Stempel
                   </div>
                 </div>
-                <button id="awardBtn" style="margin: 0; flex: 2">
-                  Stempel vergeben
-                </button>
+                <div id="awardBtnWrap" style="position: relative; flex: 2">
+                  <button id="awardBtn" style="margin: 0; width: 100%">
+                    Stempel vergeben
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2179,20 +2407,127 @@
               {
                 id: "bottomModeScanner",
                 label: "Scanner",
+                icon: stampUI.tabIcons.scan,
                 active: initialViewIsScan,
               },
               {
                 id: "utilityWelcomeBtn",
                 label: "Start",
+                icon: stampUI.tabIcons.home,
                 active: !initialViewIsScan,
               },
-              { id: "utilityCardBtn", label: "Karte" },
-              { id: "utilityDashboardBtn", label: "Dashboard" },
-              { id: "utilityAdminBtn", label: "Verwaltung" },
+              { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
+              { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
+              { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
             ],
           });
           nav.id = "bottomTabs";
         }
+      })();
+    </script>
+    <script>
+      (function () {
+        var topbar = document.querySelector(".topbar");
+        if (!topbar) return;
+
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
+        // This file has three different screens (login, #homeScreen,
+        // #scannerScreen), and on narrow viewports the latter two become
+        // their own scrollable containers (see the mainPanel sizing fix
+        // above) instead of the document itself scrolling - the login
+        // screen and the desktop/wide layout both still scroll at the
+        // document level. Checking fresh on every touch (rather than
+        // binding to one fixed element) means this keeps working no matter
+        // which screen is currently showing.
+        function activeScrollEl() {
+          var homeScreen = document.getElementById("homeScreen");
+          var scannerScreen = document.getElementById("scannerScreen");
+          if (
+            homeScreen &&
+            homeScreen.offsetParent !== null &&
+            homeScreen.scrollHeight > homeScreen.clientHeight
+          ) {
+            return homeScreen;
+          }
+          if (
+            scannerScreen &&
+            scannerScreen.offsetParent !== null &&
+            scannerScreen.scrollHeight > scannerScreen.clientHeight
+          ) {
+            return scannerScreen;
+          }
+          return null;
+        }
+        function isAtTop() {
+          var el = activeScrollEl();
+          // A couple of px of tolerance instead of an exact <= 0 - some
+          // devices settle at a fractional/near-zero scroll offset (safe
+          // area/rounding) that never quite reaches exactly 0, which would
+          // otherwise permanently block the pull from ever starting.
+          if (el) return el.scrollTop <= 2;
+          return (window.scrollY || window.pageYOffset || 0) <= 2;
+        }
+
+        // A nested overflow:auto element's scrollTop never actually goes
+        // negative on iOS the way window.scrollY does during the native
+        // bounce - it stays clamped at 0 even while the bounce is visibly
+        // happening - so tracking the raw touch drag while already at the
+        // top works regardless of which of the two cases above applies.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            startY = e.touches.length === 1 && isAtTop() ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            if (dy > 0 && isAtTop()) {
+              setStretch(dy);
+            } else {
+              startY = null;
+              clearStretch();
+              topbar.classList.remove("topbar--pulling");
+            }
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
+
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk, same trick as the other app pages.
+        var ticking = false;
+        function paintWindowScroll() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (y < 0) setStretch(-y);
+          else if (startY == null) clearStretch();
+        }
+        function schedule() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paintWindowScroll);
+        }
+        window.addEventListener("scroll", schedule, { passive: true });
+        paintWindowScroll();
       })();
     </script>
 
@@ -2260,6 +2595,7 @@
         location.protocol === "file:"
           ? "http://127.0.0.1:3000"
           : `${location.origin}/api`;
+      let rewardThreshold = 10;
       let scannedCustomer = null;
       let scanning = false;
       let stream = null;
@@ -3035,6 +3371,7 @@
             name: loginData.cafe?.name || null,
           };
           localStorage.setItem("cafe_session", JSON.stringify(cafe));
+          void refreshRewardThreshold();
 
           // Update UI
           updateCafeBadge();
@@ -3345,6 +3682,162 @@
         }
       }
 
+      // Café's own reward threshold ("Stempel für Belohnung"), needed to tell
+      // whether a regular stamp just completed the card (-> balloons) or not
+      // (-> the small bean pop). Not part of the /stamp-by-cafe response, so
+      // it's fetched once after login instead.
+      async function refreshRewardThreshold() {
+        if (!cafe || !cafe.token) return;
+        try {
+          const res = await fetch(`${apiBase}/cafes/me/overview?eventsLimit=1&customers=1`, {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const v = data && data.cafe && data.cafe.program ? data.cafe.program.stampsForReward : null;
+          if (v != null && Number.isFinite(Number(v))) rewardThreshold = Number(v);
+        } catch (e) {}
+      }
+
+      // Stamp/reward celebration (balloons on a full card, a cup burst on
+      // redeem, a single bean pop on a regular stamp) - same visual language
+      // as the customer wallet's own celebration, kept café-side so staff
+      // get the same kind of feedback guests do.
+      const rewardCelebrationState = {
+        host: null,
+        timer: 0,
+        prefersReducedMotion: !!(
+          window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ),
+      };
+
+      function ensureRewardCelebrationHost() {
+        if (rewardCelebrationState.host) return rewardCelebrationState.host;
+        try {
+          const host = document.createElement("div");
+          host.className = "rewardBalloons";
+          host.setAttribute("aria-hidden", "true");
+          document.body.appendChild(host);
+          rewardCelebrationState.host = host;
+        } catch (e) {
+          rewardCelebrationState.host = null;
+        }
+        return rewardCelebrationState.host;
+      }
+
+      function launchRewardCelebration() {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active");
+        } catch (e0) {}
+
+        const colors = ["#f2c94c", "#e58f65", "#d66853", "#6b452c", "#8fb996", "#d7b98e"];
+        for (let i = 0; i < 14; i++) {
+          const balloon = document.createElement("span");
+          balloon.className = "rewardBalloon";
+          balloon.style.left = 4 + i * 7 + Math.random() * 6 + "%";
+          balloon.style.animationDelay = (Math.random() * 0.45).toFixed(2) + "s";
+          balloon.style.animationDuration = (4.6 + Math.random() * 1.4).toFixed(2) + "s";
+          balloon.style.setProperty("--balloon-color", colors[i % colors.length]);
+          balloon.style.setProperty("--balloon-drift", (Math.random() * 90 - 45).toFixed(0) + "px");
+          balloon.style.setProperty("--balloon-scale", (0.86 + Math.random() * 0.42).toFixed(2));
+          host.appendChild(balloon);
+        }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 6200);
+      }
+
+      // Same floating mechanic as the balloon celebration (see
+      // launchRewardCelebration below) - cups instead of beans, drifting
+      // calmly upward instead of bursting outward. A fast, spinning,
+      // multi-directional burst (the previous version) turned out too
+      // quick/chaotic to actually recognize the shape mid-flight; this
+      // reuses the balloon motion, which is already proven legible.
+      function launchRedeemCelebration() {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active", "isRedeem");
+        } catch (e0) {}
+
+        for (let i = 0; i < 8; i++) {
+          const cup = document.createElement("span");
+          cup.className = "rewardCup";
+          cup.style.left = 10 + i * 11 + Math.random() * 6 + "%";
+          cup.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+          cup.style.animationDuration = (4.4 + Math.random() * 1.2).toFixed(2) + "s";
+          cup.style.setProperty("--balloon-drift", (Math.random() * 60 - 30).toFixed(0) + "px");
+          cup.style.setProperty("--balloon-scale", (0.9 + Math.random() * 0.3).toFixed(2));
+          host.appendChild(cup);
+        }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active", "isRedeem");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 6200);
+      }
+
+      // A small full-screen bean burst for an ordinary stamp - quieter and
+      // shorter than the reward/redeem bursts (fewer beans, smaller
+      // distance, no sparks), but on the same fixed overlay so it's always
+      // visible regardless of scroll position or where the button sits,
+      // unlike a pop tucked right next to the button.
+      function launchStampBeanPop(count) {
+        if (rewardCelebrationState.prefersReducedMotion) return;
+        const host = ensureRewardCelebrationHost();
+        if (!host) return;
+
+        try {
+          host.innerHTML = "";
+          host.classList.add("active", "isStamp");
+        } catch (e0) {}
+
+        const n = Math.max(1, Math.min(5, Number(count) || 1));
+        for (let i = 0; i < n; i++) {
+          const bean = document.createElement("span");
+          bean.className = "rewardBean";
+          bean.style.left = 50 - n * 4 + i * 8 + "%";
+          bean.style.top = "48%";
+          bean.style.animationDelay = (i * 0.06).toFixed(2) + "s";
+          bean.style.animationDuration = "2s";
+          bean.style.setProperty("--burst-x", (Math.random() * 60 - 30).toFixed(0) + "px");
+          bean.style.setProperty("--burst-y", (-90 - Math.random() * 40).toFixed(0) + "px");
+          bean.style.setProperty("--burst-rot", (Math.random() * 200 - 100).toFixed(0) + "deg");
+          bean.style.setProperty("--burst-scale", "1");
+          host.appendChild(bean);
+        }
+
+        try {
+          window.clearTimeout(rewardCelebrationState.timer);
+        } catch (e1) {}
+        rewardCelebrationState.timer = window.setTimeout(() => {
+          try {
+            host.classList.remove("active", "isStamp");
+            host.innerHTML = "";
+          } catch (e2) {}
+        }, 2600);
+      }
+
       // Award stamps
       awardBtn.onclick = async () => {
         if (!scannedCustomer || !cafe) return;
@@ -3474,16 +3967,27 @@
 
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;
-            currentStamps.textContent = Math.max(0, cur - 10);
-            showToast("Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
+            currentStamps.textContent = Math.max(0, cur - rewardThreshold);
+            showToast("☕ Belohnung eingelöst. Einlöse-QR ist jetzt ungültig.");
+            dlog("Celebration: redeem (cups)");
+            launchRedeemCelebration();
           } else if (isReset) {
             currentStamps.textContent = 0;
             showToast("Neue Karte gestartet. QR ist jetzt ungültig.");
           } else {
             // Update stamps display
-            currentStamps.textContent =
-              (parseInt(currentStamps.textContent) || 0) + amount;
-            showToast(`${amount} Stempel vergeben`);
+            const prevCount = parseInt(currentStamps.textContent) || 0;
+            const nextCount = prevCount + amount;
+            currentStamps.textContent = nextCount;
+            if (prevCount < rewardThreshold && nextCount >= rewardThreshold) {
+              showToast(`🎉 Karte voll! ${amount} Stempel vergeben`);
+              dlog("Celebration: card full (balloons)", { prevCount, nextCount, rewardThreshold });
+              launchRewardCelebration();
+            } else {
+              showToast(`🫘 ${amount} Stempel vergeben`);
+              dlog("Celebration: stamp (bean)", { prevCount, nextCount, rewardThreshold });
+              launchStampBeanPop(amount);
+            }
           }
 
           // Reset after 2 seconds
@@ -3550,6 +4054,9 @@
               cafe.cafeId = ovData.cafe?.id || cafe.cafeId;
               cafe.cafeAddress = ovData.cafe?.address || cafe.cafeAddress;
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
+              if (ovData.cafe?.program?.stampsForReward != null) {
+                rewardThreshold = Number(ovData.cafe.program.stampsForReward);
+              }
             } catch (err) {
               dwarn("Session validation failed", err);
             }

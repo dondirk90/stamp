@@ -348,6 +348,12 @@
     }, 6200);
   }
 
+  // Same floating mechanic as launchRewardCelebration's balloons - cups
+  // instead of beans, drifting calmly upward instead of bursting outward.
+  // A fast, spinning, multi-directional burst (the previous version)
+  // turned out too quick/chaotic to actually recognize the shape
+  // mid-flight; this reuses the balloon motion, which is already proven
+  // legible.
   function launchRedeemCelebration() {
     if (rewardCelebrationState.prefersReducedMotion) return;
     var host = ensureRewardCelebrationHost();
@@ -358,30 +364,21 @@
       host.classList.add("active", "isRedeem");
     } catch (e0) {}
 
-    for (var i = 0; i < 20; i++) {
-      var burst = document.createElement("span");
-      burst.className = i % 4 === 0 ? "rewardSpark" : "rewardBean";
-      burst.style.left = 16 + Math.random() * 68 + "%";
-      burst.style.top = 26 + Math.random() * 24 + "%";
-      burst.style.animationDelay = (Math.random() * 0.18).toFixed(2) + "s";
-      burst.style.animationDuration = (1.6 + Math.random() * 0.9).toFixed(2) + "s";
-      burst.style.setProperty(
-        "--burst-x",
-        (Math.random() * 320 - 160).toFixed(0) + "px",
+    for (var i = 0; i < 8; i++) {
+      var cup = document.createElement("span");
+      cup.className = "rewardCup";
+      cup.style.left = 10 + i * 11 + Math.random() * 6 + "%";
+      cup.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+      cup.style.animationDuration = (4.4 + Math.random() * 1.2).toFixed(2) + "s";
+      cup.style.setProperty(
+        "--balloon-drift",
+        (Math.random() * 60 - 30).toFixed(0) + "px",
       );
-      burst.style.setProperty(
-        "--burst-y",
-        (-140 - Math.random() * 180).toFixed(0) + "px",
+      cup.style.setProperty(
+        "--balloon-scale",
+        (0.9 + Math.random() * 0.3).toFixed(2),
       );
-      burst.style.setProperty(
-        "--burst-rot",
-        (Math.random() * 420 - 210).toFixed(0) + "deg",
-      );
-      burst.style.setProperty(
-        "--burst-scale",
-        (0.8 + Math.random() * 0.7).toFixed(2),
-      );
-      host.appendChild(burst);
+      host.appendChild(cup);
     }
 
     try {
@@ -392,7 +389,7 @@
         host.classList.remove("active", "isRedeem");
         host.innerHTML = "";
       } catch (e2) {}
-    }, 3200);
+    }, 6200);
   }
 
   // Prefer the Capacitor Haptics plugin (vendored in /vendor/capacitor/) when
@@ -3107,6 +3104,78 @@
     return "KAFFEEKARTE";
   }
 
+  var stampHistoryCache = { promise: null, eventsByCafe: null };
+
+  function ensureStampHistoryLoaded() {
+    if (stampHistoryCache.eventsByCafe) return Promise.resolve(stampHistoryCache.eventsByCafe);
+    if (stampHistoryCache.promise) return stampHistoryCache.promise;
+    if (!session || !session.address) return Promise.resolve(null);
+    stampHistoryCache.promise = apiFetch(
+      "/stamps/history/" + encodeURIComponent(session.address),
+    )
+      .then(function (data) {
+        var events = Array.isArray(data) ? data : (data && data.events) || [];
+        var byCafe = {};
+        for (var i = 0; i < events.length; i++) {
+          var e = events[i] || {};
+          var cafeAddr = normalizeAddr(e.cafe || "");
+          if (!cafeAddr) continue;
+          if (!byCafe[cafeAddr]) byCafe[cafeAddr] = [];
+          byCafe[cafeAddr].push(e);
+        }
+        stampHistoryCache.eventsByCafe = byCafe;
+        return byCafe;
+      })
+      .catch(function () {
+        stampHistoryCache.promise = null;
+        return null;
+      });
+    return stampHistoryCache.promise;
+  }
+
+  // Rekonstruiert aus dem Event-Ledger, wann welche Bohne der *aktuellen*
+  // (noch nicht eingeloesten) Stempelrunde gesammelt wurde: chronologisch
+  // durchlaufen, bei einem Redeem beginnt eine neue Runde bei Index 0.
+  // Die History deckt nur die letzten 50 Events der Kundin/des Kunden ab
+  // (ueber alle Cafes), aeltere Runden liefern daher bewusst "unbekannt".
+  function getStampVisitTimestamp(cafeAddress, beanIndex) {
+    var byCafe = stampHistoryCache.eventsByCafe;
+    if (!byCafe) return null;
+    var addr = normalizeAddr(cafeAddress || "");
+    var events = byCafe[addr];
+    if (!events || !events.length) return null;
+
+    var chrono = events.slice().sort(function (a, b) {
+      return Number(a.timestamp || 0) - Number(b.timestamp || 0);
+    });
+
+    var cycle = [];
+    for (var i = 0; i < chrono.length; i++) {
+      var e = chrono[i] || {};
+      var type = String(e.eventType || e.event_type || "");
+      var delta = Number(e.delta || 0);
+      if (type === "redeem" || delta < 0) {
+        cycle = [];
+        continue;
+      }
+      if (type === "stamp" || delta > 0) {
+        var n = Math.max(1, Math.round(delta) || 1);
+        for (var k = 0; k < n; k++) cycle.push(e.timestamp);
+      }
+    }
+
+    if (beanIndex < 0 || beanIndex >= cycle.length) return null;
+    return cycle[beanIndex];
+  }
+
+  function showStampVisitTimestamp(cafeAddress, beanIndex) {
+    ensureStampHistoryLoaded().then(function () {
+      var ts = getStampVisitTimestamp(cafeAddress, beanIndex);
+      var when = ts ? formatTs(ts) : "";
+      showToast(when ? "Stempel vom " + when : "Zeitpunkt nicht mehr verfügbar");
+    });
+  }
+
   function renderStampGrid(container, count) {
     var threshold = REWARD_THRESHOLD;
     var stampStyle = "bean";
@@ -3121,6 +3190,33 @@
             .toLowerCase()
         : "bean";
     } catch (eThreshold0) {}
+
+    // Tippen auf eine Stempelbohne zeigt den Zeitpunkt des jeweiligen Besuchs
+    // (mainBtn hat einen eigenen Click-Handler, der auf jeden Klick im
+    // Kartenkoerper reagiert - hier vorher abfangen). Der Grid-Container
+    // bleibt ueber Re-Renders hinweg derselbe Knoten (nur sein innerHTML wird
+    // geleert), daher genuegt einmaliges Binden.
+    if (container && !container.__stampTapBound) {
+      container.__stampTapBound = true;
+      container.addEventListener("click", function (ev) {
+        try {
+          var stampCell =
+            ev.target && ev.target.closest ? ev.target.closest(".stamp") : null;
+          if (!stampCell) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (!stampCell.classList.contains("filled")) return;
+          var passEl = container.closest
+            ? container.closest(".passCard, .face")
+            : null;
+          var addr = passEl ? passEl.getAttribute("data-cafe") : "";
+          if (!addr) return;
+          var idx = Array.prototype.indexOf.call(container.children, stampCell);
+          showStampVisitTimestamp(addr, idx);
+        } catch (eStampTap) {}
+      });
+    }
+
     function hash32(str) {
       var s = String(str || "");
       var h = 2166136261;
@@ -3917,6 +4013,13 @@
     var passCard = document.createElement("div");
     passCard.className = "passCard";
     passCard.setAttribute("data-cafe", cafeAddress);
+    // setPassCardStamps() reads this back as "the previous count" to decide
+    // which cells are new (isNew, drives the ink-stamp pop animation) - if
+    // it's never set here, the very first live stamp update after a page
+    // load has no previous value to compare against, falls back to
+    // treating the new count as its own previous count, and the pop
+    // animation silently never fires for that first update.
+    passCard.setAttribute("data-stamps", String(stampCount));
     if (Number.isFinite(cafeId) && cafeId > 0) {
       passCard.setAttribute("data-cafe-id", String(cafeId));
     }
@@ -3989,6 +4092,33 @@
       fallbackLogoWrap.className = "passLogoWrap";
       fallbackLogoWrap.appendChild(buildPassLogoFallback(title));
       brandLockup.appendChild(fallbackLogoWrap);
+    }
+
+    // Logo oben links oeffnet das Kurzprofil des Cafes, statt die Karte
+    // umzudrehen (mainBtn hat einen eigenen Click-Handler dafuer).
+    if (cafeAddress) {
+      var logoWrapNode = brandLockup.querySelector(".passLogoWrap");
+      if (logoWrapNode) {
+        logoWrapNode.setAttribute("role", "button");
+        logoWrapNode.setAttribute("tabindex", "0");
+        logoWrapNode.setAttribute("aria-label", "Kurzprofil von " + title);
+        logoWrapNode.addEventListener("click", function (ev) {
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openCafeModalByAddress(cafeAddress);
+        });
+        logoWrapNode.addEventListener("keydown", function (ev) {
+          var key = ev && ev.key ? String(ev.key) : "";
+          if (key !== "Enter" && key !== " ") return;
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (e) {}
+          openCafeModalByAddress(cafeAddress);
+        });
+      }
     }
 
     var titleBlock = document.createElement("div");
@@ -4987,6 +5117,24 @@
     });
   }
 
+  // Turns a kaffeekarte-customer://oauth-callback?... return into the
+  // equivalent in-app /wallet?... navigation (a WebView can't load a
+  // non-http(s) URL directly), so processCustomerOauthRedirect() picks up
+  // the same oauthProvider/oauthToken/oauthError params either way. Shared
+  // by the ASWebAuthenticationSession path (startCustomerOauth) and the
+  // appUrlOpen/getLaunchUrl fallback path (wireVisibility) below.
+  function handleAppUrlOpen(rawUrl) {
+    if (!rawUrl) return;
+    var url = String(rawUrl);
+    if (url.indexOf("kaffeekarte-customer://") === 0) {
+      var qIndex = url.indexOf("?");
+      var query = qIndex >= 0 ? url.slice(qIndex) : "";
+      window.location.href = "/wallet" + query;
+      return;
+    }
+    window.location.href = url;
+  }
+
   function wireVisibility() {
     function onHidden() {
       try {
@@ -5047,14 +5195,22 @@
           if (state && state.isActive) onVisible();
           else onHidden();
         });
-        // When Universal Links (e.g. the Google/Apple OAuth return trip)
-        // bring an already-running app back to the foreground, iOS does not
-        // reload the WebView on its own - without this, the page just sits
-        // on whatever it showed before the OAuth round trip and the
-        // oauthToken in the returned URL never gets processed.
+
+        // Kept as a fallback for any other deep link into the app (the
+        // OAuth return itself now goes through ASWebAuthenticationSession
+        // in startCustomerOauth, which doesn't depend on these firing at
+        // all - see OAuthSessionPlugin.swift).
         appPlugin.addListener("appUrlOpen", function (data) {
-          if (data && data.url) window.location.href = data.url;
+          handleAppUrlOpen(data && data.url);
         });
+        if (appPlugin.getLaunchUrl) {
+          appPlugin
+            .getLaunchUrl()
+            .then(function (result) {
+              handleAppUrlOpen(result && result.url);
+            })
+            .catch(function () {});
+        }
       }
     } catch (e5) {}
   }
@@ -5381,6 +5537,13 @@
       renderStampGrid(grid, stampCount, prevCount);
     }
 
+    if (prevCount != null && stampCount !== Number(prevCount)) {
+      // Neuer Stempel oder Einlösung seit dem letzten Abgleich - die
+      // gecachte Event-History für die Besuchszeitpunkte ist jetzt veraltet.
+      stampHistoryCache.promise = null;
+      stampHistoryCache.eventsByCafe = null;
+    }
+
     if (prevCount != null && stampCount > Number(prevCount)) {
       triggerHapticStamp();
     }
@@ -5524,13 +5687,23 @@
                 null,
               );
               try {
-                if (cafeAddr) {
-                  var passEl = findWalletPassCardByCafe(cafeAddr);
-                  var prev = getPassStampCount(passEl);
-                  if (passEl && prev != null)
-                    setPassCardStamps(passEl, prev + delta);
+                var passEl = cafeAddr ? findWalletPassCardByCafe(cafeAddr) : null;
+                var prev = passEl ? getPassStampCount(passEl) : null;
+                if (passEl && prev != null) {
+                  setPassCardStamps(passEl, prev + delta);
+                } else {
+                  // Optimistic prev+delta needs both an already-rendered card
+                  // for this café and a known previous count - either one
+                  // missing used to fail silently (no update, no "isNew" pop
+                  // animation). Fall back to an authoritative refresh so the
+                  // card still catches up correctly.
+                  refreshWalletStamps();
                 }
-              } catch (eOpt) {}
+              } catch (eOpt) {
+                try {
+                  refreshWalletStamps();
+                } catch (eOpt2) {}
+              }
             } else if (type === "redeem") {
               if (cafeAddr) clearRedeemTokenForCafe(cafeAddr);
               triggerHapticReward();
@@ -5719,7 +5892,42 @@
     if (authMode === "register") qs.set("acceptLegal", "1");
     if (username || email)
       qs.set("username", username || deriveUsernameFromEmail(email));
-    window.location.assign("/api/auth/" + provider + "/start?" + qs.toString());
+
+    var isNative = false;
+    try {
+      isNative = !!(
+        window.Capacitor &&
+        window.Capacitor.isNativePlatform &&
+        window.Capacitor.isNativePlatform()
+      );
+    } catch (eNativeCheck) {}
+    // Tell the server this login started from the native app so it sends
+    // the final hop back via our custom URL scheme instead of the plain
+    // wallet URL.
+    if (isNative) qs.set("native", "1");
+    var startUrl = "/api/auth/" + provider + "/start?" + qs.toString();
+
+    if (isNative) {
+      var oauthPlugin =
+        window.Capacitor.Plugins && window.Capacitor.Plugins.OAuthSession;
+      if (oauthPlugin && oauthPlugin.authenticate) {
+        oauthPlugin
+          .authenticate({
+            url: location.origin + startUrl,
+            callbackUrlScheme: "kaffeekarte-customer",
+          })
+          .then(function (result) {
+            handleAppUrlOpen(result && result.url);
+          })
+          .catch(function () {
+            // User closed the sheet or it errored - not worth alarming
+            // them with a scary error message for a simple cancel.
+            showMsg("danger", "Anmeldung wurde abgebrochen.");
+          });
+        return;
+      }
+    }
+    window.location.assign(startUrl);
   }
   function handleGoogleAuthStart() {
     startCustomerOauth("google");
@@ -5998,6 +6206,16 @@
 
         cafesVersion = (cafesVersion || 0) + 1;
 
+        // Bis diese Liste da ist, kennt ein bereits offenes Kurzprofil oft
+        // noch keine Cafe-Id (buildCafeProfileUrl braucht sie fuer "Cafe
+        // ansehen") - jetzt nachziehen statt stumm zu warten, bis das Modal
+        // neu geoeffnet wird.
+        if (cafeModalState.open) {
+          try {
+            syncCafeModalDetails();
+          } catch (eModalSync) {}
+        }
+
         // The map page uses the searchable list (#cafeResults). A second list would duplicate items.
         wireCafeSearch();
         syncMapMarkers();
@@ -6081,9 +6299,21 @@
           ? stampUI.mountBottomNav({
               theme: "espresso",
               items: [
-                { id: "bottomModeMap", label: "Entdecken" },
-                { id: "bottomModeWallet", label: "Deine Wallet" },
-                { id: "bottomModeHistory", label: "Deine Checkins" },
+                {
+                  id: "bottomModeMap",
+                  label: "Entdecken",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.discover,
+                },
+                {
+                  id: "bottomModeWallet",
+                  label: "Wallet",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.wallet,
+                },
+                {
+                  id: "bottomModeHistory",
+                  label: "Checkins",
+                  icon: window.stampUI && stampUI.tabIcons && stampUI.tabIcons.history,
+                },
               ],
             })
           : null;

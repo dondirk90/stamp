@@ -73,6 +73,17 @@
           0 1px 0 rgba(255, 255, 255, 0.06) inset;
         position: relative;
         z-index: 3;
+        /* Reacts to scroll: stretches slightly on the native overscroll
+           bounce so that (already-active) physics gets a visible response. */
+        transform: scale(var(--topbar-stretch, 1));
+        transform-origin: top center;
+        transition: transform 0.25s ease-out;
+      }
+
+      /* No transition lag while the finger is actively dragging - only the
+         release should ease back to rest. */
+      .topbar.topbar--pulling {
+        transition: none;
       }
 
       .brand {
@@ -257,9 +268,7 @@
       .stat-card {
         background: rgba(255, 248, 241, 0.05) !important;
         border: 1px solid rgba(255, 241, 233, 0.10) !important;
-        box-shadow:
-          0 18px 40px rgba(0, 0, 0, 0.16),
-          0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+        box-shadow: none !important;
       }
 
       .bottomTabs {
@@ -499,7 +508,6 @@
         <div class="pageMeta">
           <h1 class="pageMetaTitle" id="cafeName">Café Dashboard</h1>
           <div class="pageMetaSub">Die Dinge im Blick, die im Caféalltag wirklich zählen.</div>
-          <div class="pageMetaSub" id="buildBadge">dashboard · ui-20260603c</div>
           <span id="cafeAvatar" hidden aria-hidden="true"></span>
           <div class="sourceRow">
           <span class="badge" id="sourceBadge">Quelle: —</span>
@@ -589,12 +597,88 @@
         stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "utilityStartBtn", label: "Start" },
-            { id: "utilityCardBtn", label: "Karte" },
-            { id: "utilityDashboardBtn", label: "Dashboard", active: true },
-            { id: "utilityAdminBtn", label: "Verwaltung" },
+            { id: "bottomModeScanner", label: "Scanner", icon: stampUI.tabIcons.scan },
+            { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
+            { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
+            {
+              id: "utilityDashboardBtn",
+              label: "Dashboard",
+              icon: stampUI.tabIcons.dashboard,
+              active: true,
+            },
+            { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
           ],
         });
+      })();
+    </script>
+    <script>
+      (function () {
+        var topbar = document.querySelector(".topbar");
+        if (!topbar) return;
+
+        function setStretch(px) {
+          var stretch = Math.min(1, Math.max(0, px / 90));
+          topbar.style.setProperty("--topbar-stretch", (1 + stretch * 0.08).toFixed(3));
+        }
+        function clearStretch() {
+          topbar.style.setProperty("--topbar-stretch", "1");
+        }
+
+        // window.scrollY going negative during the native bounce (the
+        // original approach here) turned out unreliable in practice - the
+        // café scanner screen's equivalent fix (tracking the raw touch drag
+        // while already scrolled to the top) is the one that's actually
+        // proven to work, so this page uses the same approach now instead.
+        var startY = null;
+        document.addEventListener(
+          "touchstart",
+          function (e) {
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            startY = e.touches.length === 1 && atTop ? e.touches[0].clientY : null;
+            if (startY != null) topbar.classList.add("topbar--pulling");
+          },
+          { passive: true },
+        );
+        document.addEventListener(
+          "touchmove",
+          function (e) {
+            if (startY == null) return;
+            var dy = e.touches[0].clientY - startY;
+            var atTop = (window.scrollY || window.pageYOffset || 0) <= 0;
+            if (dy > 0 && atTop) {
+              setStretch(dy);
+            } else {
+              startY = null;
+              clearStretch();
+              topbar.classList.remove("topbar--pulling");
+            }
+          },
+          { passive: true },
+        );
+        function release() {
+          startY = null;
+          topbar.classList.remove("topbar--pulling");
+          clearStretch();
+        }
+        document.addEventListener("touchend", release, { passive: true });
+        document.addEventListener("touchcancel", release, { passive: true });
+
+        // Desktop/wide-viewport fallback via window.scrollY's own negative-
+        // during-bounce quirk.
+        var ticking = false;
+        function paintWindowScroll() {
+          ticking = false;
+          var y = window.scrollY || window.pageYOffset || 0;
+          if (y < 0) setStretch(-y);
+          else if (startY == null) clearStretch();
+        }
+        function schedule() {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(paintWindowScroll);
+        }
+        window.addEventListener("scroll", schedule, { passive: true });
+        paintWindowScroll();
       })();
     </script>
     <script>
@@ -747,14 +831,6 @@
             .toUpperCase();
           document.getElementById("cafeName").textContent =
             cafe.name || "Café Dashboard";
-
-          document.getElementById("buildBadge").textContent =
-            `dashboard · ui-20260603b · API: ${apiBase}`;
-
-          document.getElementById("cafeName").textContent =
-            cafe.name || "Café Dashboard";
-          document.getElementById("buildBadge").textContent =
-            `dashboard · ui-20260603c · API: ${apiBase}`;
           wireUtilityMenu();
 
           // Default source badges (updated on refreshAll)
