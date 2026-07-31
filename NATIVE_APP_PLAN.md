@@ -55,14 +55,17 @@ Aktueller Fokus laut Absprache: **erst iOS fertig bekommen**, Android folgt dana
 
 ## Danach: Android
 
-- [ ] Google Play Console: Stand klären (Account vorhanden? Apps schon angelegt?)
-- [ ] Upload-Keystore erzeugen, als Secrets hinterlegen:
-      `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`
-- [ ] Google Play App Signing für die App aktivieren
+- [x] Google Play Console: Account vorhanden
+- [x] Upload-Keystore erzeugt, Secrets hinterlegt (`ANDROID_KEYSTORE_BASE64`,
+      `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`)
+- [ ] Google Play App Signing für beide Apps aktivieren
 - [ ] Play-Console-Service-Account-Key erzeugen, als `PLAY_JSON_KEY` hinterlegen
-- [ ] App-Einträge einmalig in der Play Console anlegen (Customer + Café)
-- [ ] Café-Android-Workflow bauen (analog zu `build-android-customer.yml`, existiert noch nicht)
-- [ ] `build-android-customer.yml` einmal manuell auslösen, internen Test-Track kontrollieren
+- [ ] App-Einträge einmalig in der Play Console anlegen (Customer + Café) -
+      **nur der Account-Inhaber kann das**, kein Automatisierungsschritt
+- [x] Café-Android-Workflow gebaut (`build-android-cafe.yml`), inkl. der
+      bisher fehlenden `platform :android`-Lane in `cafe-native/fastlane/Fastfile`
+- [ ] `build-android-customer.yml` und `build-android-cafe.yml` einmal manuell
+      auslösen, internen Test-Track kontrollieren
 - [ ] Store-Assets (Screenshots, Beschreibung) für Play Store
 
 ## Aufräumen (unkritisch, kein Blocker)

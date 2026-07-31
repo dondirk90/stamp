@@ -1,0 +1,108 @@
+name: Build Android Cafe App (Play internal testing)
+
+# Manual only for now (mirrors build-android-customer.yml) - needs an upload
+# keystore, Google Play App Signing enrolled, and a Play Console
+# service-account key before this can succeed. Reuses the same
+# account-level Android secrets as the customer app workflow unless you set
+# up a separate signing key for this app. Switch to push-triggered once
+# proven manually.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which deployed web app to point the build at"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - prod
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cafe-native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate required secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_JSON_KEY: ${{ secrets.PLAY_JSON_KEY }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          test -n "$PLAY_JSON_KEY"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/cafe-native/package.json
+
+      - name: Install web-app-level dependencies
+        working-directory: .
+        run: pnpm install --filter kaffeekarte-cafe-native
+
+      - name: Sync Capacitor (copies web config into the native project)
+        env:
+          CAP_SERVER_URL: ${{ inputs.target == 'prod' && 'https://kaffeekarte.app' || 'https://staging.kaffeekarte.app' }}
+        run: pnpm exec cap sync android
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Set up Ruby (Fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+
+      - name: Decode Play Console service-account key
+        env:
+          PLAY_JSON_KEY: ${{ secrets.PLAY_JSON_KEY }}
+        run: echo "$PLAY_JSON_KEY" > play-service-account.json
+
+      - name: Build and upload to Play internal testing
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/cafe-native/android/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_JSON_KEY_PATH: ${{ github.workspace }}/apps/cafe-native/play-service-account.json
+        run: fastlane android beta
+
+      # Play Console's testing tracks have their own tester/device
+      # requirements, separate from the app's actual minSdkVersion - this
+      # signed .apk sideloads directly onto any device new enough to run the
+      # app (Android 6.0+), no Play Console involved.
+      - name: Upload signed APK for direct sideload
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaffeekarte-cafe-${{ inputs.target }}.apk
+          path: apps/cafe-native/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
