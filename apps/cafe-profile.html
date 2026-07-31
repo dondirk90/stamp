@@ -553,7 +553,22 @@
         background-image: var(--pass-card-bg, none);
         background-size: cover;
         background-position: center;
-        opacity: 0.5;
+        /* Matches customer-qr-modern.html's .passFlip::after exactly (same
+           opacity/blend-mode/filter) - this preview used to show the
+           uploaded background at a much stronger opacity with no blend
+           mode, so it looked clearly visible here but came out barely
+           visible on the actual card guests see. */
+        opacity: 0.2;
+        mix-blend-mode: multiply;
+        filter: saturate(0.96) contrast(1.01);
+      }
+
+      .previewCard[data-pass-theme="clean"]::after {
+        opacity: 0.12;
+      }
+
+      .previewCard[data-pass-theme="ink"]::after {
+        opacity: 0.08;
       }
 
       .previewCard > * {

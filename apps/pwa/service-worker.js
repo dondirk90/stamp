@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v19-20260731-scanner-bounce-fix";
+const CACHE_VERSION = "stamp-shell-v20-20260731-preview-bg-match";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
