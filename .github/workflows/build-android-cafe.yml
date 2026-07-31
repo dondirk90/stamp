@@ -73,7 +73,11 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "17"
+          # Capacitor 7's cap sync generates capacitor.build.gradle with
+          # sourceCompatibility/targetCompatibility = JavaVersion.VERSION_21
+          # - JDK 17 can't compile against a release it doesn't know about
+          # ("invalid source release: 21").
+          java-version: "21"
 
       - name: Set up Ruby (Fastlane)
         uses: ruby/setup-ruby@v1
