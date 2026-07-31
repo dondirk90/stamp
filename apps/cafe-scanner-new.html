@@ -1200,7 +1200,14 @@
             calc(12px + var(--safe-bottom, 0px) + 88px)
             calc(var(--space-3) + var(--safe-left, 0px));
           overflow-x: hidden;
-          overscroll-behavior: none;
+          /* Axis-scoped (not the blanket `overscroll-behavior: none` this
+             used to be) - that killed the vertical rubber-band bounce
+             entirely, including the negative-scrollY the topbar's pull
+             stretch effect (see paintWindowScroll below) depends on to
+             ever fire, leaving Start/Scanner the only screens in the app
+             that scrolled rigidly instead of bouncing like everywhere
+             else. Horizontal is still blocked to avoid edge rubber-band. */
+          overscroll-behavior-x: none;
         }
 
         .topbar {
