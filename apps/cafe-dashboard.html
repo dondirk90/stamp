@@ -415,29 +415,6 @@
         margin: 0 0 var(--space-3) 0;
       }
 
-      .history-table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      .history-table th {
-        text-align: left;
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 600;
-        text-transform: uppercase;
-        padding: 12px;
-        border-bottom: 1px solid var(--border);
-      }
-      .history-table td {
-        padding: 16px 12px;
-        border-bottom: 1px solid var(--border);
-        font-size: 14px;
-        color: var(--text);
-        vertical-align: top;
-      }
-      .history-table tr:hover {
-        background: var(--surface-muted);
-      }
       .badge {
         display: inline-block;
         padding: 0;
@@ -448,13 +425,43 @@
         background: transparent;
         color: var(--text-muted);
       }
-      .badge-success {
-        background: transparent;
+
+      .historyList {
+        display: flex;
+        flex-direction: column;
+      }
+      .historyItem {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--border);
+      }
+      .historyItem:last-child {
+        border-bottom: none;
+      }
+      .historyItemHead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .historyCustomerName {
+        font-weight: 700;
         color: var(--text);
       }
-      .badge-redemption {
-        background: transparent;
-        color: var(--text);
+      .historyTimestamp {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .historyAction {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--brand);
+      }
+      .historyItem.negative .historyAction {
+        color: var(--danger);
       }
 
       .muted {
@@ -496,13 +503,24 @@
         </div>
         <div class="row">
           <button
-            class="btn secondary"
+            id="topUtilityBtn"
             type="button"
-            onclick="location.href = '/cafe-logout.html'"
+            class="topUtilityBtn ghost"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Menü öffnen"
           >
-            Abmelden
+            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
           </button>
         </div>
+      </div>
+
+      <!-- Nicht im .topbar verschachtelt, da dessen transform:scale() beim
+           Pull-Stretch sonst zum containing block fuer dieses
+           position:fixed-Menü wuerde. -->
+      <div id="utilityMenu" class="utilityMenu">
+        <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Verwaltung</button>
+        <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
       </div>
 
         <div class="pageMeta">
@@ -571,20 +589,10 @@
           style="padding: var(--space-5); margin-top: var(--space-4)"
         >
           <h2 class="sectionTitle">Letzte Aktivitäten</h2>
-          <div style="overflow: auto">
-            <table class="history-table">
-              <thead>
-                <tr>
-                  <th>Zeit</th>
-                  <th>Kunde</th>
-                  <th>Delta</th>
-                  <th>Typ</th>
-                  <th>Tx</th>
-                </tr>
-              </thead>
-              <tbody id="historyBody"></tbody>
-            </table>
-          </div>
+          <!-- Card list instead of a table with tx-hash/address columns -
+               that technical detail (0x7b44..., 0x3123...) means nothing to
+               a barista mid-shift; wer, wann, was ist genug. -->
+          <div id="historyBody" class="historyList"></div>
         </div>
       </div>
 
@@ -597,16 +605,14 @@
         stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "bottomModeScanner", label: "Scanner", icon: stampUI.tabIcons.scan },
             { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
-            { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
             {
               id: "utilityDashboardBtn",
-              label: "Dashboard",
+              label: "Verlauf",
               icon: stampUI.tabIcons.dashboard,
               active: true,
             },
-            { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
+            { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
           ],
         });
       })();
@@ -948,18 +954,14 @@
       }
 
       function renderRecentEvents(events) {
-        const tbody = document.getElementById("historyBody");
-        if (!tbody) return;
+        const list = document.getElementById("historyBody");
+        if (!list) return;
         if (!events || !events.length) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" class="muted" style="padding: 18px;">Noch keine Aktivitäten.</td>
-            </tr>
-          `;
+          list.innerHTML = `<div class="muted" style="padding: 18px;">Noch keine Aktivitäten.</div>`;
           return;
         }
 
-        tbody.innerHTML = events
+        list.innerHTML = events
           .map((e) => {
             const delta = Number((e && e.delta) || 0);
 
@@ -977,25 +979,18 @@
                 (delta < 0 ? "redeem" : "stamp"),
             ).toLowerCase();
             const isRedeem = typ === "redeem" || delta < 0;
-            const badge = isRedeem
-              ? '<span class="badge badge-redemption">Einlösen</span>'
-              : '<span class="badge badge-success">Stempel</span>';
-
-            const tx = (e && (e.txhash || e.txHash || e.tx_id || e.tx)) || "";
-            const txCell = tx
-              ? `<span class="mono">${shortAddr(tx)}</span>`
-              : "—";
+            const action = isRedeem
+              ? `${delta} Reward eingelöst`
+              : `+${delta} Stempel`;
 
             return `
-              <tr>
-                <td class="mono">${fmtTs(ts)}</td>
-                <td><strong>${who}</strong><div class="muted mono">${shortAddr(
-                  user,
-                )}</div></td>
-                <td class="mono">${delta}</td>
-                <td>${badge}</td>
-                <td>${txCell}</td>
-              </tr>
+              <div class="historyItem${isRedeem ? " negative" : ""}">
+                <div class="historyItemHead">
+                  <span class="historyCustomerName">${who}</span>
+                  <span class="historyTimestamp">${fmtTs(ts)}</span>
+                </div>
+                <span class="historyAction">${action}</span>
+              </div>
             `;
           })
           .join("");

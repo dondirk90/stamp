@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v25-20260731-dense-tabbar-fix";
+const CACHE_VERSION = "stamp-shell-v26-20260731-barista-nav-redesign";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",

@@ -820,6 +820,20 @@
       button:active {
         transform: translateY(1px);
       }
+      .homeScannerShortcut {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 18px;
+        padding: 20px;
+        box-shadow:
+          0 12px 26px rgba(20, 10, 4, 0.22),
+          0 1px 0 rgba(255, 255, 255, 0.08) inset;
+      }
+      .homeScannerShortcut span {
+        font-size: 22px;
+      }
       button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -2174,6 +2188,10 @@
               Programmsteuerung bewusst im Hintergrund bleiben.
             </p>
 
+            <button id="homeScannerShortcut" type="button" class="homeScannerShortcut">
+              <span aria-hidden="true">📷</span> Karte scannen
+            </button>
+
             <div class="homeGrid">
               <div class="homeCard">
                 <strong>Heute am wichtigsten</strong>
@@ -2387,38 +2405,58 @@
               </a>
             </div>
           </div>
-          <div class="row"></div>
+          <div class="row">
+            <button
+              id="topUtilityBtn"
+              type="button"
+              class="topUtilityBtn ghost"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="Menü öffnen"
+            >
+              <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
+            </button>
+          </div>
         `;
+
+        // Admin-Funktionen, die nicht in den Hot-Path (Scannen/Stempeln)
+        // gehören, sitzen hinter diesem Menü statt in der Tab-Bar - siehe
+        // .utilityMenu/.utilityMenuBtn CSS weiter oben, die schon dafür
+        // vorbereitet war. #utilityMenu haengt direkt am body (nicht im
+        // .topbar), weil .topbar per transform: scale() beim Pull-Stretch
+        // sonst zum containing block fuer position:fixed wuerde.
+        const utilityMenu = document.createElement("div");
+        utilityMenu.id = "utilityMenu";
+        utilityMenu.className = "utilityMenu";
+        utilityMenu.innerHTML = `
+          <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Verwaltung</button>
+          <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
+        `;
+        document.body.appendChild(utilityMenu);
 
         // Gemeinsame Bottom-Nav (cream auf dunklem Café-Theme). Die IDs
         // entsprechen den bisherigen Utility-Buttons, damit die bestehende
-        // Verdrahtung (wireShellChrome) unverändert greift.
+        // Verdrahtung (wireShellChrome) unverändert greift. Nur noch 3 Tabs
+        // fuer den Hot-Path (Scanner ist jetzt ein Shortcut auf der
+        // Start-Seite statt eines eigenen Tabs, Verwaltung sitzt im Menü
+        // oben) - Dashboard-Tab fuehrt weiterhin auf /cafe-dashboard,
+        // heisst hier aber "Verlauf", da genau das der taegliche Bedarf ist.
         if (window.stampUI && stampUI.mountBottomNav) {
-          // Inline query check: getInitialView() lives in the main script
-          // below and isn't defined yet when this early shell script runs.
-          let initialViewIsScan = false;
-          try {
-            initialViewIsScan =
-              new URLSearchParams(location.search || "").get("view") === "scan";
-          } catch (e) {}
           const nav = stampUI.mountBottomNav({
             theme: "cream",
             items: [
               {
-                id: "bottomModeScanner",
-                label: "Scanner",
-                icon: stampUI.tabIcons.scan,
-                active: initialViewIsScan,
-              },
-              {
                 id: "utilityWelcomeBtn",
                 label: "Start",
                 icon: stampUI.tabIcons.home,
-                active: !initialViewIsScan,
+                active: true,
+              },
+              {
+                id: "utilityDashboardBtn",
+                label: "Verlauf",
+                icon: stampUI.tabIcons.dashboard,
               },
               { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
-              { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
-              { id: "utilityAdminBtn", label: "Verwaltung", icon: stampUI.tabIcons.settings },
             ],
           });
           nav.id = "bottomTabs";
@@ -2588,6 +2626,7 @@
       const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
       const bottomTabs = document.getElementById("bottomTabs");
       const bottomModeScanner = document.getElementById("bottomModeScanner");
+      const homeScannerShortcut = document.getElementById("homeScannerShortcut");
 
       // State
       let cafe = null;
@@ -2843,6 +2882,7 @@
           });
         if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
         if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
+        if (homeScannerShortcut) homeScannerShortcut.addEventListener("click", goToScanner);
         document.addEventListener("click", (ev) => {
           const t = ev && ev.target ? ev.target : null;
           if (!t) return;
@@ -3303,6 +3343,16 @@
         toast.className = "toast" + (isError ? " error-toast" : "");
         toast.style.display = "block";
         setTimeout(() => (toast.style.display = "none"), 3000);
+      }
+
+      // navigator.vibrate isn't supported in iOS Safari/WKWebView at all -
+      // this only actually does anything on Android for now, but no-ops
+      // silently everywhere else instead of throwing, so it's safe to call
+      // unconditionally on every successful stamp/redeem.
+      function hapticSuccess() {
+        try {
+          if (navigator.vibrate) navigator.vibrate([50, 20, 50]);
+        } catch (e) {}
       }
 
       // Update café badge
@@ -3964,6 +4014,7 @@
           }
 
           const data = await res.json();
+          hapticSuccess();
 
           if (isRedeem) {
             const cur = parseInt(currentStamps.textContent) || 0;

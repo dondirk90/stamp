@@ -811,13 +811,24 @@
         </div>
         <div class="row">
           <button
-            class="btn secondary"
+            id="topUtilityBtn"
             type="button"
-            onclick="location.href = '/cafe-logout.html'"
+            class="topUtilityBtn ghost"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Menü öffnen"
           >
-            Abmelden
+            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
           </button>
         </div>
+      </div>
+
+      <!-- Nicht im .topbar verschachtelt, da dessen transform:scale() beim
+           Pull-Stretch sonst zum containing block fuer dieses
+           position:fixed-Menü wuerde. -->
+      <div id="utilityMenu" class="utilityMenu">
+        <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Verwaltung</button>
+        <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
       </div>
 
       <div class="pageMeta">
@@ -1343,24 +1354,16 @@
     <script>
       (function () {
         if (!window.stampUI || !stampUI.mountBottomNav) return;
-        var advanced = /[?&]view=advanced/.test(location.search);
         var nav = stampUI.mountBottomNav({
           theme: "cream",
           items: [
-            { id: "bottomModeScanner", label: "Scanner", icon: stampUI.tabIcons.scan },
             { id: "utilityStartBtn", label: "Start", icon: stampUI.tabIcons.home },
+            { id: "utilityDashboardBtn", label: "Verlauf", icon: stampUI.tabIcons.dashboard },
             {
               id: "utilityCardBtn",
               label: "Karte",
               icon: stampUI.tabIcons.card,
-              active: !advanced,
-            },
-            { id: "utilityDashboardBtn", label: "Dashboard", icon: stampUI.tabIcons.dashboard },
-            {
-              id: "utilityAdminBtn",
-              label: "Verwaltung",
-              icon: stampUI.tabIcons.settings,
-              active: advanced,
+              active: true,
             },
           ],
         });
