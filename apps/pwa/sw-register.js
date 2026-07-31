@@ -5,7 +5,7 @@
   if (!(location.protocol === "https:" || location.hostname === "localhost"))
     return;
 
-  var SW_VERSION = "20260730a";
+  var SW_VERSION = "20260731a";
   var reloading = false;
 
   function reloadOnce() {

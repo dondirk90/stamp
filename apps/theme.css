@@ -420,6 +420,11 @@ textarea {
   border: 1px solid rgba(17, 17, 17, 0.1);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
+  /* iOS Safari auto-zooms the page on focus when a field's font-size is
+     below 16px - form controls don't inherit the body's font size, so
+     without this every input/select/textarea fell back to the browser's
+     (sub-16px) UA default. */
+  font-size: 16px;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.66) inset,
     0 8px 18px rgba(68, 41, 22, 0.04);

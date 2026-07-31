@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v17-20260730-save-fix";
+const CACHE_VERSION = "stamp-shell-v18-20260731-input-zoom-fix";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
