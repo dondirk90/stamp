@@ -5211,12 +5211,6 @@
               />
             </div>
 
-            <div class="actions authCtaActions">
-              <button class="btn primary" id="authSubmit" type="button">
-                Mit E-Mail fortfahren
-              </button>
-            </div>
-
             <div id="authDetails" class="stack authDetails">
               <div id="registerFields" class="stack">
                 <div class="stack" style="gap: 6px">
@@ -5254,6 +5248,12 @@
                 <a href="/agb" target="_blank" rel="noreferrer">AGB</a>
                 an.
               </p>
+            </div>
+
+            <div class="actions authCtaActions">
+              <button class="btn primary" id="authSubmit" type="button">
+                Mit E-Mail fortfahren
+              </button>
             </div>
 
             <div class="hint" style="margin-top: 6px">
@@ -5606,7 +5606,7 @@
     <script src="/vendor/capacitor/haptics.js"></script>
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js?v=20260714a"></script>
-    <script src="/customer-qr-modern.js?v=20260714a"></script>
+    <script src="/customer-qr-modern.js?v=20260731a"></script>
 
     <script>
       (function () {
@@ -5920,6 +5920,12 @@
           }
 
           window.setTimeout(function () {
+            // Capacitor's native bridge auto-injects window.Capacitor in the
+            // real iOS/Android app shell (independent of the vendor script
+            // include below) - without this check, "add Kaffeekarte to your
+            // homescreen" made no sense to someone who already has the
+            // dedicated app open.
+            if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
             if (!isMobileBrowser()) return;
             if (isStandalone()) return;
             if (wasSeen()) return;

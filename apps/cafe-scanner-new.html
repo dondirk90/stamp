@@ -4322,6 +4322,12 @@
           }
 
           window.setTimeout(function () {
+            // Capacitor's native bridge auto-injects window.Capacitor in the
+            // real iOS/Android app shell, even though this page doesn't
+            // include the vendor capacitor.js scripts itself - without this
+            // check, "add Kaffeekarte to your homescreen" made no sense to a
+            // barista who already has the dedicated app open.
+            if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
             if (!isMobileBrowser()) return;
             if (isStandalone()) return;
             if (wasSeen()) return;

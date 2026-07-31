@@ -5126,6 +5126,22 @@
   function handleAppUrlOpen(rawUrl) {
     if (!rawUrl) return;
     var url = String(rawUrl);
+
+    // window.location.href below is a full WebView reload, not a client-side
+    // route change - it re-runs this entire script, including this same
+    // getLaunchUrl()/appUrlOpen wiring. iOS's ApplicationDelegateProxy keeps
+    // returning the same cold-launch URL from getLaunchUrl() until the app
+    // process itself is killed, so without this guard every reload
+    // re-triggered the exact same navigation forever: a Universal Link
+    // (e.g. the email-verification link, https://.../wallet?verifyToken=...)
+    // opened the app and it just kept reloading itself in a loop, never
+    // settling long enough to show the verification result.
+    try {
+      var SEEN_KEY = "kk_last_handled_launch_url";
+      if (sessionStorage.getItem(SEEN_KEY) === url) return;
+      sessionStorage.setItem(SEEN_KEY, url);
+    } catch (e) {}
+
     if (url.indexOf("kaffeekarte-customer://") === 0) {
       var qIndex = url.indexOf("?");
       var query = qIndex >= 0 ? url.slice(qIndex) : "";
