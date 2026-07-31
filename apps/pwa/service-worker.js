@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v21-20260731-card-theme-fix";
+const CACHE_VERSION = "stamp-shell-v22-20260731-card-bg-format-fix";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",

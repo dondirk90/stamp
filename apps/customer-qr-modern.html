@@ -2844,8 +2844,13 @@
 
       .passCard[data-pass-theme="paper"] .passFlip::after {
         opacity: 0.1;
-        background-size: 62% auto, auto, auto, auto;
-        background-position: center 56%, center, center, center;
+        /* Used to shrink the uploaded background photo (the first
+           background-image layer, var(--pass-card-bg)) to a small 62%-wide
+           centered watermark instead of covering the card - that predates
+           cafés being able to upload their own background photo, and once
+           they could, it meant "paper" (the default theme) cropped/placed
+           the photo completely differently than every other theme and than
+           the cafe-profile.html preview, both of which use plain `cover`. */
       }
 
       .passCard[data-pass-theme="clean"] {

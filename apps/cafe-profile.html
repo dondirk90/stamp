@@ -544,6 +544,30 @@
         gap: 14px;
       }
 
+      /* Same --pass-card-ratio breakpoints as customer-qr-modern.html's
+         .passCard (source order matters here exactly like it does there,
+         since later matching rules win at equal specificity) - the actual
+         card goes noticeably more square on phones, which is how nearly
+         every guest sees it. Without this the preview stayed at the wide
+         1.34 desktop ratio no matter the viewport, so a background image
+         cropped to look right here got cropped completely differently by
+         `background-size: cover` on the real, more-square mobile card. */
+      @media (max-width: 420px) {
+        .previewCard {
+          --pass-card-ratio: 1.08;
+        }
+      }
+      @media (max-width: 520px) and (orientation: portrait) {
+        .previewCard {
+          --pass-card-ratio: 1.08;
+        }
+      }
+      @media (max-width: 520px) and (max-height: 760px) {
+        .previewCard {
+          --pass-card-ratio: 1.04;
+        }
+      }
+
       .previewCard::after {
         content: "";
         position: absolute;
