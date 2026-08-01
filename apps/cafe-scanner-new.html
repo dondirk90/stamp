@@ -3181,7 +3181,13 @@
           updateScannerHint();
           return;
         }
-        void resumeScannerCameraIfAllowed();
+        // Landing on this screen (shortcut/tab click, or a pending-scan
+        // deep link) is itself the "I want to scan now" signal, so request
+        // the camera right away instead of making the user tap a second
+        // "Kamera starten" button first - forcePrompt triggers the native
+        // OS permission dialog directly if it hasn't been granted yet
+        // (that dialog is the one confirmation step that can't be skipped).
+        void startScannerCamera({ forcePrompt: true });
       }
 
       function showLoginUI() {

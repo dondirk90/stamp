@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stamp-shell-v27-20260801-header-single-avatar";
+const CACHE_VERSION = "stamp-shell-v28-20260801-viewport-fit-cam-autostart";
 const APP_SHELL_CACHE = CACHE_VERSION;
 const APP_SHELL_URLS = [
   "/",
