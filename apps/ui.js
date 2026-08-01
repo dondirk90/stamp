@@ -396,8 +396,11 @@
     document.head.appendChild(style);
   }
 
-  // Top-right Avatar (Logo/Initiale) mit Link zum Cafe-Profil - Gegenstueck
-  // zum topProfileBtn der Kunden-App, ersetzt dort den "Karte"-Nav-Eintrag.
+  // Top-right Avatar (Logo/Initiale) - Gegenstueck zum topProfileBtn der
+  // Kunden-App. Standardverhalten: Klick navigiert zum Cafe-Profil. Seiten
+  // mit einem Verwaltung/Logout-Menü (siehe .utilityMenu) übergeben
+  // stattdessen `onClick`, damit der Avatar als einziger Button oben rechts
+  // bleibt (statt zusätzlich einen Hamburger-Button danebenzusetzen).
   function mountCafeTopProfile(options) {
     var o = options || {};
     var row = document.querySelector(".topbar .row");
@@ -426,9 +429,11 @@
       var initial = String(o.name || "C").trim().slice(0, 1).toUpperCase() || "C";
       btn.textContent = initial;
     }
-    btn.onclick = function () {
-      location.href = o.href || "/cafe-profile";
-    };
+    btn.onclick =
+      o.onClick ||
+      function () {
+        location.href = o.href || "/cafe-profile";
+      };
     if (isNew) row.insertBefore(btn, row.firstChild);
     return btn;
   }

@@ -58,15 +58,30 @@ Aktueller Fokus laut Absprache: **erst iOS fertig bekommen**, Android folgt dana
 - [x] Google Play Console: Account vorhanden
 - [x] Upload-Keystore erzeugt, Secrets hinterlegt (`ANDROID_KEYSTORE_BASE64`,
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`)
-- [ ] Google Play App Signing für beide Apps aktivieren
-- [ ] Play-Console-Service-Account-Key erzeugen, als `PLAY_JSON_KEY` hinterlegen
-- [ ] App-Einträge einmalig in der Play Console anlegen (Customer + Café) -
-      **nur der Account-Inhaber kann das**, kein Automatisierungsschritt
+- [x] Play-Console-Service-Account-Key erzeugt, als `PLAY_JSON_KEY` hinterlegt
+      (Google-Cloud-Organisationsrichtlinie `iam.managed.disableServiceAccountKeyCreation`
+      musste für das Projekt erst auf "Nicht erzwingen" gesetzt werden)
+- [x] App-Einträge in der Play Console angelegt (Customer + Café)
 - [x] Café-Android-Workflow gebaut (`build-android-cafe.yml`), inkl. der
       bisher fehlenden `platform :android`-Lane in `cafe-native/fastlane/Fastfile`
-- [ ] `build-android-customer.yml` und `build-android-cafe.yml` einmal manuell
-      auslösen, internen Test-Track kontrollieren
+- [x] `build-android-customer.yml` einmal manuell ausgelöst - **erfolgreich**,
+      läuft im internen Test-Track (Release 1.0), User ist selbst Tester
+- [ ] `build-android-cafe.yml` einmal manuell auslösen (gleiche Fixes wie
+      customer sollten greifen, aber noch nicht selbst getestet)
+- [ ] Google Play App Signing: lief beim ersten Upload automatisch mit,
+      keine separate Aktion nötig gewesen
 - [ ] Store-Assets (Screenshots, Beschreibung) für Play Store
+
+**Unterwegs gefixte Bugs im Android-Build** (galten für customer, cafe hat
+denselben Code-Pfad also vermutlich auch):
+- `gradlew` war ohne Exec-Bit committet (`100644` statt `100755`, von Windows
+  aus angelegt) → `Permission denied`. Gefixt + `chmod +x`-Guard in beiden Workflows.
+- Workflow installierte JDK 17, aber Capacitor 7 braucht JDK 21
+  (`capacitor.build.gradle` setzt `JavaVersion.VERSION_21`) → "invalid source
+  release: 21". Beide Workflows auf JDK 21 umgestellt.
+- `upload_to_play_store` bekam keinen `package_name` (Appfile deklariert nur
+  iOS-Keys) → "No value found for 'package_name'". Explizit in beiden
+  Fastfiles ergänzt (`app.kaffeekarte.customer` / `app.kaffeekarte.cafe`).
 
 ## Aufräumen (unkritisch, kein Blocker)
 

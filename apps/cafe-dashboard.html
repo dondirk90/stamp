@@ -501,23 +501,14 @@
             </a>
           </div>
         </div>
-        <div class="row">
-          <button
-            id="topUtilityBtn"
-            type="button"
-            class="topUtilityBtn ghost"
-            aria-haspopup="true"
-            aria-expanded="false"
-            aria-label="Menü öffnen"
-          >
-            <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
-          </button>
-        </div>
+        <div class="row"></div>
       </div>
 
-      <!-- Nicht im .topbar verschachtelt, da dessen transform:scale() beim
-           Pull-Stretch sonst zum containing block fuer dieses
-           position:fixed-Menü wuerde. -->
+      <!-- Menü-Trigger ist das Profilbild (mountCafeTopProfile) statt eines
+           eigenen Hamburger-Buttons - nur ein Button oben rechts, wie bei
+           der Customer-App. Nicht im .topbar verschachtelt, da dessen
+           transform:scale() beim Pull-Stretch sonst zum containing block
+           fuer dieses position:fixed-Menü wuerde. -->
       <div id="utilityMenu" class="utilityMenu">
         <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Verwaltung</button>
         <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
@@ -751,8 +742,23 @@
         node.className = "badge" + (variant ? " " + variant : "");
       }
 
+      // The avatar button (mountCafeTopProfile, see refreshAll) is the menu
+      // trigger, not a separate hamburger button - it isn't created until
+      // that first overview fetch resolves, so it's looked up fresh here
+      // rather than cached, and its onClick is wired at creation time.
+      function getTopUtilityBtn() {
+        return document.getElementById("kkCafeTopProfileBtn");
+      }
+      let utilityMenuOpen = false;
+      function setUtilityMenuOpen(open) {
+        utilityMenuOpen = !!open;
+        const utilityMenu = document.getElementById("utilityMenu");
+        if (utilityMenu) utilityMenu.classList.toggle("open", utilityMenuOpen);
+        const btn = getTopUtilityBtn();
+        if (btn) btn.setAttribute("aria-expanded", utilityMenuOpen ? "true" : "false");
+      }
+
       function wireUtilityMenu() {
-        const topUtilityBtn = document.getElementById("topUtilityBtn");
         const utilityMenu = document.getElementById("utilityMenu");
         const utilityStartBtn = document.getElementById("utilityStartBtn");
         const utilityCardBtn = document.getElementById("utilityCardBtn");
@@ -761,21 +767,6 @@
           document.getElementById("utilityDashboardBtn");
         const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
         const bottomModeScanner = document.getElementById("bottomModeScanner");
-
-        const setOpen = (open) => {
-          if (!utilityMenu) return;
-          utilityMenu.classList.toggle("open", !!open);
-          if (topUtilityBtn) {
-            topUtilityBtn.setAttribute("aria-expanded", open ? "true" : "false");
-          }
-        };
-
-        if (topUtilityBtn) {
-          topUtilityBtn.addEventListener("click", () => {
-            const isOpen = utilityMenu && utilityMenu.classList.contains("open");
-            setOpen(!isOpen);
-          });
-        }
 
         if (utilityStartBtn) {
           utilityStartBtn.addEventListener("click", () => {
@@ -799,7 +790,7 @@
         }
         if (utilityLogoutBtn) {
           utilityLogoutBtn.addEventListener("click", () => {
-            setOpen(false);
+            setUtilityMenuOpen(false);
             logout();
           });
         }
@@ -813,8 +804,9 @@
           const t = event.target;
           if (!t || !utilityMenu) return;
           if (utilityMenu.contains(t)) return;
-          if (topUtilityBtn && topUtilityBtn.contains(t)) return;
-          setOpen(false);
+          const btn = getTopUtilityBtn();
+          if (btn && btn.contains(t)) return;
+          setUtilityMenuOpen(false);
         });
       }
 
@@ -891,6 +883,7 @@
           stampUI.mountCafeTopProfile({
             name: overview && overview.cafe ? overview.cafe.name : cafe.name,
             logoDataUrl: overview && overview.cafe ? overview.cafe.logoDataUrl : null,
+            onClick: () => setUtilityMenuOpen(!utilityMenuOpen),
           });
         }
 

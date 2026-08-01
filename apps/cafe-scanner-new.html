@@ -2405,18 +2405,7 @@
               </a>
             </div>
           </div>
-          <div class="row">
-            <button
-              id="topUtilityBtn"
-              type="button"
-              class="topUtilityBtn ghost"
-              aria-haspopup="true"
-              aria-expanded="false"
-              aria-label="Menü öffnen"
-            >
-              <span class="topUtilityIcon" aria-hidden="true"><span></span></span>
-            </button>
-          </div>
+          <div class="row"></div>
         `;
 
         // Admin-Funktionen, die nicht in den Hot-Path (Scannen/Stempeln)
@@ -2424,7 +2413,10 @@
         // .utilityMenu/.utilityMenuBtn CSS weiter oben, die schon dafür
         // vorbereitet war. #utilityMenu haengt direkt am body (nicht im
         // .topbar), weil .topbar per transform: scale() beim Pull-Stretch
-        // sonst zum containing block fuer position:fixed wuerde.
+        // sonst zum containing block fuer position:fixed wuerde. Der
+        // Menü-Trigger ist das Profilbild (mountCafeTopProfile, siehe
+        // updateCafeBadge) statt eines eigenen Hamburger-Buttons - so bleibt
+        // oben rechts nur ein Button, wie bei der Customer-App.
         const utilityMenu = document.createElement("div");
         utilityMenu.id = "utilityMenu";
         utilityMenu.className = "utilityMenu";
@@ -2617,7 +2609,12 @@
       const cafeBadge = document.getElementById("cafeBadge");
       const cafeName = document.getElementById("cafeName");
       const toast = document.getElementById("toast");
-      const topUtilityBtn = document.getElementById("topUtilityBtn");
+      // The avatar button (mountCafeTopProfile) is the menu trigger, but it
+      // isn't created until after login (updateCafeBadge), so it can't be
+      // grabbed once up front like the other elements here.
+      function getTopUtilityBtn() {
+        return document.getElementById("kkCafeTopProfileBtn");
+      }
       const utilityMenu = document.getElementById("utilityMenu");
       const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
       const utilityCardBtn = document.getElementById("utilityCardBtn");
@@ -2826,8 +2823,8 @@
       function setUtilityMenuOpen(open) {
         shellState.utilityOpen = !!open;
         if (utilityMenu) utilityMenu.classList.toggle("open", shellState.utilityOpen);
-        if (topUtilityBtn)
-          topUtilityBtn.setAttribute("aria-expanded", shellState.utilityOpen ? "true" : "false");
+        const btn = getTopUtilityBtn();
+        if (btn) btn.setAttribute("aria-expanded", shellState.utilityOpen ? "true" : "false");
       }
 
       function syncScannerUrl(view) {
@@ -2861,11 +2858,9 @@
       }
 
       function wireShellChrome() {
-        if (topUtilityBtn) {
-          topUtilityBtn.addEventListener("click", () => {
-            setUtilityMenuOpen(!shellState.utilityOpen);
-          });
-        }
+        // No listener needed here for the menu trigger itself - it's the
+        // avatar button from mountCafeTopProfile, which gets its onClick
+        // passed directly at creation time (see updateCafeBadge).
         if (utilityWelcomeBtn) utilityWelcomeBtn.addEventListener("click", goToWelcome);
         if (utilityCardBtn) {
           utilityCardBtn.addEventListener("click", () => {
@@ -2886,12 +2881,13 @@
         document.addEventListener("click", (ev) => {
           const t = ev && ev.target ? ev.target : null;
           if (!t) return;
+          const btn = getTopUtilityBtn();
           if (
             shellState.utilityOpen &&
             utilityMenu &&
             !utilityMenu.contains(t) &&
-            topUtilityBtn &&
-            !topUtilityBtn.contains(t)
+            btn &&
+            !btn.contains(t)
           ) {
             setUtilityMenuOpen(false);
           }
@@ -3364,7 +3360,8 @@
         cafeBadge.style.display = "flex";
         if (cafeName) cafeName.textContent = cafe.name || "Barista App";
         if (window.stampUI && stampUI.mountCafeTopProfile) {
-          stampUI.mountCafeTopProfile({ name: cafe.name });
+          const onProfileClick = () => setUtilityMenuOpen(!shellState.utilityOpen);
+          stampUI.mountCafeTopProfile({ name: cafe.name, onClick: onProfileClick });
           fetch(`${apiBase}/cafes/me/overview`, {
             headers: { Authorization: `Bearer ${cafe.token}` },
           })
@@ -3374,6 +3371,7 @@
                 stampUI.mountCafeTopProfile({
                   name: data.cafe.name || cafe.name,
                   logoDataUrl: data.cafe.logoDataUrl,
+                  onClick: onProfileClick,
                 });
               }
             })
