@@ -122,6 +122,7 @@ platform :android do
       },
     )
     upload_to_play_store(
+      package_name: "app.kaffeekarte.customer",
       track: "internal",
       json_key: ENV["PLAY_JSON_KEY_PATH"],
       aab: "android/app/build/outputs/bundle/release/app-release.aab",
