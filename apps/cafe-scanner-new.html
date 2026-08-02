@@ -272,6 +272,17 @@
         color: var(--text);
       }
 
+      .topbar .row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Without an explicit height, this flex item resolves to ~68px
+           instead of hugging its single 44px avatar-button child (some
+           flex hypothetical-cross-size quirk) - pulling the whole topbar
+           taller than its 76px min-height in the process. */
+        height: 44px;
+      }
+
       .topUtilityBtn {
         min-height: 44px;
         min-width: 44px;
@@ -1686,30 +1697,34 @@
 
       .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+        /* minmax(150px, 1fr) instead of the original 250px so two tiles
+           already fit side by side on a phone-width screen instead of
+           stacking all four full-width - the original single-column
+           layout meant a lot of scrolling for four numbers. */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
         margin-bottom: 20px;
       }
       .stat-card {
-        padding: var(--space-5);
+        padding: 16px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: color-mix(in srgb, var(--surface) 92%, white 8%);
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
       }
       .stat-label {
-        font-size: 14px;
+        font-size: 12px;
         color: var(--text-muted);
         font-weight: 600;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
       .stat-value {
-        font-size: 36px;
+        font-size: 28px;
         font-weight: 700;
         color: var(--brand);
       }
       .stat-subtitle {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--text-muted);
         margin-top: 4px;
       }
