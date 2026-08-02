@@ -232,136 +232,6 @@
         min-height: 48px;
       }
 
-      .menuToggle {
-        position: absolute;
-        left: 2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        min-height: 44px;
-        padding: 0;
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        color: #7a5236 !important;
-        display: inline-flex !important;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .menuToggleLines {
-        position: relative;
-        width: 20px;
-        height: 14px;
-        display: block;
-      }
-
-      .menuToggleLines::before,
-      .menuToggleLines::after,
-      .menuToggleLines span {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: #7a5236;
-        transition: transform 0.18s ease, opacity 0.18s ease;
-      }
-
-      .menuToggleLines::before {
-        top: 0;
-      }
-
-      .menuToggleLines span {
-        top: 6px;
-      }
-
-      .menuToggleLines::after {
-        top: 12px;
-      }
-
-      body.menuOpen .menuToggleLines::before {
-        transform: translateY(6px) rotate(45deg);
-      }
-
-      body.menuOpen .menuToggleLines span {
-        opacity: 0;
-      }
-
-      body.menuOpen .menuToggleLines::after {
-        transform: translateY(-6px) rotate(-45deg);
-      }
-
-      .menuBackdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(20, 12, 9, 0.24);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.18s ease;
-        z-index: 61;
-      }
-
-      .menuBackdrop.open {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .menuDrawer {
-        position: absolute;
-        top: 18px;
-        left: 20px;
-        width: min(320px, calc(100vw - 32px));
-        padding: 16px;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 241, 233, 0.14);
-        background:
-          linear-gradient(180deg, rgba(42, 29, 24, 0.98), rgba(31, 21, 17, 0.98));
-        box-shadow:
-          0 20px 42px rgba(0, 0, 0, 0.28),
-          0 1px 0 rgba(255, 255, 255, 0.06) inset;
-        opacity: 0;
-        transform: translateY(-6px) scale(0.985);
-        pointer-events: none;
-        transition: opacity 0.18s ease, transform 0.18s ease;
-        z-index: 72;
-      }
-
-      .menuDrawer.open {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
-      }
-
-      .menuDrawerHead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(81, 58, 40, 0.08);
-      }
-
-      .menuDrawerTitle {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(47, 32, 23, 0.72);
-      }
-
-      .menuDrawerMeta {
-        margin-top: 6px;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(47, 32, 23, 0.48);
-      }
-
       .topbar .kk-brand {
         display: inline-flex;
         align-items: center;
@@ -1187,19 +1057,6 @@
           transform-origin: top center;
         }
 
-        .topbar .row {
-          display: flex;
-          position: absolute;
-          top: 50%;
-          right: 14px;
-          width: 44px;
-          height: 44px;
-          transform: translateY(-50%);
-          align-items: center;
-          justify-content: center;
-          z-index: 71;
-        }
-
         .card,
         #homeScreen,
         #scannerScreen {
@@ -1820,34 +1677,20 @@
     <div class="shell">
       <!-- Cafe Header + Top Menu (customer-style) -->
       <div id="cafeBadge" class="topbar" style="display: none">
-        <div class="brand brandScanner">
-          <a class="kk-brand" href="/">
-            <span class="kk-brandMark" aria-hidden="true">
-              <img src="/assets/stamp-bean.png?v=1" alt="" />
-            </span>
-            <span class="kk-brandText">
-              <span class="kk-brandKicker">Kaffee im Veedel</span>
-              <span class="kk-brandWord">Kaffeekarte</span>
-            </span>
-          </a>
-          <div class="scannerBrandMeta">
-            <div class="scannerBrandLabel">Barista App</div>
-            <div class="scannerBrandCafe" id="cafeName">Cafe</div>
-            <div class="scannerBuildBadge">scanner-new - ui-20260603b</div>
+        <div class="brand">
+          <div class="brandHead">
+            <a class="kk-brand" href="/">
+              <span class="kk-brandMark" aria-hidden="true">
+                <img src="/assets/stamp-bean.png?v=1" alt="" />
+              </span>
+              <span class="kk-brandText">
+                <span class="kk-brandKicker">Kaffee im Veedel</span>
+                <span class="kk-brandWord">Kaffeekarte</span>
+              </span>
+            </a>
           </div>
         </div>
-
-        <div class="row topbarActions">
-          <button
-            class="btn secondary"
-            id="logoutBtn"
-            type="button"
-            onclick="location.href = '/cafe-logout.html'"
-          >
-            Abmelden
-          </button>
-        </div>
-
+        <div class="row"></div>
       </div>
 
       <div class="card" id="loginCard">
