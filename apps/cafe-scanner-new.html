@@ -2601,22 +2601,50 @@
       function getInitialView() {
         try {
           const sp = new URLSearchParams(location.search || "");
-          return sp.get("view") === "scan" ? "scan" : "home";
+          if (sp.get("view") === "scan") return "scan";
+          // /cafe-scanner is reachable directly (not just via the "view"
+          // query param, e.g. a bare deep link) - treat it the same as
+          // ?view=scan so a fresh load or a popstate back to it lands on
+          // the scanner screen instead of silently falling back to home.
+          if (location.pathname === "/cafe-scanner") return "scan";
+          return "home";
         } catch (e) {
           return "home";
         }
       }
 
+      // Central navigation entry point (mirrors navigateToMode() in
+      // customer-qr-modern.js): pushes a real history entry only when the
+      // view actually changes, then delegates to showView() to apply the
+      // DOM state. showView() itself never touches history directly, so
+      // popstate can call it straight without producing a second entry.
+      function navigateToCafeView(view) {
+        const targetView = view === "scan" ? "scan" : "home";
+        if (targetView !== currentView) {
+          try {
+            const url = new URL(location.href);
+            if (targetView === "scan") url.searchParams.set("view", "scan");
+            else url.searchParams.delete("view");
+            history.pushState(
+              { view: targetView },
+              "",
+              url.pathname + url.search + url.hash,
+            );
+          } catch (e) {}
+        }
+        showView(targetView);
+      }
+
       function goToWelcome() {
         setDrawerOpen(false);
         setUtilityMenuOpen(false);
-        showView("home");
+        navigateToCafeView("home");
       }
 
       function goToScanner() {
         setDrawerOpen(false);
         setUtilityMenuOpen(false);
-        showView("scan");
+        navigateToCafeView("scan");
       }
 
       function wireShellChrome() {
@@ -3237,7 +3265,7 @@
       }
       if (openScanBtn)
         openScanBtn.onclick = () => {
-          showView("scan");
+          navigateToCafeView("scan");
         };
       if (cameraStartBtn)
         cameraStartBtn.onclick = () => {
@@ -3838,6 +3866,14 @@
 
       // Auto-login if saved
       wireShellChrome();
+
+      // Browser back/forward between Start and Scanner - showView() only
+      // applies DOM state (no history.pushState of its own), so calling it
+      // here doesn't create a second entry on top of the one popstate is
+      // already resolving.
+      window.addEventListener("popstate", function () {
+        showView(getInitialView());
+      });
 
       (async function autoLogin() {
         try {
