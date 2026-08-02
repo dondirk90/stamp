@@ -362,7 +362,7 @@ const server = http.createServer((req, res) => {
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
     pathname = "/cafe-scanner-new.html";
-  if (pathname === "/cafe-dashboard") pathname = "/cafe-dashboard.html";
+  if (pathname === "/cafe-dashboard") pathname = "/cafe-scanner-new.html";
   if (pathname === "/cafe-profile") pathname = "/cafe-profile.html";
   if (pathname === "/cafe-onboarding") pathname = "/cafe-onboarding.html";
 

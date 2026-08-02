@@ -1671,6 +1671,135 @@
           display: none !important;
         }
       }
+
+      /* Verlauf/Dashboard screen (ported from cafe-dashboard.html). The
+         bare .card rule above is the big centered login panel - scoped
+         here to restore the flat content-tile look the dashboard markup
+         was designed for, without touching #loginCard. */
+      #dashboardScreen .card {
+        width: auto;
+        margin: 0;
+        background: rgba(255, 248, 241, 0.05) !important;
+        border: 1px solid rgba(255, 241, 233, 0.10) !important;
+        box-shadow: none !important;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        padding: var(--space-5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--surface) 92%, white 8%);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+      }
+      .stat-label {
+        font-size: 14px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .stat-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .stat-subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .sectionTitle {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--brand);
+        margin: 0 0 var(--space-3) 0;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0;
+        border-radius: 0;
+        border: none;
+        font-size: 12px;
+        font-weight: 600;
+        background: transparent;
+        color: var(--text-muted);
+      }
+      .badge.ok {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .badge.warn {
+        background: transparent;
+        color: var(--text-muted);
+      }
+
+      .sourceRow {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+
+      .historyList {
+        display: flex;
+        flex-direction: column;
+      }
+      .historyItem {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--border);
+      }
+      .historyItem:last-child {
+        border-bottom: none;
+      }
+      .historyItemHead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .historyCustomerName {
+        font-weight: 700;
+        color: var(--text);
+      }
+      .historyTimestamp {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .historyAction {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--brand);
+      }
+      .historyItem.negative .historyAction {
+        color: var(--danger);
+      }
+
+      .mono {
+        font-family: var(--font-mono);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+      @media (min-width: 920px) {
+        .split {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
     </style>
   </head>
   <body class="theme-invert">
@@ -2139,6 +2268,75 @@
               </div>
             </div>
           </div>
+
+          <!-- Verlauf/Dashboard -->
+          <div id="dashboardScreen" style="display: none">
+            <div class="pageMeta">
+              <h1 class="pageMetaTitle" id="dashboardCafeName">Café Dashboard</h1>
+              <div class="pageMetaSub">Die Dinge im Blick, die im Caféalltag wirklich zählen.</div>
+              <div class="sourceRow">
+                <span class="badge" id="sourceBadge">Quelle: —</span>
+                <span class="badge" id="refreshBadge">Aktualisiert: —</span>
+              </div>
+            </div>
+
+            <div class="card" id="dashboardLoadingCard" style="padding: var(--space-5)">
+              <div class="muted" id="dashboardLoading">Wir holen kurz die Zahlen an den Tisch …</div>
+            </div>
+
+            <div id="dashboardStats" style="display: none">
+              <div class="stats-grid">
+                <div class="card stat-card">
+                  <div class="stat-label">Stempel vergeben</div>
+                  <div class="stat-value" id="stampsAwarded">0</div>
+                  <div class="stat-subtitle">aus den letzten Events</div>
+                </div>
+                <div class="card stat-card">
+                  <div class="stat-label">Belohnungen eingelöst</div>
+                  <div class="stat-value" id="stampsRedeemed">0</div>
+                  <div class="stat-subtitle">aus den letzten Events</div>
+                </div>
+                <div class="card stat-card">
+                  <div class="stat-label">Netto-Stempel</div>
+                  <div class="stat-value" id="netStamps">0</div>
+                  <div class="stat-subtitle">vergeben − eingelöst</div>
+                </div>
+                <div class="card stat-card">
+                  <div class="stat-label">Kunden</div>
+                  <div class="stat-value" id="uniqueCustomers">0</div>
+                  <div class="stat-subtitle">einzigartige Gäste</div>
+                </div>
+              </div>
+
+              <div class="split">
+                <div class="card" style="padding: var(--space-5)">
+                  <h2 class="sectionTitle">Top Kunden</h2>
+                  <div class="muted" style="margin-bottom: var(--space-3)">
+                    Die zehn aktivsten Gäste nach Netto-Stempeln.
+                  </div>
+                  <div style="overflow: auto">
+                    <table class="history-table">
+                      <thead>
+                        <tr>
+                          <th>Kunde</th>
+                          <th>Netto</th>
+                          <th>Vergeben</th>
+                          <th>Redeems</th>
+                          <th>Letzte Aktivität</th>
+                        </tr>
+                      </thead>
+                      <tbody id="topCustomersBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="padding: var(--space-5); margin-top: var(--space-4)">
+                <h2 class="sectionTitle">Letzte Aktivitäten</h2>
+                <div id="historyBody" class="historyList"></div>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </div>
@@ -2345,6 +2543,7 @@
       const forgotScopeThis = document.getElementById("forgotScopeThis");
       const forgotScopeCafe = document.getElementById("forgotScopeCafe");
       const homeScreen = document.getElementById("homeScreen");
+      const dashboardScreen = document.getElementById("dashboardScreen");
       const navScanner = document.getElementById("navScanner");
       const openScanBtn = document.getElementById("openScanBtn");
       const cameraStartBtn = document.getElementById("cameraStartBtn");
@@ -2404,6 +2603,7 @@
       let cameraPermissionState = "unknown";
       const CAMERA_AUTO_START_KEY = "scanner_camera_auto_start";
       let currentView = "home";
+      let dashboardPollHandle = 0;
       const shellState = { drawerOpen: false, utilityOpen: false };
 
       const DEBUG = (function () {
@@ -2591,26 +2791,52 @@
 
       function syncScannerUrl(view) {
         try {
-          const url = new URL(location.href);
-          if (view === "scan") url.searchParams.set("view", "scan");
-          else url.searchParams.delete("view");
-          history.replaceState({}, "", url.pathname + url.search + url.hash);
+          history.replaceState({}, "", getViewHref(view));
         } catch (e) {}
+      }
+
+      // Keeps the bottom-nav's active-tab highlight in sync with the
+      // current view. mountBottomNav() (ui.js) only sets `active` once at
+      // creation time (fixed on "Start"), so switching views afterwards
+      // has to update the DOM directly instead of re-mounting the nav.
+      function setActiveBottomTab(view) {
+        const idByView = {
+          home: "utilityWelcomeBtn",
+          scan: "utilityWelcomeBtn",
+          dashboard: "utilityDashboardBtn",
+        };
+        const activeId = idByView[view] || "utilityWelcomeBtn";
+        document.querySelectorAll(".kk-tabbar .kk-tab").forEach((el) => {
+          el.classList.toggle("active", el.id === activeId);
+        });
       }
 
       function getInitialView() {
         try {
+          // /cafe-dashboard is its own path (no query param involved),
+          // checked first so it wins over whatever "view" param a stale
+          // bookmarked URL might also carry.
+          if (location.pathname === "/cafe-dashboard") return "dashboard";
           const sp = new URLSearchParams(location.search || "");
           if (sp.get("view") === "scan") return "scan";
-          // /cafe-scanner is reachable directly (not just via the "view"
-          // query param, e.g. a bare deep link) - treat it the same as
-          // ?view=scan so a fresh load or a popstate back to it lands on
-          // the scanner screen instead of silently falling back to home.
-          if (location.pathname === "/cafe-scanner") return "scan";
           return "home";
         } catch (e) {
           return "home";
         }
+      }
+
+      // Maps a view name to the URL it should live at (mirrors
+      // getModeHref() in customer-qr-modern.js). "home"/"scan" share the
+      // /cafe-scanner path and are told apart by the "view" query param
+      // (unchanged from before); "dashboard" gets its own path since it's
+      // reachable directly as /cafe-dashboard.
+      function getViewHref(view) {
+        if (view === "dashboard") return "/cafe-dashboard";
+        const url = new URL(location.href);
+        url.pathname = url.pathname === "/cafe-dashboard" ? "/cafe-scanner" : url.pathname;
+        if (view === "scan") url.searchParams.set("view", "scan");
+        else url.searchParams.delete("view");
+        return url.pathname + url.search + url.hash;
       }
 
       // Central navigation entry point (mirrors navigateToMode() in
@@ -2619,17 +2845,11 @@
       // DOM state. showView() itself never touches history directly, so
       // popstate can call it straight without producing a second entry.
       function navigateToCafeView(view) {
-        const targetView = view === "scan" ? "scan" : "home";
+        const targetView =
+          view === "scan" ? "scan" : view === "dashboard" ? "dashboard" : "home";
         if (targetView !== currentView) {
           try {
-            const url = new URL(location.href);
-            if (targetView === "scan") url.searchParams.set("view", "scan");
-            else url.searchParams.delete("view");
-            history.pushState(
-              { view: targetView },
-              "",
-              url.pathname + url.search + url.hash,
-            );
+            history.pushState({ view: targetView }, "", getViewHref(targetView));
           } catch (e) {}
         }
         showView(targetView);
@@ -2663,7 +2883,9 @@
           });
         if (utilityDashboardBtn)
           utilityDashboardBtn.addEventListener("click", () => {
-            location.href = "/cafe-dashboard";
+            setDrawerOpen(false);
+            setUtilityMenuOpen(false);
+            navigateToCafeView("dashboard");
           });
         if (utilityLogoutBtn) utilityLogoutBtn.addEventListener("click", doLogout);
         if (bottomModeScanner) bottomModeScanner.addEventListener("click", goToScanner);
@@ -2950,21 +3172,194 @@
         syncCameraButtons();
       }
 
+      // --- Verlauf/Dashboard (ported from cafe-dashboard.html) ---
+
+      function fmtTs(ts) {
+        if (!ts) return "—";
+        const d = new Date(Number(ts));
+        return d.toLocaleString("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function shortAddr(a) {
+        if (!a) return "—";
+        const s = String(a);
+        if (s.length <= 14) return s;
+        return s.slice(0, 6) + "…" + s.slice(-4);
+      }
+
+      function setBadge(elId, text, variant) {
+        const node = document.getElementById(elId);
+        if (!node) return;
+        node.textContent = text;
+        node.className = "badge" + (variant ? " " + variant : "");
+      }
+
+      function dashboardRenderTopCustomers(customers) {
+        const tbody = document.getElementById("topCustomersBody");
+        if (!tbody) return;
+
+        if (!customers || !customers.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="muted" style="padding: 18px;">Noch keine Kunden-Events vorhanden.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        const top = [...customers]
+          .sort((a, b) => Number(b.netStamps || 0) - Number(a.netStamps || 0))
+          .slice(0, 10);
+
+        tbody.innerHTML = top
+          .map((c) => {
+            const who = c.customerName || shortAddr(c.address);
+            return `
+              <tr>
+                <td><strong>${who}</strong><div class="muted mono">${shortAddr(
+                  c.address,
+                )}</div></td>
+                <td class="mono">${Number(c.netStamps || 0)}</td>
+                <td class="mono">${Number(c.stampsAwarded || 0)}</td>
+                <td class="mono">${Number(c.redemptions || 0)}</td>
+                <td class="mono">${fmtTs(c.lastActivityTs)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function dashboardRenderRecentEvents(events) {
+        const list = document.getElementById("historyBody");
+        if (!list) return;
+        if (!events || !events.length) {
+          list.innerHTML = `<div class="muted" style="padding: 18px;">Noch keine Aktivitäten.</div>`;
+          return;
+        }
+
+        list.innerHTML = events
+          .map((e) => {
+            const delta = Number((e && e.delta) || 0);
+
+            // Support both API shapes:
+            // - DB rows:   { ts, cafe, user, customer_name, txhash, event_type, delta }
+            // - Summaries: { timestamp, customer, customerName, txHash, eventType, delta }
+            const ts =
+              (e && (e.ts ?? e.timestamp ?? e.createdAt ?? e.time)) || null;
+            const user = (e && (e.user || e.customer || e.address)) || null;
+            const who =
+              (e && (e.customerName || e.customer_name)) || shortAddr(user);
+
+            const typ = String(
+              (e && (e.eventType || e.event_type)) ||
+                (delta < 0 ? "redeem" : "stamp"),
+            ).toLowerCase();
+            const isRedeem = typ === "redeem" || delta < 0;
+            const action = isRedeem
+              ? `${delta} Reward eingelöst`
+              : `+${delta} Stempel`;
+
+            return `
+              <div class="historyItem${isRedeem ? " negative" : ""}">
+                <div class="historyItemHead">
+                  <span class="historyCustomerName">${who}</span>
+                  <span class="historyTimestamp">${fmtTs(ts)}</span>
+                </div>
+                <span class="historyAction">${action}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function dashboardRefreshAll() {
+        if (!cafe || !cafe.token) return;
+
+        const res = await fetch(
+          `${apiBase}/cafes/me/overview?eventsLimit=50&customers=50`,
+          { headers: { Authorization: `Bearer ${cafe.token}` } },
+        );
+        if (!res.ok) {
+          setBadge("sourceBadge", "Quelle: offline", "warn");
+          setBadge("refreshBadge", "Aktualisierung fehlgeschlagen", "");
+          return;
+        }
+        const overview = await res.json();
+
+        const dashboardLoadingCard = document.getElementById("dashboardLoadingCard");
+        const dashboardStats = document.getElementById("dashboardStats");
+        if (dashboardLoadingCard) dashboardLoadingCard.style.display = "none";
+        if (dashboardStats) dashboardStats.style.display = "block";
+
+        const dashboardCafeName = document.getElementById("dashboardCafeName");
+        if (dashboardCafeName)
+          dashboardCafeName.textContent =
+            (overview && overview.cafe && overview.cafe.name) || cafe.name || "Café Dashboard";
+
+        const stats = overview.stats || {};
+        document.getElementById("stampsAwarded").textContent = stats.stampsAwarded ?? 0;
+        document.getElementById("stampsRedeemed").textContent = stats.stampsRedeemed ?? 0;
+        document.getElementById("netStamps").textContent = stats.netStamps ?? 0;
+        document.getElementById("uniqueCustomers").textContent = stats.uniqueCustomers ?? 0;
+
+        dashboardRenderTopCustomers(overview.customers || []);
+        dashboardRenderRecentEvents(overview.recentEvents || []);
+
+        setBadge("sourceBadge", "Quelle: DB", "ok");
+        setBadge(
+          "refreshBadge",
+          `Aktualisiert: ${new Date().toLocaleTimeString("de-DE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })}`,
+          "",
+        );
+      }
+
       function showView(view) {
-        const targetView = view === "scan" ? "scan" : "home";
+        const targetView =
+          view === "scan" ? "scan" : view === "dashboard" ? "dashboard" : "home";
         if (homeScreen) homeScreen.style.display = targetView === "home" ? "block" : "none";
         if (scannerScreen) scannerScreen.style.display = targetView === "scan" ? "block" : "none";
+        if (dashboardScreen)
+          dashboardScreen.style.display = targetView === "dashboard" ? "block" : "none";
         setCustomerLoadedUi(targetView === "scan" && !!scannedCustomer);
-        setActiveNav(targetView);
+        setActiveNav(targetView === "scan" ? "scan" : "home");
+        setActiveBottomTab(targetView);
         syncScannerUrl(targetView);
-        if (targetView === "home") {
+
+        // Only poll while the dashboard screen is actually visible - this
+        // is a long-lived SPA now, not a page that gets torn down when you
+        // navigate away, so a forgotten interval would keep firing forever.
+        if (targetView === "dashboard") {
+          dashboardRefreshAll().catch((e) => dwarn("Dashboard refresh failed", e));
+          if (!dashboardPollHandle) {
+            dashboardPollHandle = window.setInterval(() => {
+              dashboardRefreshAll().catch((e) => dwarn("Dashboard refresh failed", e));
+            }, 30000);
+          }
+        } else if (dashboardPollHandle) {
+          window.clearInterval(dashboardPollHandle);
+          dashboardPollHandle = 0;
+        }
+
+        if (targetView !== "scan") {
           stopScannerCamera();
+        }
+        if (targetView === "home") {
           setScannerStatus("Scanner bereit. Öffne ihn unten, wenn du direkt scannen willst.");
           updateScannerHint(
             "Dein Team startet hier klar und wechselt erst beim Scan in die Kamerabühne.",
           );
           return;
         }
+        if (targetView === "dashboard") return;
         if (scannedCustomer) {
           setScannerStatus("Kunde geladen. Jetzt kannst du direkt bestaetigen oder bei Bedarf neu scannen.");
           syncCameraButtons();
