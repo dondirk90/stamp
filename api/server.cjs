@@ -461,10 +461,12 @@ async function exchangeGoogleCodeForTokens({ code, redirectUri }) {
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data || !data.access_token) {
-    const reason =
-      (data && (data.error_description || data.error)) ||
-      `http_${response.status}`;
-    throw new Error(`google_token_exchange_failed:${reason}`);
+    const reason = data
+      ? [data.error, data.error_description].filter(Boolean).join(": ")
+      : "";
+    throw new Error(
+      `google_token_exchange_failed:${reason || `http_${response.status}`}`,
+    );
   }
   return data;
 }
@@ -475,10 +477,14 @@ async function fetchGoogleUserProfile(accessToken) {
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data || !data.sub || !data.email) {
-    const reason =
-      (data && (data.error_description || data.error || data.message)) ||
-      `http_${response.status}`;
-    throw new Error(`google_userinfo_failed:${reason}`);
+    const reason = data
+      ? [data.error, data.error_description || data.message]
+          .filter(Boolean)
+          .join(": ")
+      : "";
+    throw new Error(
+      `google_userinfo_failed:${reason || `http_${response.status}`}`,
+    );
   }
   return data;
 }
@@ -5333,10 +5339,12 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
     });
     const tokens = await tokenResponse.json().catch(() => null);
     if (!tokenResponse.ok || !tokens || !tokens.id_token) {
-      const reason =
-        (tokens && (tokens.error_description || tokens.error)) ||
-        `http_${tokenResponse.status}`;
-      throw new Error(`apple_token_exchange_failed:${reason}`);
+      const reason = tokens
+        ? [tokens.error, tokens.error_description].filter(Boolean).join(": ")
+        : "";
+      throw new Error(
+        `apple_token_exchange_failed:${reason || `http_${tokenResponse.status}`}`,
+      );
     }
 
     const claims = await verifyAppleIdToken(tokens.id_token);
