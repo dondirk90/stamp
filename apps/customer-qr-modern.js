@@ -202,6 +202,7 @@
 
   var session = null;
   var authMode = "login";
+  var showResendVerification = false;
 
   var toastState = {
     el: null,
@@ -663,6 +664,7 @@
 
   function setAuthMode(mode) {
     authMode = mode === "login" ? "login" : "register";
+    showResendVerification = false;
     clearMsg();
 
     if (el.modeRegister)
@@ -683,7 +685,8 @@
     if (el.passwordHint)
       el.passwordHint.style.display = authMode === "register" ? "" : "none";
     if (el.authResendGroup)
-      el.authResendGroup.style.display = authMode === "login" ? "inline" : "none";
+      el.authResendGroup.style.display =
+        authMode === "login" && showResendVerification ? "inline" : "none";
     if (el.authSubmit)
       el.authSubmit.textContent =
         authMode === "register" ? "Registrieren" : "Einloggen";
@@ -5822,6 +5825,8 @@
           clearSession();
           setAuthedUI();
           setAuthMode("login");
+          showResendVerification = true;
+          if (el.authResendGroup) el.authResendGroup.style.display = "inline";
           showMsg(
             "success",
             "Fast geschafft. Bitte bestätige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
@@ -5859,6 +5864,14 @@
           ? stampUI.userSafeErrorMessage(e2, "Anmelden fehlgeschlagen.")
           : "Anmelden fehlgeschlagen.";
         showMsg("danger", msg2);
+        if (
+          e2 &&
+          typeof e2.responseText === "string" &&
+          e2.responseText.indexOf("email_not_verified") >= 0
+        ) {
+          showResendVerification = true;
+          if (el.authResendGroup) el.authResendGroup.style.display = "inline";
+        }
       });
   }
 

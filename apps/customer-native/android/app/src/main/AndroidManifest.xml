@@ -18,6 +18,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Lets the OAuth return trip (Google/Apple login) hand back into
+                 this app: the API redirects the external browser here after
+                 sign-in, Capacitor's App plugin picks it up via appUrlOpen/
+                 getLaunchUrl (see handleAppUrlOpen in customer-qr-modern.js). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kaffeekarte-customer" />
+            </intent-filter>
         </activity>
 
         <provider
