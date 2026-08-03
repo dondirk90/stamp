@@ -5128,10 +5128,11 @@ app.get("/auth/google/callback", async (req, res) => {
     appsBaseUrl,
     String(req.query?.state || ""),
   );
-  function redirectWithError(code) {
-    return res.redirect(
-      `${redirectBase}?oauthError=${encodeURIComponent(code || "google_auth_failed")}`,
-    );
+  function redirectWithError(code, detail) {
+    const qs = new URLSearchParams();
+    qs.set("oauthError", code || "google_auth_failed");
+    if (detail) qs.set("oauthErrorDetail", String(detail).slice(0, 200));
+    return res.redirect(`${redirectBase}?${qs.toString()}`);
   }
 
   try {
@@ -5236,7 +5237,10 @@ app.get("/auth/google/callback", async (req, res) => {
       "Error in /auth/google/callback:",
       e && e.stack ? e.stack : e,
     );
-    return redirectWithError("google_auth_failed");
+    return redirectWithError(
+      "google_auth_failed",
+      e && e.message ? e.message : "",
+    );
   }
 });
 
@@ -5292,10 +5296,11 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
     appsBaseUrl,
     String(req.body?.state || ""),
   );
-  function redirectWithError(code) {
-    return res.redirect(
-      `${redirectBase}?oauthError=${encodeURIComponent(code || "apple_auth_failed")}`,
-    );
+  function redirectWithError(code, detail) {
+    const qs = new URLSearchParams();
+    qs.set("oauthError", code || "apple_auth_failed");
+    if (detail) qs.set("oauthErrorDetail", String(detail).slice(0, 200));
+    return res.redirect(`${redirectBase}?${qs.toString()}`);
   }
 
   try {
@@ -5434,7 +5439,10 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
       "Error in /auth/apple/callback:",
       e && e.stack ? e.stack : e,
     );
-    return redirectWithError("apple_auth_failed");
+    return redirectWithError(
+      "apple_auth_failed",
+      e && e.message ? e.message : "",
+    );
   }
 });
 

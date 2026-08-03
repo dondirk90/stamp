@@ -1121,7 +1121,7 @@
     try {
       var u = new URL(location.href);
       var changed = false;
-      ["oauthToken", "oauthProvider", "oauthError"].forEach(function (key) {
+      ["oauthToken", "oauthProvider", "oauthError", "oauthErrorDetail"].forEach(function (key) {
         if (u.searchParams.has(key)) {
           u.searchParams.delete(key);
           changed = true;
@@ -1180,11 +1180,13 @@
   function processCustomerOauthRedirect() {
     var oauthError = getOauthParam("oauthError");
     if (oauthError) {
+      var oauthErrorDetail = getOauthParam("oauthErrorDetail");
       clearOauthParamsFromUrl();
       setAuthMode("login");
       var providerLabel = /^apple_/.test(oauthError) ? "Apple" : "Google";
       var msg =
         providerLabel + "-Anmeldung fehlgeschlagen (" + oauthError + ").";
+      if (oauthErrorDetail) msg += " " + oauthErrorDetail;
       if (oauthError === "google_no_account" || oauthError === "apple_no_account") {
         msg =
           "Zu dieser " + providerLabel + "-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
