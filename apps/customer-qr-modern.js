@@ -1183,7 +1183,8 @@
       clearOauthParamsFromUrl();
       setAuthMode("login");
       var providerLabel = /^apple_/.test(oauthError) ? "Apple" : "Google";
-      var msg = providerLabel + "-Anmeldung fehlgeschlagen.";
+      var msg =
+        providerLabel + "-Anmeldung fehlgeschlagen (" + oauthError + ").";
       if (oauthError === "google_no_account" || oauthError === "apple_no_account") {
         msg =
           "Zu dieser " + providerLabel + "-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
