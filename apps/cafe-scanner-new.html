@@ -941,6 +941,22 @@
         box-shadow: none;
         padding: 0;
       }
+      /* .mainPanel becomes display:flex on narrow viewports (below, to
+         center the home/scanner "card") - as a flex item without an
+         explicit width, a screen defaults to shrink/grow-to-content
+         instead of filling the row, and its default min-width:auto means
+         it can't shrink below its widest content either. Dashboard's
+         history table has exactly that kind of wide, unwrappable content,
+         so without this it silently grew past .mainPanel's edges and got
+         centered with both sides clipped by the page's overflow-x:hidden.
+         #homeScreen/#scannerScreen avoid this already via their own
+         explicit width:100% below; profile can hit the same table-width
+         issue via its gallery/preview rows, so it gets the same fix. */
+      #dashboardScreen,
+      #profileScreen {
+        width: 100%;
+        min-width: 0;
+      }
       #homeScreen,
       #scannerScreen {
         width: 100%;
