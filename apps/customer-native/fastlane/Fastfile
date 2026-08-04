@@ -105,6 +105,28 @@ platform :android do
   #      the app listing itself, only upload builds to an existing one).
   desc "Build and upload to the Play Console internal testing track"
   lane :beta do
+    # versionCode in build.gradle is just a local-dev fallback baseline - a
+    # static number there needed a manual bump every time (see git history)
+    # because Play rejects re-uploading a versionCode it's already seen,
+    # same problem the iOS lane's build-number handling above solves. Ask
+    # Play what it last saw instead, across every track a version code could
+    # have landed on (version codes are reserved package-wide, not per
+    # track), and inject the next one via AGP's version-code override
+    # property rather than editing the checked-in file.
+    existing_version_codes = ["internal", "alpha", "beta", "production"].flat_map do |track|
+      begin
+        google_play_track_version_codes(
+          package_name: "app.kaffeekarte.customer",
+          track: track,
+          json_key: ENV["PLAY_JSON_KEY_PATH"],
+        )
+      rescue StandardError
+        []
+      end
+    end
+    version_code = (existing_version_codes.max || 0) + 1
+    UI.message("Using dynamic versionCode #{version_code}")
+
     gradle(
       task: "bundle",
       build_type: "Release",
@@ -119,6 +141,7 @@ platform :android do
         # step in the workflow - explicit here so AGP doesn't guess wrong
         # based on the extension.
         "android.injected.signing.store.type" => "PKCS12",
+        "android.injected.version.code" => version_code.to_s,
       },
     )
     upload_to_play_store(
@@ -148,6 +171,10 @@ platform :android do
         # step in the workflow - explicit here so AGP doesn't guess wrong
         # based on the extension.
         "android.injected.signing.store.type" => "PKCS12",
+        # Same versionCode as the bundle build above - the sideload .apk and
+        # the Play-uploaded .aab must agree, and Play's already-seen check
+        # doesn't apply to this one since it's never uploaded to Play.
+        "android.injected.version.code" => version_code.to_s,
       },
     )
   end

@@ -7,6 +7,9 @@ android {
         applicationId "app.kaffeekarte.customer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // Local-dev fallback only - the beta lane (Fastfile) overrides this
+        // via AGP's android.injected.version.code property, computed from
+        // the highest versionCode Play has already seen on any track.
         versionCode 3
         versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
