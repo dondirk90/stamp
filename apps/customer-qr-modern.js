@@ -5218,10 +5218,13 @@
           else onHidden();
         });
 
-        // Kept as a fallback for any other deep link into the app (the
-        // OAuth return itself now goes through ASWebAuthenticationSession
-        // in startCustomerOauth, which doesn't depend on these firing at
-        // all - see OAuthSessionPlugin.swift).
+        // On iOS the OAuth return goes through ASWebAuthenticationSession in
+        // startCustomerOauth and doesn't depend on this firing at all (see
+        // OAuthSessionPlugin.swift) - this is just a fallback there for any
+        // other deep link into the app. On Android it's the primary path:
+        // the Custom Tabs OAuth flow (see startCustomerOauth's Browser
+        // plugin branch) returns via the kaffeekarte-customer:// intent
+        // filter, which surfaces here.
         appPlugin.addListener("appUrlOpen", function (data) {
           handleAppUrlOpen(data && data.url);
         });
@@ -5955,6 +5958,23 @@
             // User closed the sheet or it errored - not worth alarming
             // them with a scary error message for a simple cancel.
             showMsg("danger", "Anmeldung wurde abgebrochen.");
+          });
+        return;
+      }
+      // Android has no OAuthSession equivalent (no ASWebAuthenticationSession
+      // API there), so route Google/Apple through Custom Tabs via the
+      // Capacitor Browser plugin instead of a plain in-WebView redirect -
+      // Google rejects OAuth started from an embedded WebView. The return
+      // trip lands back in the app through the kaffeekarte-customer:// deep
+      // link (AndroidManifest intent-filter) and is picked up by the
+      // appUrlOpen listener in wireVisibility(), which calls handleAppUrlOpen.
+      var browserPlugin =
+        window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+      if (browserPlugin && browserPlugin.open) {
+        browserPlugin
+          .open({ url: location.origin + startUrl })
+          .catch(function () {
+            showMsg("danger", "Anmeldung konnte nicht gestartet werden.");
           });
         return;
       }
