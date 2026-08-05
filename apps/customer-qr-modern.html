@@ -338,6 +338,16 @@
           0 1px 0 rgba(255, 255, 255, 0.84) inset;
       }
 
+      /* theme.css's base .kk-brandMark img has no object-fit, so it
+         stretches to fill the box (CSS default is object-fit: fill) - only
+         harmless where the box happens to stay square, but fragile. Match
+         the fix already shipped for the same logo in the barista app
+         (cafe-scanner-new.html). */
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
       .topbar .kk-brandText {
         display: flex;
         align-items: center;
