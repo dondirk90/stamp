@@ -161,7 +161,13 @@ platform :android do
       # plugin this project doesn't have installed - no Gemfile/Pluginfile
       # here). Plain Ruby file edit instead, so it doesn't depend on any
       # action name being right.
-      gradle_file_path = File.join(Dir.pwd, "android/app/build.gradle")
+      # Dir.pwd here is actually .../customer-native/fastlane (fastlane's
+      # own directory handling - it chdirs into the fastlane/ folder before
+      # running lane code, confirmed by CI erroring on a path with an extra
+      # /fastlane/ segment). __dir__ is that same fastlane/ folder too, so
+      # go up one level to reach the project root the gradle() calls below
+      # use as project_dir: "android".
+      gradle_file_path = File.expand_path("../android/app/build.gradle", __dir__)
       gradle_file_contents = File.read(gradle_file_path)
       updated_contents = gradle_file_contents.sub(
         /versionCode\s+\d+/,
