@@ -144,22 +144,33 @@ platform :android do
     # couple of failed CI runs). Retry forward on that specific error instead
     # of just picking one number and hoping.
     #
-    # versionCode is written into build.gradle itself via
-    # increment_version_code rather than passed as an
-    # android.injected.version.code gradle property - confirmed by CI logs
-    # that the injected-property override is silently ignored by this
-    # project's bundleRelease task (every retry kept uploading a bundle
-    # still stamped with the old versionCode, even after forcing real
-    # rebuilds with --rerun-tasks). Rewriting the file is a real input
-    # change, so Gradle can't fail to notice it.
+    # versionCode is written into build.gradle itself (see below) rather
+    # than passed as an android.injected.version.code gradle property -
+    # confirmed by CI logs that the injected-property override is silently
+    # ignored by this project's bundleRelease task (every retry kept
+    # uploading a bundle still stamped with the old versionCode, even after
+    # forcing real rebuilds with --rerun-tasks). Rewriting the file is a
+    # real input change, so Gradle can't fail to notice it.
     max_attempts = 5
     attempt = 1
     begin
       UI.message("Using versionCode #{version_code} (attempt #{attempt}/#{max_attempts})")
-      increment_version_code(
-        version_code: version_code,
-        gradle_file_path: "android/app/build.gradle",
+      # No fastlane action for this is actually built in (verified the hard
+      # way: android_set_version_code doesn't exist at all, and
+      # increment_version_code turned out to only exist as a third-party
+      # plugin this project doesn't have installed - no Gemfile/Pluginfile
+      # here). Plain Ruby file edit instead, so it doesn't depend on any
+      # action name being right.
+      gradle_file_path = File.join(Dir.pwd, "android/app/build.gradle")
+      gradle_file_contents = File.read(gradle_file_path)
+      updated_contents = gradle_file_contents.sub(
+        /versionCode\s+\d+/,
+        "versionCode #{version_code}",
       )
+      if updated_contents == gradle_file_contents
+        UI.user_error!("Could not find a versionCode line to replace in #{gradle_file_path}")
+      end
+      File.write(gradle_file_path, updated_contents)
       gradle(
         task: "bundle",
         build_type: "Release",
@@ -189,7 +200,7 @@ platform :android do
     # installed directly (needs Play Store's bundletool), hence this
     # separate "assemble" build alongside "bundle" above.
     # build.gradle already has the versionCode from whichever attempt
-    # succeeded above (android_set_version_code wrote it), so the sideload
+    # succeeded above (written directly into the file), so the sideload
     # .apk and the Play-uploaded .aab agree without passing it again here.
     gradle(
       task: "assemble",
