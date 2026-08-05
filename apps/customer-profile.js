@@ -74,7 +74,14 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const s = JSON.parse(raw);
-      if (!s || !s.email) return null;
+      // address, not email, is what actually identifies an authenticated
+      // session everywhere else (the wallet's own loadSession() only checks
+      // address; API calls key off it too) - email can be legitimately
+      // absent, e.g. Apple only returns it on a user's very first Sign in
+      // with Apple, not on repeat logins. Gating on email here made the
+      // profile page look logged out for sessions the wallet still
+      // considered valid, right after navigating between the two.
+      if (!s || !s.address) return null;
       return s;
     } catch {
       return null;

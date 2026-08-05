@@ -149,6 +149,10 @@
 
 * {
   box-sizing: border-box;
+  /* Android's WebView (unlike iOS) paints a blue overlay on every tap
+     target by default - looked like an unstyled HTML page, most visible on
+     the wallet cards. No equivalent needed for iOS. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
