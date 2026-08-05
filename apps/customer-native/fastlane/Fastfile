@@ -125,31 +125,50 @@ platform :android do
       end
     end
     version_code = (existing_version_codes.max || 0) + 1
-    UI.message("Using dynamic versionCode #{version_code}")
 
-    gradle(
-      task: "bundle",
-      build_type: "Release",
-      project_dir: "android",
-      properties: {
-        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
-        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
-        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
-        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
-        # The upload keystore was generated as PKCS12 (openssl, no local
-        # keytool available) and saved with a .jks extension by the decode
-        # step in the workflow - explicit here so AGP doesn't guess wrong
-        # based on the extension.
-        "android.injected.signing.store.type" => "PKCS12",
-        "android.injected.version.code" => version_code.to_s,
-      },
-    )
-    upload_to_play_store(
-      package_name: "app.kaffeekarte.customer",
-      track: "internal",
-      json_key: ENV["PLAY_JSON_KEY_PATH"],
-      aab: "android/app/build/outputs/bundle/release/app-release.aab",
-    )
+    signing_properties = {
+      "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+      "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+      "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+      "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+      # The upload keystore was generated as PKCS12 (openssl, no local
+      # keytool available) and saved with a .jks extension by the decode
+      # step in the workflow - explicit here so AGP doesn't guess wrong
+      # based on the extension.
+      "android.injected.signing.store.type" => "PKCS12",
+    }
+
+    # Play burns a versionCode the moment an upload attempt submits it, even
+    # if that attempt then fails or the edit is abandoned - so a number that
+    # google_play_track_version_codes above never saw on any committed track
+    # can still come back "already been used" (hit this exact case after a
+    # couple of failed CI runs). Retry forward on that specific error instead
+    # of just picking one number and hoping.
+    max_attempts = 5
+    attempt = 1
+    begin
+      UI.message("Using versionCode #{version_code} (attempt #{attempt}/#{max_attempts})")
+      gradle(
+        task: "bundle",
+        build_type: "Release",
+        project_dir: "android",
+        properties: signing_properties.merge("android.injected.version.code" => version_code.to_s),
+      )
+      upload_to_play_store(
+        package_name: "app.kaffeekarte.customer",
+        track: "internal",
+        json_key: ENV["PLAY_JSON_KEY_PATH"],
+        aab: "android/app/build/outputs/bundle/release/app-release.aab",
+      )
+    rescue StandardError => e
+      if attempt < max_attempts && e.message.to_s.include?("has already been used")
+        attempt += 1
+        version_code += 1
+        retry
+      end
+      raise
+    end
+
     # Play Console's internal testing track needs testers whose devices meet
     # its own tester requirements - unrelated to the app's actual
     # minSdkVersion (23 = Android 6.0, see variables.gradle). A signed .apk
@@ -161,21 +180,13 @@ platform :android do
       task: "assemble",
       build_type: "Release",
       project_dir: "android",
-      properties: {
-        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
-        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
-        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
-        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
-        # The upload keystore was generated as PKCS12 (openssl, no local
-        # keytool available) and saved with a .jks extension by the decode
-        # step in the workflow - explicit here so AGP doesn't guess wrong
-        # based on the extension.
-        "android.injected.signing.store.type" => "PKCS12",
-        # Same versionCode as the bundle build above - the sideload .apk and
-        # the Play-uploaded .aab must agree, and Play's already-seen check
-        # doesn't apply to this one since it's never uploaded to Play.
+      properties: signing_properties.merge(
+        # Same versionCode as the bundle upload above (whichever attempt
+        # succeeded) - the sideload .apk and the Play-uploaded .aab must
+        # agree, and Play's already-seen check doesn't apply to this one
+        # since it's never uploaded to Play.
         "android.injected.version.code" => version_code.to_s,
-      },
+      ),
     )
   end
 end
