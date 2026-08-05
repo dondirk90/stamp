@@ -7,6 +7,7 @@
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
   var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
   var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
+  var CELEBRATED_CAFES_KEY_V1 = "customer_reward_celebrated_v1";
 
   // Rotated randomly once per page load for variety - see pickRandom() below.
   var AUTH_HERO_TAGLINES = [
@@ -277,11 +278,37 @@
     // cards from scratch (e.g. switching tabs), which loses the
     // prevCount/data-stamps history baked into the old DOM node and made
     // setPassCardStamps look like a fresh crossing into "full" every time,
-    // replaying the balloon animation on every tab switch. Cleared once the
-    // card is seen below threshold again (redeemed), so a genuine future
-    // refill still celebrates.
-    celebratedCafes: {},
+    // replaying the balloon animation on every tab switch. Persisted to
+    // localStorage (not just in-memory) because a real page reload - e.g.
+    // leaving to a cafe's public profile and coming back - resets the whole
+    // JS context too, and the initial card-list fetch that seeds a
+    // freshly-built card's data-stamps can lag one stamp behind the
+    // per-cafe endpoint the background poll uses, reproducing the same
+    // false "just became full" crossing on load. Cleared once the card is
+    // seen below threshold again (redeemed), so a genuine future refill
+    // still celebrates.
+    celebratedCafes: loadCelebratedCafes(),
   };
+
+  function loadCelebratedCafes() {
+    try {
+      var raw = localStorage.getItem(CELEBRATED_CAFES_KEY_V1);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveCelebratedCafes() {
+    try {
+      localStorage.setItem(
+        CELEBRATED_CAFES_KEY_V1,
+        JSON.stringify(rewardCelebrationState.celebratedCafes || {}),
+      );
+    } catch (e) {}
+  }
 
   function nowMs() {
     return Date.now ? Date.now() : new Date().getTime();
@@ -657,6 +684,10 @@
     if (switchedAccount) {
       try {
         localStorage.removeItem(FAVORITES_KEY_V1);
+      } catch (e) {}
+      try {
+        localStorage.removeItem(CELEBRATED_CAFES_KEY_V1);
+        rewardCelebrationState.celebratedCafes = {};
       } catch (e) {}
     }
   }
@@ -1537,15 +1568,15 @@
   }
 
   function pickCafeHeroImage(cafe) {
+    // Only a real gallery photo counts as a hero image for the Kurzprofil
+    // modal - cardBackgroundDataUrl is the texture a cafe picked for its
+    // own wallet pass card, not a profile photo, and showed up centered in
+    // the modal whenever a cafe had no gallery image of its own.
     try {
       var imgs =
         cafe && cafe.images && Array.isArray(cafe.images) ? cafe.images : [];
       if (imgs.length) return String(imgs[0] || "");
     } catch (e) {}
-    try {
-      if (cafe && cafe.cardBackgroundDataUrl)
-        return String(cafe.cardBackgroundDataUrl || "");
-    } catch (e2) {}
     return "";
   }
 
@@ -5592,13 +5623,22 @@
     if (!isFull) {
       // Redeemed (or otherwise dropped below threshold) - re-arm so the
       // next genuine refill celebrates again.
-      if (celebrationKey) delete rewardCelebrationState.celebratedCafes[celebrationKey];
+      if (
+        celebrationKey &&
+        rewardCelebrationState.celebratedCafes[celebrationKey]
+      ) {
+        delete rewardCelebrationState.celebratedCafes[celebrationKey];
+        saveCelebratedCafes();
+      }
     } else if (
       prevCount != null &&
       Number(prevCount) < rewardThreshold &&
       (!celebrationKey || !rewardCelebrationState.celebratedCafes[celebrationKey])
     ) {
-      if (celebrationKey) rewardCelebrationState.celebratedCafes[celebrationKey] = true;
+      if (celebrationKey) {
+        rewardCelebrationState.celebratedCafes[celebrationKey] = true;
+        saveCelebratedCafes();
+      }
       triggerHapticReward();
       launchRewardCelebration();
     }
