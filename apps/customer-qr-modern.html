@@ -474,6 +474,10 @@
 
       @media (max-width: 520px) and (orientation: portrait) {
         body {
+          /* Shared with .topbar's own "top" below and the panel clearance
+             rule further down, so the floating topbar's position and the
+             space reserved for it underneath can't drift apart. */
+          --topbar-top: max(24px, calc(8px + var(--safe-top, 0px)));
           padding:
             calc(8px + var(--safe-top, 0px))
             calc(8px + var(--safe-right, 0px))
@@ -494,7 +498,14 @@
 
         .topbar {
           position: fixed;
-          top: calc(8px + var(--safe-top, 0px));
+          /* env(safe-area-inset-top) is 0 on Android (no edge-to-edge
+             config there, unlike iOS's notch inset), so plain "8px +
+             safe-top" left the header sitting right against the very top
+             on Android while iOS's notch inset happened to give it real
+             breathing room. --topbar-top (set on body above) guarantees a
+             comfortable minimum either way without needing platform
+             detection - and keeps the panel clearance rule below in sync. */
+          top: var(--topbar-top);
           left: calc(8px + var(--safe-left, 0px));
           right: calc(8px + var(--safe-right, 0px));
           margin: 0;
@@ -505,7 +516,11 @@
           box-shadow: none;
           backdrop-filter: none;
           justify-content: flex-start;
-          z-index: 70;
+          /* Leaflet's own panes/controls default to z-index 400-1000 (see
+             #cafeMap below) - a plain 70 here let the map on "Entdecken"
+             render on top of the floating topbar wherever they visually
+             overlapped. Comfortably above Leaflet's max. */
+          z-index: 1200;
           pointer-events: none;
         }
 
@@ -1778,8 +1793,8 @@
          .topbar switches to position:fixed (floating over the content, not
          taking up flow space - see its rule further up), so the content
          underneath still needs enough clearance to not render *behind* it.
-         .topbar there sits at top: 8px + safe-top with min-height: 64px, so
-         content needs to start past that, not at a small fixed value. */
+         .topbar there sits at top: var(--topbar-top) with min-height: 64px,
+         so content needs to start past that, not at a small fixed value. */
       @media (max-width: 520px) and (orientation: portrait) {
         #authPanel,
         #welcomePanel,
@@ -1789,8 +1804,11 @@
              height below the floating topbar - #mapPanel/#historyPanel were
              missing this override, so a later, viewport-agnostic .mapHero
              padding rule (padding: var(--space-4)) quietly won out and left
-             the map hugging the header. */
-          padding-top: calc(74px + var(--safe-top, 0px));
+             the map hugging the header. Built from --topbar-top (set on body
+             in the .topbar rule's media query) plus the topbar's own ~66px
+             footprint, so this can't drift out of sync with where the
+             topbar actually sits. */
+          padding-top: calc(var(--topbar-top, 8px) + 66px);
         }
       }
 
