@@ -54,11 +54,20 @@
         background: var(--color-background) !important;
       }
 
-      /* Boot fallback: visible only when JS boot takes too long. */
+      /* Visible from first paint until setBootOk() fires (right after
+         setAuthedUI() has run) - masks the brief window on every fresh page
+         load where the raw HTML defaults to "logged out" (#authPanel has no
+         inline display:none, #mainPanel does) before JS corrects it. Was
+         display:none by default and only shown by the slow-boot fallback
+         below, so that flash was never actually masked on a normal-speed
+         load. The catch-block around main() and the slow-boot fallback
+         below both still call setBootOk()/hideOverlay() even if boot
+         crashes or the script fails to run in time, so this can't leave
+         someone stuck behind it indefinitely. */
       .bootOverlay {
         position: fixed;
         inset: 0;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
