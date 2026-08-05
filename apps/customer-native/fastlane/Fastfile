@@ -145,7 +145,7 @@ platform :android do
     # of just picking one number and hoping.
     #
     # versionCode is written into build.gradle itself via
-    # android_set_version_code rather than passed as an
+    # increment_version_code rather than passed as an
     # android.injected.version.code gradle property - confirmed by CI logs
     # that the injected-property override is silently ignored by this
     # project's bundleRelease task (every retry kept uploading a bundle
@@ -156,9 +156,9 @@ platform :android do
     attempt = 1
     begin
       UI.message("Using versionCode #{version_code} (attempt #{attempt}/#{max_attempts})")
-      android_set_version_code(
+      increment_version_code(
         version_code: version_code,
-        gradle_file: "android/app/build.gradle",
+        gradle_file_path: "android/app/build.gradle",
       )
       gradle(
         task: "bundle",

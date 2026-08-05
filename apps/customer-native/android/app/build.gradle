@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Local-dev fallback only - the beta lane (Fastfile) rewrites this
-        // value via android_set_version_code before every CI build, computed
+        // value via increment_version_code before every CI build, computed
         // from the highest versionCode Play has already seen on any track.
         versionCode 3
         versionName "1.1"
