@@ -670,6 +670,11 @@
           display: flex;
           flex-direction: column;
           justify-content: center;
+          /* Overrides the border: 1px solid it shares with #welcomePanel/
+             #historyPanel/#authPanel above - #walletPanel (the Wallet home
+             screen) was never part of that shared rule, so this is the odd
+             one out; drop it to match Wallet's borderless look. */
+          border: none;
         }
 
         .walletDockHead {
