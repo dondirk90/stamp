@@ -152,6 +152,13 @@ platform :android do
         task: "bundle",
         build_type: "Release",
         project_dir: "android",
+        # --rerun-tasks only on retries: the versionCode override alone
+        # doesn't reliably bust Gradle's up-to-date/task-output cache
+        # within the same daemon session (confirmed by CI logs - retry
+        # bundleRelease runs finished in ~1s instead of ~90s and just
+        # re-uploaded the same, already-rejected .aab unchanged). Skipping
+        # it on attempt 1 keeps the common case fast.
+        flags: attempt > 1 ? "--rerun-tasks" : nil,
         properties: signing_properties.merge("android.injected.version.code" => version_code.to_s),
       )
       upload_to_play_store(
