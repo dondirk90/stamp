@@ -704,6 +704,10 @@
         #historyPanel {
           justify-content: flex-start;
           align-items: stretch;
+          /* Same shared border: 1px solid it inherits from #welcomePanel/
+             .mapHero/#authPanel above - #walletPanel never had it, so drop
+             it here too to match (see .mapHero's own override). */
+          border: none;
         }
 
         .walletOverlay {
