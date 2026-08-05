@@ -272,6 +272,15 @@
         window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ),
+    // Per-cafe "already celebrated this full streak" flags, keyed by
+    // normalized cafe address - survives refreshWallet() rebuilding pass
+    // cards from scratch (e.g. switching tabs), which loses the
+    // prevCount/data-stamps history baked into the old DOM node and made
+    // setPassCardStamps look like a fresh crossing into "full" every time,
+    // replaying the balloon animation on every tab switch. Cleared once the
+    // card is seen below threshold again (redeemed), so a genuine future
+    // refill still celebrates.
+    celebratedCafes: {},
   };
 
   function nowMs() {
@@ -5573,11 +5582,23 @@
       triggerHapticStamp();
     }
 
-    if (
+    var celebrationKey = "";
+    try {
+      celebrationKey = normalizeAddr(passCardEl.getAttribute("data-cafe") || "");
+    } catch (eKey) {
+      celebrationKey = "";
+    }
+
+    if (!isFull) {
+      // Redeemed (or otherwise dropped below threshold) - re-arm so the
+      // next genuine refill celebrates again.
+      if (celebrationKey) delete rewardCelebrationState.celebratedCafes[celebrationKey];
+    } else if (
       prevCount != null &&
       Number(prevCount) < rewardThreshold &&
-      stampCount >= rewardThreshold
+      (!celebrationKey || !rewardCelebrationState.celebratedCafes[celebrationKey])
     ) {
+      if (celebrationKey) rewardCelebrationState.celebratedCafes[celebrationKey] = true;
       triggerHapticReward();
       launchRewardCelebration();
     }
