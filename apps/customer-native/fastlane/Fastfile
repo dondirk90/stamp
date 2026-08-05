@@ -105,14 +105,13 @@ platform :android do
   #      the app listing itself, only upload builds to an existing one).
   desc "Build and upload to the Play Console internal testing track"
   lane :beta do
-    # versionCode in build.gradle is just a local-dev fallback baseline - a
-    # static number there needed a manual bump every time (see git history)
-    # because Play rejects re-uploading a versionCode it's already seen,
-    # same problem the iOS lane's build-number handling above solves. Ask
-    # Play what it last saw instead, across every track a version code could
-    # have landed on (version codes are reserved package-wide, not per
-    # track), and inject the next one via AGP's version-code override
-    # property rather than editing the checked-in file.
+    # The versionCode checked into build.gradle needed a manual bump every
+    # time (see git history) because Play rejects re-uploading a versionCode
+    # it's already seen, same problem the iOS lane's build-number handling
+    # above solves. Ask Play what it last saw instead, across every track a
+    # version code could have landed on (version codes are reserved
+    # package-wide, not per track), and write the next one into build.gradle
+    # below before building.
     existing_version_codes = ["internal", "alpha", "beta", "production"].flat_map do |track|
       begin
         google_play_track_version_codes(
@@ -144,22 +143,28 @@ platform :android do
     # can still come back "already been used" (hit this exact case after a
     # couple of failed CI runs). Retry forward on that specific error instead
     # of just picking one number and hoping.
+    #
+    # versionCode is written into build.gradle itself via
+    # android_set_version_code rather than passed as an
+    # android.injected.version.code gradle property - confirmed by CI logs
+    # that the injected-property override is silently ignored by this
+    # project's bundleRelease task (every retry kept uploading a bundle
+    # still stamped with the old versionCode, even after forcing real
+    # rebuilds with --rerun-tasks). Rewriting the file is a real input
+    # change, so Gradle can't fail to notice it.
     max_attempts = 5
     attempt = 1
     begin
       UI.message("Using versionCode #{version_code} (attempt #{attempt}/#{max_attempts})")
+      android_set_version_code(
+        version_code: version_code,
+        gradle_file: "android/app/build.gradle",
+      )
       gradle(
         task: "bundle",
         build_type: "Release",
         project_dir: "android",
-        # --rerun-tasks only on retries: the versionCode override alone
-        # doesn't reliably bust Gradle's up-to-date/task-output cache
-        # within the same daemon session (confirmed by CI logs - retry
-        # bundleRelease runs finished in ~1s instead of ~90s and just
-        # re-uploaded the same, already-rejected .aab unchanged). Skipping
-        # it on attempt 1 keeps the common case fast.
-        flags: attempt > 1 ? "--rerun-tasks" : nil,
-        properties: signing_properties.merge("android.injected.version.code" => version_code.to_s),
+        properties: signing_properties,
       )
       upload_to_play_store(
         package_name: "app.kaffeekarte.customer",
@@ -183,17 +188,14 @@ platform :android do
     # bypassing Play Console testing entirely. .aab alone can't be
     # installed directly (needs Play Store's bundletool), hence this
     # separate "assemble" build alongside "bundle" above.
+    # build.gradle already has the versionCode from whichever attempt
+    # succeeded above (android_set_version_code wrote it), so the sideload
+    # .apk and the Play-uploaded .aab agree without passing it again here.
     gradle(
       task: "assemble",
       build_type: "Release",
       project_dir: "android",
-      properties: signing_properties.merge(
-        # Same versionCode as the bundle upload above (whichever attempt
-        # succeeded) - the sideload .apk and the Play-uploaded .aab must
-        # agree, and Play's already-seen check doesn't apply to this one
-        # since it's never uploaded to Play.
-        "android.injected.version.code" => version_code.to_s,
-      ),
+      properties: signing_properties,
     )
   end
 end
