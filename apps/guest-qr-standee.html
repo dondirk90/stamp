@@ -12,6 +12,7 @@
         --espresso-deep: #2c1e15;
         --ink-soft: rgba(35, 35, 35, 0.55);
         --line: rgba(74, 55, 40, 0.16);
+        --terracotta: #b96b52;
         --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
         --font-sans: "Geist", "Inter", "Segoe UI", system-ui, sans-serif;
       }
@@ -153,63 +154,235 @@
         transform: rotate(180deg);
       }
 
-      /* Radikal reduziert (BRAND.md §10):
-         Bohne · KAFFEEKARTE · Claim · QR · Kostenlos starten. Mehr nicht. */
+      /* Erweitert um ein Handy-Mockup (App-Vorschau) + Store-Hinweis, damit
+         der Aufsteller auffällt statt nur Text zu zeigen - Bohne, Wortmarke,
+         Claim, QR und CTA aus BRAND.md §10 bleiben alle erhalten, nur nicht
+         mehr "und sonst nichts". */
       .faceInner {
         width: 100%;
         max-width: 128mm;
         display: grid;
         justify-items: center;
         text-align: center;
-        gap: 7mm;
+        gap: 4mm;
+      }
+
+      .headRow {
+        display: flex;
+        align-items: center;
+        gap: 3mm;
       }
 
       .beanMark {
-        width: 17mm;
-        height: 17mm;
+        width: 11mm;
+        height: 11mm;
         object-fit: contain;
       }
 
       .wordmark {
-        font-size: 15pt;
+        font-size: 12pt;
         font-weight: 800;
-        letter-spacing: 0.42em;
-        text-indent: 0.42em;
+        letter-spacing: 0.38em;
+        text-indent: 0.38em;
         text-transform: uppercase;
         color: var(--ink);
       }
 
+      .claimBlock {
+        display: grid;
+        justify-items: center;
+        gap: 2.5mm;
+      }
+
       .claim {
         font-family: var(--font-serif);
-        font-size: 27pt;
+        font-size: 19pt;
         line-height: 1.06;
         letter-spacing: -0.02em;
         color: var(--espresso-deep);
-        max-width: 110mm;
+        max-width: 100mm;
+      }
+
+      .claimRule {
+        width: 11mm;
+        height: 0.9mm;
+        border-radius: 1mm;
+        background: var(--terracotta);
+      }
+
+      /* ---- App-Vorschau: dasselbe Kartenmotiv wie in der echten App ---- */
+      .phoneWrap {
+        position: relative;
+      }
+
+      .phone {
+        width: 46mm;
+        padding: 3mm 2.8mm 2.6mm;
+        border-radius: 6mm;
+        background: #fffdfa;
+        border: 0.3mm solid var(--line);
+        box-shadow: 0 4mm 7mm rgba(57, 34, 21, 0.2);
+      }
+
+      .phoneTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2mm;
+      }
+
+      .phoneBrand {
+        display: inline-flex;
+        align-items: center;
+        gap: 1.2mm;
+        font-size: 6.5pt;
+        font-weight: 900;
+        color: var(--espresso);
+      }
+
+      .phoneBrand .dot {
+        width: 2mm;
+        height: 2mm;
+        border-radius: 50%;
+        background: var(--espresso);
+      }
+
+      .phoneMenu {
+        width: 3mm;
+        height: 0.35mm;
+        border-radius: 999px;
+        background: var(--espresso);
+        box-shadow: 0 1mm 0 var(--espresso), 0 -1mm 0 var(--espresso);
+      }
+
+      .passCardMini {
+        padding: 2.8mm 2.6mm;
+        border-radius: 4mm;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .passTopRow {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 5.6pt;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.6);
+        margin-bottom: 1.6mm;
+      }
+
+      .passCafeName {
+        margin: 0 0 1.6mm;
+        font-family: var(--font-serif);
+        font-size: 11pt;
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        text-align: left;
+      }
+
+      /* Café-Namensfeld in der Toolbar ist optional - ohne Eingabe zeigt die
+         Mini-Karte einen Platzhalter statt leer zu bleiben. */
+      .passCafeName:empty::before {
+        content: "Dein Café";
+        color: rgba(35, 35, 35, 0.4);
+      }
+
+      .beanRow {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 0.8mm;
+        margin-top: 2mm;
+      }
+
+      .bean {
+        aspect-ratio: 1;
+        border-radius: 999px;
+        background: rgba(81, 58, 40, 0.16);
+      }
+
+      .bean.filled {
+        background: var(--espresso);
+      }
+
+      .passFootLine {
+        margin-top: 1.6mm;
+        font-size: 5.4pt;
+        font-weight: 800;
+        color: rgba(59, 42, 31, 0.68);
+        text-align: left;
+      }
+
+      /* Fähnchen quer über die Handy-Ecke - beantwortet "wo ist die App?",
+         bevor jemand fragen muss. */
+      .ribbon {
+        position: absolute;
+        top: 5mm;
+        right: -12mm;
+        width: 52mm;
+        transform: rotate(36deg);
+        background: var(--terracotta);
+        color: #fff8f2;
+        text-align: center;
+        font-size: 6.6pt;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        padding: 1.4mm 0;
+        box-shadow: 0 1.5mm 3mm rgba(42, 24, 14, 0.28);
+      }
+
+      .qrRow {
+        display: flex;
+        align-items: center;
+        gap: 4mm;
       }
 
       .qrFrame {
         background: #ffffff;
         border: 1px solid var(--line);
-        border-radius: 6mm;
-        padding: 5mm;
+        border-radius: 4mm;
+        padding: 2.6mm;
         display: grid;
         place-items: center;
+        flex: 0 0 auto;
       }
 
       .qrFrame img,
       .qrFrame canvas {
         display: block;
-        width: 52mm !important;
-        height: 52mm !important;
+        width: 28mm !important;
+        height: 28mm !important;
       }
 
       .qrFallback {
-        width: 52mm;
-        font-size: 11px;
+        width: 28mm;
+        font-size: 9px;
         color: var(--ink-soft);
         text-align: center;
-        line-height: 1.5;
+        line-height: 1.4;
+      }
+
+      .qrCaption {
+        display: grid;
+        gap: 0.6mm;
+        text-align: left;
+      }
+
+      .qrCaption .big {
+        font-family: var(--font-serif);
+        font-size: 12pt;
+        line-height: 1.05;
+        color: var(--espresso-deep);
+      }
+
+      .qrCaption .small {
+        font-size: 6.5pt;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
       }
 
       .cta {
@@ -217,15 +390,15 @@
         background: var(--espresso);
         color: #fffdfa;
         border-radius: 999px;
-        padding: 4mm 11mm;
-        font-size: 13pt;
+        padding: 3.4mm 10mm;
+        font-size: 12pt;
         font-weight: 800;
         letter-spacing: 0.02em;
       }
 
       .cafeName {
         min-height: 5mm;
-        font-size: 10pt;
+        font-size: 9pt;
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -294,10 +467,46 @@
 
       <section class="face flipped">
         <div class="faceInner">
-          <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
-          <div class="wordmark">Kaffeekarte</div>
-          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-          <div class="qrFrame" data-qr-target></div>
+          <div class="headRow">
+            <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
+            <div class="wordmark">Kaffeekarte</div>
+          </div>
+
+          <div class="claimBlock">
+            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+            <div class="claimRule" aria-hidden="true"></div>
+          </div>
+
+          <div class="phoneWrap">
+            <div class="ribbon">Bald im App Store &amp; bei Google Play</div>
+            <div class="phone">
+              <div class="phoneTop">
+                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
+                <span class="phoneMenu"></span>
+              </div>
+              <div class="passCardMini">
+                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
+                <div class="passCafeName" data-cafe-name></div>
+                <div class="beanRow" aria-hidden="true">
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean"></span>
+                  <span class="bean"></span><span class="bean"></span>
+                </div>
+                <div class="passFootLine">Noch 3 bis zum Gratiskaffee</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="qrRow">
+            <div class="qrFrame" data-qr-target></div>
+            <div class="qrCaption">
+              <span class="big">Jetzt scannen</span>
+              <span class="small">Web-App · Store folgt bald</span>
+            </div>
+          </div>
+
           <div class="cta">Kostenlos starten</div>
           <div class="cafeName" data-cafe-name></div>
         </div>
@@ -305,10 +514,46 @@
 
       <section class="face">
         <div class="faceInner">
-          <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
-          <div class="wordmark">Kaffeekarte</div>
-          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-          <div class="qrFrame" data-qr-target></div>
+          <div class="headRow">
+            <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
+            <div class="wordmark">Kaffeekarte</div>
+          </div>
+
+          <div class="claimBlock">
+            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+            <div class="claimRule" aria-hidden="true"></div>
+          </div>
+
+          <div class="phoneWrap">
+            <div class="ribbon">Bald im App Store &amp; bei Google Play</div>
+            <div class="phone">
+              <div class="phoneTop">
+                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
+                <span class="phoneMenu"></span>
+              </div>
+              <div class="passCardMini">
+                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
+                <div class="passCafeName" data-cafe-name></div>
+                <div class="beanRow" aria-hidden="true">
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean"></span>
+                  <span class="bean"></span><span class="bean"></span>
+                </div>
+                <div class="passFootLine">Noch 3 bis zum Gratiskaffee</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="qrRow">
+            <div class="qrFrame" data-qr-target></div>
+            <div class="qrCaption">
+              <span class="big">Jetzt scannen</span>
+              <span class="small">Web-App · Store folgt bald</span>
+            </div>
+          </div>
+
           <div class="cta">Kostenlos starten</div>
           <div class="cafeName" data-cafe-name></div>
         </div>
