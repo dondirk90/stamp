@@ -54,20 +54,18 @@
         background: var(--color-background) !important;
       }
 
-      /* Visible from first paint until setBootOk() fires (right after
-         setAuthedUI() has run) - masks the brief window on every fresh page
-         load where the raw HTML defaults to "logged out" (#authPanel has no
-         inline display:none, #mainPanel does) before JS corrects it. Was
-         display:none by default and only shown by the slow-boot fallback
-         below, so that flash was never actually masked on a normal-speed
-         load. The catch-block around main() and the slow-boot fallback
-         below both still call setBootOk()/hideOverlay() even if boot
-         crashes or the script fails to run in time, so this can't leave
-         someone stuck behind it indefinitely. */
+      /* Boot fallback: visible only when JS boot takes too long. A tiny
+         synchronous inline script right after #authPanel/#mainPanel below
+         fixes their initial display directly (reads localStorage, no
+         waiting on the full app bundle) - masking the whole page behind
+         this overlay until the full customer-qr-modern.js bundle finishes
+         loading turned out to make every fresh page load visibly wait
+         several seconds for "Initialisiere App...", trading a millisecond
+         flash for a much worse one. */
       .bootOverlay {
         position: fixed;
         inset: 0;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
         padding: calc(var(--space-5) + var(--safe-top, 0px))
@@ -5643,6 +5641,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Fixes #authPanel/#mainPanel's initial display synchronously, right
+         after all HTML above has been parsed (no network wait) and before
+         the external app bundle below even starts loading. #authPanel has
+         no inline display:none but #mainPanel does, so without this every
+         fresh page load defaulted to showing the login form for however
+         long capacitor.js/ui.js/customer-qr-modern.js etc. below take to
+         load and run main() - a real, sometimes multi-second flash on a
+         slow connection, not the sub-frame one this is meant to close. -->
+    <script>
+      (function () {
+        try {
+          var raw =
+            localStorage.getItem("customer_session_v1") ||
+            localStorage.getItem("customer_session_v2");
+          var s = raw ? JSON.parse(raw) : null;
+          var isAuthed = !!(s && s.address);
+          var authPanel = document.getElementById("authPanel");
+          var mainPanel = document.getElementById("mainPanel");
+          // Same values setAuthedUI() in customer-qr-modern.js uses once it
+          // runs, so there's no layout difference between this early guess
+          // and the authoritative one right after.
+          if (authPanel) authPanel.style.display = isAuthed ? "none" : "block";
+          if (mainPanel) mainPanel.style.display = isAuthed ? "block" : "none";
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- Harmless in a plain browser tab (Capacitor's web fallback just uses
          navigator.vibrate/no-ops); gives the native iOS/Android wrapper apps
