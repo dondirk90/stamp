@@ -164,26 +164,26 @@
         display: grid;
         justify-items: center;
         text-align: center;
-        gap: 4mm;
+        gap: 3mm;
       }
 
       .headRow {
         display: flex;
         align-items: center;
-        gap: 3mm;
+        gap: 2.4mm;
       }
 
       .beanMark {
-        width: 11mm;
-        height: 11mm;
+        width: 8mm;
+        height: 8mm;
         object-fit: contain;
       }
 
       .wordmark {
-        font-size: 12pt;
+        font-size: 9.5pt;
         font-weight: 800;
-        letter-spacing: 0.38em;
-        text-indent: 0.38em;
+        letter-spacing: 0.34em;
+        text-indent: 0.34em;
         text-transform: uppercase;
         color: var(--ink);
       }
@@ -191,21 +191,21 @@
       .claimBlock {
         display: grid;
         justify-items: center;
-        gap: 2.5mm;
+        gap: 2mm;
       }
 
       .claim {
         font-family: var(--font-serif);
-        font-size: 19pt;
-        line-height: 1.06;
+        font-size: 14.5pt;
+        line-height: 1.08;
         letter-spacing: -0.02em;
         color: var(--espresso-deep);
-        max-width: 100mm;
+        max-width: 80mm;
       }
 
       .claimRule {
-        width: 11mm;
-        height: 0.9mm;
+        width: 9mm;
+        height: 0.7mm;
         border-radius: 1mm;
         background: var(--terracotta);
       }
@@ -216,48 +216,48 @@
       }
 
       .phone {
-        width: 46mm;
-        padding: 3mm 2.8mm 2.6mm;
-        border-radius: 6mm;
+        width: 38mm;
+        padding: 2.4mm 2.2mm 2mm;
+        border-radius: 5mm;
         background: #fffdfa;
         border: 0.3mm solid var(--line);
-        box-shadow: 0 4mm 7mm rgba(57, 34, 21, 0.2);
+        box-shadow: 0 3mm 5mm rgba(57, 34, 21, 0.2);
       }
 
       .phoneTop {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 2mm;
+        margin-bottom: 1.6mm;
       }
 
       .phoneBrand {
         display: inline-flex;
         align-items: center;
-        gap: 1.2mm;
-        font-size: 6.5pt;
+        gap: 1mm;
+        font-size: 5.4pt;
         font-weight: 900;
         color: var(--espresso);
       }
 
       .phoneBrand .dot {
-        width: 2mm;
-        height: 2mm;
+        width: 1.6mm;
+        height: 1.6mm;
         border-radius: 50%;
         background: var(--espresso);
       }
 
       .phoneMenu {
-        width: 3mm;
-        height: 0.35mm;
+        width: 2.4mm;
+        height: 0.3mm;
         border-radius: 999px;
         background: var(--espresso);
-        box-shadow: 0 1mm 0 var(--espresso), 0 -1mm 0 var(--espresso);
+        box-shadow: 0 0.8mm 0 var(--espresso), 0 -0.8mm 0 var(--espresso);
       }
 
       .passCardMini {
-        padding: 2.8mm 2.6mm;
-        border-radius: 4mm;
+        padding: 2mm;
+        border-radius: 3mm;
         background: rgba(255, 255, 255, 0.75);
       }
 
@@ -265,18 +265,18 @@
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        font-size: 5.6pt;
+        font-size: 4.8pt;
         font-weight: 900;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: rgba(59, 42, 31, 0.6);
-        margin-bottom: 1.6mm;
+        margin-bottom: 1.2mm;
       }
 
       .passCafeName {
-        margin: 0 0 1.6mm;
+        margin: 0;
         font-family: var(--font-serif);
-        font-size: 11pt;
+        font-size: 8pt;
         line-height: 0.95;
         letter-spacing: -0.03em;
         color: var(--ink);
@@ -293,8 +293,8 @@
       .beanRow {
         display: grid;
         grid-template-columns: repeat(10, minmax(0, 1fr));
-        gap: 0.8mm;
-        margin-top: 2mm;
+        gap: 0.6mm;
+        margin-top: 1.6mm;
       }
 
       .bean {
@@ -307,43 +307,35 @@
         background: var(--espresso);
       }
 
-      .passFootLine {
-        margin-top: 1.6mm;
-        font-size: 5.4pt;
-        font-weight: 800;
-        color: rgba(59, 42, 31, 0.68);
-        text-align: left;
-      }
-
       /* Fähnchen quer über die Handy-Ecke - beantwortet "wo ist die App?",
          bevor jemand fragen muss. */
       .ribbon {
         position: absolute;
-        top: 5mm;
-        right: -12mm;
-        width: 52mm;
-        transform: rotate(36deg);
+        top: 3mm;
+        right: -9mm;
+        width: 42mm;
+        transform: rotate(34deg);
         background: var(--terracotta);
         color: #fff8f2;
         text-align: center;
-        font-size: 6.6pt;
+        font-size: 5.6pt;
         font-weight: 800;
         letter-spacing: 0.03em;
-        padding: 1.4mm 0;
-        box-shadow: 0 1.5mm 3mm rgba(42, 24, 14, 0.28);
+        padding: 1.1mm 0;
+        box-shadow: 0 1mm 2mm rgba(42, 24, 14, 0.26);
       }
 
       .qrRow {
         display: flex;
         align-items: center;
-        gap: 4mm;
+        gap: 3mm;
       }
 
       .qrFrame {
         background: #ffffff;
         border: 1px solid var(--line);
-        border-radius: 4mm;
-        padding: 2.6mm;
+        border-radius: 3mm;
+        padding: 1.6mm;
         display: grid;
         place-items: center;
         flex: 0 0 auto;
@@ -352,48 +344,37 @@
       .qrFrame img,
       .qrFrame canvas {
         display: block;
-        width: 28mm !important;
-        height: 28mm !important;
+        width: 20mm !important;
+        height: 20mm !important;
       }
 
       .qrFallback {
-        width: 28mm;
-        font-size: 9px;
+        width: 20mm;
+        font-size: 8px;
         color: var(--ink-soft);
         text-align: center;
-        line-height: 1.4;
+        line-height: 1.3;
       }
 
       .qrCaption {
         display: grid;
-        gap: 0.6mm;
+        gap: 0.5mm;
         text-align: left;
       }
 
       .qrCaption .big {
         font-family: var(--font-serif);
-        font-size: 12pt;
+        font-size: 9pt;
         line-height: 1.05;
         color: var(--espresso-deep);
       }
 
       .qrCaption .small {
-        font-size: 6.5pt;
+        font-size: 5.4pt;
         font-weight: 800;
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: var(--ink-soft);
-      }
-
-      .cta {
-        display: inline-block;
-        background: var(--espresso);
-        color: #fffdfa;
-        border-radius: 999px;
-        padding: 3.4mm 10mm;
-        font-size: 12pt;
-        font-weight: 800;
-        letter-spacing: 0.02em;
       }
 
       .cafeName {
@@ -494,7 +475,6 @@
                   <span class="bean filled"></span><span class="bean"></span>
                   <span class="bean"></span><span class="bean"></span>
                 </div>
-                <div class="passFootLine">Noch 3 bis zum Gratiskaffee</div>
               </div>
             </div>
           </div>
@@ -507,7 +487,6 @@
             </div>
           </div>
 
-          <div class="cta">Kostenlos starten</div>
           <div class="cafeName" data-cafe-name></div>
         </div>
       </section>
@@ -541,7 +520,6 @@
                   <span class="bean filled"></span><span class="bean"></span>
                   <span class="bean"></span><span class="bean"></span>
                 </div>
-                <div class="passFootLine">Noch 3 bis zum Gratiskaffee</div>
               </div>
             </div>
           </div>
@@ -554,7 +532,6 @@
             </div>
           </div>
 
-          <div class="cta">Kostenlos starten</div>
           <div class="cafeName" data-cafe-name></div>
         </div>
       </section>
