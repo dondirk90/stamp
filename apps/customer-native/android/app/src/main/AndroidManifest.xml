@@ -43,4 +43,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Profile-avatar photo (customer-profile.html's <input type="file">
+         camera option) needs this or the WebView's camera-capture intent
+         fails - optional feature, not every device has a camera. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
