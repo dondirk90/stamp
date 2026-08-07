@@ -171,6 +171,9 @@ jobs:
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'avatar_mime')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'email_verified_at')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customer_saved_cafes' AND column_name = 'is_favorite')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'website_url')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'instagram_url')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'short_description')
                THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
 
