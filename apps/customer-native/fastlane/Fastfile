@@ -198,6 +198,24 @@ platform :android do
       raise
     end
 
+    # Also push this same build to the custom closed-testing track (needed
+    # for Play's mandatory 12-testers/14-days closed test before production
+    # access unlocks) - track_promote_to + skip_upload_aab promotes the
+    # version just uploaded to "internal" above instead of re-uploading the
+    # bundle, since re-uploading the identical version code would just hit
+    # the same "already been used" error again.
+    upload_to_play_store(
+      package_name: "app.kaffeekarte.customer",
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      track: "internal",
+      track_promote_to: "geschlossener Test",
+      version_code: version_code,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+
     # Play Console's internal testing track needs testers whose devices meet
     # its own tester requirements - unrelated to the app's actual
     # minSdkVersion (23 = Android 6.0, see variables.gradle). A signed .apk
