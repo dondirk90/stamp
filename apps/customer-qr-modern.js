@@ -1209,6 +1209,12 @@
         clearSession();
         setAuthedUI();
         setAuthMode("login");
+        // setAuthMode() itself resets showResendVerification to false (and
+        // hides el.authResendGroup) - it has to be re-armed after, same as
+        // the other two places that show this button, or the message below
+        // promises a resend link that's actually still hidden.
+        showResendVerification = true;
+        if (el.authResendGroup) el.authResendGroup.style.display = "inline";
         showMsg(
           "danger",
           "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
