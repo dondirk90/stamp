@@ -311,10 +311,10 @@
          bevor jemand fragen muss. */
       .ribbon {
         position: absolute;
-        top: 3mm;
-        right: -9mm;
-        width: 42mm;
-        transform: rotate(34deg);
+        top: 7mm;
+        right: -8mm;
+        width: 32mm;
+        transform: rotate(22deg);
         background: var(--terracotta);
         color: #fff8f2;
         text-align: center;
@@ -423,7 +423,7 @@
   <body>
     <div class="toolbar">
       <div class="field">
-        <label for="urlInput">QR-Ziel (führt zur Registrierung)</label>
+        <label for="urlInput">QR-Ziel (App Store auf iPhone, sonst Registrierung)</label>
         <input id="urlInput" type="text" />
       </div>
       <div class="field">
@@ -449,7 +449,7 @@
       <section class="face flipped">
         <div class="faceInner">
           <div class="headRow">
-            <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
+            <img class="beanMark" src="assets/stamp-bean.png?v=2" alt="" />
             <div class="wordmark">Kaffeekarte</div>
           </div>
 
@@ -459,7 +459,7 @@
           </div>
 
           <div class="phoneWrap">
-            <div class="ribbon">Bald im App Store &amp; bei Google Play</div>
+            <div class="ribbon">Jetzt im App&nbsp;Store</div>
             <div class="phone">
               <div class="phoneTop">
                 <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
@@ -483,7 +483,7 @@
             <div class="qrFrame" data-qr-target></div>
             <div class="qrCaption">
               <span class="big">Jetzt scannen</span>
-              <span class="small">Web-App · Store folgt bald</span>
+              <span class="small">iPhone: App Store · Android: Web-App</span>
             </div>
           </div>
 
@@ -494,7 +494,7 @@
       <section class="face">
         <div class="faceInner">
           <div class="headRow">
-            <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
+            <img class="beanMark" src="assets/stamp-bean.png?v=2" alt="" />
             <div class="wordmark">Kaffeekarte</div>
           </div>
 
@@ -504,7 +504,7 @@
           </div>
 
           <div class="phoneWrap">
-            <div class="ribbon">Bald im App Store &amp; bei Google Play</div>
+            <div class="ribbon">Jetzt im App&nbsp;Store</div>
             <div class="phone">
               <div class="phoneTop">
                 <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
@@ -528,7 +528,7 @@
             <div class="qrFrame" data-qr-target></div>
             <div class="qrCaption">
               <span class="big">Jetzt scannen</span>
-              <span class="small">Web-App · Store folgt bald</span>
+              <span class="small">iPhone: App Store · Android: Web-App</span>
             </div>
           </div>
 
@@ -537,15 +537,16 @@
       </section>
     </main>
 
-    <script src="/vendor/qrcode.min.js"></script>
+    <script src="vendor/qrcode.min.js"></script>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
         var runtimeOrigin = /^https?:/i.test(window.location.protocol)
           ? window.location.origin
           : "https://kaffeekarte.app";
-        // /wallet startet fuer neue Gaeste direkt im Registrierungs-Panel.
-        var defaultUrl = runtimeOrigin + "/wallet";
+        // /get-app erkennt iPhone vs. Rest und leitet entsprechend weiter
+        // (App Store bzw. Browser-Registrierung unter /wallet).
+        var defaultUrl = runtimeOrigin + "/get-app";
         var urlInput = document.getElementById("urlInput");
         var cafeInput = document.getElementById("cafeInput");
         var updateBtn = document.getElementById("updateBtn");
