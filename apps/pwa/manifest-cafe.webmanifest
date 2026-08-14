@@ -6,7 +6,7 @@
   "lang": "de",
   "dir": "ltr",
   "start_url": "/cafe",
-  "scope": "/",
+  "scope": "/cafe",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#241710",

@@ -54,7 +54,14 @@
         background: var(--color-background) !important;
       }
 
-      /* Boot fallback: visible only when JS boot takes too long. */
+      /* Boot fallback: visible only when JS boot takes too long. A tiny
+         synchronous inline script right after #authPanel/#mainPanel below
+         fixes their initial display directly (reads localStorage, no
+         waiting on the full app bundle) - masking the whole page behind
+         this overlay until the full customer-qr-modern.js bundle finishes
+         loading turned out to make every fresh page load visibly wait
+         several seconds for "Initialisiere App...", trading a millisecond
+         flash for a much worse one. */
       .bootOverlay {
         position: fixed;
         inset: 0;
@@ -338,6 +345,16 @@
           0 1px 0 rgba(255, 255, 255, 0.84) inset;
       }
 
+      /* theme.css's base .kk-brandMark img has no object-fit, so it
+         stretches to fill the box (CSS default is object-fit: fill) - only
+         harmless where the box happens to stay square, but fragile. Match
+         the fix already shipped for the same logo in the barista app
+         (cafe-scanner-new.html). */
+      .topbar .kk-brandMark img {
+        object-fit: contain;
+        padding: 6px;
+      }
+
       .topbar .kk-brandText {
         display: flex;
         align-items: center;
@@ -464,6 +481,10 @@
 
       @media (max-width: 520px) and (orientation: portrait) {
         body {
+          /* Shared with .topbar's own "top" below and the panel clearance
+             rule further down, so the floating topbar's position and the
+             space reserved for it underneath can't drift apart. */
+          --topbar-top: max(24px, calc(8px + var(--safe-top, 0px)));
           padding:
             calc(8px + var(--safe-top, 0px))
             calc(8px + var(--safe-right, 0px))
@@ -484,7 +505,14 @@
 
         .topbar {
           position: fixed;
-          top: calc(8px + var(--safe-top, 0px));
+          /* env(safe-area-inset-top) is 0 on Android (no edge-to-edge
+             config there, unlike iOS's notch inset), so plain "8px +
+             safe-top" left the header sitting right against the very top
+             on Android while iOS's notch inset happened to give it real
+             breathing room. --topbar-top (set on body above) guarantees a
+             comfortable minimum either way without needing platform
+             detection - and keeps the panel clearance rule below in sync. */
+          top: var(--topbar-top);
           left: calc(8px + var(--safe-left, 0px));
           right: calc(8px + var(--safe-right, 0px));
           margin: 0;
@@ -495,7 +523,11 @@
           box-shadow: none;
           backdrop-filter: none;
           justify-content: flex-start;
-          z-index: 70;
+          /* Leaflet's own panes/controls default to z-index 400-1000 (see
+             #cafeMap below) - a plain 70 here let the map on "Entdecken"
+             render on top of the floating topbar wherever they visually
+             overlapped. Comfortably above Leaflet's max. */
+          z-index: 1200;
           pointer-events: none;
         }
 
@@ -645,6 +677,11 @@
           display: flex;
           flex-direction: column;
           justify-content: center;
+          /* Overrides the border: 1px solid it shares with #welcomePanel/
+             #historyPanel/#authPanel above - #walletPanel (the Wallet home
+             screen) was never part of that shared rule, so this is the odd
+             one out; drop it to match Wallet's borderless look. */
+          border: none;
         }
 
         .walletDockHead {
@@ -674,6 +711,10 @@
         #historyPanel {
           justify-content: flex-start;
           align-items: stretch;
+          /* Same shared border: 1px solid it inherits from #welcomePanel/
+             .mapHero/#authPanel above - #walletPanel never had it, so drop
+             it here too to match (see .mapHero's own override). */
+          border: none;
         }
 
         .walletOverlay {
@@ -1768,8 +1809,8 @@
          .topbar switches to position:fixed (floating over the content, not
          taking up flow space - see its rule further up), so the content
          underneath still needs enough clearance to not render *behind* it.
-         .topbar there sits at top: 8px + safe-top with min-height: 64px, so
-         content needs to start past that, not at a small fixed value. */
+         .topbar there sits at top: var(--topbar-top) with min-height: 64px,
+         so content needs to start past that, not at a small fixed value. */
       @media (max-width: 520px) and (orientation: portrait) {
         #authPanel,
         #welcomePanel,
@@ -1779,8 +1820,11 @@
              height below the floating topbar - #mapPanel/#historyPanel were
              missing this override, so a later, viewport-agnostic .mapHero
              padding rule (padding: var(--space-4)) quietly won out and left
-             the map hugging the header. */
-          padding-top: calc(74px + var(--safe-top, 0px));
+             the map hugging the header. Built from --topbar-top (set on body
+             in the .topbar rule's media query) plus the topbar's own ~66px
+             footprint, so this can't drift out of sync with where the
+             topbar actually sits. */
+          padding-top: calc(var(--topbar-top, 8px) + 66px);
         }
       }
 
@@ -5211,12 +5255,6 @@
               />
             </div>
 
-            <div class="actions authCtaActions">
-              <button class="btn primary" id="authSubmit" type="button">
-                Mit E-Mail fortfahren
-              </button>
-            </div>
-
             <div id="authDetails" class="stack authDetails">
               <div id="registerFields" class="stack">
                 <div class="stack" style="gap: 6px">
@@ -5254,6 +5292,12 @@
                 <a href="/agb" target="_blank" rel="noreferrer">AGB</a>
                 an.
               </p>
+            </div>
+
+            <div class="actions authCtaActions">
+              <button class="btn primary" id="authSubmit" type="button">
+                Mit E-Mail fortfahren
+              </button>
             </div>
 
             <div class="hint" style="margin-top: 6px">
@@ -5598,6 +5642,33 @@
       </div>
     </div>
 
+    <!-- Fixes #authPanel/#mainPanel's initial display synchronously, right
+         after all HTML above has been parsed (no network wait) and before
+         the external app bundle below even starts loading. #authPanel has
+         no inline display:none but #mainPanel does, so without this every
+         fresh page load defaulted to showing the login form for however
+         long capacitor.js/ui.js/customer-qr-modern.js etc. below take to
+         load and run main() - a real, sometimes multi-second flash on a
+         slow connection, not the sub-frame one this is meant to close. -->
+    <script>
+      (function () {
+        try {
+          var raw =
+            localStorage.getItem("customer_session_v1") ||
+            localStorage.getItem("customer_session_v2");
+          var s = raw ? JSON.parse(raw) : null;
+          var isAuthed = !!(s && s.address);
+          var authPanel = document.getElementById("authPanel");
+          var mainPanel = document.getElementById("mainPanel");
+          // Same values setAuthedUI() in customer-qr-modern.js uses once it
+          // runs, so there's no layout difference between this early guess
+          // and the authoritative one right after.
+          if (authPanel) authPanel.style.display = isAuthed ? "none" : "block";
+          if (mainPanel) mainPanel.style.display = isAuthed ? "block" : "none";
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Harmless in a plain browser tab (Capacitor's web fallback just uses
          navigator.vibrate/no-ops); gives the native iOS/Android wrapper apps
          a real bridge + native Haptics + App-lifecycle events. -->
@@ -5606,7 +5677,7 @@
     <script src="/vendor/capacitor/haptics.js"></script>
     <script src="/vendor/qrcode.min.js"></script>
     <script src="/ui.js?v=20260714a"></script>
-    <script src="/customer-qr-modern.js?v=20260714a"></script>
+    <script src="/customer-qr-modern.js?v=20260731a"></script>
 
     <script>
       (function () {
@@ -5920,6 +5991,12 @@
           }
 
           window.setTimeout(function () {
+            // Capacitor's native bridge auto-injects window.Capacitor in the
+            // real iOS/Android app shell (independent of the vendor script
+            // include below) - without this check, "add Kaffeekarte to your
+            // homescreen" made no sense to someone who already has the
+            // dedicated app open.
+            if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
             if (!isMobileBrowser()) return;
             if (isStandalone()) return;
             if (wasSeen()) return;

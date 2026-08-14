@@ -1,412 +1,89 @@
 # Kaffeekarte Native App Plan
 
-Dieser Plan beschreibt die nächsten Schritte für die Entwicklung der nativen Kaffeekarte-Apps.
+Stand: 31.07.2026. Dieser Plan war ursprünglich für einen Expo/React-Native-Rewrite
+geschrieben. Tatsächlich umgesetzt wurde ein schlankerer Weg: die nativen Apps sind
+Capacitor-Wrapper im **Remote-URL-Modus** um die bestehende Web-App
+(`apps/customer-qr-modern.html`, `apps/cafe-scanner-new.html` + `cafe-profile.html`).
+Die native Shell lädt einfach die echte, deployte Seite - jeder Web-Deploy aktualisiert
+die App sofort, ohne neue Store-Einreichung. Alle Screens (Wallet, QR, Discovery,
+Historie, Scanner, Stempeln, Einlösen, Profil) existieren dadurch bereits.
 
-Ziel ist nicht, die bestehende Web-App nur zu verpacken.
-Ziel ist, aus Kaffeekarte zwei klare mobile Produkte zu bauen:
+Die alten Expo-Stubs `apps/customer-ios-new` und `apps/cafe-ios-new` sind **nicht mehr
+im Einsatz** und werden von keinem Build/Workflow mehr referenziert - können bei
+Gelegenheit gelöscht werden.
 
-- eine Customer App für Gäste
-- eine Café App für Betreiber und Staff
+Aktueller Fokus laut Absprache: **erst iOS fertig bekommen**, Android folgt danach.
 
-## Zielbild
+## Stack
 
-Die nativen Apps sollen:
-
-- dieselbe Marke wie die Web-App tragen
-- dieselben Backend-APIs nutzen
-- sich schneller, klarer und nativer anfühlen
-- Kamera, QR und Navigation besser lösen als im Browser
-
-## Architekturentscheidung
-
-Empfohlener Stack:
-
-- Expo / React Native
-
-Warum:
-
-- im Repo existieren bereits zwei Expo-Stubs
-- QR, Kamera und Navigation profitieren von nativer UI
-- iOS und Android können mit hohem Shared-Code-Anteil gebaut werden
-- spätere Features wie Push, Deep Links und besseres Offline-Verhalten sind sauber möglich
-
-Was bestehen bleibt:
-
-- Backend und API
-- Login- und Kartenlogik
-- Stempel- und Reward-Modell
+- Capacitor (iOS + Android) um die bestehende Web-App
+- Fastlane für Build + Store-Upload (`apps/customer-native/fastlane`, `apps/cafe-native/fastlane`)
+- GitHub Actions, aktuell nur manuell startbar (`workflow_dispatch`):
+  - `.github/workflows/build-ios-customer.yml`
+  - `.github/workflows/build-ios-cafe.yml`
+  - `.github/workflows/build-android-customer.yml` (Café-Android-Workflow existiert noch nicht)
 
 ## Produktaufteilung
 
-### Customer App
-
-Ziel:
-
-- Lieblingscafés sehen
-- Kartenstand verstehen
-- QR schnell öffnen
-- neue Cafés entdecken
-- Historie und Konto pflegen
-
-### Café App
-
-Ziel:
-
-- schnell scannen
-- Stempel vergeben
-- Rewards einlösen
-- Profil pflegen
-
-## Realistische Reihenfolge
-
-1. Customer App MVP
-2. Customer App Testflight / Internal Testing
-3. Café App MVP
-4. Store-Polish und Native-Erweiterungen
-
-Warum diese Reihenfolge:
-
-- Customer ist das klarere Kernprodukt
-- Customer liefert früher sichtbaren Produktwert
-- Café Scanner kann danach gezielter und stabiler gebaut werden
-
-## Was benötigt wird
-
-### Produktentscheidungen
-
-- finaler App-Name pro App
-- Bundle IDs / Package Names
-- App-Icons und Splash-Richtung
-- Datenschutz- und Kameratexte
-- Scope des ersten Releases
-
-### Technische Grundlagen
-
-- saubere Expo-Projekte
-- gemeinsame API-Konfiguration für Staging und Prod
-- Session-Handling
-- Navigation-Struktur
-- Design Tokens für Farben, Spacing, Typografie
-
-### Accounts und Infrastruktur
-
-- Apple Developer Account
-- Google Play Developer Account
-- Expo Account / EAS Setup
-- GitHub Secrets für mobile Builds
-- App-Store- und Play-Console-Einträge
-
-### Assets und Inhalte
-
-- App-Icons
-- Splash-Screens
-- Screenshots
-- App-Beschreibungen
-- Privacy Policy Links
-
-## MVP-Scope
-
-### Customer App MVP
-
-Pflicht:
-
-- Registrierung
-- Login
-- Session-Persistenz
-- Wallet / Kartenübersicht
-- direkter QR-Flow
-- Historie
-- Café-Suche / Discovery
-- Café-Detail
-- Konto
-
-Nicht im ersten MVP notwendig:
-
-- komplexe Animationen
-- Push Notifications
-- tiefe Offline-Funktionalität
-- Apple Wallet / Google Wallet Integration
-
-### Café App MVP
-
-Pflicht:
-
-- Login
-- Scanner
-- Scan Result
-- Stempel vergeben
-- Reward einlösen
-- Basis-Profil
-
-Nicht im ersten MVP notwendig:
-
-- Analytics
-- Marketing / Kampagnen
-- tiefe Bildverwaltung
-- erweiterte Admin-Funktionen
-
-## Screen-Plan
-
-### Customer App
-
-1. Auth / Onboarding
-- Registrierung zuerst
-- Login als Option
-- klare Value Proposition
-
-2. Home / Wallet
-- Kartenliste
-- Fortschritt
-- direkter QR-Einstieg
-
-3. QR Sheet
-- großer QR
-- Café-Name
-- Fortschritt
-- klarer Close
-
-4. Cafés entdecken
-- Suche
-- Liste oder Map
-- Café öffnen
-
-5. Café-Detail
-- Beschreibung
-- Adresse
-- CTA: Karte holen / QR zeigen
-
-6. Historie
-- verständliche Events
-- keine technische Sprache
-
-7. Konto
-- E-Mail
-- Username
-- Passwort ändern
-- Logout
-
-### Café App
-
-1. Login
-2. Scanner Home
-3. Scan Result
-4. Profil
-
-## Größte Aufwände
-
-Der größte Aufwand liegt nicht im Store-Deploy, sondern in:
-
-- Wallet-/QR-UX sauber nativ bauen
-- Session, Navigation und Fehlerstates robust machen
-- Scanner-Flow stabil und schnell bekommen
-- echtes Geräte-Testing auf iOS und Android
-
-Technisch heikel:
-
-- Kamera / QR
-- Statuswechsel zwischen Kartenansicht, QR und History
-- Auth-Persistenz
-- Plattformunterschiede
-
-## Umsetzungsplan
-
-### Phase 1: Foundations
-
-Ziel:
-
-- aus den Expo-Stubs echte Projektbasen machen
-
-Zu erledigen:
-
-- Expo-Starterinhalte entfernen
-- App-Namen und Slugs festlegen
-- Bundle IDs und Schemes definieren
-- Staging- und Prod-API-Config anlegen
-- Basis-Navigation aufsetzen
-- Design Tokens definieren
-
-Benötigt:
-
-- finale Produktnamen
-- Bundle-ID-Entscheidung
-- Farb- und Typografie-Richtung
-
-Ergebnis:
-
-- lauffähige Customer- und Café-App-Basis
-
-### Phase 2: Customer MVP
-
-Ziel:
-
-- erstes wirklich benutzbares Native-Produkt
-
-Zu erledigen:
-
-- Auth-Screens bauen
-- Session speichern
-- Wallet-Liste anbinden
-- QR-Sheet bauen
-- Historie anbinden
-- Discovery anbinden
-- Konto-Screen bauen
-
-Benötigt:
-
-- stabile API-Endpunkte
-- klare Fehlermeldungen
-- Karten- und Historien-Datenmodell dokumentiert
-
-Ergebnis:
-
-- Customer App kann intern getestet werden
-
-### Phase 3: Customer QA und Store-Vorbereitung
-
-Ziel:
-
-- Customer App auf Testgeräten stabil machen
-
-Zu erledigen:
-
-- iOS- und Android-Gerätetests
-- UI-Polish
-- App-Icons und Splash
-- Screenshots
-- Store-Texte
-- EAS / Build-Pipeline
-- TestFlight / Internal Testing
-
-Benötigt:
-
-- Apple Developer Account
-- Google Play Account
-- finale Assets
-
-Ergebnis:
-
-- Customer App bereit für erste externe Tests
-
-### Phase 4: Café MVP
-
-Ziel:
-
-- zweites Produkt für Betreiber bauen
-
-Zu erledigen:
-
-- Betreiber-Login
-- Scanner-Screen
-- Scan Result Flow
-- Stamp / Redeem Aktionen
-- Profil-Basis
-
-Benötigt:
-
-- stabile Scan-/QR-Spezifikation
-- gute Success-/Error-UX
-
-Ergebnis:
-
-- Café App intern einsatzfähig
-
-### Phase 5: Native Mehrwerte
-
-Ziel:
-
-- aus funktional guten Apps richtig starke Apps machen
-
-Zu erledigen:
-
-- Push Notifications
-- Deep Links
-- bessere Offline-Strategien
-- Kamera-/Scanner-Polish
-- Performance-Pass
-
-## Konkrete To-do-Liste
-
-### A. Entscheidungen
-
-- [ ] finalen Customer-App-Namen festlegen
-- [ ] finalen Café-App-Namen festlegen
-- [ ] Bundle ID für Customer festlegen
-- [ ] Bundle ID für Café festlegen
-- [ ] App-Icons und Splash-Stil festlegen
-
-### B. Repo und Setup
-
-- [ ] `apps/customer-ios-new` bereinigen
-- [ ] `apps/cafe-ios-new` bereinigen
-- [ ] gemeinsame API-Konfiguration definieren
-- [ ] Environment-Handling für Staging/Prod ergänzen
-- [ ] Shared Design Tokens anlegen
-
-### C. Customer MVP
-
-- [ ] Auth-Screens
-- [ ] Session-Persistenz
-- [ ] Wallet-Screen
-- [ ] QR-Sheet
-- [ ] Discovery-Screen
-- [ ] Café-Detail
-- [ ] History
-- [ ] Konto
-
-### D. Customer Release-Vorbereitung
-
-- [ ] echte Geräte-Tests iPhone
-- [ ] echte Geräte-Tests Android
-- [ ] App-Icons exportieren
-- [ ] Splash vorbereiten
-- [ ] Screenshots erstellen
-- [ ] Store-Beschreibung schreiben
-- [ ] TestFlight Build
-- [ ] Internal Android Build
-
-### E. Café MVP
-
-- [ ] Betreiber-Login
-- [ ] Scanner Home
-- [ ] Scan Result
-- [ ] Stamp Action
-- [ ] Redeem Action
-- [ ] Profil-Basis
-
-### F. Accounts und Builds
-
-- [ ] Apple Developer Account einrichten
-- [ ] Google Play Console einrichten
-- [ ] Expo / EAS konfigurieren
-- [ ] Signing sauber dokumentieren
-- [ ] GitHub Secrets für mobile Builds setzen
-
-## Definition of Done
-
-### Customer MVP ist fertig, wenn
-
-- Registrierung funktioniert
-- Login funktioniert
-- Wallet echte Karten lädt
-- QR stabil öffnet
-- Discovery echte Cafés zeigt
-- Historie verständlich lesbar ist
-- Konto nutzbar ist
-
-### Café MVP ist fertig, wenn
-
-- Login funktioniert
-- Scanner stabil öffnet
-- Scans korrekt erkannt werden
-- Stempel und Rewards sauber verarbeitet werden
-- Basis-Profil pflegbar ist
-
-## Empfohlener nächster Schritt
-
-Der sinnvollste Startpunkt ist:
-
-1. `apps/customer-ios-new` als erstes echtes Projekt aufräumen
-2. Expo-Standardseiten entfernen
-3. Auth + Navigation als erste native Basis bauen
-
-Damit entsteht sofort ein echter Produkt-Start statt nur weiterer Planung.
+- **Customer App** (`app.kaffeekarte.customer`, Anzeigename "Kaffeekarte") - Gäste
+- **Café App** (`app.kaffeekarte.cafe`, Anzeigename "Kaffeekarte Barista") - Betreiber/Staff
+
+## Stand: erledigt
+
+- [x] App-Namen festgelegt (Customer: "Kaffeekarte", Café: "Kaffeekarte Barista")
+- [x] Bundle IDs festgelegt (`app.kaffeekarte.customer` / `app.kaffeekarte.cafe`)
+- [x] App-Icons für iOS + Android generiert (beide Apps)
+- [x] Splash-Screens für iOS + Android generiert (beide Apps)
+- [x] Remote-URL-Konfiguration (Staging/Prod-Umschaltung über `CAP_SERVER_URL`, siehe `capacitor.config.ts`)
+- [x] Alle MVP-Screens vorhanden (kommen 1:1 aus der Web-App)
+- [x] Fastlane-Lanes geschrieben (`certificates`, `build`, `beta` für iOS; `beta` für Android)
+- [x] Apple Developer Account eingerichtet und aktiv
+- [x] Echte Geräte-Tests auf iPhone gemacht
+- [x] Code auf `main` gemerged
+
+## Nächste Schritte: iOS fertig bekommen
+
+- [x] App Store Connect API Key erzeugt und als GitHub Secrets hinterlegt
+- [x] Privates Git-Repo für `fastlane match` angelegt + Secrets hinterlegt
+- [x] App-Einträge in App Store Connect angelegt (Customer + Café)
+- [x] `build-ios-customer.yml` und `build-ios-cafe.yml` erfolgreich manuell ausgelöst, TestFlight-Builds bestätigt
+- [ ] App Store Screenshots erstellen (beide Apps) - **letzter offener Punkt**
+- [ ] App Store Beschreibungstexte schreiben (beide Apps)
+- [ ] Privacy-Policy-Link hinterlegen (liegt schon als Seite vor: `apps/datenschutz.html`)
+- [ ] Nach erfolgreichem manuellem Test: Workflows ggf. von `workflow_dispatch` auf
+      Push-Trigger umstellen (z. B. bei Tag-Push wie beim Prod-Deploy)
+
+## Danach: Android
+
+- [x] Google Play Console: Account vorhanden
+- [x] Upload-Keystore erzeugt, Secrets hinterlegt (`ANDROID_KEYSTORE_BASE64`,
+      `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`)
+- [x] Play-Console-Service-Account-Key erzeugt, als `PLAY_JSON_KEY` hinterlegt
+      (Google-Cloud-Organisationsrichtlinie `iam.managed.disableServiceAccountKeyCreation`
+      musste für das Projekt erst auf "Nicht erzwingen" gesetzt werden)
+- [x] App-Einträge in der Play Console angelegt (Customer + Café)
+- [x] Café-Android-Workflow gebaut (`build-android-cafe.yml`), inkl. der
+      bisher fehlenden `platform :android`-Lane in `cafe-native/fastlane/Fastfile`
+- [x] `build-android-customer.yml` einmal manuell ausgelöst - **erfolgreich**,
+      läuft im internen Test-Track (Release 1.0), User ist selbst Tester
+- [ ] `build-android-cafe.yml` einmal manuell auslösen (gleiche Fixes wie
+      customer sollten greifen, aber noch nicht selbst getestet)
+- [ ] Google Play App Signing: lief beim ersten Upload automatisch mit,
+      keine separate Aktion nötig gewesen
+- [ ] Store-Assets (Screenshots, Beschreibung) für Play Store
+
+**Unterwegs gefixte Bugs im Android-Build** (galten für customer, cafe hat
+denselben Code-Pfad also vermutlich auch):
+- `gradlew` war ohne Exec-Bit committet (`100644` statt `100755`, von Windows
+  aus angelegt) → `Permission denied`. Gefixt + `chmod +x`-Guard in beiden Workflows.
+- Workflow installierte JDK 17, aber Capacitor 7 braucht JDK 21
+  (`capacitor.build.gradle` setzt `JavaVersion.VERSION_21`) → "invalid source
+  release: 21". Beide Workflows auf JDK 21 umgestellt.
+- `upload_to_play_store` bekam keinen `package_name` (Appfile deklariert nur
+  iOS-Keys) → "No value found for 'package_name'". Explizit in beiden
+  Fastfiles ergänzt (`app.kaffeekarte.customer` / `app.kaffeekarte.cafe`).
+
+## Aufräumen (unkritisch, kein Blocker)
+
+- [ ] `apps/customer-ios-new` und `apps/cafe-ios-new` (alte Expo-Stubs) löschen oder
+      klar als "nicht mehr verwendet" markieren

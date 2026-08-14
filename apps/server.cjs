@@ -315,6 +315,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Smart app link fuer den Aufsteller-QR: iPhone -> App Store, alle anderen
+  // (Android, Desktop) -> Browser-Login. Sobald der Play-Store-Eintrag live
+  // ist, hier eine Android-Abzweigung ergaenzen.
+  if (pathname === "/get-app") {
+    const ua = req && req.headers ? String(req.headers["user-agent"] || "") : "";
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const APP_STORE_URL = "https://apps.apple.com/de/app/kaffeekarte/id6794413502";
+    const target = isIOS ? APP_STORE_URL : "/wallet";
+    res.writeHead(302, {
+      Location: target,
+      "Cache-Control": "no-store",
+      Pragma: "no-cache",
+    });
+    res.end();
+    return;
+  }
+
   // Allow requests that include the '/apps/' prefix (common when linking from other pages)
   if (pathname && pathname.startsWith("/apps/")) {
     pathname = pathname.replace(/^\/apps/, "");
@@ -362,8 +379,8 @@ const server = http.createServer((req, res) => {
   // Cafe scanner page: always serve the themed, maintained version
   if (pathname === "/cafe-scanner" || pathname === "/cafe-scanner.html")
     pathname = "/cafe-scanner-new.html";
-  if (pathname === "/cafe-dashboard") pathname = "/cafe-dashboard.html";
-  if (pathname === "/cafe-profile") pathname = "/cafe-profile.html";
+  if (pathname === "/cafe-dashboard") pathname = "/cafe-scanner-new.html";
+  if (pathname === "/cafe-profile") pathname = "/cafe-scanner-new.html";
   if (pathname === "/cafe-onboarding") pathname = "/cafe-onboarding.html";
 
   // Route legacy customer QR page to the modern UI

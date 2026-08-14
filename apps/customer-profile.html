@@ -450,10 +450,14 @@
              bottom toolbar when the page is open in a regular browser tab,
              which can otherwise sit right on top of the last button on the
              page (e.g. the delete-account button). Add a flat buffer on top
-             of the safe-area inset so there's always real clearance. */
+             of the safe-area inset so there's always real clearance.
+             ui.js's floating .kk-tabbar (mounted below) sits 12px off the
+             bottom and is ~70px tall itself, so it needs ~82px clearance -
+             this 64px flat value was short of that and let the tab bar
+             cover the bottom of the page content. */
           padding: calc(10px + env(safe-area-inset-top, 0px))
             10px
-            calc(64px + env(safe-area-inset-bottom, 0px))
+            calc(100px + env(safe-area-inset-bottom, 0px))
             10px;
         }
 

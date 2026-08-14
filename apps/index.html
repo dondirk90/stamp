@@ -507,6 +507,36 @@
         font-weight: 700;
       }
 
+      /* Offizielles Apple-Badge: unveraendert, ungedreht, mit dem von den
+         Markenrichtlinien geforderten Mindestabstand (>= 1/4 Badge-Hoehe). */
+      .footerAppStore {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 22px 0 6px;
+      }
+
+      .footerAppStoreLabel {
+        font-size: 13px;
+        font-weight: 700;
+        color: rgba(59, 42, 31, 0.72);
+      }
+
+      .footerAppStore img {
+        display: block;
+        height: 44px;
+        width: auto;
+      }
+
+      .footerLegal {
+        margin-top: 14px;
+        max-width: 60ch;
+        font-size: 11px;
+        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.5);
+      }
+
       @media (max-width: 1080px) {
         .hero {
           grid-template-columns: 1fr;
@@ -770,6 +800,15 @@
         <a href="/datenschutz">Datenschutz</a>
         <a href="/agb">AGB</a>
       </div>
+
+      <div class="footerAppStore">
+        <span class="footerAppStoreLabel">Auch als App</span>
+        <a href="https://apps.apple.com/de/app/kaffeekarte/id6794413502" target="_blank" rel="noopener" aria-label="Kaffeekarte im App Store laden">
+          <img src="/assets/app-store-badge-en-black.svg" alt="Download on the App Store" />
+        </a>
+      </div>
+
+      <p class="footerLegal">App Store is a trademark of Apple Inc., registered in the U.S. and other countries.</p>
     </div>
     <script src="/ui.js?v=20260717a"></script>
     <script>

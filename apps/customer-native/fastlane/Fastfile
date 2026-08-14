@@ -105,27 +105,117 @@ platform :android do
   #      the app listing itself, only upload builds to an existing one).
   desc "Build and upload to the Play Console internal testing track"
   lane :beta do
-    gradle(
-      task: "bundle",
-      build_type: "Release",
-      project_dir: "android",
-      properties: {
-        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
-        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
-        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
-        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
-        # The upload keystore was generated as PKCS12 (openssl, no local
-        # keytool available) and saved with a .jks extension by the decode
-        # step in the workflow - explicit here so AGP doesn't guess wrong
-        # based on the extension.
-        "android.injected.signing.store.type" => "PKCS12",
-      },
-    )
+    # The versionCode checked into build.gradle needed a manual bump every
+    # time (see git history) because Play rejects re-uploading a versionCode
+    # it's already seen, same problem the iOS lane's build-number handling
+    # above solves. Ask Play what it last saw instead, across every track a
+    # version code could have landed on (version codes are reserved
+    # package-wide, not per track), and write the next one into build.gradle
+    # below before building.
+    existing_version_codes = ["internal", "alpha", "beta", "production"].flat_map do |track|
+      begin
+        google_play_track_version_codes(
+          package_name: "app.kaffeekarte.customer",
+          track: track,
+          json_key: ENV["PLAY_JSON_KEY_PATH"],
+        )
+      rescue StandardError
+        []
+      end
+    end
+    version_code = (existing_version_codes.max || 0) + 1
+
+    signing_properties = {
+      "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+      "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+      "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+      "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+      # The upload keystore was generated as PKCS12 (openssl, no local
+      # keytool available) and saved with a .jks extension by the decode
+      # step in the workflow - explicit here so AGP doesn't guess wrong
+      # based on the extension.
+      "android.injected.signing.store.type" => "PKCS12",
+    }
+
+    # Play burns a versionCode the moment an upload attempt submits it, even
+    # if that attempt then fails or the edit is abandoned - so a number that
+    # google_play_track_version_codes above never saw on any committed track
+    # can still come back "already been used" (hit this exact case after a
+    # couple of failed CI runs). Retry forward on that specific error instead
+    # of just picking one number and hoping.
+    #
+    # versionCode is written into build.gradle itself (see below) rather
+    # than passed as an android.injected.version.code gradle property -
+    # confirmed by CI logs that the injected-property override is silently
+    # ignored by this project's bundleRelease task (every retry kept
+    # uploading a bundle still stamped with the old versionCode, even after
+    # forcing real rebuilds with --rerun-tasks). Rewriting the file is a
+    # real input change, so Gradle can't fail to notice it.
+    max_attempts = 5
+    attempt = 1
+    begin
+      UI.message("Using versionCode #{version_code} (attempt #{attempt}/#{max_attempts})")
+      # No fastlane action for this is actually built in (verified the hard
+      # way: android_set_version_code doesn't exist at all, and
+      # increment_version_code turned out to only exist as a third-party
+      # plugin this project doesn't have installed - no Gemfile/Pluginfile
+      # here). Plain Ruby file edit instead, so it doesn't depend on any
+      # action name being right.
+      # Dir.pwd here is actually .../customer-native/fastlane (fastlane's
+      # own directory handling - it chdirs into the fastlane/ folder before
+      # running lane code, confirmed by CI erroring on a path with an extra
+      # /fastlane/ segment). __dir__ is that same fastlane/ folder too, so
+      # go up one level to reach the project root the gradle() calls below
+      # use as project_dir: "android".
+      gradle_file_path = File.expand_path("../android/app/build.gradle", __dir__)
+      gradle_file_contents = File.read(gradle_file_path)
+      updated_contents = gradle_file_contents.sub(
+        /versionCode\s+\d+/,
+        "versionCode #{version_code}",
+      )
+      if updated_contents == gradle_file_contents
+        UI.user_error!("Could not find a versionCode line to replace in #{gradle_file_path}")
+      end
+      File.write(gradle_file_path, updated_contents)
+      gradle(
+        task: "bundle",
+        build_type: "Release",
+        project_dir: "android",
+        properties: signing_properties,
+      )
+      upload_to_play_store(
+        package_name: "app.kaffeekarte.customer",
+        track: "internal",
+        json_key: ENV["PLAY_JSON_KEY_PATH"],
+        aab: "android/app/build/outputs/bundle/release/app-release.aab",
+      )
+    rescue StandardError => e
+      if attempt < max_attempts && e.message.to_s.include?("has already been used")
+        attempt += 1
+        version_code += 1
+        retry
+      end
+      raise
+    end
+
+    # Also push this same build to the custom closed-testing track (needed
+    # for Play's mandatory 12-testers/14-days closed test before production
+    # access unlocks) - track_promote_to + skip_upload_aab promotes the
+    # version just uploaded to "internal" above instead of re-uploading the
+    # bundle, since re-uploading the identical version code would just hit
+    # the same "already been used" error again.
     upload_to_play_store(
-      track: "internal",
+      package_name: "app.kaffeekarte.customer",
       json_key: ENV["PLAY_JSON_KEY_PATH"],
-      aab: "android/app/build/outputs/bundle/release/app-release.aab",
+      track: "internal",
+      track_promote_to: "geschlossener Test",
+      version_code: version_code,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
     )
+
     # Play Console's internal testing track needs testers whose devices meet
     # its own tester requirements - unrelated to the app's actual
     # minSdkVersion (23 = Android 6.0, see variables.gradle). A signed .apk
@@ -133,21 +223,14 @@ platform :android do
     # bypassing Play Console testing entirely. .aab alone can't be
     # installed directly (needs Play Store's bundletool), hence this
     # separate "assemble" build alongside "bundle" above.
+    # build.gradle already has the versionCode from whichever attempt
+    # succeeded above (written directly into the file), so the sideload
+    # .apk and the Play-uploaded .aab agree without passing it again here.
     gradle(
       task: "assemble",
       build_type: "Release",
       project_dir: "android",
-      properties: {
-        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
-        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
-        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
-        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
-        # The upload keystore was generated as PKCS12 (openssl, no local
-        # keytool available) and saved with a .jks extension by the decode
-        # step in the workflow - explicit here so AGP doesn't guess wrong
-        # based on the extension.
-        "android.injected.signing.store.type" => "PKCS12",
-      },
+      properties: signing_properties,
     )
   end
 end

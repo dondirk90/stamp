@@ -7,8 +7,11 @@ android {
         applicationId "app.kaffeekarte.customer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Local-dev fallback only - the beta lane (Fastfile) rewrites this
+        // value directly (plain file edit) before every CI build, computed
+        // from the highest versionCode Play has already seen on any track.
+        versionCode 3
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

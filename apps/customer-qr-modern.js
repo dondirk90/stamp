@@ -7,6 +7,7 @@
   var FAVORITES_KEY_V1 = "customer_favorites_v1";
   var CAFE_META_CACHE_KEY_V1 = "customer_cafe_meta_v1";
   var MAP_CENTER_CACHE_KEY_V1 = "customer_map_center_v1";
+  var CELEBRATED_CAFES_KEY_V1 = "customer_reward_celebrated_v1";
 
   // Rotated randomly once per page load for variety - see pickRandom() below.
   var AUTH_HERO_TAGLINES = [
@@ -202,6 +203,7 @@
 
   var session = null;
   var authMode = "login";
+  var showResendVerification = false;
 
   var toastState = {
     el: null,
@@ -271,7 +273,42 @@
         window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ),
+    // Per-cafe "already celebrated this full streak" flags, keyed by
+    // normalized cafe address - survives refreshWallet() rebuilding pass
+    // cards from scratch (e.g. switching tabs), which loses the
+    // prevCount/data-stamps history baked into the old DOM node and made
+    // setPassCardStamps look like a fresh crossing into "full" every time,
+    // replaying the balloon animation on every tab switch. Persisted to
+    // localStorage (not just in-memory) because a real page reload - e.g.
+    // leaving to a cafe's public profile and coming back - resets the whole
+    // JS context too, and the initial card-list fetch that seeds a
+    // freshly-built card's data-stamps can lag one stamp behind the
+    // per-cafe endpoint the background poll uses, reproducing the same
+    // false "just became full" crossing on load. Cleared once the card is
+    // seen below threshold again (redeemed), so a genuine future refill
+    // still celebrates.
+    celebratedCafes: loadCelebratedCafes(),
   };
+
+  function loadCelebratedCafes() {
+    try {
+      var raw = localStorage.getItem(CELEBRATED_CAFES_KEY_V1);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveCelebratedCafes() {
+    try {
+      localStorage.setItem(
+        CELEBRATED_CAFES_KEY_V1,
+        JSON.stringify(rewardCelebrationState.celebratedCafes || {}),
+      );
+    } catch (e) {}
+  }
 
   function nowMs() {
     return Date.now ? Date.now() : new Date().getTime();
@@ -648,6 +685,10 @@
       try {
         localStorage.removeItem(FAVORITES_KEY_V1);
       } catch (e) {}
+      try {
+        localStorage.removeItem(CELEBRATED_CAFES_KEY_V1);
+        rewardCelebrationState.celebratedCafes = {};
+      } catch (e) {}
     }
   }
 
@@ -663,6 +704,7 @@
 
   function setAuthMode(mode) {
     authMode = mode === "login" ? "login" : "register";
+    showResendVerification = false;
     clearMsg();
 
     if (el.modeRegister)
@@ -683,7 +725,8 @@
     if (el.passwordHint)
       el.passwordHint.style.display = authMode === "register" ? "" : "none";
     if (el.authResendGroup)
-      el.authResendGroup.style.display = authMode === "login" ? "inline" : "none";
+      el.authResendGroup.style.display =
+        authMode === "login" && showResendVerification ? "inline" : "none";
     if (el.authSubmit)
       el.authSubmit.textContent =
         authMode === "register" ? "Registrieren" : "Einloggen";
@@ -1118,7 +1161,7 @@
     try {
       var u = new URL(location.href);
       var changed = false;
-      ["oauthToken", "oauthProvider", "oauthError"].forEach(function (key) {
+      ["oauthToken", "oauthProvider", "oauthError", "oauthErrorDetail"].forEach(function (key) {
         if (u.searchParams.has(key)) {
           u.searchParams.delete(key);
           changed = true;
@@ -1166,6 +1209,12 @@
         clearSession();
         setAuthedUI();
         setAuthMode("login");
+        // setAuthMode() itself resets showResendVerification to false (and
+        // hides el.authResendGroup) - it has to be re-armed after, same as
+        // the other two places that show this button, or the message below
+        // promises a resend link that's actually still hidden.
+        showResendVerification = true;
+        if (el.authResendGroup) el.authResendGroup.style.display = "inline";
         showMsg(
           "danger",
           "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst dir unten direkt einen neuen senden lassen.",
@@ -1177,10 +1226,13 @@
   function processCustomerOauthRedirect() {
     var oauthError = getOauthParam("oauthError");
     if (oauthError) {
+      var oauthErrorDetail = getOauthParam("oauthErrorDetail");
       clearOauthParamsFromUrl();
       setAuthMode("login");
       var providerLabel = /^apple_/.test(oauthError) ? "Apple" : "Google";
-      var msg = providerLabel + "-Anmeldung fehlgeschlagen.";
+      var msg =
+        providerLabel + "-Anmeldung fehlgeschlagen (" + oauthError + ").";
+      if (oauthErrorDetail) msg += " " + oauthErrorDetail;
       if (oauthError === "google_no_account" || oauthError === "apple_no_account") {
         msg =
           "Zu dieser " + providerLabel + "-Adresse gibt es noch kein Profil. Bitte registriere dich zuerst oder nutze den normalen Login.";
@@ -1522,15 +1574,15 @@
   }
 
   function pickCafeHeroImage(cafe) {
+    // Only a real gallery photo counts as a hero image for the Kurzprofil
+    // modal - cardBackgroundDataUrl is the texture a cafe picked for its
+    // own wallet pass card, not a profile photo, and showed up centered in
+    // the modal whenever a cafe had no gallery image of its own.
     try {
       var imgs =
         cafe && cafe.images && Array.isArray(cafe.images) ? cafe.images : [];
       if (imgs.length) return String(imgs[0] || "");
     } catch (e) {}
-    try {
-      if (cafe && cafe.cardBackgroundDataUrl)
-        return String(cafe.cardBackgroundDataUrl || "");
-    } catch (e2) {}
     return "";
   }
 
@@ -5126,6 +5178,22 @@
   function handleAppUrlOpen(rawUrl) {
     if (!rawUrl) return;
     var url = String(rawUrl);
+
+    // window.location.href below is a full WebView reload, not a client-side
+    // route change - it re-runs this entire script, including this same
+    // getLaunchUrl()/appUrlOpen wiring. iOS's ApplicationDelegateProxy keeps
+    // returning the same cold-launch URL from getLaunchUrl() until the app
+    // process itself is killed, so without this guard every reload
+    // re-triggered the exact same navigation forever: a Universal Link
+    // (e.g. the email-verification link, https://.../wallet?verifyToken=...)
+    // opened the app and it just kept reloading itself in a loop, never
+    // settling long enough to show the verification result.
+    try {
+      var SEEN_KEY = "kk_last_handled_launch_url";
+      if (sessionStorage.getItem(SEEN_KEY) === url) return;
+      sessionStorage.setItem(SEEN_KEY, url);
+    } catch (e) {}
+
     if (url.indexOf("kaffeekarte-customer://") === 0) {
       var qIndex = url.indexOf("?");
       var query = qIndex >= 0 ? url.slice(qIndex) : "";
@@ -5196,10 +5264,13 @@
           else onHidden();
         });
 
-        // Kept as a fallback for any other deep link into the app (the
-        // OAuth return itself now goes through ASWebAuthenticationSession
-        // in startCustomerOauth, which doesn't depend on these firing at
-        // all - see OAuthSessionPlugin.swift).
+        // On iOS the OAuth return goes through ASWebAuthenticationSession in
+        // startCustomerOauth and doesn't depend on this firing at all (see
+        // OAuthSessionPlugin.swift) - this is just a fallback there for any
+        // other deep link into the app. On Android it's the primary path:
+        // the Custom Tabs OAuth flow (see startCustomerOauth's Browser
+        // plugin branch) returns via the kaffeekarte-customer:// intent
+        // filter, which surfaces here.
         appPlugin.addListener("appUrlOpen", function (data) {
           handleAppUrlOpen(data && data.url);
         });
@@ -5548,11 +5619,32 @@
       triggerHapticStamp();
     }
 
-    if (
+    var celebrationKey = "";
+    try {
+      celebrationKey = normalizeAddr(passCardEl.getAttribute("data-cafe") || "");
+    } catch (eKey) {
+      celebrationKey = "";
+    }
+
+    if (!isFull) {
+      // Redeemed (or otherwise dropped below threshold) - re-arm so the
+      // next genuine refill celebrates again.
+      if (
+        celebrationKey &&
+        rewardCelebrationState.celebratedCafes[celebrationKey]
+      ) {
+        delete rewardCelebrationState.celebratedCafes[celebrationKey];
+        saveCelebratedCafes();
+      }
+    } else if (
       prevCount != null &&
       Number(prevCount) < rewardThreshold &&
-      stampCount >= rewardThreshold
+      (!celebrationKey || !rewardCelebrationState.celebratedCafes[celebrationKey])
     ) {
+      if (celebrationKey) {
+        rewardCelebrationState.celebratedCafes[celebrationKey] = true;
+        saveCelebratedCafes();
+      }
       triggerHapticReward();
       launchRewardCelebration();
     }
@@ -5806,6 +5898,8 @@
           clearSession();
           setAuthedUI();
           setAuthMode("login");
+          showResendVerification = true;
+          if (el.authResendGroup) el.authResendGroup.style.display = "inline";
           showMsg(
             "success",
             "Fast geschafft. Bitte bestätige jetzt deine E-Mail-Adresse. Danach kannst du dich direkt anmelden.",
@@ -5843,6 +5937,14 @@
           ? stampUI.userSafeErrorMessage(e2, "Anmelden fehlgeschlagen.")
           : "Anmelden fehlgeschlagen.";
         showMsg("danger", msg2);
+        if (
+          e2 &&
+          typeof e2.responseText === "string" &&
+          e2.responseText.indexOf("email_not_verified") >= 0
+        ) {
+          showResendVerification = true;
+          if (el.authResendGroup) el.authResendGroup.style.display = "inline";
+        }
       });
   }
 
@@ -5923,6 +6025,23 @@
             // User closed the sheet or it errored - not worth alarming
             // them with a scary error message for a simple cancel.
             showMsg("danger", "Anmeldung wurde abgebrochen.");
+          });
+        return;
+      }
+      // Android has no OAuthSession equivalent (no ASWebAuthenticationSession
+      // API there), so route Google/Apple through Custom Tabs via the
+      // Capacitor Browser plugin instead of a plain in-WebView redirect -
+      // Google rejects OAuth started from an embedded WebView. The return
+      // trip lands back in the app through the kaffeekarte-customer:// deep
+      // link (AndroidManifest intent-filter) and is picked up by the
+      // appUrlOpen listener in wireVisibility(), which calls handleAppUrlOpen.
+      var browserPlugin =
+        window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+      if (browserPlugin && browserPlugin.open) {
+        browserPlugin
+          .open({ url: location.origin + startUrl })
+          .catch(function () {
+            showMsg("danger", "Anmeldung konnte nicht gestartet werden.");
           });
         return;
       }

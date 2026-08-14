@@ -271,7 +271,21 @@
     "body.kk-hasTabbar{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px));}" +
     "body.installHintOpen .kk-tabbar{opacity:0;pointer-events:none;}" +
     "@media (max-width:520px){.kk-tabbar{width:calc(100vw - 20px);}" +
-    ".kk-tab{flex:1 1 0;padding:6px 4px;}.kk-tabLabel{font-size:10px;}}";
+    ".kk-tab{flex:1 1 0;padding:6px 4px;}.kk-tabLabel{font-size:10px;}}" +
+    // The bar's 460px cap and nowrap labels were sized for the customer
+    // app's 3-tab bar. The café app's 5-tab bar (Scanner/Start/Karte/
+    // Dashboard/Verwaltung) never got its own sizing, so at every viewport
+    // width - not just narrow ones - its longer, nowrap labels simply
+    // overflowed the cap instead of shrinking to fit (flex items default to
+    // min-width:auto, i.e. never smaller than their content). --dense
+    // applies at all widths, not just inside the 520px breakpoint above.
+    ".kk-tabbar--dense{max-width:min(560px,calc(100vw - 20px));}" +
+    ".kk-tabbar--dense .kk-tab{flex:1 1 0;min-width:0;padding:6px 8px;}" +
+    ".kk-tabbar--dense .kk-tabIcon{width:18px;height:18px;}" +
+    ".kk-tabbar--dense .kk-tabLabel{font-size:10px;overflow:hidden;" +
+    "text-overflow:ellipsis;max-width:100%;}" +
+    "@media (max-width:380px){.kk-tabbar--dense .kk-tab{padding:6px 3px;}" +
+    ".kk-tabbar--dense .kk-tabLabel{font-size:9px;}}";
 
   // Simple single-color stroke icons (currentColor) - no external assets,
   // so they automatically pick up the tab's existing hover/active/featured
@@ -329,12 +343,13 @@
     injectTabbarCss();
     var existing = document.querySelector(".kk-tabbar");
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var items = Array.isArray(o.items) ? o.items : [];
     var nav = document.createElement("nav");
     nav.className =
       "kk-tabbar " +
-      (o.theme === "cream" ? "kk-tabbar--cream" : "kk-tabbar--espresso");
+      (o.theme === "cream" ? "kk-tabbar--cream" : "kk-tabbar--espresso") +
+      (items.length > 4 ? " kk-tabbar--dense" : "");
     nav.setAttribute("aria-label", "Hauptnavigation");
-    var items = Array.isArray(o.items) ? o.items : [];
     for (var i = 0; i < items.length; i++) {
       (function (item) {
         if (!item || !item.label) return;
@@ -381,8 +396,11 @@
     document.head.appendChild(style);
   }
 
-  // Top-right Avatar (Logo/Initiale) mit Link zum Cafe-Profil - Gegenstueck
-  // zum topProfileBtn der Kunden-App, ersetzt dort den "Karte"-Nav-Eintrag.
+  // Top-right Avatar (Logo/Initiale) - Gegenstueck zum topProfileBtn der
+  // Kunden-App. Standardverhalten: Klick navigiert zum Cafe-Profil. Seiten
+  // mit einem Verwaltung/Logout-Menü (siehe .utilityMenu) übergeben
+  // stattdessen `onClick`, damit der Avatar als einziger Button oben rechts
+  // bleibt (statt zusätzlich einen Hamburger-Button danebenzusetzen).
   function mountCafeTopProfile(options) {
     var o = options || {};
     var row = document.querySelector(".topbar .row");
@@ -411,9 +429,11 @@
       var initial = String(o.name || "C").trim().slice(0, 1).toUpperCase() || "C";
       btn.textContent = initial;
     }
-    btn.onclick = function () {
-      location.href = o.href || "/cafe-profile";
-    };
+    btn.onclick =
+      o.onClick ||
+      function () {
+        location.href = o.href || "/cafe-profile";
+      };
     if (isNew) row.insertBefore(btn, row.firstChild);
     return btn;
   }

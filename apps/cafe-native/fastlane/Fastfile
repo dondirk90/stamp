@@ -83,3 +83,51 @@ platform :ios do
     )
   end
 end
+
+# Same recipe as apps/customer-native/fastlane/Fastfile's android lane - see
+# that file's comments for the fuller rationale behind each step.
+platform :android do
+  desc "Build and upload to the Play Console internal testing track"
+  lane :beta do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        # The upload keystore was generated as PKCS12 (openssl, no local
+        # keytool available) and saved with a .jks extension by the decode
+        # step in the workflow - explicit here so AGP doesn't guess wrong
+        # based on the extension.
+        "android.injected.signing.store.type" => "PKCS12",
+      },
+    )
+    upload_to_play_store(
+      package_name: "app.kaffeekarte.cafe",
+      track: "internal",
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      aab: "android/app/build/outputs/bundle/release/app-release.aab",
+    )
+    # Play Console's internal testing track needs testers whose devices meet
+    # its own tester requirements - unrelated to the app's actual
+    # minSdkVersion. A signed .apk sideloads directly onto any device that
+    # satisfies that minSdkVersion, bypassing Play Console testing entirely.
+    # .aab alone can't be installed directly (needs Play Store's
+    # bundletool), hence this separate "assemble" build alongside "bundle".
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+        "android.injected.signing.store.type" => "PKCS12",
+      },
+    )
+  end
+end

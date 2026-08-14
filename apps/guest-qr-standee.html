@@ -12,6 +12,7 @@
         --espresso-deep: #2c1e15;
         --ink-soft: rgba(35, 35, 35, 0.55);
         --line: rgba(74, 55, 40, 0.16);
+        --terracotta: #b96b52;
         --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
         --font-sans: "Geist", "Inter", "Segoe UI", system-ui, sans-serif;
       }
@@ -118,12 +119,15 @@
         overflow: hidden;
       }
 
+      /* Nur eine Falt-Hilfslinie fuers Drucken/Zuschneiden - bewusst sehr
+         dezent, damit sie auf dem fertig gefalteten Aufsteller nicht wie ein
+         Design-Element wirkt. */
       .foldLine {
         position: absolute;
         top: 50%;
         left: 10mm;
         right: 10mm;
-        border-top: 1px dashed rgba(74, 55, 40, 0.3);
+        border-top: 1px dashed rgba(74, 55, 40, 0.16);
         z-index: 2;
       }
 
@@ -133,12 +137,12 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: var(--paper);
-        padding: 2px 12px;
-        font-size: 9px;
+        padding: 2px 10px;
+        font-size: 7px;
         font-weight: 700;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: rgba(74, 55, 40, 0.4);
+        color: rgba(74, 55, 40, 0.28);
         z-index: 3;
       }
 
@@ -146,86 +150,236 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 14mm 16mm;
+        padding: 10mm 16mm;
       }
 
       .face.flipped {
         transform: rotate(180deg);
       }
 
-      /* Radikal reduziert (BRAND.md §10):
-         Bohne · KAFFEEKARTE · Claim · QR · Kostenlos starten. Mehr nicht. */
+      /* Erweitert um ein Handy-Mockup (App-Vorschau) + Store-Hinweis, damit
+         der Aufsteller auffällt statt nur Text zu zeigen - Bohne, Wortmarke,
+         Claim, QR und CTA aus BRAND.md §10 bleiben alle erhalten, nur nicht
+         mehr "und sonst nichts". */
       .faceInner {
         width: 100%;
         max-width: 128mm;
         display: grid;
         justify-items: center;
         text-align: center;
-        gap: 7mm;
+        gap: 2.4mm;
+      }
+
+      .headRow {
+        display: flex;
+        align-items: center;
+        gap: 2.8mm;
       }
 
       .beanMark {
-        width: 17mm;
-        height: 17mm;
+        width: 10mm;
+        height: 10mm;
         object-fit: contain;
       }
 
       .wordmark {
-        font-size: 15pt;
+        font-size: 9.5pt;
         font-weight: 800;
-        letter-spacing: 0.42em;
-        text-indent: 0.42em;
+        letter-spacing: 0.34em;
+        text-indent: 0.34em;
         text-transform: uppercase;
         color: var(--ink);
       }
 
-      .claim {
-        font-family: var(--font-serif);
-        font-size: 27pt;
-        line-height: 1.06;
-        letter-spacing: -0.02em;
-        color: var(--espresso-deep);
-        max-width: 110mm;
+      .claimBlock {
+        display: grid;
+        justify-items: center;
+        gap: 1.6mm;
       }
 
-      .qrFrame {
+      .claim {
+        font-family: var(--font-serif);
+        font-size: 14.5pt;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        color: var(--espresso-deep);
+        max-width: 80mm;
+      }
+
+      .claimRule {
+        width: 9mm;
+        height: 0.7mm;
+        border-radius: 1mm;
+        background: var(--terracotta);
+      }
+
+      .subline {
+        margin-top: 0.4mm;
+        font-size: 7.6pt;
+        line-height: 1.3;
+        color: var(--ink-soft);
+        max-width: 68mm;
+      }
+
+      /* ---- App-Vorschau: dasselbe Kartenmotiv wie in der echten App ---- */
+      .phoneWrap {
+        position: relative;
+      }
+
+      .phone {
+        width: 28mm;
+        padding: 1.8mm 1.6mm 1.5mm;
+        border-radius: 3.8mm;
+        background: #fffdfa;
+        border: 0.3mm solid var(--line);
+        box-shadow: 0 2mm 4mm rgba(57, 34, 21, 0.15);
+      }
+
+      .phoneTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.2mm;
+      }
+
+      .phoneBrand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.8mm;
+        font-size: 4.4pt;
+        font-weight: 900;
+        color: var(--espresso);
+      }
+
+      .phoneBrand .dot {
+        width: 1.2mm;
+        height: 1.2mm;
+        border-radius: 50%;
+        background: var(--espresso);
+      }
+
+      .phoneMenu {
+        width: 1.8mm;
+        height: 0.25mm;
+        border-radius: 999px;
+        background: var(--espresso);
+        box-shadow: 0 0.6mm 0 var(--espresso), 0 -0.6mm 0 var(--espresso);
+      }
+
+      .passCardMini {
+        padding: 1.5mm;
+        border-radius: 2.2mm;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .passTopRow {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 4pt;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.6);
+        margin-bottom: 0.9mm;
+      }
+
+      .passCafeName {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 6.2pt;
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        text-align: left;
+      }
+
+      /* Café-Namensfeld in der Toolbar ist optional - ohne Eingabe zeigt die
+         Mini-Karte einen Platzhalter statt leer zu bleiben. */
+      .passCafeName:empty::before {
+        content: "Dein Café";
+        color: rgba(35, 35, 35, 0.4);
+      }
+
+      .beanRow {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 0.45mm;
+        margin-top: 1.2mm;
+      }
+
+      .bean {
+        aspect-ratio: 1;
+        border-radius: 999px;
+        background: rgba(81, 58, 40, 0.16);
+      }
+
+      .bean.filled {
+        background: var(--espresso);
+      }
+
+      /* Der QR-Code ist der Star: eigener weisser Kartenkoerper, spuerbar
+         groesser als vorher (20mm -> 27mm), ohne Text direkt daneben - der
+         steht davor/danach, damit nichts nebeneinander konkurriert. Die
+         Weiterleitung uebernimmt /get-app (iPhone -> App Store, sonst
+         Web-App), deshalb reicht ein einziger CTA statt QR + Store-Badge. */
+      .qrSection {
+        display: grid;
+        justify-items: center;
+        gap: 2mm;
+        margin-top: 0.5mm;
+      }
+
+      .qrLabel {
+        font-size: 9.5pt;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--espresso-deep);
+      }
+
+      .qrCard {
         background: #ffffff;
         border: 1px solid var(--line);
-        border-radius: 6mm;
-        padding: 5mm;
+        border-radius: 4.5mm;
+        padding: 3.2mm;
+        box-shadow: 0 3mm 6mm rgba(42, 24, 14, 0.13);
         display: grid;
         place-items: center;
       }
 
-      .qrFrame img,
-      .qrFrame canvas {
+      .qrCard img,
+      .qrCard canvas {
         display: block;
-        width: 52mm !important;
-        height: 52mm !important;
+        width: 27mm !important;
+        height: 27mm !important;
       }
 
       .qrFallback {
-        width: 52mm;
-        font-size: 11px;
+        width: 27mm;
+        font-size: 8px;
         color: var(--ink-soft);
         text-align: center;
-        line-height: 1.5;
+        line-height: 1.3;
       }
 
-      .cta {
-        display: inline-block;
-        background: var(--espresso);
-        color: #fffdfa;
-        border-radius: 999px;
-        padding: 4mm 11mm;
-        font-size: 13pt;
-        font-weight: 800;
-        letter-spacing: 0.02em;
+      .qrCta {
+        font-family: var(--font-serif);
+        font-size: 9pt;
+        color: var(--espresso-deep);
+      }
+
+      .qrPlatforms {
+        font-size: 6.2pt;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
       }
 
       .cafeName {
-        min-height: 5mm;
-        font-size: 10pt;
+        min-height: 0;
+        font-size: 8pt;
         font-weight: 700;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -234,6 +388,13 @@
 
       .cafeName:empty {
         display: none;
+      }
+
+      .siteUrl {
+        font-size: 6.6pt;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        color: var(--ink-soft);
       }
 
       @media print {
@@ -269,7 +430,7 @@
   <body>
     <div class="toolbar">
       <div class="field">
-        <label for="urlInput">QR-Ziel (führt zur Registrierung)</label>
+        <label for="urlInput">QR-Ziel (App Store auf iPhone, sonst Registrierung)</label>
         <input id="urlInput" type="text" />
       </div>
       <div class="field">
@@ -294,36 +455,105 @@
 
       <section class="face flipped">
         <div class="faceInner">
-          <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
-          <div class="wordmark">Kaffeekarte</div>
-          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-          <div class="qrFrame" data-qr-target></div>
-          <div class="cta">Kostenlos starten</div>
+          <div class="headRow">
+            <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
+            <div class="wordmark">Kaffeekarte</div>
+          </div>
+
+          <div class="claimBlock">
+            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+            <div class="claimRule" aria-hidden="true"></div>
+            <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
+          </div>
+
+          <div class="phoneWrap">
+            <div class="phone">
+              <div class="phoneTop">
+                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
+                <span class="phoneMenu"></span>
+              </div>
+              <div class="passCardMini">
+                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
+                <div class="passCafeName" data-cafe-name></div>
+                <div class="beanRow" aria-hidden="true">
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean"></span>
+                  <span class="bean"></span><span class="bean"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="qrSection">
+            <div class="qrLabel">Scannen &amp; sammeln</div>
+            <div class="qrCard" data-qr-target></div>
+            <div class="qrCta">Jetzt kostenlos starten</div>
+            <div class="qrPlatforms">iPhone · Android</div>
+          </div>
+
           <div class="cafeName" data-cafe-name></div>
+          <div class="siteUrl">kaffeekarte.app</div>
         </div>
       </section>
 
       <section class="face">
         <div class="faceInner">
-          <img class="beanMark" src="/assets/stamp-bean.png?v=2" alt="" />
-          <div class="wordmark">Kaffeekarte</div>
-          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-          <div class="qrFrame" data-qr-target></div>
-          <div class="cta">Kostenlos starten</div>
+          <div class="headRow">
+            <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
+            <div class="wordmark">Kaffeekarte</div>
+          </div>
+
+          <div class="claimBlock">
+            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+            <div class="claimRule" aria-hidden="true"></div>
+            <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
+          </div>
+
+          <div class="phoneWrap">
+            <div class="phone">
+              <div class="phoneTop">
+                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
+                <span class="phoneMenu"></span>
+              </div>
+              <div class="passCardMini">
+                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
+                <div class="passCafeName" data-cafe-name></div>
+                <div class="beanRow" aria-hidden="true">
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean filled"></span>
+                  <span class="bean filled"></span><span class="bean"></span>
+                  <span class="bean"></span><span class="bean"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="qrSection">
+            <div class="qrLabel">Scannen &amp; sammeln</div>
+            <div class="qrCard" data-qr-target></div>
+            <div class="qrCta">Jetzt kostenlos starten</div>
+            <div class="qrPlatforms">iPhone · Android</div>
+          </div>
+
           <div class="cafeName" data-cafe-name></div>
+          <div class="siteUrl">kaffeekarte.app</div>
         </div>
       </section>
     </main>
 
-    <script src="/vendor/qrcode.min.js"></script>
+    <script src="vendor/qrcode.min.js"></script>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
         var runtimeOrigin = /^https?:/i.test(window.location.protocol)
           ? window.location.origin
           : "https://kaffeekarte.app";
-        // /wallet startet fuer neue Gaeste direkt im Registrierungs-Panel.
-        var defaultUrl = runtimeOrigin + "/wallet";
+        // /get-app erkennt iPhone vs. Rest und leitet entsprechend weiter
+        // (App Store bzw. Browser-Registrierung unter /wallet).
+        var defaultUrl = runtimeOrigin + "/get-app";
         var urlInput = document.getElementById("urlInput");
         var cafeInput = document.getElementById("cafeInput");
         var updateBtn = document.getElementById("updateBtn");
@@ -357,7 +587,10 @@
           target.innerHTML = "";
           // Vendor-Bundle ist node-qrcode (toDataURL), nicht qrcodejs.
           if (window.QRCode && typeof QRCode.toDataURL === "function") {
-            QRCode.toDataURL(url, {
+            // Promise zurueckgeben, damit render() und der Drucken-Button
+            // wissen, wann das Bild wirklich im DOM haengt - sonst macht
+            // window.print() einen Schnappschuss der noch leeren Karte.
+            return QRCode.toDataURL(url, {
               width: 420,
               margin: 1,
               errorCorrectionLevel: "M",
@@ -373,9 +606,9 @@
               .catch(function () {
                 showQrFallback(target);
               });
-            return;
           }
           showQrFallback(target);
+          return Promise.resolve();
         }
 
         function render() {
@@ -386,16 +619,18 @@
             label.textContent = cafeName;
           });
 
-          qrTargets.forEach(function (target) {
+          var qrPromises = qrTargets.map(function (target) {
             try {
-              renderQr(target, finalUrl);
+              return renderQr(target, finalUrl);
             } catch (error) {
               target.innerHTML =
                 '<div class="qrFallback">QR-Code konnte gerade nicht erzeugt werden.<br />Bitte Seite neu laden.</div>';
+              return Promise.resolve();
             }
           });
 
           updateHistory(finalUrl, cafeName);
+          return Promise.all(qrPromises);
         }
 
         urlInput.value = normalizeUrl(params.get("url") || defaultUrl);
@@ -403,8 +638,11 @@
 
         updateBtn.addEventListener("click", render);
         printBtn.addEventListener("click", function () {
-          render();
-          window.print();
+          // Erst wirklich fertig zeichnen lassen, dann drucken - sonst
+          // schnappt der Print-Dialog eine leere QR-Karte.
+          render().then(function () {
+            window.print();
+          });
         });
 
         urlInput.addEventListener("keydown", function (event) {

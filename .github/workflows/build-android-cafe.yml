@@ -1,8 +1,10 @@
-name: Build Android Customer App (Play internal testing)
+name: Build Android Cafe App (Play internal testing)
 
-# Manual only for now (Phase A proof-of-concept, see native-apps plan) - needs
-# an upload keystore, Google Play App Signing enrolled, and a Play Console
-# service-account key before this can succeed. Switch to push-triggered once
+# Manual only for now (mirrors build-android-customer.yml) - needs an upload
+# keystore, Google Play App Signing enrolled, and a Play Console
+# service-account key before this can succeed. Reuses the same
+# account-level Android secrets as the customer app workflow unless you set
+# up a separate signing key for this app. Switch to push-triggered once
 # proven manually.
 on:
   workflow_dispatch:
@@ -21,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/customer-native
+        working-directory: apps/cafe-native
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -48,11 +50,11 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: apps/customer-native/package.json
+          package_json_file: apps/cafe-native/package.json
 
       - name: Install web-app-level dependencies
         working-directory: .
-        run: pnpm install --filter kaffeekarte-customer-native
+        run: pnpm install --filter kaffeekarte-cafe-native
 
       - name: Sync Capacitor (copies web config into the native project)
         env:
@@ -99,11 +101,11 @@ jobs:
 
       - name: Build and upload to Play internal testing
         env:
-          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/customer-native/android/upload-keystore.jks
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/cafe-native/android/upload-keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          PLAY_JSON_KEY_PATH: ${{ github.workspace }}/apps/customer-native/play-service-account.json
+          PLAY_JSON_KEY_PATH: ${{ github.workspace }}/apps/cafe-native/play-service-account.json
         run: fastlane android beta
 
       # Play Console's testing tracks have their own tester/device
@@ -113,6 +115,6 @@ jobs:
       - name: Upload signed APK for direct sideload
         uses: actions/upload-artifact@v4
         with:
-          name: kaffeekarte-customer-${{ inputs.target }}.apk
-          path: apps/customer-native/android/app/build/outputs/apk/release/app-release.apk
+          name: kaffeekarte-cafe-${{ inputs.target }}.apk
+          path: apps/cafe-native/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30

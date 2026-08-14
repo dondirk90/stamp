@@ -31,6 +31,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Required for the profile-avatar photo's camera option
+	     (customer-profile.html's <input type="file">) - without this key,
+	     iOS terminates the app the moment camera access is requested,
+	     instead of just denying it. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Kaffeekarte nutzt die Kamera, um ein Profilbild für deine Karte aufzunehmen.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

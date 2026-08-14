@@ -22,6 +22,15 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
   },
+  plugins: {
+    // @capacitor/splash-screen's own Android default is FIT_XY (see
+    // SplashScreenConfig.java), which stretches non-uniformly instead of
+    // preserving aspect ratio - that's what made the logo look distorted
+    // on launch. CENTER_CROP fills the screen without stretching.
+    SplashScreen: {
+      androidScaleType: "CENTER_CROP",
+    },
+  },
 };
 
 export default config;
