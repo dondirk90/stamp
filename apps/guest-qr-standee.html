@@ -111,8 +111,6 @@
         min-height: 297mm;
         margin: 0 auto;
         background: var(--paper);
-        border-left: 6mm solid var(--espresso);
-        border-right: 6mm solid var(--espresso);
         border-radius: 18px;
         box-shadow: 0 22px 42px rgba(42, 24, 14, 0.14);
         position: relative;
@@ -148,11 +146,56 @@
         z-index: 3;
       }
 
+      /* Schnitthilfen: die Seiten des A4-Bogens auf 1/4 der Breite (52,5mm)
+         abschneiden. Rein funktionale Hilfslinien, verschwinden mit dem
+         abgeschnittenen Rand, deshalb etwas deutlicher als die Faltlinie. */
+      .cutLine {
+        position: absolute;
+        top: 6mm;
+        bottom: 6mm;
+        border-left: 1px dashed rgba(74, 55, 40, 0.35);
+        z-index: 2;
+      }
+
+      .cutLine.left {
+        left: 52.5mm;
+      }
+
+      .cutLine.right {
+        right: 52.5mm;
+      }
+
+      .cutLabel {
+        position: absolute;
+        top: 2mm;
+        background: var(--paper);
+        padding: 1px 6px;
+        font-size: 6px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(74, 55, 40, 0.4);
+        z-index: 3;
+        white-space: nowrap;
+        transform: translateX(-50%);
+      }
+
+      .cutLabel.left {
+        left: 52.5mm;
+      }
+
+      .cutLabel.right {
+        right: 52.5mm;
+        transform: translateX(50%);
+      }
+
       .face {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 10mm 16mm;
+        /* Links/rechts bis knapp hinter die Schnittlinien (52.5mm) einruecken,
+           damit nichts im spaeter abgeschnittenen Rand landet. */
+        padding: 10mm 58mm;
       }
 
       .face.flipped {
@@ -164,7 +207,7 @@
          konkurriert. */
       .faceInner {
         width: 100%;
-        max-width: 128mm;
+        max-width: 94mm;
         display: grid;
         justify-items: center;
         text-align: center;
@@ -349,6 +392,10 @@
     <main class="sheet">
       <div class="foldLine" aria-hidden="true"></div>
       <div class="foldLabel">Hier falten</div>
+      <div class="cutLine left" aria-hidden="true"></div>
+      <div class="cutLine right" aria-hidden="true"></div>
+      <div class="cutLabel left">Schneiden</div>
+      <div class="cutLabel right">Schneiden</div>
 
       <section class="face flipped">
         <div class="faceInner">
