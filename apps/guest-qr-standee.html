@@ -111,6 +111,8 @@
         min-height: 297mm;
         margin: 0 auto;
         background: var(--paper);
+        border-left: 6mm solid var(--espresso);
+        border-right: 6mm solid var(--espresso);
         border-radius: 18px;
         box-shadow: 0 22px 42px rgba(42, 24, 14, 0.14);
         position: relative;
@@ -157,10 +159,9 @@
         transform: rotate(180deg);
       }
 
-      /* Erweitert um ein Handy-Mockup (App-Vorschau) + Store-Hinweis, damit
-         der Aufsteller auffällt statt nur Text zu zeigen - Bohne, Wortmarke,
-         Claim, QR und CTA aus BRAND.md §10 bleiben alle erhalten, nur nicht
-         mehr "und sonst nichts". */
+      /* Bewusst minimalistisch: Bohne, Wortmarke, Claim und der QR-Code als
+         einziger CTA - kein App-Mockup, das mit dem QR um Aufmerksamkeit
+         konkurriert. */
       .faceInner {
         width: 100%;
         max-width: 128mm;
@@ -221,103 +222,6 @@
         max-width: 68mm;
       }
 
-      /* ---- App-Vorschau: dasselbe Kartenmotiv wie in der echten App ---- */
-      .phoneWrap {
-        position: relative;
-      }
-
-      .phone {
-        width: 28mm;
-        padding: 1.8mm 1.6mm 1.5mm;
-        border-radius: 3.8mm;
-        background: #fffdfa;
-        border: 0.3mm solid var(--line);
-        box-shadow: 0 2mm 4mm rgba(57, 34, 21, 0.15);
-      }
-
-      .phoneTop {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.2mm;
-      }
-
-      .phoneBrand {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.8mm;
-        font-size: 4.4pt;
-        font-weight: 900;
-        color: var(--espresso);
-      }
-
-      .phoneBrand .dot {
-        width: 1.2mm;
-        height: 1.2mm;
-        border-radius: 50%;
-        background: var(--espresso);
-      }
-
-      .phoneMenu {
-        width: 1.8mm;
-        height: 0.25mm;
-        border-radius: 999px;
-        background: var(--espresso);
-        box-shadow: 0 0.6mm 0 var(--espresso), 0 -0.6mm 0 var(--espresso);
-      }
-
-      .passCardMini {
-        padding: 1.5mm;
-        border-radius: 2.2mm;
-        background: rgba(255, 255, 255, 0.75);
-      }
-
-      .passTopRow {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        font-size: 4pt;
-        font-weight: 900;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.6);
-        margin-bottom: 0.9mm;
-      }
-
-      .passCafeName {
-        margin: 0;
-        font-family: var(--font-serif);
-        font-size: 6.2pt;
-        line-height: 0.95;
-        letter-spacing: -0.03em;
-        color: var(--ink);
-        text-align: left;
-      }
-
-      /* Café-Namensfeld in der Toolbar ist optional - ohne Eingabe zeigt die
-         Mini-Karte einen Platzhalter statt leer zu bleiben. */
-      .passCafeName:empty::before {
-        content: "Dein Café";
-        color: rgba(35, 35, 35, 0.4);
-      }
-
-      .beanRow {
-        display: grid;
-        grid-template-columns: repeat(10, minmax(0, 1fr));
-        gap: 0.45mm;
-        margin-top: 1.2mm;
-      }
-
-      .bean {
-        aspect-ratio: 1;
-        border-radius: 999px;
-        background: rgba(81, 58, 40, 0.16);
-      }
-
-      .bean.filled {
-        background: var(--espresso);
-      }
-
       /* Der QR-Code ist der Star: eigener weisser Kartenkoerper, spuerbar
          groesser als vorher (20mm -> 27mm), ohne Text direkt daneben - der
          steht davor/danach, damit nichts nebeneinander konkurriert. Die
@@ -351,30 +255,16 @@
       .qrCard img,
       .qrCard canvas {
         display: block;
-        width: 27mm !important;
-        height: 27mm !important;
+        width: 32mm !important;
+        height: 32mm !important;
       }
 
       .qrFallback {
-        width: 27mm;
+        width: 32mm;
         font-size: 8px;
         color: var(--ink-soft);
         text-align: center;
         line-height: 1.3;
-      }
-
-      .qrCta {
-        font-family: var(--font-serif);
-        font-size: 9pt;
-        color: var(--espresso-deep);
-      }
-
-      .qrPlatforms {
-        font-size: 6.2pt;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
       }
 
       .cafeName {
@@ -388,6 +278,13 @@
 
       .cafeName:empty {
         display: none;
+      }
+
+      .footerMark {
+        width: 6mm;
+        height: 6mm;
+        object-fit: contain;
+        margin-top: 1mm;
       }
 
       .siteUrl {
@@ -466,34 +363,13 @@
             <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
           </div>
 
-          <div class="phoneWrap">
-            <div class="phone">
-              <div class="phoneTop">
-                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
-                <span class="phoneMenu"></span>
-              </div>
-              <div class="passCardMini">
-                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
-                <div class="passCafeName" data-cafe-name></div>
-                <div class="beanRow" aria-hidden="true">
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean"></span>
-                  <span class="bean"></span><span class="bean"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
             <div class="qrCard" data-qr-target></div>
-            <div class="qrCta">Jetzt kostenlos starten</div>
-            <div class="qrPlatforms">iPhone · Android</div>
           </div>
 
           <div class="cafeName" data-cafe-name></div>
+          <img class="footerMark" src="assets/app-icon-mark.png" alt="" />
           <div class="siteUrl">kaffeekarte.app</div>
         </div>
       </section>
@@ -511,34 +387,13 @@
             <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
           </div>
 
-          <div class="phoneWrap">
-            <div class="phone">
-              <div class="phoneTop">
-                <div class="phoneBrand"><span class="dot"></span> Kaffeekarte</div>
-                <span class="phoneMenu"></span>
-              </div>
-              <div class="passCardMini">
-                <div class="passTopRow"><span>Deine Karte</span><span>7/10</span></div>
-                <div class="passCafeName" data-cafe-name></div>
-                <div class="beanRow" aria-hidden="true">
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean filled"></span>
-                  <span class="bean filled"></span><span class="bean"></span>
-                  <span class="bean"></span><span class="bean"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
             <div class="qrCard" data-qr-target></div>
-            <div class="qrCta">Jetzt kostenlos starten</div>
-            <div class="qrPlatforms">iPhone · Android</div>
           </div>
 
           <div class="cafeName" data-cafe-name></div>
+          <img class="footerMark" src="assets/app-icon-mark.png" alt="" />
           <div class="siteUrl">kaffeekarte.app</div>
         </div>
       </section>
