@@ -836,6 +836,61 @@ async function sendCustomerVerificationEmail({
   return emailTransporter.sendMail(mailOptions);
 }
 
+function adminNotifyAddress() {
+  // Kein eigenes Secret noetig: APPS_BASE_URL ist pro Umgebung schon gesetzt
+  // (docker-compose.{prod,staging}.yml), staging enthaelt "staging" in der
+  // Domain, prod nicht.
+  const base = String(process.env.APPS_BASE_URL || "").toLowerCase();
+  return base.includes("staging") ? "info@staging.kaffeekarte.app" : "info@kaffeekarte.app";
+}
+
+async function sendAdminCustomerVerifiedEmail({ email, username, customerId }) {
+  const to = adminNotifyAddress();
+
+  const displayName = String(username || "").trim() || "(kein Name)";
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to,
+    subject: `Neuer bestaetigter Gast: ${displayName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; padding: 16px;">
+          <p>Ein neuer Gast hat seine E-Mail bestaetigt:</p>
+          <ul>
+            <li><strong>Name:</strong> ${displayName}</li>
+            <li><strong>E-Mail:</strong> ${email || "(unbekannt)"}</li>
+            <li><strong>Kunden-ID:</strong> ${customerId || "(unbekannt)"}</li>
+          </ul>
+        </body>
+      </html>
+    `,
+    text: `Neuer bestaetigter Gast\n\nName: ${displayName}\nE-Mail: ${email || "(unbekannt)"}\nKunden-ID: ${customerId || "(unbekannt)"}`,
+  };
+
+  ensureEmailConfigured();
+  return emailTransporter.sendMail(mailOptions);
+}
+
+// Bewusst "fire and forget": ein Fehler oder eine fehlende Konfiguration
+// hier darf niemals die eigentliche Registrierung/Verifizierung des Gasts
+// zum Scheitern bringen, deshalb kein await/throw am Aufrufort.
+function notifyAdminCustomerVerified(customer) {
+  if (!customer) return;
+  Promise.resolve(
+    sendAdminCustomerVerifiedEmail({
+      email: customer.email,
+      username: customer.username,
+      customerId: customer.customer_id,
+    }),
+  ).catch((err) => {
+    console.warn(
+      "Failed to send admin customer-verified notification:",
+      err && err.message ? err.message : err,
+    );
+  });
+}
+
 async function sendCafePasswordResetEmail({ email, resetUrl, resetLinks }) {
   const links =
     Array.isArray(resetLinks) && resetLinks.length
@@ -5182,6 +5237,7 @@ app.get("/auth/google/callback", async (req, res) => {
         if (!existing.email_verified_at) {
           await setCustomerEmailVerifiedAtById.run(now, existing.id);
           customer = await getCustomerById.get(existing.id);
+          notifyAdminCustomerVerified(customer);
         }
       }
     }
@@ -5215,6 +5271,7 @@ app.get("/auth/google/callback", async (req, res) => {
       };
       await insertCustomer.run(info);
       customer = await getCustomerAuthByEmail.get(email);
+      notifyAdminCustomerVerified(customer);
     }
 
     if (!customer || !customer.id) {
@@ -5386,6 +5443,7 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
         if (!existing.email_verified_at) {
           await setCustomerEmailVerifiedAtById.run(now, existing.id);
           customer = await getCustomerById.get(existing.id);
+          notifyAdminCustomerVerified(customer);
         }
       }
     }
@@ -5419,6 +5477,7 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
       };
       await insertCustomer.run(info);
       customer = await getCustomerAuthByEmail.get(email);
+      notifyAdminCustomerVerified(customer);
     }
 
     if (!customer || !customer.id) {
@@ -5676,6 +5735,9 @@ app.post("/customers/verify-email", async (req, res) => {
 
     await setCustomerEmailVerifiedAtById.run(now, row.customer_id);
     await markCustomerEmailVerificationUsedById.run(now, row.id);
+
+    const verifiedCustomer = await getCustomerById.get(row.customer_id);
+    notifyAdminCustomerVerified(verifiedCustomer);
 
     return res.json({ ok: true });
   } catch (e) {

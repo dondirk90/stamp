@@ -587,7 +587,10 @@
           target.innerHTML = "";
           // Vendor-Bundle ist node-qrcode (toDataURL), nicht qrcodejs.
           if (window.QRCode && typeof QRCode.toDataURL === "function") {
-            QRCode.toDataURL(url, {
+            // Promise zurueckgeben, damit render() und der Drucken-Button
+            // wissen, wann das Bild wirklich im DOM haengt - sonst macht
+            // window.print() einen Schnappschuss der noch leeren Karte.
+            return QRCode.toDataURL(url, {
               width: 420,
               margin: 1,
               errorCorrectionLevel: "M",
@@ -603,9 +606,9 @@
               .catch(function () {
                 showQrFallback(target);
               });
-            return;
           }
           showQrFallback(target);
+          return Promise.resolve();
         }
 
         function render() {
@@ -616,16 +619,18 @@
             label.textContent = cafeName;
           });
 
-          qrTargets.forEach(function (target) {
+          var qrPromises = qrTargets.map(function (target) {
             try {
-              renderQr(target, finalUrl);
+              return renderQr(target, finalUrl);
             } catch (error) {
               target.innerHTML =
                 '<div class="qrFallback">QR-Code konnte gerade nicht erzeugt werden.<br />Bitte Seite neu laden.</div>';
+              return Promise.resolve();
             }
           });
 
           updateHistory(finalUrl, cafeName);
+          return Promise.all(qrPromises);
         }
 
         urlInput.value = normalizeUrl(params.get("url") || defaultUrl);
@@ -633,8 +638,11 @@
 
         updateBtn.addEventListener("click", render);
         printBtn.addEventListener("click", function () {
-          render();
-          window.print();
+          // Erst wirklich fertig zeichnen lassen, dann drucken - sonst
+          // schnappt der Print-Dialog eine leere QR-Karte.
+          render().then(function () {
+            window.print();
+          });
         });
 
         urlInput.addEventListener("keydown", function (event) {
