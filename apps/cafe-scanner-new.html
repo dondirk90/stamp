@@ -1883,10 +1883,10 @@
         display: none !important;
       }
 
-      /* These sit nested inside #profileCard, which is already the one
-         legitimate framed panel per screen - giving each subsection its
-         own border+background too stacked "frame inside frame" boxes all
-         the way down. A hairline divider separates them instead. */
+      /* These sit nested inside #profileCard (now borderless, same
+         card--hairline treatment as the rest of the app) - giving each
+         subsection its own border+background would still stack boxes
+         inside a box. A hairline divider separates them instead. */
       .viewSection,
       .cardSection,
       .heroCard {
@@ -2838,7 +2838,7 @@
 
             <div
               id="profileCard"
-              class="card"
+              class="card card--hairline"
               style="padding: var(--space-5); display: none"
             >
               <div id="setupHero">
