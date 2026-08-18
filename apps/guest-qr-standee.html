@@ -191,15 +191,28 @@
 
       .face {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        /* Links/rechts bis knapp hinter die Schnittlinien (52.5mm) einruecken,
-           damit nichts im spaeter abgeschnittenen Rand landet. */
-        padding: 10mm 58mm;
       }
 
       .face.flipped {
         transform: rotate(180deg);
+      }
+
+      /* Kraeftiger Espresso-Block als "Etikett" oben auf jeder Seite - laeuft
+         volle Sheet-Breite (also bewusst bis in den spaeter abgeschnittenen
+         Rand hinein, kein Risiko einer weissen Kante beim Zuschneiden).
+         Holt die Aufmerksamkeit von der Theke ab, der Rest der Karte bleibt
+         hell und ruhig wie zuvor. */
+      .faceHeader {
+        width: 100%;
+        padding: 10mm 58mm 9mm;
+        background: var(--espresso-deep);
+        display: grid;
+        justify-items: center;
+        text-align: center;
+        gap: 1.6mm;
       }
 
       /* Bewusst minimalistisch: Bohne, Wortmarke, Claim und der QR-Code als
@@ -208,6 +221,7 @@
       .faceInner {
         width: 100%;
         max-width: 94mm;
+        padding: 9mm 0 0;
         display: grid;
         justify-items: center;
         text-align: center;
@@ -232,7 +246,7 @@
         letter-spacing: 0.34em;
         text-indent: 0.34em;
         text-transform: uppercase;
-        color: var(--ink);
+        color: var(--paper);
       }
 
       .claimBlock {
@@ -246,7 +260,7 @@
         font-size: 14.5pt;
         line-height: 1.08;
         letter-spacing: -0.02em;
-        color: var(--espresso-deep);
+        color: var(--paper);
         max-width: 80mm;
       }
 
@@ -261,7 +275,7 @@
         margin-top: 0.4mm;
         font-size: 7.6pt;
         line-height: 1.3;
-        color: var(--ink-soft);
+        color: rgba(247, 244, 239, 0.64);
         max-width: 68mm;
       }
 
@@ -398,7 +412,7 @@
       <div class="cutLabel right">Schneiden</div>
 
       <section class="face flipped">
-        <div class="faceInner">
+        <div class="faceHeader">
           <div class="headRow">
             <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
             <div class="wordmark">Kaffeekarte</div>
@@ -409,7 +423,9 @@
             <div class="claimRule" aria-hidden="true"></div>
             <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
           </div>
+        </div>
 
+        <div class="faceInner">
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
             <div class="qrCard" data-qr-target></div>
@@ -422,7 +438,7 @@
       </section>
 
       <section class="face">
-        <div class="faceInner">
+        <div class="faceHeader">
           <div class="headRow">
             <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
             <div class="wordmark">Kaffeekarte</div>
@@ -433,7 +449,9 @@
             <div class="claimRule" aria-hidden="true"></div>
             <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
           </div>
+        </div>
 
+        <div class="faceInner">
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
             <div class="qrCard" data-qr-target></div>
