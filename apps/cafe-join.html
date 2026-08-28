@@ -255,9 +255,16 @@
       .submitBtn {
         margin-top: 4px;
         width: 100%;
+        border: none;
+      }
+
+      /* Needs the #id, not just .submitBtn - theme.css's
+         `button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain)`
+         guard has higher specificity (4 :not() clauses) than a single
+         class, even with !important on both sides. */
+      #submitBtn {
         background: #000 !important;
         color: #fff !important;
-        border: none;
       }
 
       .statusMsg {
