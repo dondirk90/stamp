@@ -116,10 +116,29 @@ async function buildLogoBuffers(logoBuffer) {
   return out;
 }
 
-// Renders the stamp-progress strip: filled circles show the real bean stamp
-// icon (matching apps/customer-qr-modern.js's renderStampGrid), empty ones
-// are outline circles - same visual language as the in-app card.
-async function buildStripBuffers(stampCount, threshold, bgHex, fgHex) {
+// Same 100x100-viewBox star path as buildStampSvg() in
+// apps/customer-qr-modern.js, so the wallet card's filled symbol matches
+// whatever the cafe picked in cafe-scanner-new.html's "Stempel-Symbol"
+// selector, not just a hardcoded bean.
+const STAR_PATH_100 =
+  "M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z";
+
+function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
+  if (stampStyle === "star") {
+    const scale = d / 100;
+    return `<g transform="translate(${cx - d / 2}, ${cy - d / 2}) scale(${scale})"><path d="${STAR_PATH_100}" fill="${fgHex}" opacity="0.92" /></g>`;
+  }
+  if (stampStyle === "circle") {
+    return `<circle cx="${cx}" cy="${cy}" r="${d / 2}" fill="${fgHex}" opacity="0.92" />`;
+  }
+  // "bean" and "cup" (cup is a legacy alias, same as the in-app card).
+  return `<image href="${beanDataUrl}" x="${cx - d / 2}" y="${cy - d / 2}" width="${d}" height="${d}" />`;
+}
+
+// Renders the stamp-progress strip using the cafe's chosen stamp symbol
+// (bean/cup/star/circle) for filled stamps, empty ones are always an
+// outline circle - same visual language as the in-app card.
+async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle) {
   const beanBuffer = await getBeanBuffer();
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
   const stripW = 375;
@@ -138,7 +157,7 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex) {
     const r = Math.min(cellW, cellH) * 0.32;
 
     let circles = "";
-    let images = "";
+    let icons = "";
     for (let i = 0; i < threshold; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
@@ -146,13 +165,13 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex) {
       const cy = padY + cellH * row + cellH / 2;
       if (i < stampCount) {
         const d = r * 2.1;
-        images += `<image href="${beanDataUrl}" x="${cx - d / 2}" y="${cy - d / 2}" width="${d}" height="${d}" />`;
+        icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex);
       } else {
         circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
       }
     }
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${images}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${icons}</svg>`;
     const name = scale === 1 ? "strip.png" : `strip@${scale}x.png`;
     out[name] = await sharp(Buffer.from(svg)).png().toBuffer();
   }
@@ -266,7 +285,13 @@ async function generateSignedPass({
   const buffers = {
     "pass.json": Buffer.from(JSON.stringify(passJson)),
     ...STATIC_ICON_BUFFERS,
-    ...(await buildStripBuffers(stampCount, threshold, colors.bg, colors.fg)),
+    ...(await buildStripBuffers(
+      stampCount,
+      threshold,
+      colors.bg,
+      colors.fg,
+      program.stampStyle,
+    )),
   };
 
   if (cafeRow && cafeRow.logo_data && cafeRow.logo_mime) {
