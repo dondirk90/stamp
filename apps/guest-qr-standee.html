@@ -103,109 +103,35 @@
         line-height: 1.5;
       }
 
-      /* Der Bogen: A4 hochkant, zwei identische Gesichter.
-         Die obere Haelfte steht auf dem Kopf, damit der Aufsteller
-         nach dem Falten von beiden Seiten richtig lesbar ist. */
+      /* Einzelnes A5-Blatt fuer einen handelsueblichen Acryl-Tischaufsteller -
+         kein Falten/Schneiden mehr noetig, ein Layout statt zwei Gesichter. */
       .sheet {
-        width: 210mm;
-        min-height: 297mm;
+        width: 148mm;
+        min-height: 210mm;
         margin: 0 auto;
         background: var(--paper);
-        border-radius: 18px;
+        border-radius: 14px;
         box-shadow: 0 22px 42px rgba(42, 24, 14, 0.14);
-        position: relative;
-        display: grid;
-        grid-template-rows: 1fr 1fr;
         overflow: hidden;
+        display: flex;
       }
 
-      /* Nur eine Falt-Hilfslinie fuers Drucken/Zuschneiden - bewusst sehr
-         dezent, damit sie auf dem fertig gefalteten Aufsteller nicht wie ein
-         Design-Element wirkt. */
-      .foldLine {
-        position: absolute;
-        top: 50%;
-        left: 10mm;
-        right: 10mm;
-        border-top: 1px dashed rgba(74, 55, 40, 0.16);
-        z-index: 2;
-      }
-
-      .foldLabel {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: var(--paper);
-        padding: 2px 10px;
-        font-size: 7px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(74, 55, 40, 0.28);
-        z-index: 3;
-      }
-
-      /* Schnitthilfen: die Seiten des A4-Bogens auf 1/4 der Breite (52,5mm)
-         abschneiden. Rein funktionale Hilfslinien, verschwinden mit dem
-         abgeschnittenen Rand, deshalb etwas deutlicher als die Faltlinie. */
-      .cutLine {
-        position: absolute;
-        top: 6mm;
-        bottom: 6mm;
-        border-left: 1px dashed rgba(74, 55, 40, 0.35);
-        z-index: 2;
-      }
-
-      .cutLine.left {
-        left: 52.5mm;
-      }
-
-      .cutLine.right {
-        right: 52.5mm;
-      }
-
-      .cutLabel {
-        position: absolute;
-        top: 2mm;
-        background: var(--paper);
-        padding: 1px 6px;
-        font-size: 6px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: rgba(74, 55, 40, 0.4);
-        z-index: 3;
-        white-space: nowrap;
-        transform: translateX(-50%);
-      }
-
-      .cutLabel.left {
-        left: 52.5mm;
-      }
-
-      .cutLabel.right {
-        right: 52.5mm;
-        transform: translateX(50%);
-      }
-
-      /* Durchgehende Kartenfarbe: die ganze Flaeche (nicht nur ein oberer
-         Block) traegt die Cafe-Farbe (oder den Kaffeekarte-Espresso als
-         Default). Drei Zonen von oben nach unten: Cafe-Logo, zentrale
-         Botschaft + QR, kleine Kaffeekarte-Marke ganz unten. */
+      /* Durchgehende Kartenfarbe: die ganze Flaeche traegt die Cafe-Farbe
+         (oder den Kaffeekarte-Espresso als Default). Vier Zonen von oben
+         nach unten, bewusst in dieser Reihenfolge fuer den Blickverlauf an
+         der Theke: Cafe-Identitaet -> Botschaft -> Belohnung direkt am CTA
+         -> QR -> Kaffeekarte-Marke klein am Fuss. */
       .face {
+        flex: 1;
+        width: 100%;
         background: var(--cafe-block-bg, var(--espresso-deep));
         color: var(--cafe-block-fg, var(--paper));
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: 12mm 16mm 9mm;
+        padding: 16mm 16mm 12mm;
         text-align: center;
-      }
-
-      .face.flipped {
-        transform: rotate(180deg);
       }
 
       /* Cafe-Logo oben links. Cafes ohne eigenes Logo bekommen stattdessen
@@ -214,21 +140,21 @@
          einzige Ecke. */
       .cardTop {
         width: 100%;
-        min-height: 9mm;
+        min-height: 10mm;
         display: flex;
         align-items: center;
         justify-content: flex-start;
       }
 
       .cafeLogo {
-        height: 9mm;
-        max-width: 36mm;
+        height: 10mm;
+        max-width: 40mm;
         object-fit: contain;
         display: none;
       }
 
       .cafeNameFallback {
-        font-size: 8.5pt;
+        font-size: 9pt;
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
@@ -238,20 +164,21 @@
         display: none;
       }
 
-      /* Bewusst minimalistisch: ein Satz, eine Aufforderung, der QR-Code,
-         ein optionales Prämien-Versprechen - sonst nichts. Soll auf einen
-         Blick klar sein, kein Beipackzettel. */
+      /* Bewusst minimalistisch: ein Satz als Aufhaenger, dann die konkrete
+         Belohnung direkt neben der Handlungsaufforderung (Belohnung und CTA
+         sollen in einem Blick erfassbar sein, nicht getrennt), der QR-Code,
+         ein kurzer Reibungs-Abbau-Hinweis - sonst nichts. */
       .cardCenter {
         display: grid;
         justify-items: center;
-        gap: 3.4mm;
-        max-width: 84mm;
+        gap: 4mm;
+        max-width: 100mm;
       }
 
       .claim {
         font-family: var(--font-serif);
-        font-size: 21pt;
-        line-height: 1.12;
+        font-size: 19pt;
+        line-height: 1.15;
         letter-spacing: -0.01em;
       }
 
@@ -260,21 +187,42 @@
         height: 0.7mm;
         border-radius: 1mm;
         background: var(--terracotta);
+        margin-bottom: 1mm;
+      }
+
+      /* Belohnung + Aufforderung als ein CTA-Block direkt ueber dem QR - die
+         Aufforderung allein traegt auch ohne hinterlegte Praemie. */
+      .ctaBlock {
+        display: grid;
+        justify-items: center;
+        gap: 1.2mm;
       }
 
       .qrLabel {
-        margin-top: 1.6mm;
-        font-size: 8.5pt;
+        font-size: 9pt;
         font-weight: 800;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         opacity: 0.82;
       }
 
+      /* Optionaler Praemien-Text pro Cafe (Toolbar-Feld / Cafe-Profil) -
+         macht aus der Aufforderung ein konkretes Versprechen. Bleibt leer ->
+         kein Platz verschwendet, kein erfundener Standardtext. */
+      .qrReward {
+        font-family: var(--font-serif);
+        font-size: 14pt;
+        line-height: 1.2;
+      }
+
+      .qrReward:empty {
+        display: none;
+      }
+
       .qrCard {
         background: #ffffff;
         border-radius: 4.5mm;
-        padding: 3.4mm;
+        padding: 4mm;
         box-shadow: 0 3mm 6mm rgba(0, 0, 0, 0.2);
         display: grid;
         place-items: center;
@@ -283,28 +231,26 @@
       .qrCard img,
       .qrCard canvas {
         display: block;
-        width: 34mm !important;
-        height: 34mm !important;
+        width: 40mm !important;
+        height: 40mm !important;
       }
 
       .qrFallback {
-        width: 34mm;
+        width: 40mm;
         font-size: 8px;
         color: var(--espresso-deep);
         text-align: center;
         line-height: 1.3;
       }
 
-      /* Optionaler Prämien-Text pro Cafe (Toolbar-Feld / Cafe-Profil) - macht
-         aus der Aufforderung ein konkretes Versprechen. Bleibt leer -> kein
-         Platz verschwendet, kein erfundener Standardtext. */
-      .qrReward {
-        font-family: var(--font-serif);
-        font-size: 11pt;
-      }
-
-      .qrReward:empty {
-        display: none;
+      /* Reibungs-Abbau: der eigentliche Vorteil gegenueber einer klassischen
+         Stempelkarten-App ist "kein Download", das gehoert sichtbar direkt
+         zur Handlung, nicht als Kleingedrucktes irgendwo. */
+      .frictionNote {
+        font-size: 7.8pt;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        opacity: 0.72;
       }
 
       .cardBottom {
@@ -329,7 +275,7 @@
 
       @media print {
         @page {
-          size: A4 portrait;
+          size: A5 portrait;
           margin: 0;
         }
 
@@ -348,8 +294,8 @@
         }
 
         .sheet {
-          width: 210mm;
-          min-height: 297mm;
+          width: 148mm;
+          min-height: 210mm;
           margin: 0;
           border-radius: 0;
           box-shadow: none;
@@ -378,39 +324,11 @@
     </div>
 
     <div class="help">
-      Auf festem Papier drucken oder auf Pappe kaschieren, an der gestrichelten
-      Linie falten und als Zelt auf die Theke stellen. Beide Seiten sind
-      identisch, damit der Aufsteller von beiden Seiten funktioniert.
+      Auf A5 drucken (oder auf Pappe kaschieren) und in einen handelsüblichen
+      Acryl-Tischaufsteller stecken.
     </div>
 
     <main class="sheet">
-      <div class="foldLine" aria-hidden="true"></div>
-      <div class="foldLabel">Hier falten</div>
-      <div class="cutLine left" aria-hidden="true"></div>
-      <div class="cutLine right" aria-hidden="true"></div>
-      <div class="cutLabel left">Schneiden</div>
-      <div class="cutLabel right">Schneiden</div>
-
-      <section class="face flipped">
-        <div class="cardTop">
-          <img class="cafeLogo" data-cafe-logo alt="" />
-          <div class="cafeNameFallback" data-cafe-name></div>
-        </div>
-
-        <div class="cardCenter">
-          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-          <div class="claimRule" aria-hidden="true"></div>
-          <div class="qrLabel">Scannen &amp; sammeln</div>
-          <div class="qrCard" data-qr-target></div>
-          <div class="qrReward" data-reward-text></div>
-        </div>
-
-        <div class="cardBottom">
-          <img class="footerMark" src="assets/app-icon-mark.png" alt="" />
-          <div class="wordmarkSmall">Kaffeekarte</div>
-        </div>
-      </section>
-
       <section class="face">
         <div class="cardTop">
           <img class="cafeLogo" data-cafe-logo alt="" />
@@ -420,9 +338,14 @@
         <div class="cardCenter">
           <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
           <div class="claimRule" aria-hidden="true"></div>
-          <div class="qrLabel">Scannen &amp; sammeln</div>
+
+          <div class="ctaBlock">
+            <div class="qrLabel">Scannen &amp; sichern</div>
+            <div class="qrReward" data-reward-text></div>
+          </div>
+
           <div class="qrCard" data-qr-target></div>
-          <div class="qrReward" data-reward-text></div>
+          <div class="frictionNote">Kein Download · 10 Sekunden</div>
         </div>
 
         <div class="cardBottom">
