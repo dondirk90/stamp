@@ -24,41 +24,33 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 20px;
-        padding: 26px 24px 24px;
+        overflow: hidden;
         box-shadow: 0 24px 60px rgba(23, 21, 19, 0.1);
       }
 
-      .brandMark {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        margin-bottom: 18px;
-      }
-
-      .brandMark .bean {
-        font-size: 0.9rem;
-      }
-
-      .cafeHead {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 4px;
+      /* Faerbt sich per JS in der Cafe-Farbe (cardBgColor/cardFgColor bzw.
+         das gewaehlte card_theme) - macht aus dem generischen Formular eine
+         Seite, die aussieht als gehoere sie dem jeweiligen Cafe. Faellt ohne
+         Cafe-Adresse/-Farbe auf eine neutrale Kaffeekarte-Optik zurueck. */
+      .cafeHeader {
+        background: var(--cafe-bg, var(--color-surface-elevated, #f7efe1));
+        color: var(--cafe-fg, var(--text));
+        padding: 30px 24px 24px;
+        text-align: center;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
       }
 
       .cafeLogo {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
+        width: 76px;
+        height: 76px;
+        border-radius: 18px;
         object-fit: cover;
-        border: 1px solid var(--border);
-        background: var(--color-surface-elevated, #fff);
+        background: rgba(255, 255, 255, 0.94);
         flex: none;
+        margin-bottom: 8px;
+        box-shadow: 0 6px 16px rgba(23, 21, 19, 0.16);
       }
 
       .cafeLogo.fallback {
@@ -66,28 +58,49 @@
         align-items: center;
         justify-content: center;
         font-family: var(--font-display);
-        font-size: 1.4rem;
+        font-size: 2rem;
         color: var(--brand);
       }
 
       .cafeName {
         font-family: var(--font-display);
-        font-size: 1.3rem;
+        font-size: 1.5rem;
         line-height: 1.2;
         margin: 0;
       }
 
       .rewardLine {
-        margin: 2px 0 0;
-        color: var(--text-muted);
+        margin: 0;
+        opacity: 0.82;
         font-size: 0.92rem;
+      }
+
+      .sheetBody {
+        padding: 24px 24px 22px;
+      }
+
+      .poweredBy {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 18px 0 0;
+      }
+
+      .poweredBy .bean {
+        font-size: 0.85rem;
       }
 
       h1 {
         font-family: var(--font-display);
         font-size: 1.5rem;
         line-height: 1.22;
-        margin: 20px 0 6px;
+        margin: 0 0 6px;
       }
 
       .lede {
@@ -260,113 +273,115 @@
   </head>
   <body>
     <main class="sheet">
-      <div class="brandMark"><span class="bean">☕</span> Kaffeekarte</div>
-
-      <div class="cafeHead">
+      <div class="cafeHeader">
         <img class="cafeLogo" id="cafeLogo" alt="" style="display: none" />
         <div class="cafeLogo fallback" id="cafeLogoFallback">☕</div>
         <p class="cafeName" id="cafeName">Kaffeekarte</p>
+        <p class="rewardLine" id="rewardLine"></p>
       </div>
-      <p class="rewardLine" id="rewardLine"></p>
 
-      <h1>Deine Stempelkarte, direkt in der Wallet</h1>
-      <p class="lede">
-        Kurz anmelden – keine App nötig, die Karte landet danach direkt in
-        deiner Apple Wallet.
-      </p>
+      <div class="sheetBody">
+        <h1>Deine Stempelkarte, direkt in der Wallet</h1>
+        <p class="lede">
+          Kurz anmelden – keine App nötig, die Karte landet danach direkt in
+          deiner Apple Wallet.
+        </p>
 
-      <div class="legalChecks">
-        <label class="legalCheck" for="acceptPrivacy">
-          <input type="checkbox" id="acceptPrivacy" />
-          <span
-            >Ich habe die
-            <a href="/datenschutz" target="_blank" rel="noreferrer"
-              >Datenschutzerklärung</a
+        <div class="legalChecks">
+          <label class="legalCheck" for="acceptPrivacy">
+            <input type="checkbox" id="acceptPrivacy" />
+            <span
+              >Ich habe die
+              <a href="/datenschutz" target="_blank" rel="noreferrer"
+                >Datenschutzerklärung</a
+              >
+              gelesen.</span
             >
-            gelesen.</span
-          >
-        </label>
-        <label class="legalCheck" for="acceptTerms">
-          <input type="checkbox" id="acceptTerms" />
-          <span
-            >Ich akzeptiere die
-            <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von
-            Kaffeekarte.</span
-          >
-        </label>
+          </label>
+          <label class="legalCheck" for="acceptTerms">
+            <input type="checkbox" id="acceptTerms" />
+            <span
+              >Ich akzeptiere die
+              <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von
+              Kaffeekarte.</span
+            >
+          </label>
+        </div>
+
+        <div class="oauthButtons">
+          <button class="oauthBtn" id="googleBtn" type="button">
+            <svg class="oauthLogo" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#EA4335"
+                d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.8 2.9l3 2.4c1.8-1.6 2.8-4 2.8-6.9 0-.7-.1-1.5-.2-2.2H12z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 21c2.6 0 4.9-.9 6.5-2.4l-3-2.4c-.8.6-1.9 1-3.5 1-2.7 0-4.9-1.8-5.7-4.3l-3.1 2.4C4.8 18.6 8.1 21 12 21z"
+              />
+              <path
+                fill="#4A90E2"
+                d="M6.3 12.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L3.2 6.7C2.4 8.2 2 9.5 2 11s.4 2.8 1.2 4.3l3.1-2.4z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M12 4.8c1.4 0 2.7.5 3.7 1.5l2.7-2.7C16.9 2.1 14.7 1 12 1 8.1 1 4.8 3.4 3.2 6.7l3.1 2.4c.8-2.5 3-4.3 5.7-4.3z"
+              />
+            </svg>
+            Mit Google fortfahren
+          </button>
+          <button class="oauthBtn" id="appleBtn" type="button">
+            <svg
+              class="oauthLogo"
+              viewBox="0 0 384 512"
+              aria-hidden="true"
+              style="color: #fff"
+            >
+              <path
+                fill="currentColor"
+                d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5c0 25.9 4.7 52.7 14.2 80.3 12.6 36.7 58.2 126.7 105.7 125.2 24.9-.6 42.5-17.7 74.9-17.7 31.5 0 47.8 17.7 75.6 17.7 47.9-.7 89.2-82.7 101.2-119.5-64.4-30.3-56.9-88.7-56.9-90.8zM256.8 88.1c26.9-32 24.5-61.2 23.7-71.7-23.8 1.4-51.3 16.4-67 34.9-17.3 19.8-27.5 44.4-25.3 71.9 25.8 2 49.4-11.2 68.6-35.1z"
+              />
+            </svg>
+            Mit Apple fortfahren
+          </button>
+        </div>
+
+        <div class="orDivider">oder</div>
+
+        <form id="joinForm" novalidate>
+          <div class="field">
+            <label for="username">Name</label>
+            <input id="username" type="text" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="email">E-Mail</label>
+            <input id="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="password">Passwort</label>
+            <input
+              id="password"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </div>
+
+          <button class="btn primary submitBtn" type="submit" id="submitBtn">
+            Stempelkarte holen
+          </button>
+        </form>
+
+        <p class="statusMsg" id="statusMsg"></p>
+
+        <p class="fallbackLink" id="fallbackLink">
+          Läuft bei dir nicht automatisch weiter?
+          <a href="#" id="fallbackLinkHref">Stempelkarte im Browser öffnen</a>
+        </p>
+
+        <p class="poweredBy"><span class="bean">☕</span> Kaffeekarte</p>
       </div>
-
-      <div class="oauthButtons">
-        <button class="oauthBtn" id="googleBtn" type="button">
-          <svg class="oauthLogo" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="#EA4335"
-              d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.8 2.9l3 2.4c1.8-1.6 2.8-4 2.8-6.9 0-.7-.1-1.5-.2-2.2H12z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 21c2.6 0 4.9-.9 6.5-2.4l-3-2.4c-.8.6-1.9 1-3.5 1-2.7 0-4.9-1.8-5.7-4.3l-3.1 2.4C4.8 18.6 8.1 21 12 21z"
-            />
-            <path
-              fill="#4A90E2"
-              d="M6.3 12.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L3.2 6.7C2.4 8.2 2 9.5 2 11s.4 2.8 1.2 4.3l3.1-2.4z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M12 4.8c1.4 0 2.7.5 3.7 1.5l2.7-2.7C16.9 2.1 14.7 1 12 1 8.1 1 4.8 3.4 3.2 6.7l3.1 2.4c.8-2.5 3-4.3 5.7-4.3z"
-            />
-          </svg>
-          Mit Google fortfahren
-        </button>
-        <button class="oauthBtn" id="appleBtn" type="button">
-          <svg
-            class="oauthLogo"
-            viewBox="0 0 384 512"
-            aria-hidden="true"
-            style="color: #fff"
-          >
-            <path
-              fill="currentColor"
-              d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5c0 25.9 4.7 52.7 14.2 80.3 12.6 36.7 58.2 126.7 105.7 125.2 24.9-.6 42.5-17.7 74.9-17.7 31.5 0 47.8 17.7 75.6 17.7 47.9-.7 89.2-82.7 101.2-119.5-64.4-30.3-56.9-88.7-56.9-90.8zM256.8 88.1c26.9-32 24.5-61.2 23.7-71.7-23.8 1.4-51.3 16.4-67 34.9-17.3 19.8-27.5 44.4-25.3 71.9 25.8 2 49.4-11.2 68.6-35.1z"
-            />
-          </svg>
-          Mit Apple fortfahren
-        </button>
-      </div>
-
-      <div class="orDivider">oder</div>
-
-      <form id="joinForm" novalidate>
-        <div class="field">
-          <label for="username">Name</label>
-          <input id="username" type="text" autocomplete="name" required />
-        </div>
-        <div class="field">
-          <label for="email">E-Mail</label>
-          <input id="email" type="email" autocomplete="email" required />
-        </div>
-        <div class="field">
-          <label for="password">Passwort</label>
-          <input
-            id="password"
-            type="password"
-            autocomplete="new-password"
-            minlength="6"
-            required
-          />
-        </div>
-
-        <button class="btn primary submitBtn" type="submit" id="submitBtn">
-          Stempelkarte holen
-        </button>
-      </form>
-
-      <p class="statusMsg" id="statusMsg"></p>
-
-      <p class="fallbackLink" id="fallbackLink">
-        Läuft bei dir nicht automatisch weiter?
-        <a href="#" id="fallbackLinkHref">Stempelkarte im Browser öffnen</a>
-      </p>
     </main>
 
     <script>
@@ -398,6 +413,26 @@
 
         function isIOS() {
           return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+        }
+
+        // Gleiche 6 Presets wie card_theme im Cafe-Profil - eine Karte mit
+        // z. B. "latte" statt eigener Hex-Farbe hat sonst kein cardBgColor/
+        // cardFgColor und wuerde hier unbrandet bleiben.
+        var THEME_HEX = {
+          paper: { bg: "#f7efe1", fg: "#171412" },
+          clean: { bg: "#ffffff", fg: "#131313" },
+          ink: { bg: "#201811", fg: "#f4e9da" },
+          brand: { bg: "#6b452c", fg: "#ffffff" },
+          latte: { bg: "#ecd7b4", fg: "#211a15" },
+          mono: { bg: "#eef0ee", fg: "#111111" },
+        };
+
+        function applyCafeColors(cafe) {
+          var preset = THEME_HEX[cafe.cardTheme] || THEME_HEX.paper;
+          var bg = cafe.cardBgColor || preset.bg;
+          var fg = cafe.cardFgColor || preset.fg;
+          document.documentElement.style.setProperty("--cafe-bg", bg);
+          document.documentElement.style.setProperty("--cafe-fg", fg);
         }
 
         function walletPassUrl(customerAddress) {
@@ -444,6 +479,8 @@
               cafeLogoEl.style.display = "block";
               cafeLogoFallbackEl.style.display = "none";
             }
+
+            applyCafeColors(cafe);
           })
           .catch(function () {
             /* Café-Infos sind nur Deko - Formular funktioniert auch ohne. */
