@@ -1759,6 +1759,7 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerRow ? customerRow.username : null,
         cafeAddress,
       ),
+      appsBaseUrl: process.env.APPS_BASE_URL || "",
     });
   } catch (err) {
     console.warn("Failed to notify Google Wallet pass update:", err.message || err);
@@ -5482,6 +5483,45 @@ app.get("/cafes/:cafeId/logo.png", async (req, res) => {
     res.send(Buffer.from(cafeRow.logo_data, "base64"));
   } catch (err) {
     console.error("Error serving cafe logo:", err);
+    res.status(500).end();
+  }
+});
+
+// Public, unauthenticated - referenced from the loyalty object's
+// imageModulesData, so Google's servers (and the Wallet client) fetch this
+// directly. Renders the same stamp-progress grid as the Apple Wallet strip,
+// live from the current stamp count - no caching, this changes per visit.
+app.get("/customers/:customerAddress/google-wallet-stamp-strip.png", async (req, res) => {
+  try {
+    const rawAddress = req.params?.customerAddress || "";
+    if (!/^0x[0-9a-f]{40}$/i.test(rawAddress)) return res.status(400).end();
+    const cafeAddress = String(req.query?.cafe || "").trim();
+    if (!/^0x[0-9a-f]{40}$/i.test(cafeAddress)) return res.status(400).end();
+
+    const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+    if (!cafeRow) return res.status(404).end();
+
+    const stampCount = await getCurrentCardStampsByCafeUser(cafeAddress, rawAddress);
+    const program = getCafeProgramSettings(cafeRow);
+    const colors = walletPass.resolveThemeColors(
+      cafeRow.card_theme || "paper",
+      cafeRow.card_bg_color,
+      cafeRow.card_fg_color,
+    );
+
+    const buffer = await walletPass.buildStampStripPngBuffer(
+      stampCount,
+      program.stampsForReward,
+      colors.bg,
+      colors.fg,
+      program.stampStyle,
+    );
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+    res.send(buffer);
+  } catch (err) {
+    console.error("Error serving Google Wallet stamp strip:", err);
     res.status(500).end();
   }
 });

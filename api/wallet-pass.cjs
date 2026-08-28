@@ -143,48 +143,66 @@ function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
   return `<image href="${beanDataUrl}" x="${cx - d / 2}" y="${cy - d / 2}" width="${d}" height="${d}" />`;
 }
 
+const STRIP_W = 375;
+const STRIP_H = 123;
+
+// Shared by buildStripBuffers (Apple, one SVG per @1x/2x/3x asset) and
+// buildStampStripPngBuffer (Google, a single standalone image) so both
+// wallets render the same stamp-progress grid from one source of truth.
+function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl) {
+  const w = STRIP_W * scale;
+  const h = STRIP_H * scale;
+  const rows = threshold <= 5 ? 1 : 2;
+  const cols = Math.ceil(threshold / rows);
+  const padX = 20 * scale;
+  const padY = rows === 1 ? 0 : 12 * scale;
+  const cellW = (w - padX * 2) / cols;
+  const cellH = (h - padY * 2) / rows;
+  const r = Math.min(cellW, cellH) * 0.32;
+
+  let circles = "";
+  let icons = "";
+  for (let i = 0; i < threshold; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cx = padX + cellW * col + cellW / 2;
+    const cy = padY + cellH * row + cellH / 2;
+    if (i < stampCount) {
+      const d = r * 2.1;
+      icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex);
+    } else {
+      circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${icons}</svg>`;
+}
+
 // Renders the stamp-progress strip using the cafe's chosen stamp symbol
 // (bean/cup/star/circle) for filled stamps, empty ones are always an
 // outline circle - same visual language as the in-app card.
 async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle) {
   const beanBuffer = await getBeanBuffer();
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
-  const stripW = 375;
-  const stripH = 123;
   const out = {};
 
   for (const scale of [1, 2, 3]) {
-    const w = stripW * scale;
-    const h = stripH * scale;
-    const rows = threshold <= 5 ? 1 : 2;
-    const cols = Math.ceil(threshold / rows);
-    const padX = 20 * scale;
-    const padY = rows === 1 ? 0 : 12 * scale;
-    const cellW = (w - padX * 2) / cols;
-    const cellH = (h - padY * 2) / rows;
-    const r = Math.min(cellW, cellH) * 0.32;
-
-    let circles = "";
-    let icons = "";
-    for (let i = 0; i < threshold; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const cx = padX + cellW * col + cellW / 2;
-      const cy = padY + cellH * row + cellH / 2;
-      if (i < stampCount) {
-        const d = r * 2.1;
-        icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex);
-      } else {
-        circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
-      }
-    }
-
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${icons}</svg>`;
+    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl);
     const name = scale === 1 ? "strip.png" : `strip@${scale}x.png`;
     out[name] = await sharp(Buffer.from(svg)).png().toBuffer();
   }
 
   return out;
+}
+
+// Same stamp-progress grid as a single standalone PNG, for Google Wallet's
+// imageModulesData (which references one hosted image, not an @1x/2x/3x
+// asset bundle like Apple's).
+async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle) {
+  const beanBuffer = await getBeanBuffer();
+  const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
+  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl);
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 function buildPassJson({
@@ -409,7 +427,9 @@ module.exports = {
   generateSignedPass,
   sendPassUpdatePush,
   // Reused by google-wallet-pass.cjs so both wallets resolve a cafe's card
-  // color the same way instead of duplicating the preset table.
+  // color - and render the same stamp-progress grid - the same way instead
+  // of duplicating the logic.
   CARD_THEME_COLORS,
   resolveThemeColors,
+  buildStampStripPngBuffer,
 };

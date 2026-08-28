@@ -156,11 +156,18 @@ function buildLoyaltyObjectPayload({
   stampCount,
   threshold,
   barcodeMessage,
+  appsBaseUrl,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
   const remainingLine =
     remaining <= 0 ? "Prämie verfügbar!" : `noch ${remaining}`;
+  const base = String(appsBaseUrl || "").replace(/\/$/, "");
+  // no-store on the server side, and a cache-busting query param here too -
+  // Google/the Wallet client may otherwise cache this by URL across stamps.
+  const stampStripUri =
+    `${base}/api/customers/${customerAddress}/google-wallet-stamp-strip.png` +
+    `?cafe=${encodeURIComponent(cafeRow.address)}&v=${clampedStamps}`;
 
   return {
     id: loyaltyObjectId(cafeRow.id, customerAddress),
@@ -172,6 +179,9 @@ function buildLoyaltyObjectPayload({
       label: "Stempel",
       balance: { int: clampedStamps },
     },
+    imageModulesData: [
+      { id: "stamps", mainImage: { sourceUri: { uri: stampStripUri } } },
+    ],
     textModulesData: [
       { id: "remaining", header: "Bis zum Gratis-Kaffee", body: remainingLine },
     ],
@@ -195,6 +205,7 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     stampCount,
     threshold: program.stampsForReward,
     barcodeMessage,
+    appsBaseUrl,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -242,6 +253,7 @@ async function patchLoyaltyObjectStamps({
   customerAddress,
   customerName,
   barcodeMessage,
+  appsBaseUrl,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -252,6 +264,7 @@ async function patchLoyaltyObjectStamps({
       stampCount,
       threshold: program.stampsForReward,
       barcodeMessage,
+      appsBaseUrl,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {
