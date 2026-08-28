@@ -316,16 +316,17 @@ function buildPassJson({
     teamIdentifier: sanitizeEnv("APPLE_TEAM_ID"),
     organizationName: "Kaffeekarte",
     description: `${cafeName} Stempelkarte`,
-    logoText: cafeName,
     webServiceURL,
     authenticationToken,
     backgroundColor: hexToRgbString(colors.bg),
     foregroundColor: hexToRgbString(colors.fg),
     labelColor: hexToRgbString(colors.fg),
     storeCard: {
-      secondaryFields: [
-        { key: "remaining", label: "Bis zum Gratis-Kaffee", value: remainingLine },
-      ],
+      // Cafe name as a primaryField (large, above the barcode) instead of
+      // logoText in the header - reads clearer than the small header text,
+      // and leaves the header to just the logo. The stamp circles already
+      // show progress at a glance, so no separate "noch X" text field.
+      primaryFields: [{ key: "cafeName", value: cafeName }],
       backFields,
     },
     barcodes: [
