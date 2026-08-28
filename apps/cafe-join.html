@@ -155,6 +155,28 @@
         color: var(--color-success);
       }
 
+      .orDivider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .orDivider::before,
+      .orDivider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .oauthButtons {
+        display: grid;
+        gap: 10px;
+      }
+
       .fallbackLink {
         display: none;
         margin-top: 14px;
@@ -228,6 +250,17 @@
         </button>
         <p class="statusMsg" id="statusMsg"></p>
       </form>
+
+      <div class="orDivider"><span>oder</span></div>
+
+      <div class="oauthButtons">
+        <button class="btn secondary oauthBtn" type="button" id="googleBtn">
+          Mit Google fortfahren
+        </button>
+        <button class="btn secondary oauthBtn" type="button" id="appleBtn">
+          Mit Apple fortfahren
+        </button>
+      </div>
 
       <p class="fallbackLink" id="fallbackLink">
         Läuft bei dir nicht automatisch weiter?
@@ -315,6 +348,20 @@
             /* Café-Infos sind nur Deko - Formular funktioniert auch ohne. */
           });
 
+        function proceedToWallet(address) {
+          statusMsg.setAttribute("data-ok", "true");
+          statusMsg.textContent = "Fertig! Deine Stempelkarte wird geöffnet …";
+
+          var passUrl = walletPassUrl(address);
+          if (isIOS()) {
+            fallbackLink.style.display = "block";
+            fallbackLinkHref.href = passUrl;
+            window.location.href = passUrl;
+          } else {
+            window.location.href = "/wallet";
+          }
+        }
+
         form.addEventListener("submit", function (event) {
           event.preventDefault();
           statusMsg.textContent = "";
@@ -350,19 +397,7 @@
                 var code = result.data && result.data.error;
                 throw new Error(ERROR_MESSAGES[code] || "Registrierung fehlgeschlagen. Bitte erneut versuchen.");
               }
-
-              var address = result.data.address;
-              statusMsg.setAttribute("data-ok", "true");
-              statusMsg.textContent = "Fertig! Deine Stempelkarte wird geöffnet …";
-
-              var passUrl = walletPassUrl(address);
-              if (isIOS()) {
-                fallbackLink.style.display = "block";
-                fallbackLinkHref.href = passUrl;
-                window.location.href = passUrl;
-              } else {
-                window.location.href = "/wallet";
-              }
+              proceedToWallet(result.data.address);
             })
             .catch(function (err) {
               statusMsg.textContent = err.message || "Registrierung fehlgeschlagen.";
@@ -370,6 +405,71 @@
               submitBtn.textContent = "Stempelkarte holen";
             });
         });
+
+        function startOauth(provider) {
+          var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
+          var acceptTerms = document.getElementById("acceptTerms").checked;
+          if (!acceptPrivacy || !acceptTerms) {
+            statusMsg.textContent =
+              "Bitte zuerst Datenschutzerklärung und AGB oben bestätigen.";
+            return;
+          }
+          var qs = new URLSearchParams({
+            mode: "register",
+            acceptLegal: "1",
+            cafe: cafeAddress,
+            returnTo: "cafe-join",
+          });
+          window.location.href = "/api/auth/" + provider + "/start?" + qs.toString();
+        }
+
+        document.getElementById("googleBtn").addEventListener("click", function () {
+          startOauth("google");
+        });
+        document.getElementById("appleBtn").addEventListener("click", function () {
+          startOauth("apple");
+        });
+
+        var OAUTH_ERROR_MESSAGES = {
+          google_no_account:
+            "Kein Konto mit dieser Google-Adresse gefunden. Bitte oben mit E-Mail registrieren.",
+          apple_no_account:
+            "Kein Konto mit dieser Apple-ID gefunden. Bitte oben mit E-Mail registrieren.",
+          google_email_not_verified:
+            "Deine Google-E-Mail ist nicht bestätigt. Bitte oben mit E-Mail registrieren.",
+          apple_email_not_verified:
+            "Deine Apple-E-Mail ist nicht bestätigt. Bitte oben mit E-Mail registrieren.",
+        };
+
+        var oauthToken = params.get("oauthToken");
+        var oauthError = params.get("oauthError");
+
+        if (oauthToken) {
+          statusMsg.textContent = "Einen Moment …";
+          fetch("/api/customers/oauth/consume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: oauthToken }),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.address) {
+                throw new Error("Anmeldung fehlgeschlagen. Bitte erneut versuchen.");
+              }
+              proceedToWallet(result.data.address);
+            })
+            .catch(function (err) {
+              statusMsg.textContent = err.message || "Anmeldung fehlgeschlagen.";
+            });
+        } else if (oauthError) {
+          statusMsg.textContent =
+            OAUTH_ERROR_MESSAGES[oauthError] ||
+            "Anmeldung nicht möglich. Bitte mit E-Mail registrieren.";
+        }
       })();
     </script>
   </body>

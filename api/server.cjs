@@ -197,8 +197,35 @@ function resolveOauthRedirectBase(appsBaseUrl, stateRaw) {
   try {
     const state = verifyOauthState(stateRaw);
     if (state && state.native) return NATIVE_OAUTH_RETURN_URL;
+    if (
+      state &&
+      state.returnTo === "cafe-join" &&
+      /^0x[0-9a-f]{40}$/i.test(String(state.cafe || ""))
+    ) {
+      return `${appsBaseUrl}/cafe-join?cafe=${encodeURIComponent(state.cafe)}`;
+    }
   } catch (e) {}
   return `${appsBaseUrl}/wallet`;
+}
+
+// redirectBase can already carry its own query string (the cafe-join
+// return path does), so appending "?foo=bar" blindly would produce a
+// broken double-"?" URL - this picks the right separator.
+function appendQueryParams(baseUrl, params) {
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}${params}`;
+}
+
+// Only /cafe-join is a supported OAuth return target today - "returnTo" is
+// a closed enum, not an arbitrary path, so a tampered/forged value can't
+// turn this into an open redirect.
+function readOauthReturnFields(req) {
+  const cafe = String(req.query?.cafe || "").trim();
+  const returnTo = String(req.query?.returnTo || "").trim();
+  return {
+    cafe: /^0x[0-9a-f]{40}$/i.test(cafe) ? cafe : null,
+    returnTo: returnTo === "cafe-join" ? "cafe-join" : null,
+  };
 }
 
 const ENV = (() => {
@@ -5503,11 +5530,14 @@ app.get("/auth/google/start", async (req, res) => {
       .trim()
       .slice(0, 64);
     const native = String(req.query?.native || "").trim() === "1";
+    const { cafe, returnTo } = readOauthReturnFields(req);
     const payload = {
       mode,
       acceptedLegal,
       preferredUsername,
       native,
+      cafe,
+      returnTo,
       ts: Date.now(),
       nonce: crypto.randomBytes(12).toString("hex"),
     };
@@ -5539,7 +5569,7 @@ app.get("/auth/google/callback", async (req, res) => {
     const qs = new URLSearchParams();
     qs.set("oauthError", code || "google_auth_failed");
     if (detail) qs.set("oauthErrorDetail", String(detail).slice(0, 200));
-    return res.redirect(`${redirectBase}?${qs.toString()}`);
+    return res.redirect(appendQueryParams(redirectBase, qs.toString()));
   }
 
   try {
@@ -5639,7 +5669,10 @@ app.get("/auth/google/callback", async (req, res) => {
 
     const grant = await issueCustomerAuthGrant(customer.id, provider);
     return res.redirect(
-      `${redirectBase}?oauthProvider=google&oauthToken=${encodeURIComponent(grant)}`,
+      appendQueryParams(
+        redirectBase,
+        `oauthProvider=google&oauthToken=${encodeURIComponent(grant)}`,
+      ),
     );
   } catch (e) {
     console.error(
@@ -5670,11 +5703,14 @@ app.get("/auth/apple/start", async (req, res) => {
       .trim()
       .slice(0, 64);
     const native = String(req.query?.native || "").trim() === "1";
+    const { cafe, returnTo } = readOauthReturnFields(req);
     const payload = {
       mode,
       acceptedLegal,
       preferredUsername,
       native,
+      cafe,
+      returnTo,
       ts: Date.now(),
       nonce: crypto.randomBytes(12).toString("hex"),
     };
@@ -5845,7 +5881,10 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
 
     const grant = await issueCustomerAuthGrant(customer.id, provider);
     return res.redirect(
-      `${redirectBase}?oauthProvider=apple&oauthToken=${encodeURIComponent(grant)}`,
+      appendQueryParams(
+        redirectBase,
+        `oauthProvider=apple&oauthToken=${encodeURIComponent(grant)}`,
+      ),
     );
   } catch (e) {
     console.error(
