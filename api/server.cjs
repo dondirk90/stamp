@@ -3566,6 +3566,19 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   );
 });
 
+// Manually re-patches a customer's Google Wallet object with the current
+// stamp count/profile - useful for support ("card looks stale, resync it")
+// and to test the PATCH path without needing to award a real stamp.
+app.post("/admin/google-wallet/resync", requireAdminKey, async (req, res) => {
+  const customerAddress = String(req.query?.customer || "").trim();
+  const cafeAddress = String(req.query?.cafe || "").trim();
+  if (!/^0x[0-9a-f]{40}$/i.test(customerAddress) || !/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+    return res.status(400).json({ error: "invalid_address" });
+  }
+  await notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
+  res.json({ ok: true });
+});
+
 // Manage optional cafe gallery images
 app.get("/cafes/me/images", requireCafeAuth, async (req, res) => {
   try {
