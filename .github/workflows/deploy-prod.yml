@@ -188,8 +188,10 @@ jobs:
             # changes (image, env, etc.) - caddy's Caddyfile is a bind-mounted
             # file, so editing it is invisible to that check and the running
             # process keeps serving its old, already-loaded config until told
-            # otherwise. Reload explicitly on every deploy so Caddyfile edits
-            # (like route/auth changes) actually take effect.
-            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+            # otherwise. `caddy reload` (the zero-downtime signal) didn't
+            # reliably pick up the new config in staging, so force a full
+            # restart instead - a brief caddy blip is an acceptable trade for
+            # actually guaranteeing the fresh file is loaded.
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod restart caddy
 
             echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"
