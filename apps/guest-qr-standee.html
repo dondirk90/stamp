@@ -189,153 +189,93 @@
         transform: translateX(50%);
       }
 
+      /* Durchgehende Kartenfarbe: die ganze Flaeche (nicht nur ein oberer
+         Block) traegt die Cafe-Farbe (oder den Kaffeekarte-Espresso als
+         Default). Drei Zonen von oben nach unten: Cafe-Logo, zentrale
+         Botschaft + QR, kleine Kaffeekarte-Marke ganz unten. */
       .face {
+        background: var(--cafe-block-bg, var(--espresso-deep));
+        color: var(--cafe-block-fg, var(--paper));
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
+        padding: 12mm 16mm 9mm;
+        text-align: center;
       }
 
       .face.flipped {
         transform: rotate(180deg);
       }
 
-      /* Kraeftiger Espresso-Block als "Etikett" oben auf jeder Seite - laeuft
-         volle Sheet-Breite (also bewusst bis in den spaeter abgeschnittenen
-         Rand hinein, kein Risiko einer weissen Kante beim Zuschneiden).
-         Holt die Aufmerksamkeit von der Theke ab, der Rest der Karte bleibt
-         hell und ruhig wie zuvor. */
-      .faceHeader {
+      /* Cafe-Logo oben links. Cafes ohne eigenes Logo bekommen stattdessen
+         ihren Namen als schlichten Schriftzug an derselben Stelle - nie
+         beides gleichzeitig, das waere wieder zu viel Information fuer eine
+         einzige Ecke. */
+      .cardTop {
         width: 100%;
-        padding: 10mm 58mm 9mm;
-        /* Falls ueber ?cafe=<adresse> eine individuelle Kartenfarbe geladen
-           wird, ueberschreibt das Skript unten nur diese beiden Variablen -
-           der Rest der Aufsteller-Gestaltung (Papierfarbe, Terracotta-Band)
-           bleibt einheitliches Kaffeekarte-Branding. */
-        background: var(--cafe-block-bg, var(--espresso-deep));
-        display: grid;
-        justify-items: center;
-        text-align: center;
-        gap: 1.6mm;
-      }
-
-      /* Bewusst minimalistisch: Bohne, Wortmarke, Claim und der QR-Code als
-         einziger CTA - kein App-Mockup, das mit dem QR um Aufmerksamkeit
-         konkurriert. */
-      .faceInner {
-        width: 100%;
-        max-width: 94mm;
-        padding: 9mm 0 0;
-        display: grid;
-        justify-items: center;
-        text-align: center;
-        gap: 2.4mm;
-      }
-
-      .headRow {
+        min-height: 9mm;
         display: flex;
         align-items: center;
-        gap: 2.8mm;
+        justify-content: flex-start;
       }
 
-      .beanMark {
-        width: 10mm;
-        height: 10mm;
+      .cafeLogo {
+        height: 9mm;
+        max-width: 36mm;
         object-fit: contain;
+        display: none;
       }
 
-      .wordmark {
-        font-size: 9.5pt;
-        font-weight: 800;
-        letter-spacing: 0.34em;
-        text-indent: 0.34em;
+      .cafeNameFallback {
+        font-size: 8.5pt;
+        font-weight: 700;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--cafe-block-fg, var(--paper));
       }
 
-      .claimBlock {
+      .cafeNameFallback:empty {
+        display: none;
+      }
+
+      /* Bewusst minimalistisch: ein Satz, eine Aufforderung, der QR-Code,
+         ein optionales Prämien-Versprechen - sonst nichts. Soll auf einen
+         Blick klar sein, kein Beipackzettel. */
+      .cardCenter {
         display: grid;
         justify-items: center;
-        gap: 1.6mm;
+        gap: 3.4mm;
+        max-width: 84mm;
       }
 
       .claim {
         font-family: var(--font-serif);
-        font-size: 14.5pt;
-        line-height: 1.08;
-        letter-spacing: -0.02em;
-        color: var(--cafe-block-fg, var(--paper));
-        max-width: 80mm;
+        font-size: 21pt;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
       }
 
       .claimRule {
-        width: 9mm;
+        width: 10mm;
         height: 0.7mm;
         border-radius: 1mm;
         background: var(--terracotta);
       }
 
-      .subline {
-        margin-top: 0.4mm;
-        font-size: 7.6pt;
-        line-height: 1.3;
-        color: var(--cafe-block-fg-soft, rgba(247, 244, 239, 0.64));
-        max-width: 68mm;
-      }
-
-      /* Pfeil zwischen Espresso-Block und QR: kleine, bewusste Blickfuehrung
-         zur eigentlichen Aktion, kein zusaetzliches Wort noetig. */
-      .flowArrow {
-        width: 3.4mm;
-        height: 3.4mm;
-        margin-top: -0.6mm;
-        border-right: 1.4px solid var(--terracotta);
-        border-bottom: 1.4px solid var(--terracotta);
-        transform: rotate(45deg);
-      }
-
-      /* Der QR-Code ist der Star: eigener weisser Kartenkoerper, spuerbar
-         groesser als vorher (20mm -> 27mm), ohne Text direkt daneben - der
-         steht davor/danach, damit nichts nebeneinander konkurriert. Die
-         Weiterleitung uebernimmt /get-app (iPhone -> App Store, sonst
-         Web-App), deshalb reicht ein einziger CTA statt QR + Store-Badge. */
-      .qrSection {
-        display: grid;
-        justify-items: center;
-        gap: 2mm;
-        margin-top: 0.5mm;
-      }
-
       .qrLabel {
-        font-size: 9pt;
+        margin-top: 1.6mm;
+        font-size: 8.5pt;
         font-weight: 800;
-        letter-spacing: 0.07em;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #fff8f2;
-        background: var(--terracotta);
-        padding: 1.6mm 4mm;
-        border-radius: 999px;
-      }
-
-      /* Optional: eigener Reward-Text pro Cafe (Toolbar-Feld), macht aus der
-         Aufforderung ein konkretes Versprechen. Bleibt leer -> kein Platz
-         verschwendet, kein erfundener Standardtext. */
-      .qrReward {
-        font-family: var(--font-serif);
-        font-size: 9.5pt;
-        color: var(--espresso-deep);
-      }
-
-      .qrReward:empty {
-        display: none;
+        opacity: 0.82;
       }
 
       .qrCard {
         background: #ffffff;
-        border: 1px solid var(--line);
         border-radius: 4.5mm;
-        padding: 3.2mm;
-        box-shadow: 0 3mm 6mm rgba(42, 24, 14, 0.13);
+        padding: 3.4mm;
+        box-shadow: 0 3mm 6mm rgba(0, 0, 0, 0.2);
         display: grid;
         place-items: center;
       }
@@ -343,43 +283,48 @@
       .qrCard img,
       .qrCard canvas {
         display: block;
-        width: 32mm !important;
-        height: 32mm !important;
+        width: 34mm !important;
+        height: 34mm !important;
       }
 
       .qrFallback {
-        width: 32mm;
+        width: 34mm;
         font-size: 8px;
-        color: var(--ink-soft);
+        color: var(--espresso-deep);
         text-align: center;
         line-height: 1.3;
       }
 
-      .cafeName {
-        min-height: 0;
-        font-size: 8pt;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
+      /* Optionaler Prämien-Text pro Cafe (Toolbar-Feld / Cafe-Profil) - macht
+         aus der Aufforderung ein konkretes Versprechen. Bleibt leer -> kein
+         Platz verschwendet, kein erfundener Standardtext. */
+      .qrReward {
+        font-family: var(--font-serif);
+        font-size: 11pt;
       }
 
-      .cafeName:empty {
+      .qrReward:empty {
         display: none;
       }
 
-      .footerMark {
-        width: 6mm;
-        height: 6mm;
-        object-fit: contain;
-        margin-top: 1mm;
+      .cardBottom {
+        display: flex;
+        align-items: center;
+        gap: 1.8mm;
       }
 
-      .siteUrl {
-        font-size: 6.6pt;
-        font-weight: 700;
-        letter-spacing: 0.09em;
-        color: var(--ink-soft);
+      .footerMark {
+        width: 5mm;
+        height: 5mm;
+        object-fit: contain;
+      }
+
+      .wordmarkSmall {
+        font-size: 7.4pt;
+        font-weight: 800;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        opacity: 0.78;
       }
 
       @media print {
@@ -447,58 +392,42 @@
       <div class="cutLabel right">Schneiden</div>
 
       <section class="face flipped">
-        <div class="faceHeader">
-          <div class="headRow">
-            <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
-            <div class="wordmark">Kaffeekarte</div>
-          </div>
-
-          <div class="claimBlock">
-            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-            <div class="claimRule" aria-hidden="true"></div>
-            <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
-          </div>
+        <div class="cardTop">
+          <img class="cafeLogo" data-cafe-logo alt="" />
+          <div class="cafeNameFallback" data-cafe-name></div>
         </div>
 
-        <div class="faceInner">
-          <div class="flowArrow" aria-hidden="true"></div>
-          <div class="qrSection">
-            <div class="qrLabel">Scannen &amp; sammeln</div>
-            <div class="qrReward" data-reward-text></div>
-            <div class="qrCard" data-qr-target></div>
-          </div>
+        <div class="cardCenter">
+          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+          <div class="claimRule" aria-hidden="true"></div>
+          <div class="qrLabel">Scannen &amp; sammeln</div>
+          <div class="qrCard" data-qr-target></div>
+          <div class="qrReward" data-reward-text></div>
+        </div>
 
-          <div class="cafeName" data-cafe-name></div>
+        <div class="cardBottom">
           <img class="footerMark" src="assets/app-icon-mark.png" alt="" />
-          <div class="siteUrl">kaffeekarte.app</div>
+          <div class="wordmarkSmall">Kaffeekarte</div>
         </div>
       </section>
 
       <section class="face">
-        <div class="faceHeader">
-          <div class="headRow">
-            <img class="beanMark" src="assets/app-icon-mark.png" alt="" />
-            <div class="wordmark">Kaffeekarte</div>
-          </div>
-
-          <div class="claimBlock">
-            <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
-            <div class="claimRule" aria-hidden="true"></div>
-            <div class="subline">Die digitale Stempelkarte für deine Lieblingscafés.</div>
-          </div>
+        <div class="cardTop">
+          <img class="cafeLogo" data-cafe-logo alt="" />
+          <div class="cafeNameFallback" data-cafe-name></div>
         </div>
 
-        <div class="faceInner">
-          <div class="flowArrow" aria-hidden="true"></div>
-          <div class="qrSection">
-            <div class="qrLabel">Scannen &amp; sammeln</div>
-            <div class="qrReward" data-reward-text></div>
-            <div class="qrCard" data-qr-target></div>
-          </div>
+        <div class="cardCenter">
+          <div class="claim">Good coffee deserves better&nbsp;loyalty.</div>
+          <div class="claimRule" aria-hidden="true"></div>
+          <div class="qrLabel">Scannen &amp; sammeln</div>
+          <div class="qrCard" data-qr-target></div>
+          <div class="qrReward" data-reward-text></div>
+        </div>
 
-          <div class="cafeName" data-cafe-name></div>
+        <div class="cardBottom">
           <img class="footerMark" src="assets/app-icon-mark.png" alt="" />
-          <div class="siteUrl">kaffeekarte.app</div>
+          <div class="wordmarkSmall">Kaffeekarte</div>
         </div>
       </section>
     </main>
@@ -520,6 +449,7 @@
         var printBtn = document.getElementById("printBtn");
         var qrTargets = Array.prototype.slice.call(document.querySelectorAll("[data-qr-target]"));
         var cafeLabels = Array.prototype.slice.call(document.querySelectorAll("[data-cafe-name]"));
+        var cafeLogoTargets = Array.prototype.slice.call(document.querySelectorAll("[data-cafe-logo]"));
         var rewardLabels = Array.prototype.slice.call(document.querySelectorAll("[data-reward-text]"));
 
         function normalizeUrl(raw) {
@@ -601,13 +531,30 @@
           return Promise.all(qrPromises);
         }
 
+        // Zeigt entweder das Cafe-Logo oder (Fallback) den Cafe-Namen oben
+        // links - nie beides, sonst wirkt die Ecke ueberladen.
+        function setCafeLogo(url) {
+          cafeLogoTargets.forEach(function (img) {
+            if (url) {
+              img.src = url;
+              img.style.display = "block";
+            } else {
+              img.removeAttribute("src");
+              img.style.display = "none";
+            }
+          });
+          cafeLabels.forEach(function (label) {
+            label.style.display = url ? "none" : "";
+          });
+        }
+
         urlInput.value = normalizeUrl(params.get("url") || defaultUrl);
         cafeInput.value = params.get("cafe") || "";
         rewardInput.value = params.get("reward") || "";
 
         // ?cafeAddress=0x... (separate from the cosmetic ?cafe= name param)
         // pulls the cafe's own chosen card color and always fills in
-        // name/reward/QR-target from its real profile (see note below on
+        // name/reward/QR-target/logo from its real profile (see note below on
         // why this doesn't defer to any pre-existing cafe/reward/url params).
         var cafeAddressParam = (params.get("cafeAddress") || "").trim();
         if (cafeAddressParam) {
@@ -664,6 +611,7 @@
                 "/cafe-join?cafe=" + encodeURIComponent(cafeAddressParam),
               );
 
+              setCafeLogo(found.logoDataUrl || null);
               render();
             })
             .catch(function () {
