@@ -183,15 +183,7 @@
         möchten – hier direkt für sie übernehmen.
       </p>
 
-      <div class="card" id="keyCard">
-        <div class="field">
-          <label for="adminKeyInput">Admin-Key</label>
-          <input id="adminKeyInput" type="password" autocomplete="off" />
-        </div>
-        <button class="btn primary" id="keyBtn" type="button">
-          Weiter
-        </button>
-      </div>
+      <p class="statusMsg" id="loadStatus"></p>
 
       <div class="card hidden" id="pickCard">
         <div class="field">
@@ -249,8 +241,6 @@
 
     <script>
       (function () {
-        var STORAGE_KEY = "stamp_admin_dashboard_v1";
-
         var THEMES = [
           { id: "paper", label: "Warm White", bg: "#f7efe1", fg: "#171412" },
           { id: "clean", label: "Bright White", bg: "#ffffff", fg: "#131313" },
@@ -267,11 +257,9 @@
         ];
 
         var refs = {
-          adminKeyInput: document.getElementById("adminKeyInput"),
-          keyBtn: document.getElementById("keyBtn"),
-          keyCard: document.getElementById("keyCard"),
           pickCard: document.getElementById("pickCard"),
           formCard: document.getElementById("formCard"),
+          loadStatus: document.getElementById("loadStatus"),
           cafeSelect: document.getElementById("cafeSelect"),
           logoInput: document.getElementById("logoInput"),
           logoPreview: document.getElementById("logoPreview"),
@@ -285,33 +273,12 @@
         };
 
         var state = {
-          adminKey: "",
           cafes: [],
           selectedCafeId: null,
           selectedTheme: "paper",
           selectedStampStyle: "bean",
           pendingLogoDataUrl: undefined, // undefined = unchanged
         };
-
-        function loadStoredKey() {
-          try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return "";
-            var parsed = JSON.parse(raw);
-            return (parsed && parsed.adminKey) || "";
-          } catch (e) {
-            return "";
-          }
-        }
-
-        function saveStoredKey(key) {
-          try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            var parsed = raw ? JSON.parse(raw) : {};
-            parsed.adminKey = key;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          } catch (e) {}
-        }
 
         function renderThemeGrid() {
           refs.themeGrid.innerHTML = "";
@@ -346,14 +313,8 @@
           });
         }
 
-        function authHeaders() {
-          return { "x-admin-key": state.adminKey, "Content-Type": "application/json" };
-        }
-
         function loadCafeList() {
-          return fetch("/api/admin/cafes/activity?eventsLimit=1&customerLimit=1", {
-            headers: authHeaders(),
-          })
+          return fetch("/api/admin/cafes/activity?eventsLimit=1&customerLimit=1")
             .then(function (res) {
               if (res.status === 401) throw new Error("unauthorized");
               return res.json();
@@ -376,9 +337,7 @@
         }
 
         function loadCafeProfile(cafeId) {
-          return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile", {
-            headers: authHeaders(),
-          })
+          return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile")
             .then(function (res) {
               return res.json().then(function (data) {
                 return { ok: res.ok, data: data };
@@ -408,14 +367,11 @@
             });
         }
 
-        refs.keyBtn.addEventListener("click", function () {
-          var key = refs.adminKeyInput.value.trim();
-          if (!key) return;
-          state.adminKey = key;
+        function init() {
+          refs.loadStatus.textContent = "Lade Cafés …";
           loadCafeList()
             .then(function () {
-              saveStoredKey(key);
-              refs.keyCard.classList.add("hidden");
+              refs.loadStatus.textContent = "";
               refs.pickCard.classList.remove("hidden");
               refs.formCard.classList.remove("hidden");
               if (state.cafes.length) {
@@ -425,11 +381,14 @@
               }
             })
             .catch(function () {
-              refs.statusMsg.textContent =
-                "Admin-Key ungültig oder Server nicht erreichbar.";
-              refs.statusMsg.removeAttribute("data-ok");
+              // Only reachable if this page is somehow loaded without going
+              // through Caddy's basic_auth + x-admin-key injection (e.g.
+              // hitting the api service directly) - there's no key to type
+              // here that would fix it, the page just needs the real route.
+              refs.loadStatus.textContent =
+                "Cafés konnten nicht geladen werden. Diese Seite muss über die geschützte Admin-URL aufgerufen werden.";
             });
-        });
+        }
 
         refs.cafeSelect.addEventListener("change", function () {
           state.selectedCafeId = Number(refs.cafeSelect.value);
@@ -468,7 +427,7 @@
             "/api/admin/cafes/" + encodeURIComponent(state.selectedCafeId) + "/profile",
             {
               method: "PUT",
-              headers: authHeaders(),
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(body),
             },
           )
@@ -493,12 +452,9 @@
             });
         });
 
-        var storedKey = loadStoredKey();
-        if (storedKey) {
-          refs.adminKeyInput.value = storedKey;
-        }
         renderThemeGrid();
         renderStampGrid();
+        init();
       })();
     </script>
   </body>
