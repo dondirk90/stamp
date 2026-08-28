@@ -1582,6 +1582,14 @@ const deleteWalletRegistration = db.prepare(
 const listWalletPushTokensBySerial = db.prepare(
   "SELECT push_token FROM wallet_registrations WHERE serial_number = ?",
 );
+const listWalletPassesByCafe = db.prepare(
+  "SELECT serial_number FROM wallet_passes WHERE cafe_id = ?",
+);
+const listWalletPushTokensByCafe = db.prepare(
+  "SELECT wr.push_token AS push_token FROM wallet_registrations wr " +
+    "JOIN wallet_passes wp ON wp.serial_number = wr.serial_number " +
+    "WHERE wp.cafe_id = ?",
+);
 const listWalletSerialsByDeviceSince = db.prepare(
   "SELECT wp.serial_number AS serial_number, wp.updated_at AS updated_at FROM wallet_registrations wr " +
     "JOIN wallet_passes wp ON wp.serial_number = wr.serial_number " +
@@ -1640,6 +1648,33 @@ async function notifyWalletPassUpdated(customerAddress, cafeAddress) {
     }
   } catch (err) {
     console.warn("Failed to notify wallet pass update:", err.message || err);
+  }
+}
+
+// Cafe profile edits (color, logo, website/instagram, reward text, ...)
+// change what generateSignedPass() renders, but unlike stamp events there's
+// no natural "moment" that already pushes to every affected device - without
+// this, an already-issued card would keep showing the old profile until its
+// next stamp/redeem, which can be days away. Pushes to *every* card for this
+// cafe, not just one customer's.
+async function notifyWalletPassesForCafe(cafeId) {
+  try {
+    if (!walletPass.isWalletConfigured()) return;
+    const passRows = await listWalletPassesByCafe.all(cafeId);
+    if (!passRows.length) return;
+    const now = Date.now();
+    for (const row of passRows) {
+      await touchWalletPassUpdatedAt.run(now, row.serial_number);
+    }
+    const tokenRows = await listWalletPushTokensByCafe.all(cafeId);
+    const tokens = (Array.isArray(tokenRows) ? tokenRows : [])
+      .map((r) => r.push_token)
+      .filter(Boolean);
+    if (tokens.length) {
+      await walletPass.sendPassUpdatePush(tokens);
+    }
+  } catch (err) {
+    console.warn("Failed to notify wallet passes for cafe:", err.message || err);
   }
 }
 
@@ -3320,6 +3355,8 @@ async function applyCafeProfileUpdate(current, body) {
       now,
       current.id,
     );
+
+    notifyWalletPassesForCafe(current.id);
 
     const updated = await getCafeById.get(current.id);
     const updatedProgram = getCafeProgramSettings(updated);
