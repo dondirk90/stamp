@@ -199,6 +199,8 @@ function buildPassJson({
   stampCount,
   threshold,
   cardBackText,
+  cafeWebsiteUrl,
+  cafeInstagramUrl,
   barcodeMessage,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
@@ -229,9 +231,28 @@ function buildPassJson({
     backFields.push({ key: "info", label: "Info", value: cardBackText });
   }
 
+  if (cafeWebsiteUrl) {
+    backFields.push({
+      key: "cafeWebsite",
+      label: "Website",
+      value: cafeWebsiteUrl,
+    });
+  }
+
+  if (cafeInstagramUrl) {
+    backFields.push({
+      key: "cafeInstagram",
+      label: "Instagram",
+      value: cafeInstagramUrl,
+    });
+  }
+
   backFields.push(
-    { key: "website", label: "Website", value: "https://kaffeekarte.app" },
-    { key: "issuer", label: "Anbieter", value: "Kaffeekarte" },
+    {
+      key: "poweredBy",
+      label: "Anbieter",
+      value: "Kaffeekarte (https://kaffeekarte.app)",
+    },
     { key: "contact", label: "Kontakt", value: "hallo@kaffeekarte.app" },
   );
 
@@ -305,6 +326,8 @@ async function generateSignedPass({
     stampCount,
     threshold,
     cardBackText: cafeRow && cafeRow.card_back_text,
+    cafeWebsiteUrl: cafeRow && cafeRow.website_url,
+    cafeInstagramUrl: cafeRow && cafeRow.instagram_url,
     barcodeMessage,
   });
 
