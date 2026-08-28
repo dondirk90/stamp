@@ -16,13 +16,20 @@
          fix that styling, we can't recolor them). */
       body {
         margin: 0;
+        font-family: var(--font-sans);
+      }
+
+      /* theme.css forces `body { background: var(--bg) !important; }` (a
+         guard against legacy pages setting stray gradients), so the cafe
+         background has to live on a full-viewport wrapper instead of body
+         itself - body's own background is irrelevant, this covers it. */
+      .page {
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--cafe-bg, var(--background, var(--color-background)));
         color: var(--cafe-fg, var(--text));
-        font-family: var(--font-sans);
         padding: 24px 16px;
       }
 
@@ -90,6 +97,9 @@
       }
 
       h1 {
+        /* theme.css sets its own h1 color unconditionally - overridden
+           explicitly here, inheritance alone would lose to it. */
+        color: var(--cafe-fg, var(--text));
         font-family: var(--font-display);
         font-size: 1.5rem;
         line-height: 1.22;
@@ -114,6 +124,9 @@
         grid-template-columns: 18px minmax(0, 1fr);
         gap: 10px;
         align-items: start;
+        /* theme.css sets `label { color: var(--text) }` unconditionally -
+           this *is* a label, so it needs its own explicit override too. */
+        color: var(--cafe-fg, var(--text));
         opacity: 0.82;
         font-size: 0.85rem;
         line-height: 1.4;
@@ -165,17 +178,20 @@
         outline-offset: 2px;
       }
 
-      /* Google/Apple brand guidelines fix these colors - not recolored. */
+      /* Google/Apple brand guidelines fix these colors - not recolored.
+         !important because theme.css forces button backgrounds to --brand
+         with its own !important rule (a guard against unstyled buttons on
+         other pages) - has to be beaten deliberately, not by accident. */
       #googleBtn {
         border: 1px solid rgba(17, 17, 17, 0.14);
-        background: rgba(255, 255, 255, 0.96);
-        color: #171513;
+        background: rgba(255, 255, 255, 0.96) !important;
+        color: #171513 !important;
       }
 
       #appleBtn {
         border: 1px solid rgba(17, 17, 17, 0.14);
-        background: #000;
-        color: #fff;
+        background: #000 !important;
+        color: #fff !important;
       }
 
       .oauthLogo {
@@ -216,6 +232,7 @@
       }
 
       .field label {
+        color: var(--cafe-fg, var(--text));
         font-size: 0.8rem;
         font-weight: 600;
         opacity: 0.82;
@@ -244,8 +261,8 @@
       .submitBtn {
         margin-top: 4px;
         width: 100%;
-        background: var(--cafe-fg, var(--brand));
-        color: var(--cafe-bg, #fff);
+        background: var(--cafe-fg, var(--brand)) !important;
+        color: var(--cafe-bg, #fff) !important;
         border: none;
       }
 
@@ -273,6 +290,7 @@
     </style>
   </head>
   <body>
+    <div class="page">
     <main class="sheet">
       <div class="cafeHeader">
         <img class="cafeLogo" id="cafeLogo" alt="" style="display: none" />
@@ -384,6 +402,7 @@
         <p class="poweredBy"><span class="bean">☕</span> Kaffeekarte</p>
       </div>
     </main>
+    </div>
 
     <script>
       (function () {
