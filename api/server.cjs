@@ -27,6 +27,7 @@ const bcrypt = require("bcrypt");
 const os = require("os");
 const jwt = require("jsonwebtoken");
 const jwksRsa = require("jwks-rsa");
+const walletPass = require("./wallet-pass.cjs");
 
 const { z } = require("zod");
 
@@ -1192,6 +1193,31 @@ CREATE TABLE IF NOT EXISTS sync_state (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS wallet_passes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  serial_number TEXT UNIQUE NOT NULL,
+  customer_address TEXT NOT NULL,
+  cafe_id INTEGER NOT NULL,
+  authentication_token TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_passes_customer_cafe ON wallet_passes(customer_address, cafe_id);
+
+CREATE TABLE IF NOT EXISTS wallet_registrations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_library_identifier TEXT NOT NULL,
+  serial_number TEXT NOT NULL,
+  push_token TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (serial_number) REFERENCES wallet_passes(serial_number) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_registrations_device_serial ON wallet_registrations(device_library_identifier, serial_number);
+CREATE INDEX IF NOT EXISTS idx_wallet_registrations_serial ON wallet_registrations(serial_number);
 `);
 }
 
@@ -1495,6 +1521,102 @@ async function getStampsByCafeUserCardId(cafeAddress, userAddress, cardId) {
   const totalRaw = row && row.total != null ? Number(row.total) : 0;
   return Number.isFinite(totalRaw) ? totalRaw : 0;
 }
+// --- Apple Wallet pass registrations ---
+const getWalletPassByCustomerCafe = db.prepare(
+  "SELECT * FROM wallet_passes WHERE customer_address = ? AND cafe_id = ?",
+);
+const getWalletPassBySerial = db.prepare(
+  "SELECT * FROM wallet_passes WHERE serial_number = ?",
+);
+const insertWalletPass = db.prepare(
+  "INSERT INTO wallet_passes (serial_number, customer_address, cafe_id, authentication_token, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+);
+const touchWalletPassUpdatedAt = db.prepare(
+  "UPDATE wallet_passes SET updated_at = ? WHERE serial_number = ?",
+);
+const upsertWalletRegistration = db.prepare(
+  "INSERT INTO wallet_registrations (device_library_identifier, serial_number, push_token, created_at) VALUES (?, ?, ?, ?) " +
+    "ON CONFLICT (device_library_identifier, serial_number) DO UPDATE SET push_token = excluded.push_token",
+);
+const getWalletRegistration = db.prepare(
+  "SELECT 1 AS ok FROM wallet_registrations WHERE device_library_identifier = ? AND serial_number = ?",
+);
+const deleteWalletRegistration = db.prepare(
+  "DELETE FROM wallet_registrations WHERE device_library_identifier = ? AND serial_number = ?",
+);
+const listWalletPushTokensBySerial = db.prepare(
+  "SELECT push_token FROM wallet_registrations WHERE serial_number = ?",
+);
+const listWalletSerialsByDeviceSince = db.prepare(
+  "SELECT wp.serial_number AS serial_number, wp.updated_at AS updated_at FROM wallet_registrations wr " +
+    "JOIN wallet_passes wp ON wp.serial_number = wr.serial_number " +
+    "WHERE wr.device_library_identifier = ? AND wp.updated_at > ?",
+);
+
+async function getOrCreateWalletPass(customerAddress, cafeId) {
+  const existing = await getWalletPassByCustomerCafe.get(
+    customerAddress,
+    cafeId,
+  );
+  if (existing) return existing;
+
+  const now = Date.now();
+  const serialNumber = crypto.randomUUID();
+  const authenticationToken = crypto.randomBytes(24).toString("hex");
+  try {
+    await insertWalletPass.run(
+      serialNumber,
+      customerAddress,
+      cafeId,
+      authenticationToken,
+      now,
+      now,
+    );
+  } catch (err) {
+    // Concurrent first-issue race: someone else just created the same
+    // (customer, cafe) pass. Fall back to reading it instead of failing.
+    const raceWinner = await getWalletPassByCustomerCafe.get(
+      customerAddress,
+      cafeId,
+    );
+    if (raceWinner) return raceWinner;
+    throw err;
+  }
+  return { serial_number: serialNumber, customer_address: customerAddress, cafe_id: cafeId, authentication_token: authenticationToken, updated_at: now, created_at: now };
+}
+
+async function notifyWalletPassUpdated(customerAddress, cafeAddress) {
+  try {
+    const cafeRow = await db
+      .prepare("SELECT id FROM cafes WHERE LOWER(address) = LOWER(?)")
+      .get(cafeAddress);
+    if (!cafeRow) return;
+    const passRow = await getWalletPassByCustomerCafe.get(
+      customerAddress,
+      cafeRow.id,
+    );
+    if (!passRow) return; // Customer never added this card to Wallet.
+    await touchWalletPassUpdatedAt.run(Date.now(), passRow.serial_number);
+    if (!walletPass.isWalletConfigured()) return;
+    const tokenRows = await listWalletPushTokensBySerial.all(passRow.serial_number);
+    const tokens = (Array.isArray(tokenRows) ? tokenRows : []).map((r) => r.push_token);
+    if (tokens.length) {
+      await walletPass.sendPassUpdatePush(tokens);
+    }
+  } catch (err) {
+    console.warn("Failed to notify wallet pass update:", err.message || err);
+  }
+}
+
+function buildCafeScannerLink(customerAddress, customerName, cafeAddress) {
+  const base = String(process.env.APPS_BASE_URL || "").replace(/\/$/, "");
+  const u = new URL(`${base}/cafe-scanner-new.html`);
+  u.searchParams.set("customer", customerAddress);
+  u.searchParams.set("customerName", customerName || "");
+  if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+  return u.toString();
+}
+
 const updateEventMetadata = db.prepare(
   "UPDATE stamp_events SET event_type = ?, delta = ? WHERE id = ?",
 );
@@ -2251,6 +2373,7 @@ app.post("/stamp", async (req, res) => {
       card_id: null,
     };
     await insertEvent.run(ev);
+    notifyWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -2325,6 +2448,7 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       card_id: normalizedCardId,
     };
     await insertEvent.run(ev);
+    notifyWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -2474,6 +2598,7 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
     };
 
     await insertEvent.run(ev);
+    notifyWalletPassUpdated(ev.user, ev.cafe);
     const result = { ev, currentStamps, localTx };
 
     try {
@@ -2604,6 +2729,7 @@ app.post("/reset-card", requireCafeAuth, async (req, res) => {
     };
 
     await insertEvent.run(ev);
+    notifyWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -4960,6 +5086,226 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       .json({ error: String(err && err.message ? err.message : err) });
   }
 });
+
+// --- Apple Wallet ---
+
+const getCafeRowByAddress = db.prepare(
+  "SELECT * FROM cafes WHERE LOWER(address) = LOWER(?)",
+);
+
+// Issues (or re-issues, with fresh stamp count) a signed .pkpass for a
+// customer's card at one cafe. First call for a given (customer, cafe) pair
+// creates the wallet_passes row; later calls just re-render current state.
+app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
+  try {
+    if (!walletPass.isWalletConfigured()) {
+      return res.status(501).json({ error: "wallet_not_configured" });
+    }
+
+    const rawAddress = req.params?.customerAddress || "";
+    if (!/^0x[0-9a-f]{40}$/i.test(rawAddress)) {
+      return res.status(400).json({ error: "invalid_customer_address" });
+    }
+    const cafeAddress = String(req.query?.cafe || "").trim();
+    if (!/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+      return res.status(400).json({ error: "invalid_cafe_address" });
+    }
+
+    const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+    if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
+
+    const customerRow = await getCustomerByAddress.get(rawAddress);
+    const passRow = await getOrCreateWalletPass(rawAddress, cafeRow.id);
+    const stampCount = await getCurrentCardStampsByCafeUser(
+      cafeAddress,
+      rawAddress,
+    );
+    const program = getCafeProgramSettings(cafeRow);
+
+    const buffer = await walletPass.generateSignedPass({
+      cafeRow,
+      program,
+      stampCount,
+      serialNumber: passRow.serial_number,
+      authenticationToken: passRow.authentication_token,
+      webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
+      barcodeMessage: buildCafeScannerLink(
+        rawAddress,
+        customerRow?.username,
+        cafeAddress,
+      ),
+    });
+
+    res.setHeader("Content-Type", "application/vnd.apple.pkpass");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="kaffeekarte.pkpass"',
+    );
+    res.send(buffer);
+  } catch (err) {
+    console.error("Error generating wallet pass:", err);
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// --- PassKit Web Service (called by Wallet itself, not by our own apps) ---
+// https://developer.apple.com/documentation/walletpasses/adding-a-web-service-to-update-passes
+const walletApiRouter = express.Router();
+
+function requireApplePassAuth(req, res, next) {
+  const header = String(req.headers.authorization || "");
+  const m = /^ApplePass\s+(.+)$/.exec(header);
+  if (!m) return res.status(401).end();
+  req.applePassToken = m[1];
+  next();
+}
+
+walletApiRouter.post(
+  "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber",
+  requireApplePassAuth,
+  async (req, res) => {
+    try {
+      const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber } = req.params;
+      if (passTypeIdentifier !== walletPass.PASS_TYPE_IDENTIFIER) {
+        return res.status(404).end();
+      }
+      const passRow = await getWalletPassBySerial.get(serialNumber);
+      if (!passRow || passRow.authentication_token !== req.applePassToken) {
+        return res.status(401).end();
+      }
+      const pushToken = req.body && req.body.pushToken;
+      if (!pushToken) return res.status(400).end();
+
+      const alreadyRegistered = await getWalletRegistration.get(
+        deviceLibraryIdentifier,
+        serialNumber,
+      );
+      await upsertWalletRegistration.run(
+        deviceLibraryIdentifier,
+        serialNumber,
+        String(pushToken),
+        Date.now(),
+      );
+      res.status(alreadyRegistered ? 200 : 201).end();
+    } catch (err) {
+      console.error("Error registering wallet device:", err);
+      res.status(500).end();
+    }
+  },
+);
+
+walletApiRouter.delete(
+  "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber",
+  requireApplePassAuth,
+  async (req, res) => {
+    try {
+      const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber } = req.params;
+      if (passTypeIdentifier !== walletPass.PASS_TYPE_IDENTIFIER) {
+        return res.status(404).end();
+      }
+      const passRow = await getWalletPassBySerial.get(serialNumber);
+      if (!passRow || passRow.authentication_token !== req.applePassToken) {
+        return res.status(401).end();
+      }
+      await deleteWalletRegistration.run(deviceLibraryIdentifier, serialNumber);
+      res.status(200).end();
+    } catch (err) {
+      console.error("Error unregistering wallet device:", err);
+      res.status(500).end();
+    }
+  },
+);
+
+// Not authenticated with ApplePass per Apple's spec - the device queries
+// across all its registered passes, before it necessarily has any one
+// pass's token at hand.
+walletApiRouter.get(
+  "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier",
+  async (req, res) => {
+    try {
+      const { deviceLibraryIdentifier, passTypeIdentifier } = req.params;
+      if (passTypeIdentifier !== walletPass.PASS_TYPE_IDENTIFIER) {
+        return res.status(404).end();
+      }
+      const since = Number(req.query?.passesUpdatedSince) || 0;
+      const rows = await listWalletSerialsByDeviceSince.all(
+        deviceLibraryIdentifier,
+        since,
+      );
+      if (!rows || !rows.length) return res.status(204).end();
+
+      const lastUpdated = Math.max(...rows.map((r) => Number(r.updated_at) || 0));
+      res.json({
+        lastUpdated: String(lastUpdated),
+        serialNumbers: rows.map((r) => r.serial_number),
+      });
+    } catch (err) {
+      console.error("Error listing wallet registrations:", err);
+      res.status(500).end();
+    }
+  },
+);
+
+walletApiRouter.get(
+  "/v1/passes/:passTypeIdentifier/:serialNumber",
+  requireApplePassAuth,
+  async (req, res) => {
+    try {
+      if (!walletPass.isWalletConfigured()) return res.status(501).end();
+      const { passTypeIdentifier, serialNumber } = req.params;
+      if (passTypeIdentifier !== walletPass.PASS_TYPE_IDENTIFIER) {
+        return res.status(404).end();
+      }
+      const passRow = await getWalletPassBySerial.get(serialNumber);
+      if (!passRow || passRow.authentication_token !== req.applePassToken) {
+        return res.status(401).end();
+      }
+
+      const cafeRow = await db
+        .prepare("SELECT * FROM cafes WHERE id = ?")
+        .get(passRow.cafe_id);
+      if (!cafeRow) return res.status(404).end();
+
+      const customerRow = await getCustomerByAddress.get(passRow.customer_address);
+      const stampCount = await getCurrentCardStampsByCafeUser(
+        cafeRow.address,
+        passRow.customer_address,
+      );
+      const program = getCafeProgramSettings(cafeRow);
+
+      const buffer = await walletPass.generateSignedPass({
+        cafeRow,
+        program,
+        stampCount,
+        serialNumber: passRow.serial_number,
+        authenticationToken: passRow.authentication_token,
+        webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
+        barcodeMessage: buildCafeScannerLink(
+          passRow.customer_address,
+          customerRow?.username,
+          cafeRow.address,
+        ),
+      });
+
+      res.setHeader("Content-Type", "application/vnd.apple.pkpass");
+      res.setHeader("Last-Modified", new Date(passRow.updated_at).toUTCString());
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error serving updated wallet pass:", err);
+      res.status(500).end();
+    }
+  },
+);
+
+walletApiRouter.post("/v1/log", (req, res) => {
+  const logs = (req.body && req.body.logs) || [];
+  for (const line of Array.isArray(logs) ? logs : []) {
+    console.warn("[wallet device log]", line);
+  }
+  res.status(200).end();
+});
+
+app.use("/wallet", walletApiRouter);
 
 app.post("/customers/register", async (req, res) => {
   try {

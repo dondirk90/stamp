@@ -142,6 +142,10 @@ jobs:
             APPLE_SERVICES_ID=${{ secrets.APPLE_SERVICES_ID }}
             APPLE_KEY_ID=${{ secrets.APPLE_KEY_ID }}
             APPLE_PRIVATE_KEY_BASE64=${{ secrets.APPLE_PRIVATE_KEY_BASE64 }}
+            APPLE_PASS_CERT_BASE64=${{ secrets.APPLE_PASS_CERT_BASE64 }}
+            APPLE_PASS_KEY_BASE64=${{ secrets.APPLE_PASS_KEY_BASE64 }}
+            APPLE_PASS_KEY_PASSPHRASE=${{ secrets.APPLE_PASS_KEY_PASSPHRASE }}
+            APPLE_WWDR_CERT_BASE64=${{ secrets.APPLE_WWDR_CERT_BASE64 }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
@@ -174,6 +178,8 @@ jobs:
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'website_url')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'instagram_url')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'short_description')
+                 AND to_regclass('public.wallet_passes') IS NOT NULL
+                 AND to_regclass('public.wallet_registrations') IS NOT NULL
                THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
 

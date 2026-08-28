@@ -113,6 +113,10 @@ jobs:
             APPLE_SERVICES_ID=${{ secrets.APPLE_SERVICES_ID }}
             APPLE_KEY_ID=${{ secrets.APPLE_KEY_ID }}
             APPLE_PRIVATE_KEY_BASE64=${{ secrets.APPLE_PRIVATE_KEY_BASE64 }}
+            APPLE_PASS_CERT_BASE64=${{ secrets.APPLE_PASS_CERT_BASE64 }}
+            APPLE_PASS_KEY_BASE64=${{ secrets.APPLE_PASS_KEY_BASE64 }}
+            APPLE_PASS_KEY_PASSPHRASE=${{ secrets.APPLE_PASS_KEY_PASSPHRASE }}
+            APPLE_WWDR_CERT_BASE64=${{ secrets.APPLE_WWDR_CERT_BASE64 }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
