@@ -124,6 +124,13 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
+            # `up -d` only recreates a container when the *service definition*
+            # changes (image, env, etc.) - caddy's Caddyfile is a bind-mounted
+            # file, so editing it is invisible to that check and the running
+            # process keeps serving its old, already-loaded config until told
+            # otherwise. Reload explicitly on every deploy so Caddyfile edits
+            # (like route/auth changes) actually take effect.
+            docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
             for i in $(seq 1 30); do
               if curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null; then
                 break

@@ -184,5 +184,12 @@ jobs:
               | grep -qx 'ok'
 
             docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod up -d --build api apps caddy
+            # `up -d` only recreates a container when the *service definition*
+            # changes (image, env, etc.) - caddy's Caddyfile is a bind-mounted
+            # file, so editing it is invisible to that check and the running
+            # process keeps serving its old, already-loaded config until told
+            # otherwise. Reload explicitly on every deploy so Caddyfile edits
+            # (like route/auth changes) actually take effect.
+            docker compose -p stamp-prod -f infra/docker/docker-compose.prod.yml --env-file .env.prod exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
             echo "Production deployed to https://${{ secrets.PROD_DOMAIN }}"
