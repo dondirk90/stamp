@@ -73,12 +73,6 @@
         margin: 0;
       }
 
-      .rewardLine {
-        margin: 0;
-        opacity: 0.82;
-        font-size: 0.92rem;
-      }
-
       .poweredBy {
         display: flex;
         align-items: center;
@@ -261,8 +255,8 @@
       .submitBtn {
         margin-top: 4px;
         width: 100%;
-        background: var(--cafe-fg, var(--brand)) !important;
-        color: var(--cafe-bg, #fff) !important;
+        background: #000 !important;
+        color: #fff !important;
         border: none;
       }
 
@@ -296,7 +290,6 @@
         <img class="cafeLogo" id="cafeLogo" alt="" style="display: none" />
         <div class="cafeLogo fallback" id="cafeLogoFallback">☕</div>
         <p class="cafeName" id="cafeName">Kaffeekarte</p>
-        <p class="rewardLine" id="rewardLine"></p>
       </div>
 
       <div class="sheetBody">
@@ -410,7 +403,6 @@
         var cafeAddress = (params.get("cafe") || "").trim();
 
         var cafeNameEl = document.getElementById("cafeName");
-        var rewardLineEl = document.getElementById("rewardLine");
         var cafeLogoEl = document.getElementById("cafeLogo");
         var cafeLogoFallbackEl = document.getElementById("cafeLogoFallback");
         var form = document.getElementById("joinForm");
@@ -466,7 +458,7 @@
 
         if (!cafeAddress) {
           cafeNameEl.textContent = "Café nicht gefunden";
-          rewardLineEl.textContent =
+          statusMsg.textContent =
             "Dieser Link ist nicht vollständig. Bitte den QR-Code erneut scannen.";
           submitBtn.disabled = true;
           return;
@@ -488,11 +480,6 @@
 
             cafeNameEl.textContent = cafe.name || "Kaffeekarte";
             document.title = (cafe.name || "Kaffeekarte") + " – Stempelkarte holen";
-
-            var threshold = (cafe.program && cafe.program.stampsForReward) || 10;
-            rewardLineEl.textContent =
-              (cafe.program && cafe.program.rewardDescription) ||
-              "Jeder " + threshold + ". Kaffee gratis";
 
             if (cafe.logoDataUrl) {
               cafeLogoEl.src = cafe.logoDataUrl;
