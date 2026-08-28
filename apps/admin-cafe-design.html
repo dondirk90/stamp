@@ -198,6 +198,22 @@
       .hidden {
         display: none !important;
       }
+
+      #standeeLink {
+        display: block;
+        margin-top: 12px;
+        font-weight: 600;
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      #standeeLink:hover {
+        text-decoration: underline;
+      }
+
+      #standeeLink.hidden {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
@@ -215,6 +231,9 @@
           <label for="cafeSelect">Café auswählen</label>
           <select id="cafeSelect"></select>
         </div>
+        <a id="standeeLink" class="hint hidden" href="#" target="_blank" rel="noopener"
+          >Aufsteller für dieses Café öffnen →</a
+        >
       </div>
 
       <div class="card hidden" id="formCard">
@@ -299,6 +318,7 @@
           formCard: document.getElementById("formCard"),
           loadStatus: document.getElementById("loadStatus"),
           cafeSelect: document.getElementById("cafeSelect"),
+          standeeLink: document.getElementById("standeeLink"),
           logoInput: document.getElementById("logoInput"),
           logoPreview: document.getElementById("logoPreview"),
           themeGrid: document.getElementById("themeGrid"),
@@ -385,6 +405,16 @@
             });
         }
 
+        function updateStandeeLink(cafeAddress) {
+          if (!cafeAddress) {
+            refs.standeeLink.classList.add("hidden");
+            return;
+          }
+          refs.standeeLink.href =
+            "/aufsteller?cafeAddress=" + encodeURIComponent(cafeAddress);
+          refs.standeeLink.classList.remove("hidden");
+        }
+
         function loadCafeProfile(cafeId) {
           return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile")
             .then(function (res) {
@@ -395,6 +425,7 @@
             .then(function (result) {
               if (!result.ok) throw new Error("Café konnte nicht geladen werden.");
               var cafe = result.data.cafe;
+              updateStandeeLink(cafe.address);
               state.pendingLogoDataUrl = undefined;
               state.selectedTheme = cafe.cardTheme || "paper";
               var presetColors = themeHex(state.selectedTheme);
