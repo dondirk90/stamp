@@ -28,6 +28,7 @@ const os = require("os");
 const jwt = require("jsonwebtoken");
 const jwksRsa = require("jwks-rsa");
 const walletPass = require("./wallet-pass.cjs");
+const googleWalletPass = require("./google-wallet-pass.cjs");
 
 const { z } = require("zod");
 
@@ -1245,6 +1246,22 @@ CREATE TABLE IF NOT EXISTS wallet_registrations (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_registrations_device_serial ON wallet_registrations(device_library_identifier, serial_number);
 CREATE INDEX IF NOT EXISTS idx_wallet_registrations_serial ON wallet_registrations(serial_number);
+
+-- Google Wallet is much simpler than Apple's setup: no device push-token
+-- registry needed, Google syncs REST-API patches to the device on its own.
+-- This just tracks which (customer, cafe) pairs actually have a card, so we
+-- know who to patch on stamp events / cafe profile changes.
+CREATE TABLE IF NOT EXISTS google_wallet_objects (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  object_id TEXT UNIQUE NOT NULL,
+  customer_address TEXT NOT NULL,
+  cafe_id INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_google_wallet_objects_customer_cafe ON google_wallet_objects(customer_address, cafe_id);
 `);
 }
 
@@ -1676,6 +1693,85 @@ async function notifyWalletPassesForCafe(cafeId) {
   } catch (err) {
     console.warn("Failed to notify wallet passes for cafe:", err.message || err);
   }
+}
+
+// --- Google Wallet loyalty objects (Android) ---
+// No device push-token registry needed here, unlike Apple - this table just
+// tracks which (customer, cafe) pairs actually have a card, so stamp events
+// know who's worth patching instead of firing a REST call on every event.
+const getGoogleWalletObjectByCustomerCafe = db.prepare(
+  "SELECT * FROM google_wallet_objects WHERE customer_address = ? AND cafe_id = ?",
+);
+const insertGoogleWalletObject = db.prepare(
+  "INSERT INTO google_wallet_objects (object_id, customer_address, cafe_id, updated_at, created_at) VALUES (?, ?, ?, ?, ?)",
+);
+const touchGoogleWalletObjectUpdatedAt = db.prepare(
+  "UPDATE google_wallet_objects SET updated_at = ? WHERE object_id = ?",
+);
+
+async function getOrCreateGoogleWalletObject(customerAddress, cafeId, objectId) {
+  const existing = await getGoogleWalletObjectByCustomerCafe.get(
+    customerAddress,
+    cafeId,
+  );
+  if (existing) return existing;
+
+  const now = Date.now();
+  try {
+    await insertGoogleWalletObject.run(objectId, customerAddress, cafeId, now, now);
+  } catch (err) {
+    // Concurrent first-issue race: someone else just created the same
+    // (customer, cafe) object row. Fall back to reading it instead of failing.
+    const raceWinner = await getGoogleWalletObjectByCustomerCafe.get(
+      customerAddress,
+      cafeId,
+    );
+    if (raceWinner) return raceWinner;
+    throw err;
+  }
+  return { object_id: objectId, customer_address: customerAddress, cafe_id: cafeId, updated_at: now, created_at: now };
+}
+
+async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
+  try {
+    if (!googleWalletPass.isGoogleWalletConfigured()) return;
+    const cafeRow = await db
+      .prepare("SELECT * FROM cafes WHERE LOWER(address) = LOWER(?)")
+      .get(cafeAddress);
+    if (!cafeRow) return;
+    const objectRow = await getGoogleWalletObjectByCustomerCafe.get(
+      customerAddress,
+      cafeRow.id,
+    );
+    if (!objectRow) return; // Customer never added this card to Google Wallet.
+    const customerRow = await getCustomerByAddress.get(customerAddress);
+    const stampCount = await getCurrentCardStampsByCafeUser(cafeAddress, customerAddress);
+    const program = getCafeProgramSettings(cafeRow);
+    await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
+    await googleWalletPass.patchLoyaltyObjectStamps({
+      cafeRow,
+      program,
+      stampCount,
+      customerAddress,
+      customerName: customerRow ? customerRow.username : null,
+      barcodeMessage: buildCafeScannerLink(
+        customerAddress,
+        customerRow ? customerRow.username : null,
+        cafeAddress,
+      ),
+    });
+  } catch (err) {
+    console.warn("Failed to notify Google Wallet pass update:", err.message || err);
+  }
+}
+
+// Cafe profile edits live entirely on the loyalty class, which every
+// customer's object references - one patch covers everyone, no per-customer
+// loop needed (unlike Apple's per-device push fan-out).
+async function notifyGoogleWalletClassForCafe(cafeRow) {
+  if (!googleWalletPass.isGoogleWalletConfigured()) return;
+  const appsBaseUrl = process.env.APPS_BASE_URL || "";
+  await googleWalletPass.patchLoyaltyClassForCafe(cafeRow, appsBaseUrl);
 }
 
 function buildCafeScannerLink(customerAddress, customerName, cafeAddress) {
@@ -2444,6 +2540,7 @@ app.post("/stamp", async (req, res) => {
     };
     await insertEvent.run(ev);
     notifyWalletPassUpdated(ev.user, ev.cafe);
+    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -2519,6 +2616,7 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
     };
     await insertEvent.run(ev);
     notifyWalletPassUpdated(ev.user, ev.cafe);
+    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -2669,6 +2767,7 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
 
     await insertEvent.run(ev);
     notifyWalletPassUpdated(ev.user, ev.cafe);
+    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
     const result = { ev, currentStamps, localTx };
 
     try {
@@ -2800,6 +2899,7 @@ app.post("/reset-card", requireCafeAuth, async (req, res) => {
 
     await insertEvent.run(ev);
     notifyWalletPassUpdated(ev.user, ev.cafe);
+    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
     try {
       broadcastEvent(ev);
     } catch (e) {}
@@ -3359,6 +3459,7 @@ async function applyCafeProfileUpdate(current, body) {
     notifyWalletPassesForCafe(current.id);
 
     const updated = await getCafeById.get(current.id);
+    notifyGoogleWalletClassForCafe(updated);
     const updatedProgram = getCafeProgramSettings(updated);
     return {
       ok: true,
@@ -5311,6 +5412,77 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
   } catch (err) {
     console.error("Error generating wallet pass:", err);
     res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// --- Google Wallet (Android) ---
+// Not a downloadable file like Apple's .pkpass - just a signed "save" link
+// that Google resolves into a Wallet card the first time the customer taps
+// it. Returns JSON (not a redirect) so the frontend can wire it to a button.
+app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) => {
+  try {
+    if (!googleWalletPass.isGoogleWalletConfigured()) {
+      return res.status(501).json({ error: "google_wallet_not_configured" });
+    }
+
+    const rawAddress = req.params?.customerAddress || "";
+    if (!/^0x[0-9a-f]{40}$/i.test(rawAddress)) {
+      return res.status(400).json({ error: "invalid_customer_address" });
+    }
+    const cafeAddress = String(req.query?.cafe || "").trim();
+    if (!/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+      return res.status(400).json({ error: "invalid_cafe_address" });
+    }
+
+    const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+    if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
+
+    const customerRow = await getCustomerByAddress.get(rawAddress);
+    const stampCount = await getCurrentCardStampsByCafeUser(
+      cafeAddress,
+      rawAddress,
+    );
+    const program = getCafeProgramSettings(cafeRow);
+
+    const { saveUrl, objectId } = googleWalletPass.buildSaveLink({
+      cafeRow,
+      program,
+      stampCount,
+      customerAddress: rawAddress,
+      customerName: customerRow?.username || null,
+      barcodeMessage: buildCafeScannerLink(
+        rawAddress,
+        customerRow?.username,
+        cafeAddress,
+      ),
+      appsBaseUrl: process.env.APPS_BASE_URL || "",
+    });
+
+    await getOrCreateGoogleWalletObject(rawAddress, cafeRow.id, objectId);
+
+    res.json({ ok: true, saveUrl });
+  } catch (err) {
+    console.error("Error building Google Wallet save link:", err);
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// Public, unauthenticated - Google's servers fetch this URL directly when
+// rendering a loyalty class's logo, so it can't sit behind cafe auth.
+app.get("/cafes/:cafeId/logo.png", async (req, res) => {
+  try {
+    const cafeId = Number(req.params.cafeId);
+    if (!Number.isFinite(cafeId)) return res.status(400).end();
+    const cafeRow = await getCafeById.get(cafeId);
+    if (!cafeRow || !cafeRow.logo_data || !cafeRow.logo_mime) {
+      return res.status(404).end();
+    }
+    res.setHeader("Content-Type", cafeRow.logo_mime);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.send(Buffer.from(cafeRow.logo_data, "base64"));
+  } catch (err) {
+    console.error("Error serving cafe logo:", err);
+    res.status(500).end();
   }
 });
 

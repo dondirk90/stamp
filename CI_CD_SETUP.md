@@ -175,6 +175,9 @@ Production (rest):
 - `APPLE_TEAM_ID`, `APPLE_SERVICES_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_BASE64`
   (used to write `.env.prod`, not validated as required by the workflow's own
   secret check, but needed for Sign in with Apple to work in prod)
+- `GOOGLE_WALLET_ISSUER_ID`, `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64`
+  (Google Wallet loyalty cards for Android - Issuer account from
+  pay.google.com/business/console, service account JSON key base64-encoded)
 - `ADMIN_TOKEN`, `ADMIN_BASIC_USER`, `ADMIN_BASIC_HASH`
 
 Native app builds (Android, both apps share these):

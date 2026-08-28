@@ -408,4 +408,8 @@ module.exports = {
   isWalletConfigured,
   generateSignedPass,
   sendPassUpdatePush,
+  // Reused by google-wallet-pass.cjs so both wallets resolve a cafe's card
+  // color the same way instead of duplicating the preset table.
+  CARD_THEME_COLORS,
+  resolveThemeColors,
 };
