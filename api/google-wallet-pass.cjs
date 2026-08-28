@@ -209,7 +209,19 @@ function buildLoyaltyObjectPayload({
     imageModulesData: [
       { id: "stamps", mainImage: { sourceUri: { uri: stampStripUri } } },
     ],
+    // Cafe-specific info first (only when set), the always-present
+    // boilerplate (counts already visible on the card front anyway, terms)
+    // last - same ordering rationale as the Apple pass's backFields.
     textModulesData: [
+      ...(cafeRow.card_back_text
+        ? [{ id: "info", header: "Info", body: cafeRow.card_back_text }]
+        : []),
+      ...(cafeRow.website_url
+        ? [{ id: "cafeWebsite", header: "Website", body: cafeRow.website_url }]
+        : []),
+      ...(cafeRow.instagram_url
+        ? [{ id: "cafeInstagram", header: "Instagram", body: cafeRow.instagram_url }]
+        : []),
       { id: "remaining", header: "Bis zum Gratis-Kaffee", body: remainingLine },
       {
         id: "terms",

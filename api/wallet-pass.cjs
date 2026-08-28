@@ -242,7 +242,33 @@ function buildPassJson({
   const remainingLine =
     remaining <= 0 ? "Prämie verfügbar!" : `noch ${remaining}`;
 
-  const backFields = [
+  // Cafe-specific, actually interesting info first (only shown when a cafe
+  // has set it); the always-present boilerplate (stamp counts already
+  // visible on the card front anyway, terms, legal links) reads more like
+  // small print, so it goes last.
+  const backFields = [];
+
+  if (cardBackText) {
+    backFields.push({ key: "info", label: "Info", value: cardBackText });
+  }
+
+  if (cafeWebsiteUrl) {
+    backFields.push({
+      key: "cafeWebsite",
+      label: "Website",
+      value: cafeWebsiteUrl,
+    });
+  }
+
+  if (cafeInstagramUrl) {
+    backFields.push({
+      key: "cafeInstagram",
+      label: "Instagram",
+      value: cafeInstagramUrl,
+    });
+  }
+
+  backFields.push(
     {
       key: "earned",
       label: "Gesammelte Stempel",
@@ -273,29 +299,6 @@ function buildPassJson({
       label: "Datenschutzerklärung",
       value: "https://kaffeekarte.app/datenschutz",
     },
-  ];
-
-  if (cardBackText) {
-    backFields.push({ key: "info", label: "Info", value: cardBackText });
-  }
-
-  if (cafeWebsiteUrl) {
-    backFields.push({
-      key: "cafeWebsite",
-      label: "Website",
-      value: cafeWebsiteUrl,
-    });
-  }
-
-  if (cafeInstagramUrl) {
-    backFields.push({
-      key: "cafeInstagram",
-      label: "Instagram",
-      value: cafeInstagramUrl,
-    });
-  }
-
-  backFields.push(
     {
       key: "poweredBy",
       label: "Anbieter",
