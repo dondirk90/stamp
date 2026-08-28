@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kaffeekarte – Stempelkarte holen</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--background, var(--color-background));
+        color: var(--text);
+        font-family: var(--font-sans);
+        padding: 24px 16px;
+      }
+
+      .sheet {
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px 24px 24px;
+        box-shadow: 0 24px 60px rgba(23, 21, 19, 0.1);
+      }
+
+      .cafeHead {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 4px;
+      }
+
+      .cafeLogo {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        background: var(--color-surface-elevated, #fff);
+        flex: none;
+      }
+
+      .cafeLogo.fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        color: var(--brand);
+      }
+
+      .cafeName {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .rewardLine {
+        margin: 2px 0 20px;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        line-height: 1.2;
+        margin: 0 0 6px;
+      }
+
+      .lede {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        margin: 0 0 22px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .field input[type="text"],
+      .field input[type="email"],
+      .field input[type="password"] {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 13px;
+        font-size: 1rem;
+        font-family: inherit;
+        background: var(--color-surface-elevated, #fff);
+        color: var(--text);
+      }
+
+      .field input:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 1px;
+      }
+
+      .legalChecks {
+        display: grid;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--brand);
+      }
+
+      .legalCheck a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .submitBtn {
+        margin-top: 6px;
+        width: 100%;
+      }
+
+      .statusMsg {
+        min-height: 1.2em;
+        font-size: 0.88rem;
+        color: var(--color-error);
+      }
+
+      .statusMsg[data-ok="true"] {
+        color: var(--color-success);
+      }
+
+      .fallbackLink {
+        display: none;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      .fallbackLink a {
+        color: var(--brand);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <div class="cafeHead">
+        <img class="cafeLogo" id="cafeLogo" alt="" style="display: none" />
+        <div class="cafeLogo fallback" id="cafeLogoFallback">☕</div>
+        <p class="cafeName" id="cafeName">Kaffeekarte</p>
+      </div>
+      <p class="rewardLine" id="rewardLine"></p>
+
+      <h1>Deine Stempelkarte, direkt in der Wallet</h1>
+      <p class="lede">
+        Kurz anmelden – die Karte landet danach direkt in deiner Apple
+        Wallet. Keine App nötig.
+      </p>
+
+      <form id="joinForm" novalidate>
+        <div class="field">
+          <label for="username">Name</label>
+          <input id="username" type="text" autocomplete="name" required />
+        </div>
+        <div class="field">
+          <label for="email">E-Mail</label>
+          <input id="email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="password">Passwort</label>
+          <input
+            id="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required
+          />
+        </div>
+
+        <div class="legalChecks">
+          <label class="legalCheck" for="acceptPrivacy">
+            <input type="checkbox" id="acceptPrivacy" />
+            <span
+              >Ich habe die
+              <a href="/datenschutz" target="_blank" rel="noreferrer"
+                >Datenschutzerklärung</a
+              >
+              gelesen.</span
+            >
+          </label>
+          <label class="legalCheck" for="acceptTerms">
+            <input type="checkbox" id="acceptTerms" />
+            <span
+              >Ich akzeptiere die
+              <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von
+              Kaffeekarte.</span
+            >
+          </label>
+        </div>
+
+        <button class="btn primary submitBtn" type="submit" id="submitBtn">
+          Stempelkarte holen
+        </button>
+        <p class="statusMsg" id="statusMsg"></p>
+      </form>
+
+      <p class="fallbackLink" id="fallbackLink">
+        Läuft bei dir nicht automatisch weiter?
+        <a href="#" id="fallbackLinkHref">Stempelkarte im Browser öffnen</a>
+      </p>
+    </main>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var cafeAddress = (params.get("cafe") || "").trim();
+
+        var cafeNameEl = document.getElementById("cafeName");
+        var rewardLineEl = document.getElementById("rewardLine");
+        var cafeLogoEl = document.getElementById("cafeLogo");
+        var cafeLogoFallbackEl = document.getElementById("cafeLogoFallback");
+        var form = document.getElementById("joinForm");
+        var submitBtn = document.getElementById("submitBtn");
+        var statusMsg = document.getElementById("statusMsg");
+        var fallbackLink = document.getElementById("fallbackLink");
+        var fallbackLinkHref = document.getElementById("fallbackLinkHref");
+
+        var ERROR_MESSAGES = {
+          invalid_username: "Bitte einen Namen eingeben.",
+          invalid_email: "Bitte eine gültige E-Mail-Adresse eingeben.",
+          invalid_password: "Das Passwort braucht mindestens 6 Zeichen.",
+          privacy_consent_required: "Bitte die Datenschutzerklärung bestätigen.",
+          terms_consent_required: "Bitte die AGB bestätigen.",
+          email_already_registered:
+            "Diese E-Mail ist schon registriert. Bitte in der Kaffeekarte-App anmelden.",
+          email_verification_pending:
+            "Für diese E-Mail läuft schon eine Registrierung – bitte den Bestätigungslink in deinem Postfach nutzen.",
+        };
+
+        function isIOS() {
+          return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+        }
+
+        function walletPassUrl(customerAddress) {
+          return (
+            "/api/customers/" +
+            encodeURIComponent(customerAddress) +
+            "/wallet-pass?cafe=" +
+            encodeURIComponent(cafeAddress)
+          );
+        }
+
+        if (!cafeAddress) {
+          cafeNameEl.textContent = "Café nicht gefunden";
+          rewardLineEl.textContent =
+            "Dieser Link ist nicht vollständig. Bitte den QR-Code erneut scannen.";
+          submitBtn.disabled = true;
+          return;
+        }
+
+        fetch("/api/cafes/public")
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (data) {
+            var cafes = (data && data.cafes) || [];
+            var cafe = cafes.find(function (c) {
+              return (
+                String(c.cafeAddress || "").toLowerCase() ===
+                cafeAddress.toLowerCase()
+              );
+            });
+            if (!cafe) return;
+
+            cafeNameEl.textContent = cafe.name || "Kaffeekarte";
+            document.title = (cafe.name || "Kaffeekarte") + " – Stempelkarte holen";
+
+            var threshold = (cafe.program && cafe.program.stampsForReward) || 10;
+            rewardLineEl.textContent =
+              (cafe.program && cafe.program.rewardDescription) ||
+              "Jeder " + threshold + ". Kaffee gratis";
+
+            if (cafe.logoDataUrl) {
+              cafeLogoEl.src = cafe.logoDataUrl;
+              cafeLogoEl.style.display = "block";
+              cafeLogoFallbackEl.style.display = "none";
+            }
+          })
+          .catch(function () {
+            /* Café-Infos sind nur Deko - Formular funktioniert auch ohne. */
+          });
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          statusMsg.textContent = "";
+          statusMsg.removeAttribute("data-ok");
+
+          var username = document.getElementById("username").value.trim();
+          var email = document.getElementById("email").value.trim();
+          var password = document.getElementById("password").value;
+          var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
+          var acceptTerms = document.getElementById("acceptTerms").checked;
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Einen Moment …";
+
+          fetch("/api/customers/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username,
+              email: email,
+              password: password,
+              acceptPrivacy: acceptPrivacy,
+              acceptTerms: acceptTerms,
+            }),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.address) {
+                var code = result.data && result.data.error;
+                throw new Error(ERROR_MESSAGES[code] || "Registrierung fehlgeschlagen. Bitte erneut versuchen.");
+              }
+
+              var address = result.data.address;
+              statusMsg.setAttribute("data-ok", "true");
+              statusMsg.textContent = "Fertig! Deine Stempelkarte wird geöffnet …";
+
+              var passUrl = walletPassUrl(address);
+              if (isIOS()) {
+                fallbackLink.style.display = "block";
+                fallbackLinkHref.href = passUrl;
+                window.location.href = passUrl;
+              } else {
+                window.location.href = "/wallet";
+              }
+            })
+            .catch(function (err) {
+              statusMsg.textContent = err.message || "Registrierung fehlgeschlagen.";
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Stempelkarte holen";
+            });
+        });
+      })();
+    </script>
+  </body>
+</html>
