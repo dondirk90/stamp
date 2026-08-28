@@ -36,10 +36,10 @@
       }
 
       .toolbar {
-        max-width: 900px;
+        max-width: 1080px;
         margin: 0 auto 18px;
         display: grid;
-        grid-template-columns: 1.3fr 1fr auto;
+        grid-template-columns: 1.1fr 0.85fr 0.95fr auto;
         gap: 12px;
         align-items: end;
       }
@@ -208,7 +208,11 @@
       .faceHeader {
         width: 100%;
         padding: 10mm 58mm 9mm;
-        background: var(--espresso-deep);
+        /* Falls ueber ?cafe=<adresse> eine individuelle Kartenfarbe geladen
+           wird, ueberschreibt das Skript unten nur diese beiden Variablen -
+           der Rest der Aufsteller-Gestaltung (Papierfarbe, Terracotta-Band)
+           bleibt einheitliches Kaffeekarte-Branding. */
+        background: var(--cafe-block-bg, var(--espresso-deep));
         display: grid;
         justify-items: center;
         text-align: center;
@@ -246,7 +250,7 @@
         letter-spacing: 0.34em;
         text-indent: 0.34em;
         text-transform: uppercase;
-        color: var(--paper);
+        color: var(--cafe-block-fg, var(--paper));
       }
 
       .claimBlock {
@@ -260,7 +264,7 @@
         font-size: 14.5pt;
         line-height: 1.08;
         letter-spacing: -0.02em;
-        color: var(--paper);
+        color: var(--cafe-block-fg, var(--paper));
         max-width: 80mm;
       }
 
@@ -275,8 +279,19 @@
         margin-top: 0.4mm;
         font-size: 7.6pt;
         line-height: 1.3;
-        color: rgba(247, 244, 239, 0.64);
+        color: var(--cafe-block-fg-soft, rgba(247, 244, 239, 0.64));
         max-width: 68mm;
+      }
+
+      /* Pfeil zwischen Espresso-Block und QR: kleine, bewusste Blickfuehrung
+         zur eigentlichen Aktion, kein zusaetzliches Wort noetig. */
+      .flowArrow {
+        width: 3.4mm;
+        height: 3.4mm;
+        margin-top: -0.6mm;
+        border-right: 1.4px solid var(--terracotta);
+        border-bottom: 1.4px solid var(--terracotta);
+        transform: rotate(45deg);
       }
 
       /* Der QR-Code ist der Star: eigener weisser Kartenkoerper, spuerbar
@@ -292,11 +307,27 @@
       }
 
       .qrLabel {
-        font-size: 9.5pt;
+        font-size: 9pt;
         font-weight: 800;
         letter-spacing: 0.07em;
         text-transform: uppercase;
+        color: #fff8f2;
+        background: var(--terracotta);
+        padding: 1.6mm 4mm;
+        border-radius: 999px;
+      }
+
+      /* Optional: eigener Reward-Text pro Cafe (Toolbar-Feld), macht aus der
+         Aufforderung ein konkretes Versprechen. Bleibt leer -> kein Platz
+         verschwendet, kein erfundener Standardtext. */
+      .qrReward {
+        font-family: var(--font-serif);
+        font-size: 9.5pt;
         color: var(--espresso-deep);
+      }
+
+      .qrReward:empty {
+        display: none;
       }
 
       .qrCard {
@@ -391,6 +422,10 @@
         <label for="cafeInput">Café-Name (optional)</label>
         <input id="cafeInput" type="text" placeholder="z. B. Café Impact" />
       </div>
+      <div class="field">
+        <label for="rewardInput">Prämie (optional)</label>
+        <input id="rewardInput" type="text" placeholder="z. B. Gratis Kaffee ab 10 Stempeln" />
+      </div>
       <div class="toolbarActions">
         <button class="btn secondary" type="button" id="updateBtn">Aktualisieren</button>
         <button class="btn primary" type="button" id="printBtn">Drucken</button>
@@ -426,8 +461,10 @@
         </div>
 
         <div class="faceInner">
+          <div class="flowArrow" aria-hidden="true"></div>
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
+            <div class="qrReward" data-reward-text></div>
             <div class="qrCard" data-qr-target></div>
           </div>
 
@@ -452,8 +489,10 @@
         </div>
 
         <div class="faceInner">
+          <div class="flowArrow" aria-hidden="true"></div>
           <div class="qrSection">
             <div class="qrLabel">Scannen &amp; sammeln</div>
+            <div class="qrReward" data-reward-text></div>
             <div class="qrCard" data-qr-target></div>
           </div>
 
@@ -476,10 +515,12 @@
         var defaultUrl = runtimeOrigin + "/get-app";
         var urlInput = document.getElementById("urlInput");
         var cafeInput = document.getElementById("cafeInput");
+        var rewardInput = document.getElementById("rewardInput");
         var updateBtn = document.getElementById("updateBtn");
         var printBtn = document.getElementById("printBtn");
         var qrTargets = Array.prototype.slice.call(document.querySelectorAll("[data-qr-target]"));
         var cafeLabels = Array.prototype.slice.call(document.querySelectorAll("[data-cafe-name]"));
+        var rewardLabels = Array.prototype.slice.call(document.querySelectorAll("[data-reward-text]"));
 
         function normalizeUrl(raw) {
           var value = String(raw || "").trim();
@@ -489,12 +530,14 @@
           return "https://" + value;
         }
 
-        function updateHistory(url, cafe) {
+        function updateHistory(url, cafe, reward) {
           if (!/^https?:/i.test(window.location.protocol)) return;
           var next = new URL(window.location.href);
           next.searchParams.set("url", url);
           if (cafe) next.searchParams.set("cafe", cafe);
           else next.searchParams.delete("cafe");
+          if (reward) next.searchParams.set("reward", reward);
+          else next.searchParams.delete("reward");
           window.history.replaceState({}, "", next.toString());
         }
 
@@ -534,6 +577,11 @@
         function render() {
           var finalUrl = normalizeUrl(urlInput.value);
           var cafeName = String(cafeInput.value || "").trim();
+          var rewardText = String(rewardInput.value || "").trim();
+
+          rewardLabels.forEach(function (label) {
+            label.textContent = rewardText;
+          });
 
           cafeLabels.forEach(function (label) {
             label.textContent = cafeName;
@@ -549,12 +597,75 @@
             }
           });
 
-          updateHistory(finalUrl, cafeName);
+          updateHistory(finalUrl, cafeName, rewardText);
           return Promise.all(qrPromises);
         }
 
         urlInput.value = normalizeUrl(params.get("url") || defaultUrl);
         cafeInput.value = params.get("cafe") || "";
+        rewardInput.value = params.get("reward") || "";
+
+        // ?cafeAddress=0x... (separate from the cosmetic ?cafe= name param)
+        // pulls the cafe's own chosen card color and, as a convenience,
+        // fills in name/reward/QR-target from its real profile - but only
+        // for fields that weren't already set explicitly via other params.
+        var cafeAddressParam = (params.get("cafeAddress") || "").trim();
+        if (cafeAddressParam) {
+          fetch("/api/cafes/public")
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              var cafes = (data && data.cafes) || [];
+              var found = cafes.find(function (c) {
+                return (
+                  String(c.cafeAddress || "").toLowerCase() ===
+                  cafeAddressParam.toLowerCase()
+                );
+              });
+              if (!found) return;
+
+              if (found.cardBgColor && found.cardFgColor) {
+                document.documentElement.style.setProperty(
+                  "--cafe-block-bg",
+                  found.cardBgColor,
+                );
+                document.documentElement.style.setProperty(
+                  "--cafe-block-fg",
+                  found.cardFgColor,
+                );
+                var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(
+                  found.cardFgColor,
+                );
+                if (m) {
+                  var r = parseInt(m[1], 16);
+                  var g = parseInt(m[2], 16);
+                  var b = parseInt(m[3], 16);
+                  document.documentElement.style.setProperty(
+                    "--cafe-block-fg-soft",
+                    "rgba(" + r + ", " + g + ", " + b + ", 0.64)",
+                  );
+                }
+              }
+
+              if (!params.get("cafe") && found.name) {
+                cafeInput.value = found.name;
+              }
+              if (!params.get("reward") && found.program && found.program.rewardDescription) {
+                rewardInput.value = found.program.rewardDescription;
+              }
+              if (!params.get("url")) {
+                urlInput.value = normalizeUrl(
+                  "/cafe-join?cafe=" + encodeURIComponent(cafeAddressParam),
+                );
+              }
+
+              render();
+            })
+            .catch(function () {
+              /* Kein Blocker - Aufsteller funktioniert auch ohne Cafe-Farbe. */
+            });
+        }
 
         updateBtn.addEventListener("click", render);
         printBtn.addEventListener("click", function () {
@@ -570,6 +681,10 @@
         });
 
         cafeInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") render();
+        });
+
+        rewardInput.addEventListener("keydown", function (event) {
           if (event.key === "Enter") render();
         });
 

@@ -4095,6 +4095,17 @@
       } catch (eBg) {}
     }
 
+    // A cafe's own custom hex colors (set via cafe-scanner-new.html or the
+    // admin design editor) override the data-pass-theme preset - same
+    // --pass-bg/--pass-ink variables, just set inline instead of by class,
+    // which wins on specificity without needing a 7th CSS theme block.
+    if (card && card.cardBgColor && /^#[0-9a-f]{6}$/i.test(card.cardBgColor)) {
+      passCard.style.setProperty("--pass-bg", card.cardBgColor);
+    }
+    if (card && card.cardFgColor && /^#[0-9a-f]{6}$/i.test(card.cardFgColor)) {
+      passCard.style.setProperty("--pass-ink", card.cardFgColor);
+    }
+
     var flip = document.createElement("div");
     flip.className = "passFlip";
 
@@ -5062,6 +5073,8 @@
               ? "clean"
               : (cafe && cafe.cardTheme) || "clean",
           logoDataUrl: cafe && cafe.logoDataUrl ? cafe.logoDataUrl : null,
+          cardBgColor: cafe && cafe.cardBgColor ? cafe.cardBgColor : null,
+          cardFgColor: cafe && cafe.cardFgColor ? cafe.cardFgColor : null,
           cardBackgroundDataUrl:
             cafe && cafe.cardBackgroundDataUrl
               ? cafe.cardBackgroundDataUrl

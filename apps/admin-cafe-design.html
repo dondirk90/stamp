@@ -120,6 +120,31 @@
         outline-offset: 1px;
       }
 
+      .colorPickers {
+        display: flex;
+        gap: 20px;
+        margin-top: 12px;
+      }
+
+      .colorPickerField {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
+      .colorPickerField input[type="color"] {
+        width: 40px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+      }
+
       .stampGrid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -204,8 +229,21 @@
         </div>
 
         <div class="field">
-          <label>Kartenfarbe</label>
+          <label
+            >Kartenfarbe
+            <span class="hint">(Vorlagen als Schnellauswahl, oder frei wählen)</span></label
+          >
           <div class="themeGrid" id="themeGrid"></div>
+          <div class="colorPickers">
+            <label class="colorPickerField">
+              <span>Hintergrund</span>
+              <input id="bgColorInput" type="color" />
+            </label>
+            <label class="colorPickerField">
+              <span>Text/Symbole</span>
+              <input id="fgColorInput" type="color" />
+            </label>
+          </div>
         </div>
 
         <div class="field">
@@ -264,6 +302,8 @@
           logoInput: document.getElementById("logoInput"),
           logoPreview: document.getElementById("logoPreview"),
           themeGrid: document.getElementById("themeGrid"),
+          bgColorInput: document.getElementById("bgColorInput"),
+          fgColorInput: document.getElementById("fgColorInput"),
           stampGrid: document.getElementById("stampGrid"),
           stampsForReward: document.getElementById("stampsForReward"),
           rewardDescription: document.getElementById("rewardDescription"),
@@ -280,6 +320,13 @@
           pendingLogoDataUrl: undefined, // undefined = unchanged
         };
 
+        function themeHex(themeId) {
+          var t = THEMES.filter(function (x) {
+            return x.id === themeId;
+          })[0];
+          return t || THEMES[0];
+        }
+
         function renderThemeGrid() {
           refs.themeGrid.innerHTML = "";
           THEMES.forEach(function (t) {
@@ -291,6 +338,8 @@
             el.textContent = t.label;
             el.addEventListener("click", function () {
               state.selectedTheme = t.id;
+              refs.bgColorInput.value = t.bg;
+              refs.fgColorInput.value = t.fg;
               renderThemeGrid();
             });
             refs.themeGrid.appendChild(el);
@@ -348,6 +397,9 @@
               var cafe = result.data.cafe;
               state.pendingLogoDataUrl = undefined;
               state.selectedTheme = cafe.cardTheme || "paper";
+              var presetColors = themeHex(state.selectedTheme);
+              refs.bgColorInput.value = cafe.cardBgColor || presetColors.bg;
+              refs.fgColorInput.value = cafe.cardFgColor || presetColors.fg;
               state.selectedStampStyle =
                 (cafe.program && cafe.program.stampStyle) || "bean";
               refs.stampsForReward.value =
@@ -414,6 +466,8 @@
 
           var body = {
             cardTheme: state.selectedTheme,
+            cardBgColor: refs.bgColorInput.value,
+            cardFgColor: refs.fgColorInput.value,
             stampStyle: state.selectedStampStyle,
             stampsForReward: Number(refs.stampsForReward.value) || 10,
             rewardDescription: refs.rewardDescription.value.trim(),

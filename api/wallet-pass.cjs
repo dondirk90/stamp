@@ -52,8 +52,16 @@ function hexToRgbString(hex) {
   return `rgb(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255})`;
 }
 
-function resolveThemeColors(cardTheme) {
-  return CARD_THEME_COLORS[cardTheme] || CARD_THEME_COLORS.paper;
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+// Custom hex colors (set via cafe-scanner-new.html or the admin design
+// editor) override the card_theme preset when present.
+function resolveThemeColors(cardTheme, customBg, customFg) {
+  const preset = CARD_THEME_COLORS[cardTheme] || CARD_THEME_COLORS.paper;
+  return {
+    bg: HEX_RE.test(customBg || "") ? customBg : preset.bg,
+    fg: HEX_RE.test(customFg || "") ? customFg : preset.fg,
+  };
 }
 
 // BOM/whitespace-stripped read, same as server.cjs's sanitizeEnv - GitHub
@@ -185,12 +193,14 @@ function buildPassJson({
   webServiceURL,
   cafeName,
   cardTheme,
+  cardBgColor,
+  cardFgColor,
   stampCount,
   threshold,
   cardBackText,
   barcodeMessage,
 }) {
-  const colors = resolveThemeColors(cardTheme);
+  const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
   const remainingLine =
@@ -267,8 +277,10 @@ async function generateSignedPass({
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
   const cardTheme = (cafeRow && cafeRow.card_theme) || "paper";
+  const cardBgColor = cafeRow && cafeRow.card_bg_color;
+  const cardFgColor = cafeRow && cafeRow.card_fg_color;
   const threshold = program.stampsForReward;
-  const colors = resolveThemeColors(cardTheme);
+  const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
 
   const passJson = buildPassJson({
     serialNumber,
@@ -276,6 +288,8 @@ async function generateSignedPass({
     webServiceURL,
     cafeName,
     cardTheme,
+    cardBgColor,
+    cardFgColor,
     stampCount,
     threshold,
     cardBackText: cafeRow && cafeRow.card_back_text,

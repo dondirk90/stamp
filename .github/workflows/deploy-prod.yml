@@ -180,6 +180,8 @@ jobs:
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'short_description')
                  AND to_regclass('public.wallet_passes') IS NOT NULL
                  AND to_regclass('public.wallet_registrations') IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'card_bg_color')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'card_fg_color')
                THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
 

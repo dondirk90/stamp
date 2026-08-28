@@ -1345,6 +1345,14 @@ runSqliteOnlyAlter(
   "Failed to add cafes.card_theme column:",
 );
 runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN card_bg_color TEXT",
+  "Failed to add cafes.card_bg_color column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN card_fg_color TEXT",
+  "Failed to add cafes.card_fg_color column:",
+);
+runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN stamp_style TEXT DEFAULT 'bean'",
   "Failed to add cafes.stamp_style column:",
 );
@@ -1766,7 +1774,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -2995,6 +3003,8 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         shortDescription: cafeRow.short_description || null,
         redeemMessage: cafeRow.redeem_message || null,
         cardTheme: cafeRow.card_theme || "paper",
+        cardBgColor: cafeRow.card_bg_color || null,
+        cardFgColor: cafeRow.card_fg_color || null,
         cardBackText: cafeRow.card_back_text || null,
         program: getCafeProgramSettings(cafeRow),
         logoDataUrl:
@@ -3180,6 +3190,34 @@ async function applyCafeProfileUpdate(current, body) {
       cardTheme = trimmed || "paper";
     }
 
+    // Custom colors override the preset when set; null/"" clears back to
+    // the preset. Kept separate from cardTheme so a cafe can still pick a
+    // preset as a starting point and fine-tune from there.
+    const hexColorRe = /^#[0-9a-f]{6}$/i;
+    let cardBgColor = current.card_bg_color || null;
+    if (Object.prototype.hasOwnProperty.call(body, "cardBgColor")) {
+      const raw = body.cardBgColor == null ? "" : String(body.cardBgColor).trim();
+      if (!raw) {
+        cardBgColor = null;
+      } else if (!hexColorRe.test(raw)) {
+        return { ok: false, status: 400, error: "invalid_card_bg_color" };
+      } else {
+        cardBgColor = raw.toLowerCase();
+      }
+    }
+
+    let cardFgColor = current.card_fg_color || null;
+    if (Object.prototype.hasOwnProperty.call(body, "cardFgColor")) {
+      const raw = body.cardFgColor == null ? "" : String(body.cardFgColor).trim();
+      if (!raw) {
+        cardFgColor = null;
+      } else if (!hexColorRe.test(raw)) {
+        return { ok: false, status: 400, error: "invalid_card_fg_color" };
+      } else {
+        cardFgColor = raw.toLowerCase();
+      }
+    }
+
     const allowedStampStyles = new Set(["cup", "bean", "star", "circle"]);
     let stampStyle = current.stamp_style || "bean";
     if (Object.prototype.hasOwnProperty.call(body, "stampStyle")) {
@@ -3268,6 +3306,8 @@ async function applyCafeProfileUpdate(current, body) {
       websiteUrl,
       instagramUrl,
       cardTheme,
+      cardBgColor,
+      cardFgColor,
       stampStyle,
       stampsForReward,
       rewardDescription,
@@ -3299,6 +3339,8 @@ async function applyCafeProfileUpdate(current, body) {
         shortDescription: updated.short_description || null,
         redeemMessage: updated.redeem_message || null,
         cardTheme: updated.card_theme || "paper",
+        cardBgColor: updated.card_bg_color || null,
+        cardFgColor: updated.card_fg_color || null,
         cardBackText: updated.card_back_text || null,
         program: updatedProgram,
         logoDataUrl:
@@ -3358,6 +3400,8 @@ app.get("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
       name: current.name || null,
       address: current.address || null,
       cardTheme: current.card_theme || "paper",
+      cardBgColor: current.card_bg_color || null,
+      cardFgColor: current.card_fg_color || null,
       cardBackText: current.card_back_text || null,
       program,
       logoDataUrl:
@@ -4857,7 +4901,7 @@ app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
@@ -4882,6 +4926,8 @@ app.get("/cafes/public", async (req, res) => {
               ? `data:${row.logo_mime};base64,${row.logo_data}`
               : null,
           cardTheme: row.card_theme || "paper",
+          cardBgColor: row.card_bg_color || null,
+          cardFgColor: row.card_fg_color || null,
           cardBackText: row.card_back_text || null,
           program: {
             stampsForReward:
@@ -4916,7 +4962,7 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
@@ -4952,6 +4998,8 @@ app.get("/cafes/public/:id", async (req, res) => {
           : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
+        cardBgColor: row.card_bg_color || null,
+        cardFgColor: row.card_fg_color || null,
         cardBackText: row.card_back_text || null,
         program: {
           stampsForReward:
