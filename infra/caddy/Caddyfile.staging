@@ -7,7 +7,7 @@
     Referrer-Policy strict-origin-when-cross-origin
   }
 
-  @adminUi path /admin-dashboard.html
+  @adminUi path /admin-dashboard.html /admin-cafe-design.html
   handle @adminUi {
     basic_auth {
       {$ADMIN_BASIC_USER} {$ADMIN_BASIC_HASH}

@@ -3023,21 +3023,11 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   }
 });
 
-// Update cafe public profile (about text + logo) for the logged-in cafe
-app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
+// Shared by the cafe's own profile editor (PUT /cafes/me/profile) and the
+// admin override (PUT /admin/cafes/:cafeId/profile) - same fields, same
+// validation, only the auth/lookup around it differs.
+async function applyCafeProfileUpdate(current, body) {
   try {
-    const cafeRow = req.cafe;
-    if (!cafeRow || cafeRow.id == null) {
-      return res.status(500).json({ error: "missing_cafe_context" });
-    }
-
-    const current = await getCafeById.get(cafeRow.id);
-    if (!current) {
-      return res.status(404).json({ error: "cafe_not_found" });
-    }
-
-    const body = req.body || {};
-
     let locationAddress = current.location_address || null;
     if (Object.prototype.hasOwnProperty.call(body, "locationAddress")) {
       const raw =
@@ -3115,7 +3105,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
             s,
           );
         if (!m) {
-          return res.status(400).json({ error: "invalid_logo_format" });
+          return { ok: false, status: 400, error: "invalid_logo_format" };
         }
         const mime =
           m[1].toLowerCase() === "image/jpg"
@@ -3125,7 +3115,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
 
         // Rough size guard: base64 chars ~ 4/3 bytes
         if (base64.length > 300_000) {
-          return res.status(413).json({ error: "logo_too_large" });
+          return { ok: false, status: 413, error: "logo_too_large" };
         }
 
         logoMime = mime;
@@ -3147,7 +3137,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
             s,
           );
         if (!m) {
-          return res.status(400).json({ error: "invalid_card_bg_format" });
+          return { ok: false, status: 400, error: "invalid_card_bg_format" };
         }
         const mime =
           m[1].toLowerCase() === "image/jpg"
@@ -3157,7 +3147,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
 
         // Rough size guard: base64 chars ~ 4/3 bytes
         if (base64.length > 650_000) {
-          return res.status(413).json({ error: "card_bg_too_large" });
+          return { ok: false, status: 413, error: "card_bg_too_large" };
         }
 
         cardBgMime = mime;
@@ -3185,7 +3175,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       const raw = body.cardTheme == null ? "" : String(body.cardTheme);
       const trimmed = raw.trim().toLowerCase();
       if (trimmed && !allowedCardThemes.has(trimmed)) {
-        return res.status(400).json({ error: "invalid_card_theme" });
+        return { ok: false, status: 400, error: "invalid_card_theme" };
       }
       cardTheme = trimmed || "paper";
     }
@@ -3196,7 +3186,7 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       const raw = body.stampStyle == null ? "" : String(body.stampStyle);
       const trimmed = raw.trim().toLowerCase();
       if (trimmed && !allowedStampStyles.has(trimmed)) {
-        return res.status(400).json({ error: "invalid_stamp_style" });
+        return { ok: false, status: 400, error: "invalid_stamp_style" };
       }
       stampStyle = trimmed || "bean";
     }
@@ -3288,13 +3278,14 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
       popupAlmostRewardRemaining,
       popupAlmostRewardMessage,
       now,
-      cafeRow.id,
+      current.id,
     );
 
-    const updated = await getCafeById.get(cafeRow.id);
+    const updated = await getCafeById.get(current.id);
     const updatedProgram = getCafeProgramSettings(updated);
-    res.json({
+    return {
       ok: true,
+      status: 200,
       cafe: {
         id: updated.id,
         name: updated.name || null,
@@ -3321,13 +3312,75 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
         updatedAt:
           updated.updated_at != null ? Number(updated.updated_at) : null,
       },
-    });
+    };
   } catch (err) {
-    console.error("Error in PUT /cafes/me/profile:", err);
-    res
-      .status(500)
-      .json({ error: String(err && err.message ? err.message : err) });
+    console.error("Error in applyCafeProfileUpdate:", err);
+    return {
+      ok: false,
+      status: 500,
+      error: String(err && err.message ? err.message : err),
+    };
   }
+}
+
+app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
+  const cafeRow = req.cafe;
+  if (!cafeRow || cafeRow.id == null) {
+    return res.status(500).json({ error: "missing_cafe_context" });
+  }
+  const current = await getCafeById.get(cafeRow.id);
+  if (!current) {
+    return res.status(404).json({ error: "cafe_not_found" });
+  }
+  const result = await applyCafeProfileUpdate(current, req.body || {});
+  return res.status(result.status).json(
+    result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
+  );
+});
+
+// Admin override for cafes that don't want to configure their own design -
+// same fields/validation as the cafe's own editor, just authenticated with
+// the admin key instead of a cafe session.
+app.get("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
+  const cafeId = Number(req.params.cafeId);
+  if (!Number.isFinite(cafeId)) {
+    return res.status(400).json({ error: "invalid_cafe_id" });
+  }
+  const current = await getCafeById.get(cafeId);
+  if (!current) {
+    return res.status(404).json({ error: "cafe_not_found" });
+  }
+  const program = getCafeProgramSettings(current);
+  return res.json({
+    ok: true,
+    cafe: {
+      id: current.id,
+      name: current.name || null,
+      address: current.address || null,
+      cardTheme: current.card_theme || "paper",
+      cardBackText: current.card_back_text || null,
+      program,
+      logoDataUrl:
+        current.logo_data && current.logo_mime
+          ? `data:${current.logo_mime};base64,${current.logo_data}`
+          : null,
+    },
+  });
+});
+
+app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
+  const cafeId = Number(req.params.cafeId);
+  if (!Number.isFinite(cafeId)) {
+    return res.status(400).json({ error: "invalid_cafe_id" });
+  }
+  const current = await getCafeById.get(cafeId);
+  if (!current) {
+    return res.status(404).json({ error: "cafe_not_found" });
+  }
+  const result = await applyCafeProfileUpdate(current, req.body || {});
+  return res.status(result.status).json(
+    result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
+  );
 });
 
 // Manage optional cafe gallery images

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kaffeekarte Admin – Kartendesign</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--background, var(--color-background));
+        color: var(--text);
+        font-family: var(--font-sans);
+        padding: 32px 16px 60px;
+      }
+
+      .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: 1.7rem;
+        margin: 0 0 4px;
+      }
+
+      .sub {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        margin: 0 0 24px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px;
+        margin-bottom: 18px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .field:last-child {
+        margin-bottom: 0;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .field .hint {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      .field input[type="text"],
+      .field input[type="password"],
+      .field input[type="number"],
+      .field select,
+      .field textarea {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: var(--color-surface-elevated, #fff);
+        color: var(--text);
+      }
+
+      .field textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+
+      .logoRow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logoPreview {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        object-fit: cover;
+        background: var(--color-surface-elevated, #fff);
+        display: none;
+      }
+
+      .themeGrid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .themeSwatch {
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 8px;
+        text-align: center;
+        font-size: 0.76rem;
+        cursor: pointer;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+      }
+
+      .themeSwatch.selected {
+        border-color: var(--brand);
+        outline: 2px solid var(--brand);
+        outline-offset: 1px;
+      }
+
+      .stampGrid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .stampOption {
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 4px;
+        text-align: center;
+        font-size: 1.3rem;
+        cursor: pointer;
+        background: var(--color-surface-elevated, #fff);
+      }
+
+      .stampOption.selected {
+        border-color: var(--brand);
+        outline: 2px solid var(--brand);
+        outline-offset: 1px;
+      }
+
+      .stampOption .lbl {
+        display: block;
+        font-size: 0.7rem;
+        margin-top: 4px;
+        color: var(--text-muted);
+      }
+
+      .row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .saveBtn {
+        width: 100%;
+      }
+
+      .statusMsg {
+        min-height: 1.2em;
+        margin-top: 12px;
+        font-size: 0.88rem;
+        color: var(--color-error);
+      }
+
+      .statusMsg[data-ok="true"] {
+        color: var(--color-success);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Kartendesign (Admin)</h1>
+      <p class="sub">
+        Für Cafés, die ihr eigenes Kartendesign nicht selbst einrichten
+        möchten – hier direkt für sie übernehmen.
+      </p>
+
+      <div class="card" id="keyCard">
+        <div class="field">
+          <label for="adminKeyInput">Admin-Key</label>
+          <input id="adminKeyInput" type="password" autocomplete="off" />
+        </div>
+        <button class="btn primary" id="keyBtn" type="button">
+          Weiter
+        </button>
+      </div>
+
+      <div class="card hidden" id="pickCard">
+        <div class="field">
+          <label for="cafeSelect">Café auswählen</label>
+          <select id="cafeSelect"></select>
+        </div>
+      </div>
+
+      <div class="card hidden" id="formCard">
+        <div class="field">
+          <label for="logoInput"
+            >Logo <span class="hint">(quadratisch wirkt am besten)</span></label
+          >
+          <div class="logoRow">
+            <img class="logoPreview" id="logoPreview" alt="" />
+            <input id="logoInput" type="file" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Kartenfarbe</label>
+          <div class="themeGrid" id="themeGrid"></div>
+        </div>
+
+        <div class="field">
+          <label>Stempel-Symbol</label>
+          <div class="stampGrid" id="stampGrid"></div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="stampsForReward">Stempel bis zur Prämie</label>
+            <input id="stampsForReward" type="number" min="1" max="50" />
+          </div>
+          <div class="field">
+            <label for="rewardDescription">Prämie</label>
+            <input id="rewardDescription" type="text" placeholder="z. B. 1 Kaffee aufs Haus" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="cardBackText"
+            >Text auf der Karte
+            <span class="hint">(z. B. Öffnungszeiten, Hinweise, Gruß)</span></label
+          >
+          <textarea id="cardBackText" maxlength="400"></textarea>
+        </div>
+
+        <button class="btn primary saveBtn" id="saveBtn" type="button">
+          Speichern
+        </button>
+        <p class="statusMsg" id="statusMsg"></p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var STORAGE_KEY = "stamp_admin_dashboard_v1";
+
+        var THEMES = [
+          { id: "paper", label: "Warm White", bg: "#f7efe1", fg: "#171412" },
+          { id: "clean", label: "Bright White", bg: "#ffffff", fg: "#131313" },
+          { id: "ink", label: "Dark", bg: "#201811", fg: "#f4e9da" },
+          { id: "brand", label: "Espresso", bg: "#6b452c", fg: "#ffffff" },
+          { id: "latte", label: "Soft Cream", bg: "#ecd7b4", fg: "#211a15" },
+          { id: "mono", label: "Mono", bg: "#eef0ee", fg: "#111111" },
+        ];
+
+        var STAMP_STYLES = [
+          { id: "bean", label: "Bohne", symbol: "☕" },
+          { id: "star", label: "Stern", symbol: "★" },
+          { id: "circle", label: "Kreis", symbol: "●" },
+        ];
+
+        var refs = {
+          adminKeyInput: document.getElementById("adminKeyInput"),
+          keyBtn: document.getElementById("keyBtn"),
+          keyCard: document.getElementById("keyCard"),
+          pickCard: document.getElementById("pickCard"),
+          formCard: document.getElementById("formCard"),
+          cafeSelect: document.getElementById("cafeSelect"),
+          logoInput: document.getElementById("logoInput"),
+          logoPreview: document.getElementById("logoPreview"),
+          themeGrid: document.getElementById("themeGrid"),
+          stampGrid: document.getElementById("stampGrid"),
+          stampsForReward: document.getElementById("stampsForReward"),
+          rewardDescription: document.getElementById("rewardDescription"),
+          cardBackText: document.getElementById("cardBackText"),
+          saveBtn: document.getElementById("saveBtn"),
+          statusMsg: document.getElementById("statusMsg"),
+        };
+
+        var state = {
+          adminKey: "",
+          cafes: [],
+          selectedCafeId: null,
+          selectedTheme: "paper",
+          selectedStampStyle: "bean",
+          pendingLogoDataUrl: undefined, // undefined = unchanged
+        };
+
+        function loadStoredKey() {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return "";
+            var parsed = JSON.parse(raw);
+            return (parsed && parsed.adminKey) || "";
+          } catch (e) {
+            return "";
+          }
+        }
+
+        function saveStoredKey(key) {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            var parsed = raw ? JSON.parse(raw) : {};
+            parsed.adminKey = key;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          } catch (e) {}
+        }
+
+        function renderThemeGrid() {
+          refs.themeGrid.innerHTML = "";
+          THEMES.forEach(function (t) {
+            var el = document.createElement("div");
+            el.className =
+              "themeSwatch" + (t.id === state.selectedTheme ? " selected" : "");
+            el.style.background = t.bg;
+            el.style.color = t.fg;
+            el.textContent = t.label;
+            el.addEventListener("click", function () {
+              state.selectedTheme = t.id;
+              renderThemeGrid();
+            });
+            refs.themeGrid.appendChild(el);
+          });
+        }
+
+        function renderStampGrid() {
+          refs.stampGrid.innerHTML = "";
+          STAMP_STYLES.forEach(function (s) {
+            var el = document.createElement("div");
+            el.className =
+              "stampOption" +
+              (s.id === state.selectedStampStyle ? " selected" : "");
+            el.innerHTML = s.symbol + '<span class="lbl">' + s.label + "</span>";
+            el.addEventListener("click", function () {
+              state.selectedStampStyle = s.id;
+              renderStampGrid();
+            });
+            refs.stampGrid.appendChild(el);
+          });
+        }
+
+        function authHeaders() {
+          return { "x-admin-key": state.adminKey, "Content-Type": "application/json" };
+        }
+
+        function loadCafeList() {
+          return fetch("/api/admin/cafes/activity?eventsLimit=1&customerLimit=1", {
+            headers: authHeaders(),
+          })
+            .then(function (res) {
+              if (res.status === 401) throw new Error("unauthorized");
+              return res.json();
+            })
+            .then(function (data) {
+              state.cafes = (data && data.cafes) || [];
+              refs.cafeSelect.innerHTML = "";
+              state.cafes
+                .slice()
+                .sort(function (a, b) {
+                  return (a.name || "").localeCompare(b.name || "");
+                })
+                .forEach(function (c) {
+                  var opt = document.createElement("option");
+                  opt.value = String(c.id);
+                  opt.textContent = c.name || "Café " + c.id;
+                  refs.cafeSelect.appendChild(opt);
+                });
+            });
+        }
+
+        function loadCafeProfile(cafeId) {
+          return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile", {
+            headers: authHeaders(),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok) throw new Error("Café konnte nicht geladen werden.");
+              var cafe = result.data.cafe;
+              state.pendingLogoDataUrl = undefined;
+              state.selectedTheme = cafe.cardTheme || "paper";
+              state.selectedStampStyle =
+                (cafe.program && cafe.program.stampStyle) || "bean";
+              refs.stampsForReward.value =
+                (cafe.program && cafe.program.stampsForReward) || 10;
+              refs.rewardDescription.value =
+                (cafe.program && cafe.program.rewardDescription) || "";
+              refs.cardBackText.value = cafe.cardBackText || "";
+              if (cafe.logoDataUrl) {
+                refs.logoPreview.src = cafe.logoDataUrl;
+                refs.logoPreview.style.display = "block";
+              } else {
+                refs.logoPreview.style.display = "none";
+                refs.logoPreview.src = "";
+              }
+              renderThemeGrid();
+              renderStampGrid();
+            });
+        }
+
+        refs.keyBtn.addEventListener("click", function () {
+          var key = refs.adminKeyInput.value.trim();
+          if (!key) return;
+          state.adminKey = key;
+          loadCafeList()
+            .then(function () {
+              saveStoredKey(key);
+              refs.keyCard.classList.add("hidden");
+              refs.pickCard.classList.remove("hidden");
+              refs.formCard.classList.remove("hidden");
+              if (state.cafes.length) {
+                state.selectedCafeId = state.cafes[0].id;
+                refs.cafeSelect.value = String(state.selectedCafeId);
+                return loadCafeProfile(state.selectedCafeId);
+              }
+            })
+            .catch(function () {
+              refs.statusMsg.textContent =
+                "Admin-Key ungültig oder Server nicht erreichbar.";
+              refs.statusMsg.removeAttribute("data-ok");
+            });
+        });
+
+        refs.cafeSelect.addEventListener("change", function () {
+          state.selectedCafeId = Number(refs.cafeSelect.value);
+          loadCafeProfile(state.selectedCafeId);
+        });
+
+        refs.logoInput.addEventListener("change", function () {
+          var file = refs.logoInput.files && refs.logoInput.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            state.pendingLogoDataUrl = String(reader.result);
+            refs.logoPreview.src = state.pendingLogoDataUrl;
+            refs.logoPreview.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        });
+
+        refs.saveBtn.addEventListener("click", function () {
+          if (!state.selectedCafeId) return;
+          refs.statusMsg.textContent = "Speichern …";
+          refs.statusMsg.removeAttribute("data-ok");
+
+          var body = {
+            cardTheme: state.selectedTheme,
+            stampStyle: state.selectedStampStyle,
+            stampsForReward: Number(refs.stampsForReward.value) || 10,
+            rewardDescription: refs.rewardDescription.value.trim(),
+            cardBackText: refs.cardBackText.value.trim(),
+          };
+          if (state.pendingLogoDataUrl !== undefined) {
+            body.logoDataUrl = state.pendingLogoDataUrl;
+          }
+
+          fetch(
+            "/api/admin/cafes/" + encodeURIComponent(state.selectedCafeId) + "/profile",
+            {
+              method: "PUT",
+              headers: authHeaders(),
+              body: JSON.stringify(body),
+            },
+          )
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok) {
+                throw new Error(
+                  (result.data && result.data.error) || "Speichern fehlgeschlagen.",
+                );
+              }
+              refs.statusMsg.setAttribute("data-ok", "true");
+              refs.statusMsg.textContent = "Gespeichert.";
+              state.pendingLogoDataUrl = undefined;
+            })
+            .catch(function (err) {
+              refs.statusMsg.textContent = err.message || "Speichern fehlgeschlagen.";
+              refs.statusMsg.removeAttribute("data-ok");
+            });
+        });
+
+        var storedKey = loadStoredKey();
+        if (storedKey) {
+          refs.adminKeyInput.value = storedKey;
+        }
+        renderThemeGrid();
+        renderStampGrid();
+      })();
+    </script>
+  </body>
+</html>
