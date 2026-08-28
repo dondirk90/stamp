@@ -146,6 +146,24 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
     programLogo: { sourceUri: { uri: logoUri } },
     hexBackgroundColor: colors.bg,
     reviewStatus: "UNDER_REVIEW",
+    // Without this, the member's name only shows on the detail page, not
+    // the collapsed card - the customer's own name should be visible at a
+    // glance, same as the "Kunde" headerField we added on the Apple side.
+    classTemplateInfo: {
+      cardTemplateOverride: {
+        cardRowTemplateInfos: [
+          {
+            oneItem: {
+              item: {
+                firstValue: {
+                  fields: [{ fieldPath: "object.accountName" }],
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
   };
 }
 
@@ -163,11 +181,20 @@ function buildLoyaltyObjectPayload({
   const remainingLine =
     remaining <= 0 ? "Prämie verfügbar!" : `noch ${remaining}`;
   const base = String(appsBaseUrl || "").replace(/\/$/, "");
+  const colors = walletPass.resolveThemeColors(
+    cafeRow.card_theme || "paper",
+    cafeRow.card_bg_color,
+    cafeRow.card_fg_color,
+  );
   // no-store on the server side, and a cache-busting query param here too -
-  // Google/the Wallet client may otherwise cache this by URL across stamps.
+  // Google caches this image by URL, so the version tag must change
+  // whenever anything the image actually renders changes (stamp count *or*
+  // color), not just the stamp count - a color-only cafe update otherwise
+  // leaves customers with a stale-colored strip until their next stamp.
+  const version = `${clampedStamps}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}`;
   const stampStripUri =
     `${base}/api/customers/${customerAddress}/google-wallet-stamp-strip.png` +
-    `?cafe=${encodeURIComponent(cafeRow.address)}&v=${clampedStamps}`;
+    `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}`;
 
   return {
     id: loyaltyObjectId(cafeRow.id, customerAddress),
