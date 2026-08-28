@@ -5262,6 +5262,7 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
         customerRow?.username,
         cafeAddress,
       ),
+      customerName: customerRow?.username || null,
     });
 
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
@@ -5413,6 +5414,7 @@ walletApiRouter.get(
           customerRow?.username,
           cafeRow.address,
         ),
+        customerName: customerRow?.username || null,
       });
 
       res.setHeader("Content-Type", "application/vnd.apple.pkpass");

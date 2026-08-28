@@ -606,9 +606,9 @@
         rewardInput.value = params.get("reward") || "";
 
         // ?cafeAddress=0x... (separate from the cosmetic ?cafe= name param)
-        // pulls the cafe's own chosen card color and, as a convenience,
-        // fills in name/reward/QR-target from its real profile - but only
-        // for fields that weren't already set explicitly via other params.
+        // pulls the cafe's own chosen card color and always fills in
+        // name/reward/QR-target from its real profile (see note below on
+        // why this doesn't defer to any pre-existing cafe/reward/url params).
         var cafeAddressParam = (params.get("cafeAddress") || "").trim();
         if (cafeAddressParam) {
           fetch("/api/cafes/public")
@@ -648,17 +648,21 @@
                 }
               }
 
-              if (!params.get("cafe") && found.name) {
+              // cafeAddress is the authoritative source once present - always
+              // wins over cafe/reward/url, even if those are already baked
+              // into the address bar from a previous render() -> updateHistory()
+              // call for a *different* cafe (e.g. the user edited cafeAddress
+              // by hand in an already-open tab). Otherwise the stale values
+              // silently stick and the QR keeps pointing at the old cafe.
+              if (found.name) {
                 cafeInput.value = found.name;
               }
-              if (!params.get("reward") && found.program && found.program.rewardDescription) {
+              if (found.program && found.program.rewardDescription) {
                 rewardInput.value = found.program.rewardDescription;
               }
-              if (!params.get("url")) {
-                urlInput.value = normalizeUrl(
-                  "/cafe-join?cafe=" + encodeURIComponent(cafeAddressParam),
-                );
-              }
+              urlInput.value = normalizeUrl(
+                "/cafe-join?cafe=" + encodeURIComponent(cafeAddressParam),
+              );
 
               render();
             })

@@ -156,8 +156,8 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle
   for (const scale of [1, 2, 3]) {
     const w = stripW * scale;
     const h = stripH * scale;
-    const cols = threshold <= 10 ? threshold : Math.ceil(threshold / 2);
-    const rows = threshold <= 10 ? 1 : 2;
+    const rows = threshold <= 5 ? 1 : 2;
+    const cols = Math.ceil(threshold / rows);
     const padX = 20 * scale;
     const padY = rows === 1 ? 0 : 12 * scale;
     const cellW = (w - padX * 2) / cols;
@@ -192,6 +192,7 @@ function buildPassJson({
   authenticationToken,
   webServiceURL,
   cafeName,
+  customerName,
   cardTheme,
   cardBgColor,
   cardFgColor,
@@ -234,6 +235,8 @@ function buildPassJson({
     { key: "contact", label: "Kontakt", value: "hallo@kaffeekarte.app" },
   );
 
+  const trimmedCustomerName = String(customerName || "").trim();
+
   return {
     formatVersion: 1,
     passTypeIdentifier: PASS_TYPE_IDENTIFIER,
@@ -248,6 +251,13 @@ function buildPassJson({
     foregroundColor: hexToRgbString(colors.fg),
     labelColor: hexToRgbString(colors.fg),
     storeCard: {
+      ...(trimmedCustomerName
+        ? {
+            headerFields: [
+              { key: "customer", label: "Kunde", value: trimmedCustomerName },
+            ],
+          }
+        : {}),
       secondaryFields: [
         { key: "remaining", label: "Bis zum Gratis-Kaffee", value: remainingLine },
       ],
@@ -273,6 +283,7 @@ async function generateSignedPass({
   authenticationToken,
   webServiceURL,
   barcodeMessage,
+  customerName,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -287,6 +298,7 @@ async function generateSignedPass({
     authenticationToken,
     webServiceURL,
     cafeName,
+    customerName,
     cardTheme,
     cardBgColor,
     cardFgColor,
