@@ -6,14 +6,22 @@
     <title>Kaffeekarte – Stempelkarte holen</title>
     <link rel="stylesheet" href="/theme.css" />
     <style>
+      /* Committed to the cafe's own branding end to end: page background,
+         text color and the primary button all come from the cafe's chosen
+         card color (cardBgColor/cardFgColor or its card_theme preset),
+         resolved by JS below. Only kept neutral where it's a genuine
+         usability need, not leftover Kaffeekarte styling: form input
+         fields (typed text needs a light, consistent surface regardless of
+         page color) and the Google/Apple buttons (their brand guidelines
+         fix that styling, we can't recolor them). */
       body {
         margin: 0;
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--background, var(--color-background));
-        color: var(--text);
+        background: var(--cafe-bg, var(--background, var(--color-background)));
+        color: var(--cafe-fg, var(--text));
         font-family: var(--font-sans);
         padding: 24px 16px;
       }
@@ -21,36 +29,25 @@
       .sheet {
         width: 100%;
         max-width: 420px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 24px 60px rgba(23, 21, 19, 0.1);
       }
 
-      /* Faerbt sich per JS in der Cafe-Farbe (cardBgColor/cardFgColor bzw.
-         das gewaehlte card_theme) - macht aus dem generischen Formular eine
-         Seite, die aussieht als gehoere sie dem jeweiligen Cafe. Faellt ohne
-         Cafe-Adresse/-Farbe auf eine neutrale Kaffeekarte-Optik zurueck. */
       .cafeHeader {
-        background: var(--cafe-bg, var(--color-surface-elevated, #f7efe1));
-        color: var(--cafe-fg, var(--text));
-        padding: 30px 24px 24px;
         text-align: center;
         display: grid;
         justify-items: center;
         gap: 4px;
+        margin-bottom: 22px;
       }
 
       .cafeLogo {
-        width: 76px;
-        height: 76px;
-        border-radius: 18px;
+        width: 84px;
+        height: 84px;
+        border-radius: 20px;
         object-fit: cover;
         background: rgba(255, 255, 255, 0.94);
         flex: none;
-        margin-bottom: 8px;
-        box-shadow: 0 6px 16px rgba(23, 21, 19, 0.16);
+        margin-bottom: 10px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
       }
 
       .cafeLogo.fallback {
@@ -58,13 +55,13 @@
         align-items: center;
         justify-content: center;
         font-family: var(--font-display);
-        font-size: 2rem;
-        color: var(--brand);
+        font-size: 2.1rem;
+        color: var(--cafe-fg, var(--brand));
       }
 
       .cafeName {
         font-family: var(--font-display);
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         line-height: 1.2;
         margin: 0;
       }
@@ -73,10 +70,6 @@
         margin: 0;
         opacity: 0.82;
         font-size: 0.92rem;
-      }
-
-      .sheetBody {
-        padding: 24px 24px 22px;
       }
 
       .poweredBy {
@@ -88,8 +81,8 @@
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--text-muted);
-        margin: 18px 0 0;
+        opacity: 0.6;
+        margin: 22px 0 0;
       }
 
       .poweredBy .bean {
@@ -104,7 +97,7 @@
       }
 
       .lede {
-        color: var(--text-muted);
+        opacity: 0.82;
         font-size: 0.92rem;
         line-height: 1.5;
         margin: 0 0 20px;
@@ -121,18 +114,18 @@
         grid-template-columns: 18px minmax(0, 1fr);
         gap: 10px;
         align-items: start;
-        color: var(--text-muted);
+        opacity: 0.82;
         font-size: 0.85rem;
         line-height: 1.4;
       }
 
       .legalCheck input[type="checkbox"] {
         margin-top: 2px;
-        accent-color: var(--brand);
+        accent-color: var(--cafe-fg, var(--brand));
       }
 
       .legalCheck a {
-        color: var(--brand);
+        color: inherit;
         text-decoration: underline;
         text-underline-offset: 2px;
       }
@@ -168,10 +161,11 @@
       }
 
       .oauthBtn:focus-visible {
-        outline: 2px solid var(--brand);
+        outline: 2px solid var(--cafe-fg, var(--brand));
         outline-offset: 2px;
       }
 
+      /* Google/Apple brand guidelines fix these colors - not recolored. */
       #googleBtn {
         border: 1px solid rgba(17, 17, 17, 0.14);
         background: rgba(255, 255, 255, 0.96);
@@ -195,7 +189,7 @@
         align-items: center;
         gap: 12px;
         margin: 18px 0;
-        color: var(--text-muted);
+        opacity: 0.6;
         font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -207,7 +201,8 @@
         content: "";
         flex: 1;
         height: 1px;
-        background: var(--border);
+        background: currentColor;
+        opacity: 0.35;
       }
 
       form {
@@ -223,29 +218,35 @@
       .field label {
         font-size: 0.8rem;
         font-weight: 600;
-        color: var(--text-muted);
+        opacity: 0.82;
       }
 
+      /* Inputs stay on a light, neutral surface regardless of the cafe's
+         color - typed text needs a consistently readable field, not a
+         design opinion. */
       .field input[type="text"],
       .field input[type="email"],
       .field input[type="password"] {
-        border: 1px solid var(--border);
+        border: 1px solid rgba(0, 0, 0, 0.12);
         border-radius: 10px;
         padding: 11px 13px;
         font-size: 1rem;
         font-family: inherit;
-        background: var(--color-surface-elevated, #fff);
-        color: var(--text);
+        background: #fff;
+        color: #171513;
       }
 
       .field input:focus-visible {
-        outline: 2px solid var(--brand);
+        outline: 2px solid var(--cafe-fg, var(--brand));
         outline-offset: 1px;
       }
 
       .submitBtn {
         margin-top: 4px;
         width: 100%;
+        background: var(--cafe-fg, var(--brand));
+        color: var(--cafe-bg, #fff);
+        border: none;
       }
 
       .statusMsg {
@@ -267,7 +268,7 @@
       }
 
       .fallbackLink a {
-        color: var(--brand);
+        color: inherit;
       }
     </style>
   </head>
