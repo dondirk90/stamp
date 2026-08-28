@@ -322,11 +322,17 @@ function buildPassJson({
     foregroundColor: hexToRgbString(colors.fg),
     labelColor: hexToRgbString(colors.fg),
     storeCard: {
-      // Cafe name as a primaryField (large, above the barcode) instead of
-      // logoText in the header - reads clearer than the small header text,
-      // and leaves the header to just the logo. The stamp circles already
-      // show progress at a glance, so no separate "noch X" text field.
-      primaryFields: [{ key: "cafeName", value: cafeName }],
+      // primaryFields render huge and overlap the strip image instead of
+      // stacking below it - secondaryFields is the smaller, normal-sized
+      // field row that actually sits between the strip and the barcode
+      // without covering the stamp circles.
+      secondaryFields: [
+        {
+          key: "cafeName",
+          value: cafeName,
+          textAlignment: "PKTextAlignmentCenter",
+        },
+      ],
       backFields,
     },
     barcodes: [

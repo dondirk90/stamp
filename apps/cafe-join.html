@@ -31,6 +31,15 @@
         background: var(--cafe-bg, var(--background, var(--color-background)));
         color: var(--cafe-fg, var(--text));
         padding: 24px 16px;
+        /* Hidden until JS resolves the cafe's real color (or gives up) -
+           otherwise this briefly flashes the generic Kaffeekarte fallback
+           before switching to the cafe's own color, which read as broken. */
+        opacity: 0;
+        transition: opacity 160ms ease;
+      }
+
+      .page.ready {
+        opacity: 1;
       }
 
       .sheet {
@@ -463,11 +472,17 @@
           );
         }
 
+        var pageEl = document.querySelector(".page");
+        function revealPage() {
+          pageEl.classList.add("ready");
+        }
+
         if (!cafeAddress) {
           cafeNameEl.textContent = "Café nicht gefunden";
           statusMsg.textContent =
             "Dieser Link ist nicht vollständig. Bitte den QR-Code erneut scannen.";
           submitBtn.disabled = true;
+          revealPage();
           return;
         }
 
@@ -498,7 +513,8 @@
           })
           .catch(function () {
             /* Café-Infos sind nur Deko - Formular funktioniert auch ohne. */
-          });
+          })
+          .then(revealPage);
 
         function proceedToWallet(address) {
           statusMsg.setAttribute("data-ok", "true");
