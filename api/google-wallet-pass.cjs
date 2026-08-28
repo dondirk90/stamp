@@ -149,19 +149,18 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
     // Without this, the member's name only shows on the detail page, not
     // the collapsed card - the customer's own name should be visible at a
     // glance, same as the "Kunde" headerField we added on the Apple side.
+    // Placed below the barcode (cardBarcodeSectionDetails), not as its own
+    // row above it - a full-width row there competed with the program name
+    // for space. The header itself (logo + program name) is a fixed Google
+    // layout with no override field, so a long cafe name can't be moved
+    // next to the logo from here.
     classTemplateInfo: {
-      cardTemplateOverride: {
-        cardRowTemplateInfos: [
-          {
-            oneItem: {
-              item: {
-                firstValue: {
-                  fields: [{ fieldPath: "object.accountName" }],
-                },
-              },
-            },
+      cardBarcodeSectionDetails: {
+        firstBottomDetail: {
+          fieldSelector: {
+            fields: [{ fieldPath: "object.accountName" }],
           },
-        ],
+        },
       },
     },
   };
@@ -173,6 +172,7 @@ function buildLoyaltyObjectPayload({
   customerName,
   stampCount,
   threshold,
+  rewardDescription,
   barcodeMessage,
   appsBaseUrl,
 }) {
@@ -211,7 +211,22 @@ function buildLoyaltyObjectPayload({
     ],
     textModulesData: [
       { id: "remaining", header: "Bis zum Gratis-Kaffee", body: remainingLine },
+      {
+        id: "terms",
+        header: "Nutzungsbedingungen",
+        body: walletPass.buildTermsText(threshold, rewardDescription),
+      },
+      { id: "validity", header: "Kartengültigkeit", body: "Unbegrenzt" },
     ],
+    linksModuleData: {
+      uris: [
+        { uri: "https://kaffeekarte.app/agb", description: "AGB" },
+        {
+          uri: "https://kaffeekarte.app/datenschutz",
+          description: "Datenschutzerklärung",
+        },
+      ],
+    },
     barcode: {
       type: "QR_CODE",
       value: barcodeMessage,
@@ -231,6 +246,7 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     customerName,
     stampCount,
     threshold: program.stampsForReward,
+    rewardDescription: program.rewardDescription,
     barcodeMessage,
     appsBaseUrl,
   });
@@ -290,6 +306,7 @@ async function patchLoyaltyObjectStamps({
       customerName,
       stampCount,
       threshold: program.stampsForReward,
+      rewardDescription: program.rewardDescription,
       barcodeMessage,
       appsBaseUrl,
     });

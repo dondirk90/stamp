@@ -205,6 +205,20 @@ async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, sta
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+// Shared with google-wallet-pass.cjs so both cards state the same terms in
+// the same words. Deliberately limited to things that are actually true of
+// how the product works (no expiry logic, no cash payout, no transfer
+// feature) rather than inventing policy we haven't actually decided on.
+function buildTermsText(threshold, rewardDescription) {
+  const reward = rewardDescription || "eine Prämie";
+  return [
+    "1. Bei jedem Besuch einen Stempel erhalten.",
+    `2. Nach ${threshold} Stempeln: ${reward}.`,
+    "3. Karte und Stempel sind zeitlich unbegrenzt gültig.",
+    "4. Stempel und Prämien sind nicht übertragbar und nicht gegen Bargeld einlösbar.",
+  ].join("\n");
+}
+
 function buildPassJson({
   serialNumber,
   authenticationToken,
@@ -216,6 +230,7 @@ function buildPassJson({
   cardFgColor,
   stampCount,
   threshold,
+  rewardDescription,
   cardBackText,
   cafeWebsiteUrl,
   cafeInstagramUrl,
@@ -239,9 +254,24 @@ function buildPassJson({
       value: remainingLine,
     },
     {
-      key: "howToEarn",
-      label: "So sammelst du Stempel",
-      value: "Bei jedem Kauf im Café einen Stempel erhalten.",
+      key: "terms",
+      label: "Nutzungsbedingungen",
+      value: buildTermsText(threshold, rewardDescription),
+    },
+    {
+      key: "validity",
+      label: "Kartengültigkeit",
+      value: "Unbegrenzt",
+    },
+    {
+      key: "agb",
+      label: "AGB",
+      value: "https://kaffeekarte.app/agb",
+    },
+    {
+      key: "privacy",
+      label: "Datenschutzerklärung",
+      value: "https://kaffeekarte.app/datenschutz",
     },
   ];
 
@@ -343,6 +373,7 @@ async function generateSignedPass({
     cardFgColor,
     stampCount,
     threshold,
+    rewardDescription: program.rewardDescription,
     cardBackText: cafeRow && cafeRow.card_back_text,
     cafeWebsiteUrl: cafeRow && cafeRow.website_url,
     cafeInstagramUrl: cafeRow && cafeRow.instagram_url,
@@ -432,4 +463,5 @@ module.exports = {
   CARD_THEME_COLORS,
   resolveThemeColors,
   buildStampStripPngBuffer,
+  buildTermsText,
 };
