@@ -297,6 +297,30 @@
       .fallbackLink a {
         color: inherit;
       }
+
+      .successView {
+        text-align: center;
+      }
+
+      .successIcon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+      }
+
+      .successView h1 {
+        margin: 0 0 8px;
+      }
+
+      .successView .lede {
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -309,6 +333,20 @@
       </div>
 
       <div class="sheetBody">
+        <div class="successView" id="successView" style="display: none">
+          <div class="successIcon">✓</div>
+          <h1>Fertig!</h1>
+          <p class="lede">
+            Deine Stempelkarte ist jetzt in deiner Wallet. Du kannst dieses
+            Fenster jetzt schließen.
+          </p>
+          <p class="fallbackLink" id="fallbackLink">
+            Hat sich nichts geöffnet?
+            <a href="#" id="fallbackLinkHref">Stempelkarte erneut öffnen</a>
+          </p>
+        </div>
+
+        <div id="joinFlow">
         <h1>Deine Stempelkarte, direkt in der Wallet</h1>
         <p class="lede">
           Kurz anmelden – keine App nötig, die Karte landet danach direkt in
@@ -402,11 +440,7 @@
         </form>
 
         <p class="statusMsg" id="statusMsg"></p>
-
-        <p class="fallbackLink" id="fallbackLink">
-          Läuft bei dir nicht automatisch weiter?
-          <a href="#" id="fallbackLinkHref">Stempelkarte im Browser öffnen</a>
-        </p>
+        </div>
 
         <p class="poweredBy"><span class="bean">☕</span> Kaffeekarte</p>
       </div>
@@ -517,14 +551,24 @@
           .then(revealPage);
 
         function proceedToWallet(address) {
-          statusMsg.setAttribute("data-ok", "true");
-          statusMsg.textContent = "Fertig! Deine Stempelkarte wird geöffnet …";
-
           var passUrl = walletPassUrl(address);
+
           if (isIOS()) {
+            // Navigating to a .pkpass URL doesn't actually leave the page -
+            // Safari intercepts it and shows the native "Add to Wallet"
+            // sheet, then returns here. Show the success state up front so
+            // there's something other than the bare form to come back to,
+            // and try to close the tab as a bonus (silently no-ops if the
+            // browser won't allow it, e.g. because the tab wasn't opened
+            // by script).
+            document.getElementById("joinFlow").style.display = "none";
+            document.getElementById("successView").style.display = "block";
             fallbackLink.style.display = "block";
             fallbackLinkHref.href = passUrl;
             window.location.href = passUrl;
+            setTimeout(function () {
+              window.close();
+            }, 800);
           } else {
             window.location.href = "/wallet";
           }
