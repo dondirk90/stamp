@@ -323,13 +323,6 @@ function buildPassJson({
     foregroundColor: hexToRgbString(colors.fg),
     labelColor: hexToRgbString(colors.fg),
     storeCard: {
-      ...(trimmedCustomerName
-        ? {
-            headerFields: [
-              { key: "customer", label: "Kunde", value: trimmedCustomerName },
-            ],
-          }
-        : {}),
       secondaryFields: [
         { key: "remaining", label: "Bis zum Gratis-Kaffee", value: remainingLine },
       ],
@@ -340,6 +333,10 @@ function buildPassJson({
         message: barcodeMessage,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
+        // Below the barcode, not a top-right headerField - keeps the header
+        // free for logo + cafe name, and reads more like "this is your
+        // card" right where you'd hold it up to scan.
+        ...(trimmedCustomerName ? { altText: trimmedCustomerName } : {}),
       },
     ],
   };
