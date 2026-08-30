@@ -119,9 +119,15 @@ function loyaltyClassId(cafeId) {
   return `${issuerId}.cafe_${sanitizeIdPart(cafeId)}`;
 }
 
-function loyaltyObjectId(cafeId, customerAddress) {
+// cardId omitted (legacy/pre-multi-card customers, still the common case)
+// keeps producing the exact same id as before - the object a customer
+// already saved keeps matching, it doesn't need re-issuing just because
+// this feature shipped. Only a customer who's actually overflowed past a
+// full card gets a second, distinctly-suffixed object id.
+function loyaltyObjectId(cafeId, customerAddress, cardId) {
   const issuerId = sanitizeEnv("GOOGLE_WALLET_ISSUER_ID");
-  return `${issuerId}.cafe_${sanitizeIdPart(cafeId)}_${sanitizeIdPart(customerAddress)}`;
+  const suffix = cardId ? `_${sanitizeIdPart(cardId)}` : "";
+  return `${issuerId}.cafe_${sanitizeIdPart(cafeId)}_${sanitizeIdPart(customerAddress)}${suffix}`;
 }
 
 function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
@@ -208,6 +214,7 @@ function buildLoyaltyObjectPayload({
   cafeRow,
   customerAddress,
   customerName,
+  cardId,
   stampCount,
   threshold,
   rewardDescription,
@@ -233,10 +240,11 @@ function buildLoyaltyObjectPayload({
   const version = `${clampedStamps}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}`;
   const stampStripUri =
     `${base}/api/customers/${customerAddress}/google-wallet-stamp-strip.png` +
-    `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}`;
+    `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
+    (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
   return {
-    id: loyaltyObjectId(cafeRow.id, customerAddress),
+    id: loyaltyObjectId(cafeRow.id, customerAddress, cardId),
     classId: loyaltyClassId(cafeRow.id),
     state: "ACTIVE",
     accountId: customerAddress,
@@ -297,13 +305,14 @@ function buildLoyaltyObjectPayload({
 // Called when the customer taps "Add to Google Wallet". Google creates the
 // class/object from what's embedded in the JWT the first time it sees these
 // ids - no separate insert() call needed before this.
-function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, barcodeMessage, appsBaseUrl }) {
+function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl }) {
   const account = loadServiceAccount();
   const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
   const loyaltyObject = buildLoyaltyObjectPayload({
     cafeRow,
     customerAddress,
     customerName,
+    cardId,
     stampCount,
     threshold: program.stampsForReward,
     rewardDescription: program.rewardDescription,
@@ -355,6 +364,7 @@ async function patchLoyaltyObjectStamps({
   stampCount,
   customerAddress,
   customerName,
+  cardId,
   barcodeMessage,
   appsBaseUrl,
   notify,
@@ -365,6 +375,7 @@ async function patchLoyaltyObjectStamps({
       cafeRow,
       customerAddress,
       customerName,
+      cardId,
       stampCount,
       threshold: program.stampsForReward,
       rewardDescription: program.rewardDescription,

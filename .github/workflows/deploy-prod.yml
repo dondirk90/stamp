@@ -187,6 +187,8 @@ jobs:
                  AND to_regclass('public.google_wallet_objects') IS NOT NULL
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'wallet_passes' AND column_name = 'active_redeem_token')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'google_wallet_objects' AND column_name = 'active_redeem_token')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'wallet_passes' AND column_name = 'card_id')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'google_wallet_objects' AND column_name = 'card_id')
                THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
 

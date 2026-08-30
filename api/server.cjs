@@ -1525,6 +1525,37 @@ runSqliteOnlyAlter(
   "Failed to add google_wallet_objects.active_redeem_token column:",
 );
 
+// Multi-card wallet support: a customer can have more than one wallet pass
+// per cafe (one per card_id) once a full card overflows into a new one, so
+// the old (customer, cafe) unique index - one row per customer+cafe, full
+// stop - has to widen to (customer, cafe, card_id). NULL card_id (every
+// pass issued before this feature existed) is still unique-safe under the
+// new index: SQL treats each NULL as distinct, same as Postgres.
+runSqliteOnlyAlter(
+  "ALTER TABLE wallet_passes ADD COLUMN card_id TEXT",
+  "Failed to add wallet_passes.card_id column:",
+);
+runSqliteOnlyAlter(
+  "DROP INDEX IF EXISTS idx_wallet_passes_customer_cafe",
+  "Failed to drop old wallet_passes unique index:",
+);
+runSqliteOnlyAlter(
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_passes_customer_cafe_card ON wallet_passes(customer_address, cafe_id, card_id)",
+  "Failed to create wallet_passes card-aware unique index:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE google_wallet_objects ADD COLUMN card_id TEXT",
+  "Failed to add google_wallet_objects.card_id column:",
+);
+runSqliteOnlyAlter(
+  "DROP INDEX IF EXISTS idx_google_wallet_objects_customer_cafe",
+  "Failed to drop old google_wallet_objects unique index:",
+);
+runSqliteOnlyAlter(
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_google_wallet_objects_customer_cafe_card ON google_wallet_objects(customer_address, cafe_id, card_id)",
+  "Failed to create google_wallet_objects card-aware unique index:",
+);
+
 // Prepare statements
 const insertEvent = db.prepare(
   'INSERT INTO stamp_events (ts, cafe, "user", customer_name, txhash, status, event_type, delta, card_id) VALUES (@ts, @cafe, @user, @customer_name, @txhash, @status, @event_type, @delta, @card_id)',
@@ -1586,15 +1617,77 @@ async function getStampsByCafeUserCardId(cafeAddress, userAddress, cardId) {
   const totalRaw = row && row.total != null ? Number(row.total) : 0;
   return Number.isFinite(totalRaw) ? totalRaw : 0;
 }
+
+const getLatestCardIdForCustomerCafe = db.prepare(
+  'SELECT card_id FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER("user") = LOWER(?) ' +
+    "AND (status IS NULL OR status = 'confirmed') ORDER BY ts DESC LIMIT 1",
+);
+
+// A stamp award (usually 1, but cafes can grant up to 20 at once via
+// /stamp-by-cafe's `count`) can push a customer past the reward threshold
+// in a single request. Rather than let the running total drift past
+// threshold on one card (ambiguous - is it "full" or "full plus 3 toward
+// the next one"?), this splits the award across cards: fills whichever
+// card is currently active up to exactly threshold, then keeps spilling
+// any remainder into freshly-minted card_id(s), each capped at threshold
+// in turn (so a large enough bulk grant can span more than 2 cards).
+// Existing (pre-this-feature) history has card_id = NULL throughout - that
+// stays the "active" card and behaves exactly as before, right up until it
+// first actually fills up, which is the only moment new real card_ids
+// start getting minted.
+async function splitStampAward({ cafeAddress, customerAddress, totalCount, threshold }) {
+  const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
+  let activeCardId = latestRow ? latestRow.card_id || null : null;
+  let activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
+
+  if (!latestRow || activeCount >= threshold) {
+    activeCardId = crypto.randomBytes(8).toString("hex");
+    activeCount = 0;
+  }
+
+  const segments = [];
+  let remaining = Math.max(0, Math.floor(totalCount));
+  while (remaining > 0) {
+    const available = Math.max(0, threshold - activeCount);
+    const take = Math.min(remaining, available);
+    segments.push({ cardId: activeCardId, delta: take });
+    remaining -= take;
+    activeCount += take;
+    if (remaining > 0) {
+      // This card is now full and there's still more to award - spill into
+      // a fresh one instead of overfilling the current one.
+      activeCardId = crypto.randomBytes(8).toString("hex");
+      activeCount = 0;
+    }
+  }
+
+  const overflowed = segments.length > 1;
+  return {
+    segments,
+    overflowed,
+    newCardId: overflowed ? segments[segments.length - 1].cardId : null,
+    newCardStamps: overflowed ? segments[segments.length - 1].delta : 0,
+  };
+}
+
 // --- Apple Wallet pass registrations ---
-const getWalletPassByCustomerCafe = db.prepare(
+// A customer can hold more than one pass per cafe now (one per card_id,
+// once a full card overflows into a new one) - getWalletPassesByCustomerCafe
+// lists all of them, getWalletPassByCustomerCafeCard targets one specific
+// card. COALESCE(...,'') on both sides is needed because SQL NULL never
+// equals NULL via plain `=` - card_id is NULL for every pass issued before
+// this feature existed, and that has to keep matching itself.
+const getWalletPassesByCustomerCafe = db.prepare(
   "SELECT * FROM wallet_passes WHERE customer_address = ? AND cafe_id = ?",
+);
+const getWalletPassByCustomerCafeCard = db.prepare(
+  "SELECT * FROM wallet_passes WHERE customer_address = ? AND cafe_id = ? AND COALESCE(card_id, '') = COALESCE(?, '')",
 );
 const getWalletPassBySerial = db.prepare(
   "SELECT * FROM wallet_passes WHERE serial_number = ?",
 );
 const insertWalletPass = db.prepare(
-  "INSERT INTO wallet_passes (serial_number, customer_address, cafe_id, authentication_token, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  "INSERT INTO wallet_passes (serial_number, customer_address, cafe_id, card_id, authentication_token, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 );
 const touchWalletPassUpdatedAt = db.prepare(
   "UPDATE wallet_passes SET updated_at = ? WHERE serial_number = ?",
@@ -1629,10 +1722,12 @@ const listWalletSerialsByDeviceSince = db.prepare(
     "WHERE wr.device_library_identifier = ? AND wp.updated_at > ?",
 );
 
-async function getOrCreateWalletPass(customerAddress, cafeId) {
-  const existing = await getWalletPassByCustomerCafe.get(
+async function getOrCreateWalletPass(customerAddress, cafeId, cardId) {
+  const cid = cardId || null;
+  const existing = await getWalletPassByCustomerCafeCard.get(
     customerAddress,
     cafeId,
+    cid,
   );
   if (existing) return existing;
 
@@ -1644,21 +1739,23 @@ async function getOrCreateWalletPass(customerAddress, cafeId) {
       serialNumber,
       customerAddress,
       cafeId,
+      cid,
       authenticationToken,
       now,
       now,
     );
   } catch (err) {
     // Concurrent first-issue race: someone else just created the same
-    // (customer, cafe) pass. Fall back to reading it instead of failing.
-    const raceWinner = await getWalletPassByCustomerCafe.get(
+    // (customer, cafe, card) pass. Fall back to reading it instead of failing.
+    const raceWinner = await getWalletPassByCustomerCafeCard.get(
       customerAddress,
       cafeId,
+      cid,
     );
     if (raceWinner) return raceWinner;
     throw err;
   }
-  return { serial_number: serialNumber, customer_address: customerAddress, cafe_id: cafeId, authentication_token: authenticationToken, updated_at: now, created_at: now };
+  return { serial_number: serialNumber, customer_address: customerAddress, cafe_id: cafeId, card_id: cid, authentication_token: authenticationToken, updated_at: now, created_at: now };
 }
 
 async function notifyWalletPassUpdated(customerAddress, cafeAddress) {
@@ -1667,15 +1764,25 @@ async function notifyWalletPassUpdated(customerAddress, cafeAddress) {
       .prepare("SELECT id FROM cafes WHERE LOWER(address) = LOWER(?)")
       .get(cafeAddress);
     if (!cafeRow) return;
-    const passRow = await getWalletPassByCustomerCafe.get(
+    // A customer can have more than one pass for this cafe now (one per
+    // card_id) - touch+push all of them. The actual stampCount per pass is
+    // recomputed fresh (for that pass's own card_id) when the device
+    // re-fetches via the webservice route below, not here.
+    const passRows = await getWalletPassesByCustomerCafe.all(
       customerAddress,
       cafeRow.id,
     );
-    if (!passRow) return; // Customer never added this card to Wallet.
-    await touchWalletPassUpdatedAt.run(Date.now(), passRow.serial_number);
+    if (!passRows.length) return; // Customer never added a card to Wallet.
     if (!walletPass.isWalletConfigured()) return;
-    const tokenRows = await listWalletPushTokensBySerial.all(passRow.serial_number);
-    const tokens = (Array.isArray(tokenRows) ? tokenRows : []).map((r) => r.push_token);
+    const now = Date.now();
+    const tokens = [];
+    for (const passRow of passRows) {
+      await touchWalletPassUpdatedAt.run(now, passRow.serial_number);
+      const tokenRows = await listWalletPushTokensBySerial.all(passRow.serial_number);
+      for (const r of Array.isArray(tokenRows) ? tokenRows : []) {
+        if (r.push_token) tokens.push(r.push_token);
+      }
+    }
     if (tokens.length) {
       await walletPass.sendPassUpdatePush(tokens);
     }
@@ -1713,13 +1820,18 @@ async function notifyWalletPassesForCafe(cafeId) {
 
 // --- Google Wallet loyalty objects (Android) ---
 // No device push-token registry needed here, unlike Apple - this table just
-// tracks which (customer, cafe) pairs actually have a card, so stamp events
-// know who's worth patching instead of firing a REST call on every event.
-const getGoogleWalletObjectByCustomerCafe = db.prepare(
+// tracks which (customer, cafe[, card]) triples actually have a card, so
+// stamp events know who's worth patching instead of firing a REST call on
+// every event. A customer can have more than one object per cafe now (one
+// per card_id), same reasoning as the Apple side.
+const getGoogleWalletObjectsByCustomerCafe = db.prepare(
   "SELECT * FROM google_wallet_objects WHERE customer_address = ? AND cafe_id = ?",
 );
+const getGoogleWalletObjectByCustomerCafeCard = db.prepare(
+  "SELECT * FROM google_wallet_objects WHERE customer_address = ? AND cafe_id = ? AND COALESCE(card_id, '') = COALESCE(?, '')",
+);
 const insertGoogleWalletObject = db.prepare(
-  "INSERT INTO google_wallet_objects (object_id, customer_address, cafe_id, updated_at, created_at) VALUES (?, ?, ?, ?, ?)",
+  "INSERT INTO google_wallet_objects (object_id, customer_address, cafe_id, card_id, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
 );
 const touchGoogleWalletObjectUpdatedAt = db.prepare(
   "UPDATE google_wallet_objects SET updated_at = ? WHERE object_id = ?",
@@ -1728,30 +1840,33 @@ const setGoogleWalletObjectRedeemToken = db.prepare(
   "UPDATE google_wallet_objects SET active_redeem_token = ? WHERE object_id = ?",
 );
 const listGoogleWalletObjectsByCafe = db.prepare(
-  "SELECT customer_address, object_id, active_redeem_token FROM google_wallet_objects WHERE cafe_id = ?",
+  "SELECT customer_address, object_id, card_id, active_redeem_token FROM google_wallet_objects WHERE cafe_id = ?",
 );
 
-async function getOrCreateGoogleWalletObject(customerAddress, cafeId, objectId) {
-  const existing = await getGoogleWalletObjectByCustomerCafe.get(
+async function getOrCreateGoogleWalletObject(customerAddress, cafeId, cardId, objectId) {
+  const cid = cardId || null;
+  const existing = await getGoogleWalletObjectByCustomerCafeCard.get(
     customerAddress,
     cafeId,
+    cid,
   );
   if (existing) return existing;
 
   const now = Date.now();
   try {
-    await insertGoogleWalletObject.run(objectId, customerAddress, cafeId, now, now);
+    await insertGoogleWalletObject.run(objectId, customerAddress, cafeId, cid, now, now);
   } catch (err) {
     // Concurrent first-issue race: someone else just created the same
-    // (customer, cafe) object row. Fall back to reading it instead of failing.
-    const raceWinner = await getGoogleWalletObjectByCustomerCafe.get(
+    // (customer, cafe, card) object row. Fall back to reading it instead of failing.
+    const raceWinner = await getGoogleWalletObjectByCustomerCafeCard.get(
       customerAddress,
       cafeId,
+      cid,
     );
     if (raceWinner) return raceWinner;
     throw err;
   }
-  return { object_id: objectId, customer_address: customerAddress, cafe_id: cafeId, updated_at: now, created_at: now };
+  return { object_id: objectId, customer_address: customerAddress, cafe_id: cafeId, card_id: cid, updated_at: now, created_at: now };
 }
 
 async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
@@ -1761,38 +1876,45 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
       .prepare("SELECT * FROM cafes WHERE LOWER(address) = LOWER(?)")
       .get(cafeAddress);
     if (!cafeRow) return;
-    const objectRow = await getGoogleWalletObjectByCustomerCafe.get(
+    const objectRows = await getGoogleWalletObjectsByCustomerCafe.all(
       customerAddress,
       cafeRow.id,
     );
-    if (!objectRow) return; // Customer never added this card to Google Wallet.
+    if (!objectRows.length) return; // Customer never added a card to Google Wallet.
     const customerRow = await getCustomerByAddress.get(customerAddress);
-    const stampCount = await getCurrentCardStampsByCafeUser(cafeAddress, customerAddress);
     const program = getCafeProgramSettings(cafeRow);
-    await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
-    const barcodeMessage = await resolveWalletBarcode({
-      customerAddress,
-      customerName: customerRow ? customerRow.username : null,
-      cafeAddress,
-      stampCount,
-      threshold: program.stampsForReward,
-      currentToken: objectRow.active_redeem_token || null,
-      persistToken: (token) =>
-        setGoogleWalletObjectRedeemToken.run(token, objectRow.object_id),
-    });
-    await googleWalletPass.patchLoyaltyObjectStamps({
-      cafeRow,
-      program,
-      stampCount,
-      customerAddress,
-      customerName: customerRow ? customerRow.username : null,
-      barcodeMessage,
-      appsBaseUrl: process.env.APPS_BASE_URL || "",
-      // Real stamp/redeem event - worth the lock-screen notification
-      // (capped at 3/24h by Google, so only fire it where it's genuinely
-      // earned, not on the profile-resync path below).
-      notify: true,
-    });
+    for (const objectRow of objectRows) {
+      const stampCount = await getStampsByCafeUserCardId(
+        cafeAddress,
+        customerAddress,
+        objectRow.card_id,
+      );
+      await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
+      const barcodeMessage = await resolveWalletBarcode({
+        customerAddress,
+        customerName: customerRow ? customerRow.username : null,
+        cafeAddress,
+        stampCount,
+        threshold: program.stampsForReward,
+        currentToken: objectRow.active_redeem_token || null,
+        persistToken: (token) =>
+          setGoogleWalletObjectRedeemToken.run(token, objectRow.object_id),
+      });
+      await googleWalletPass.patchLoyaltyObjectStamps({
+        cafeRow,
+        program,
+        stampCount,
+        customerAddress,
+        customerName: customerRow ? customerRow.username : null,
+        cardId: objectRow.card_id,
+        barcodeMessage,
+        appsBaseUrl: process.env.APPS_BASE_URL || "",
+        // Real stamp/redeem event - worth the lock-screen notification
+        // (capped at 3/24h by Google, so only fire it where it's genuinely
+        // earned, not on the profile-resync path below).
+        notify: true,
+      });
+    }
   } catch (err) {
     console.warn("Failed to notify Google Wallet pass update:", err.message || err);
   }
@@ -1815,9 +1937,10 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
     const program = getCafeProgramSettings(cafeRow);
     for (const row of objectRows) {
       const customerRow = await getCustomerByAddress.get(row.customer_address);
-      const stampCount = await getCurrentCardStampsByCafeUser(
+      const stampCount = await getStampsByCafeUserCardId(
         cafeRow.address,
         row.customer_address,
+        row.card_id,
       );
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: row.customer_address,
@@ -1835,6 +1958,7 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         stampCount,
         customerAddress: row.customer_address,
         customerName: customerRow ? customerRow.username : null,
+        cardId: row.card_id,
         barcodeMessage,
         appsBaseUrl,
       });
@@ -1844,12 +1968,15 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
   }
 }
 
-function buildCafeScannerLink(customerAddress, customerName, cafeAddress) {
+function buildCafeScannerLink(customerAddress, customerName, cafeAddress, cardId) {
   const base = String(process.env.APPS_BASE_URL || "").replace(/\/$/, "");
   const u = new URL(`${base}/cafe-scanner-new.html`);
   u.searchParams.set("customer", customerAddress);
   u.searchParams.set("customerName", customerName || "");
   if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+  // Omitted for legacy (pre-multi-card) passes - keeps their URL byte-for-
+  // byte identical to before, no behavior change for existing customers.
+  if (cardId) u.searchParams.set("cardId", cardId);
   return u.toString();
 }
 
@@ -1866,6 +1993,7 @@ async function resolveWalletBarcode({
   customerAddress,
   customerName,
   cafeAddress,
+  cardId,
   stampCount,
   threshold,
   currentToken,
@@ -1878,7 +2006,7 @@ async function resolveWalletBarcode({
         await persistToken(null);
       } catch (err) {}
     }
-    return buildCafeScannerLink(customerAddress, customerName, cafeAddress);
+    return buildCafeScannerLink(customerAddress, customerName, cafeAddress, cardId);
   }
 
   let token = currentToken;
@@ -1892,6 +2020,7 @@ async function resolveWalletBarcode({
   u.searchParams.set("customer", customerAddress);
   u.searchParams.set("customerName", customerName || "");
   if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+  if (cardId) u.searchParams.set("cardId", cardId);
   u.searchParams.set("action", "redeem");
   u.searchParams.set("rt", token);
   return u.toString();
@@ -2639,27 +2768,54 @@ app.post("/stamp", async (req, res) => {
     // Markiere Nonce als verwendet BEVOR wir die Chain-Transaktion senden
     await consumeNonce.run(Date.now(), nonce);
 
-    const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+    const cafeAddress = String(cafeId);
+    const cafeRowForProgram = await getCafeRowByAddress.get(cafeAddress);
+    const program = getCafeProgramSettings(cafeRowForProgram);
+    const { segments, overflowed, newCardId, newCardStamps } =
+      await splitStampAward({
+        cafeAddress,
+        customerAddress: customer,
+        totalCount: 1,
+        threshold: program.stampsForReward,
+      });
 
-    // Speichere Event und broadcast für SSE-Clients
-    const ev = {
-      ts: Date.now(),
-      cafe: String(cafeId),
-      user: customer,
-      txhash: localTx,
-      status: "confirmed",
-      event_type: "stamp",
-      delta: 1,
-      card_id: null,
-    };
-    await insertEvent.run(ev);
-    notifyWalletPassUpdated(ev.user, ev.cafe);
-    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
-    try {
-      broadcastEvent(ev);
-    } catch (e) {}
+    // One row per segment - almost always just one (a single stamp landing
+    // on the already-active card), only splits if that card was already
+    // exactly full when this stamp arrived.
+    let lastTx = null;
+    for (const seg of segments) {
+      const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+      lastTx = localTx;
+      const ev = {
+        ts: Date.now(),
+        cafe: cafeAddress,
+        user: customer,
+        txhash: localTx,
+        status: "confirmed",
+        event_type: "stamp",
+        delta: seg.delta,
+        card_id: seg.cardId,
+      };
+      await insertEvent.run(ev);
+      try {
+        broadcastEvent(ev);
+      } catch (e) {}
+    }
+    if (overflowed) {
+      try {
+        broadcastEvent({
+          cafe: cafeAddress,
+          user: customer,
+          event_type: "card_overflow",
+          newCardId,
+          newCardStamps,
+        });
+      } catch (e) {}
+    }
+    notifyWalletPassUpdated(customer, cafeAddress);
+    notifyGoogleWalletPassUpdated(customer, cafeAddress);
 
-    res.json({ success: true, status: "confirmed", txHash: localTx });
+    res.json({ success: true, status: "confirmed", txHash: lastTx });
   } catch (err) {
     console.error("Error in /stamp:", err);
     res.status(500).json({ error: String(err.message || err) });
@@ -2696,8 +2852,6 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       });
     }
 
-    const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
-
     let normalizedCardId = null;
     try {
       const raw =
@@ -2717,29 +2871,72 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       }
     } catch (e) {}
 
-    const ev = {
-      ts: Date.now(),
-      cafe: cafeAddress,
-      customer_name: customerName || null,
-      user: customer,
-      txhash: localTx,
-      status: "confirmed",
-      event_type: "stamp",
-      delta: cnt,
-      card_id: normalizedCardId,
-    };
-    await insertEvent.run(ev);
-    notifyWalletPassUpdated(ev.user, ev.cafe);
-    notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
-    try {
-      broadcastEvent(ev);
-    } catch (e) {}
+    let segments;
+    let overflowed = false;
+    let newCardId = null;
+    let newCardStamps = 0;
+    if (normalizedCardId) {
+      // Caller explicitly targeted a specific card - respect that as-is,
+      // no auto-splitting (e.g. a flow that already knows which card it
+      // means shouldn't have stamps silently redirected elsewhere).
+      segments = [{ cardId: normalizedCardId, delta: cnt }];
+    } else {
+      const cafeRowForProgram = await getCafeRowByAddress.get(cafeAddress);
+      const program = getCafeProgramSettings(cafeRowForProgram);
+      const split = await splitStampAward({
+        cafeAddress,
+        customerAddress: customer,
+        totalCount: cnt,
+        threshold: program.stampsForReward,
+      });
+      segments = split.segments;
+      overflowed = split.overflowed;
+      newCardId = split.newCardId;
+      newCardStamps = split.newCardStamps;
+    }
+
+    let lastTx = null;
+    for (const seg of segments) {
+      const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+      lastTx = localTx;
+      const ev = {
+        ts: Date.now(),
+        cafe: cafeAddress,
+        customer_name: customerName || null,
+        user: customer,
+        txhash: localTx,
+        status: "confirmed",
+        event_type: "stamp",
+        delta: seg.delta,
+        card_id: seg.cardId,
+      };
+      await insertEvent.run(ev);
+      try {
+        broadcastEvent(ev);
+      } catch (e) {}
+    }
+    if (overflowed) {
+      try {
+        broadcastEvent({
+          cafe: cafeAddress,
+          user: customer,
+          event_type: "card_overflow",
+          newCardId,
+          newCardStamps,
+        });
+      } catch (e) {}
+    }
+    notifyWalletPassUpdated(customer, cafeAddress);
+    notifyGoogleWalletPassUpdated(customer, cafeAddress);
 
     res.json({
       success: true,
       status: "confirmed",
       count: cnt,
-      txHash: localTx,
+      txHash: lastTx,
+      overflowed,
+      newCardId,
+      newCardStamps,
     });
   } catch (err) {
     console.error("Error in /stamp-by-cafe:", err);
@@ -3690,6 +3887,62 @@ app.post("/admin/google-wallet/resync", requireAdminKey, async (req, res) => {
   }
   await notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
   res.json({ ok: true });
+});
+
+// Manually awards stamps outside the normal cafe-login flow - same
+// splitStampAward()/insertEvent path as /stamp-by-cafe, so it's a faithful
+// way to test the overflow-splitting logic (or fix a support case) without
+// needing real cafe credentials.
+app.post("/admin/award-stamps", requireAdminKey, async (req, res) => {
+  const customerAddress = String(req.body?.customer || "").trim();
+  const cafeAddress = String(req.body?.cafe || "").trim();
+  const count = Math.max(1, Math.min(20, Number(req.body?.count || 1)));
+  if (!/^0x[0-9a-f]{40}$/i.test(customerAddress) || !/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+    return res.status(400).json({ error: "invalid_address" });
+  }
+  const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+  if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
+
+  const program = getCafeProgramSettings(cafeRow);
+  const { segments, overflowed, newCardId, newCardStamps } = await splitStampAward({
+    cafeAddress,
+    customerAddress,
+    totalCount: count,
+    threshold: program.stampsForReward,
+  });
+
+  for (const seg of segments) {
+    const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+    const ev = {
+      ts: Date.now(),
+      cafe: cafeAddress,
+      user: customerAddress,
+      txhash: localTx,
+      status: "confirmed",
+      event_type: "stamp",
+      delta: seg.delta,
+      card_id: seg.cardId,
+    };
+    await insertEvent.run(ev);
+    try {
+      broadcastEvent(ev);
+    } catch (e) {}
+  }
+  if (overflowed) {
+    try {
+      broadcastEvent({
+        cafe: cafeAddress,
+        user: customerAddress,
+        event_type: "card_overflow",
+        newCardId,
+        newCardStamps,
+      });
+    } catch (e) {}
+  }
+  notifyWalletPassUpdated(customerAddress, cafeAddress);
+  notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
+
+  res.json({ ok: true, segments, overflowed, newCardId, newCardStamps });
 });
 
 // Manage optional cafe gallery images
@@ -5508,16 +5761,29 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
     if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
 
     const customerRow = await getCustomerByAddress.get(rawAddress);
-    const passRow = await getOrCreateWalletPass(rawAddress, cafeRow.id);
-    const stampCount = await getCurrentCardStampsByCafeUser(
+    // An explicit ?cardId targets one specific card (e.g. re-opening an
+    // already-full card to redeem it); otherwise default to whichever
+    // card_id this customer used most recently - null for anyone who's
+    // never overflowed past a full card, matching the pre-multi-card
+    // behavior exactly.
+    const requestedCardId = req.query?.cardId ? String(req.query.cardId).trim() : "";
+    let cardId = requestedCardId || null;
+    if (!requestedCardId) {
+      const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, rawAddress);
+      cardId = latestRow ? latestRow.card_id || null : null;
+    }
+    const passRow = await getOrCreateWalletPass(rawAddress, cafeRow.id, cardId);
+    const stampCount = await getStampsByCafeUserCardId(
       cafeAddress,
       rawAddress,
+      cardId,
     );
     const program = getCafeProgramSettings(cafeRow);
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
       cafeAddress,
+      cardId,
       stampCount,
       threshold: program.stampsForReward,
       currentToken: passRow.active_redeem_token || null,
@@ -5571,22 +5837,31 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
     if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
 
     const customerRow = await getCustomerByAddress.get(rawAddress);
-    const stampCount = await getCurrentCardStampsByCafeUser(
+    const requestedCardId = req.query?.cardId ? String(req.query.cardId).trim() : "";
+    let cardId = requestedCardId || null;
+    if (!requestedCardId) {
+      const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, rawAddress);
+      cardId = latestRow ? latestRow.card_id || null : null;
+    }
+    const stampCount = await getStampsByCafeUserCardId(
       cafeAddress,
       rawAddress,
+      cardId,
     );
     const program = getCafeProgramSettings(cafeRow);
 
-    const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, rawAddress);
+    const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, rawAddress, cardId);
     const objectRow = await getOrCreateGoogleWalletObject(
       rawAddress,
       cafeRow.id,
+      cardId,
       objectId,
     );
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
       cafeAddress,
+      cardId,
       stampCount,
       threshold: program.stampsForReward,
       currentToken: objectRow.active_redeem_token || null,
@@ -5600,6 +5875,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       stampCount,
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
+      cardId,
       barcodeMessage,
       appsBaseUrl: process.env.APPS_BASE_URL || "",
     });
@@ -5644,7 +5920,8 @@ app.get("/customers/:customerAddress/google-wallet-stamp-strip.png", async (req,
     const cafeRow = await getCafeRowByAddress.get(cafeAddress);
     if (!cafeRow) return res.status(404).end();
 
-    const stampCount = await getCurrentCardStampsByCafeUser(cafeAddress, rawAddress);
+    const cardId = req.query?.cardId ? String(req.query.cardId).trim() : null;
+    const stampCount = await getStampsByCafeUserCardId(cafeAddress, rawAddress, cardId);
     const program = getCafeProgramSettings(cafeRow);
     const colors = walletPass.resolveThemeColors(
       cafeRow.card_theme || "paper",
@@ -5788,15 +6065,17 @@ walletApiRouter.get(
       if (!cafeRow) return res.status(404).end();
 
       const customerRow = await getCustomerByAddress.get(passRow.customer_address);
-      const stampCount = await getCurrentCardStampsByCafeUser(
+      const stampCount = await getStampsByCafeUserCardId(
         cafeRow.address,
         passRow.customer_address,
+        passRow.card_id,
       );
       const program = getCafeProgramSettings(cafeRow);
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: passRow.customer_address,
         customerName: customerRow?.username || null,
         cafeAddress: cafeRow.address,
+        cardId: passRow.card_id,
         stampCount,
         threshold: program.stampsForReward,
         currentToken: passRow.active_redeem_token || null,

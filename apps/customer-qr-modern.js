@@ -5823,6 +5823,26 @@
                 "Neue Karte gestartet" + (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
+            } else if (type === "card_overflow") {
+              // Fired when a single stamp award (e.g. a cafe granting
+              // several stamps at once) both completes the active card AND
+              // spills extra stamps into a freshly-started one - the
+              // customer never has to redeem before they can keep
+              // stamping, so this is purely informational, not a prompt to
+              // confirm/decline (the stamps are already booked either way).
+              var overflowStamps = Number(obj.newCardStamps || 0);
+              triggerHapticReward();
+              showToast(
+                "\ud83c\udf89 Karte voll! Neue Karte gestartet" +
+                  (overflowStamps > 0
+                    ? " \u2013 schon " + overflowStamps + " Stempel gesammelt"
+                    : "") +
+                  (cafeLabel ? " \u00b7 " + cafeLabel : ""),
+                null,
+              );
+              try {
+                refreshWalletStamps();
+              } catch (eRefresh) {}
             }
           }
 
