@@ -167,6 +167,24 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
           },
         },
       },
+      // Reuses the same "remaining" text module already sent for the
+      // detail view - the class only defines *where* this shows (a row on
+      // the front card, above the barcode), each object's own value (either
+      // "noch X" or "Prämie verfügbar!") decides *what* it says, since
+      // that's naturally different per customer.
+      cardTemplateOverride: {
+        cardRowTemplateInfos: [
+          {
+            oneItem: {
+              item: {
+                firstValue: {
+                  fields: [{ fieldPath: "object.textModulesData['remaining']" }],
+                },
+              },
+            },
+          },
+        ],
+      },
     },
     // Surfaces the pass automatically when the customer is nearby - Google
     // decides the exact proximity/dwell threshold itself, no maxDistance
@@ -365,4 +383,7 @@ module.exports = {
   buildSaveLink,
   patchLoyaltyClassForCafe,
   patchLoyaltyObjectStamps,
+  // Needed by server.cjs to get-or-create the tracking row *before* calling
+  // buildSaveLink, so the redeem-token resolver has something to read/write.
+  loyaltyObjectId,
 };

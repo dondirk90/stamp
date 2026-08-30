@@ -1512,6 +1512,19 @@ runSqliteOnlyAlter(
   "Failed to add customer_saved_cafes.is_favorite column:",
 );
 
+// Persists the single-use redeem-QR token while a wallet card is full, so
+// repeated pass regenerations (e.g. a cafe profile save) reuse the same
+// token/QR image instead of minting a new one every time. Cleared once the
+// card drops back below the reward threshold (redeemed).
+runSqliteOnlyAlter(
+  "ALTER TABLE wallet_passes ADD COLUMN active_redeem_token TEXT",
+  "Failed to add wallet_passes.active_redeem_token column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE google_wallet_objects ADD COLUMN active_redeem_token TEXT",
+  "Failed to add google_wallet_objects.active_redeem_token column:",
+);
+
 // Prepare statements
 const insertEvent = db.prepare(
   'INSERT INTO stamp_events (ts, cafe, "user", customer_name, txhash, status, event_type, delta, card_id) VALUES (@ts, @cafe, @user, @customer_name, @txhash, @status, @event_type, @delta, @card_id)',
@@ -1585,6 +1598,9 @@ const insertWalletPass = db.prepare(
 );
 const touchWalletPassUpdatedAt = db.prepare(
   "UPDATE wallet_passes SET updated_at = ? WHERE serial_number = ?",
+);
+const setWalletPassRedeemToken = db.prepare(
+  "UPDATE wallet_passes SET active_redeem_token = ? WHERE serial_number = ?",
 );
 const upsertWalletRegistration = db.prepare(
   "INSERT INTO wallet_registrations (device_library_identifier, serial_number, push_token, created_at) VALUES (?, ?, ?, ?) " +
@@ -1708,8 +1724,11 @@ const insertGoogleWalletObject = db.prepare(
 const touchGoogleWalletObjectUpdatedAt = db.prepare(
   "UPDATE google_wallet_objects SET updated_at = ? WHERE object_id = ?",
 );
+const setGoogleWalletObjectRedeemToken = db.prepare(
+  "UPDATE google_wallet_objects SET active_redeem_token = ? WHERE object_id = ?",
+);
 const listGoogleWalletObjectsByCafe = db.prepare(
-  "SELECT customer_address, object_id FROM google_wallet_objects WHERE cafe_id = ?",
+  "SELECT customer_address, object_id, active_redeem_token FROM google_wallet_objects WHERE cafe_id = ?",
 );
 
 async function getOrCreateGoogleWalletObject(customerAddress, cafeId, objectId) {
@@ -1751,17 +1770,23 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
     const stampCount = await getCurrentCardStampsByCafeUser(cafeAddress, customerAddress);
     const program = getCafeProgramSettings(cafeRow);
     await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
+    const barcodeMessage = await resolveWalletBarcode({
+      customerAddress,
+      customerName: customerRow ? customerRow.username : null,
+      cafeAddress,
+      stampCount,
+      threshold: program.stampsForReward,
+      currentToken: objectRow.active_redeem_token || null,
+      persistToken: (token) =>
+        setGoogleWalletObjectRedeemToken.run(token, objectRow.object_id),
+    });
     await googleWalletPass.patchLoyaltyObjectStamps({
       cafeRow,
       program,
       stampCount,
       customerAddress,
       customerName: customerRow ? customerRow.username : null,
-      barcodeMessage: buildCafeScannerLink(
-        customerAddress,
-        customerRow ? customerRow.username : null,
-        cafeAddress,
-      ),
+      barcodeMessage,
       appsBaseUrl: process.env.APPS_BASE_URL || "",
       // Real stamp/redeem event - worth the lock-screen notification
       // (capped at 3/24h by Google, so only fire it where it's genuinely
@@ -1794,17 +1819,23 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         cafeRow.address,
         row.customer_address,
       );
+      const barcodeMessage = await resolveWalletBarcode({
+        customerAddress: row.customer_address,
+        customerName: customerRow ? customerRow.username : null,
+        cafeAddress: cafeRow.address,
+        stampCount,
+        threshold: program.stampsForReward,
+        currentToken: row.active_redeem_token || null,
+        persistToken: (token) =>
+          setGoogleWalletObjectRedeemToken.run(token, row.object_id),
+      });
       await googleWalletPass.patchLoyaltyObjectStamps({
         cafeRow,
         program,
         stampCount,
         customerAddress: row.customer_address,
         customerName: customerRow ? customerRow.username : null,
-        barcodeMessage: buildCafeScannerLink(
-          row.customer_address,
-          customerRow ? customerRow.username : null,
-          cafeRow.address,
-        ),
+        barcodeMessage,
         appsBaseUrl,
       });
     }
@@ -1819,6 +1850,50 @@ function buildCafeScannerLink(customerAddress, customerName, cafeAddress) {
   u.searchParams.set("customer", customerAddress);
   u.searchParams.set("customerName", customerName || "");
   if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+  return u.toString();
+}
+
+// Same shape as the in-app card's buildRedeemLink() (customer-qr-modern.js)
+// - a single-use "rt" token the cafe scanner's redeem endpoint consumes
+// atomically. The in-app card mints a fresh client-side token every few
+// minutes since it's regenerated live in the browser; a wallet pass's
+// barcode is static between regenerations, so instead this persists ONE
+// token per wallet row for as long as the card stays full, reusing it
+// across regenerations (e.g. an unrelated cafe profile save) instead of
+// invalidating the QR the customer might already be looking at, and only
+// clears it once the card drops back below threshold (i.e. redeemed).
+async function resolveWalletBarcode({
+  customerAddress,
+  customerName,
+  cafeAddress,
+  stampCount,
+  threshold,
+  currentToken,
+  persistToken,
+}) {
+  const isFull = stampCount >= threshold;
+  if (!isFull) {
+    if (currentToken) {
+      try {
+        await persistToken(null);
+      } catch (err) {}
+    }
+    return buildCafeScannerLink(customerAddress, customerName, cafeAddress);
+  }
+
+  let token = currentToken;
+  if (!token) {
+    token = crypto.randomBytes(16).toString("hex");
+    await persistToken(token);
+  }
+
+  const base = String(process.env.APPS_BASE_URL || "").replace(/\/$/, "");
+  const u = new URL(`${base}/cafe-scanner-new.html`);
+  u.searchParams.set("customer", customerAddress);
+  u.searchParams.set("customerName", customerName || "");
+  if (cafeAddress) u.searchParams.set("cafe", cafeAddress);
+  u.searchParams.set("action", "redeem");
+  u.searchParams.set("rt", token);
   return u.toString();
 }
 
@@ -5439,6 +5514,16 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
       rawAddress,
     );
     const program = getCafeProgramSettings(cafeRow);
+    const barcodeMessage = await resolveWalletBarcode({
+      customerAddress: rawAddress,
+      customerName: customerRow?.username || null,
+      cafeAddress,
+      stampCount,
+      threshold: program.stampsForReward,
+      currentToken: passRow.active_redeem_token || null,
+      persistToken: (token) =>
+        setWalletPassRedeemToken.run(token, passRow.serial_number),
+    });
 
     const buffer = await walletPass.generateSignedPass({
       cafeRow,
@@ -5447,11 +5532,7 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
       serialNumber: passRow.serial_number,
       authenticationToken: passRow.authentication_token,
       webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
-      barcodeMessage: buildCafeScannerLink(
-        rawAddress,
-        customerRow?.username,
-        cafeAddress,
-      ),
+      barcodeMessage,
       customerName: customerRow?.username || null,
     });
 
@@ -5496,21 +5577,32 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
     );
     const program = getCafeProgramSettings(cafeRow);
 
-    const { saveUrl, objectId } = googleWalletPass.buildSaveLink({
+    const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, rawAddress);
+    const objectRow = await getOrCreateGoogleWalletObject(
+      rawAddress,
+      cafeRow.id,
+      objectId,
+    );
+    const barcodeMessage = await resolveWalletBarcode({
+      customerAddress: rawAddress,
+      customerName: customerRow?.username || null,
+      cafeAddress,
+      stampCount,
+      threshold: program.stampsForReward,
+      currentToken: objectRow.active_redeem_token || null,
+      persistToken: (token) =>
+        setGoogleWalletObjectRedeemToken.run(token, objectId),
+    });
+
+    const { saveUrl } = googleWalletPass.buildSaveLink({
       cafeRow,
       program,
       stampCount,
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
-      barcodeMessage: buildCafeScannerLink(
-        rawAddress,
-        customerRow?.username,
-        cafeAddress,
-      ),
+      barcodeMessage,
       appsBaseUrl: process.env.APPS_BASE_URL || "",
     });
-
-    await getOrCreateGoogleWalletObject(rawAddress, cafeRow.id, objectId);
 
     res.json({ ok: true, saveUrl });
   } catch (err) {
@@ -5701,6 +5793,16 @@ walletApiRouter.get(
         passRow.customer_address,
       );
       const program = getCafeProgramSettings(cafeRow);
+      const barcodeMessage = await resolveWalletBarcode({
+        customerAddress: passRow.customer_address,
+        customerName: customerRow?.username || null,
+        cafeAddress: cafeRow.address,
+        stampCount,
+        threshold: program.stampsForReward,
+        currentToken: passRow.active_redeem_token || null,
+        persistToken: (token) =>
+          setWalletPassRedeemToken.run(token, passRow.serial_number),
+      });
 
       const buffer = await walletPass.generateSignedPass({
         cafeRow,
@@ -5709,11 +5811,7 @@ walletApiRouter.get(
         serialNumber: passRow.serial_number,
         authenticationToken: passRow.authentication_token,
         webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
-        barcodeMessage: buildCafeScannerLink(
-          passRow.customer_address,
-          customerRow?.username,
-          cafeRow.address,
-        ),
+        barcodeMessage,
         customerName: customerRow?.username || null,
       });
 

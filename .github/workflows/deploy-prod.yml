@@ -185,6 +185,8 @@ jobs:
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'card_bg_color')
                  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cafes' AND column_name = 'card_fg_color')
                  AND to_regclass('public.google_wallet_objects') IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'wallet_passes' AND column_name = 'active_redeem_token')
+                 AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'google_wallet_objects' AND column_name = 'active_redeem_token')
                THEN 'ok' ELSE 'missing' END;" \
               | grep -qx 'ok'
 

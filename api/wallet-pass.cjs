@@ -343,6 +343,17 @@ function buildPassJson({
           textAlignment: "PKTextAlignmentCenter",
         },
       ],
+      // Same "noch X" / "Prämie verfügbar!" text as the Google side's
+      // front-card row - the stamp circles already hint at it visually,
+      // but it should also be readable as text, not just inferred from
+      // counting filled circles.
+      auxiliaryFields: [
+        {
+          key: "remaining",
+          value: remainingLine,
+          textAlignment: "PKTextAlignmentCenter",
+        },
+      ],
       backFields,
     },
     barcodes: [
