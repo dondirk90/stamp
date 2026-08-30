@@ -1572,8 +1572,13 @@ const countEventsByCafeUserCardId = db.prepare(
 
 // Card boundaries: starting a new card should not delete old stamps.
 // We treat both legacy `reset` and future `card_start` as boundaries.
+// card_id IS NULL for the same reason as countEventsByCafeUserSinceTs below:
+// redeeming now inserts a card_start event for the newly-opened (real,
+// non-null) card_id - without this filter, that card_start "reset the
+// clock" on the unrelated legacy null-card total too, wiping its own
+// history out of its own isolated sum the moment any other card opened.
 const getLastCardBoundaryTsByCafeUser = db.prepare(
-  "SELECT COALESCE(MAX(ts), 0) AS ts FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND LOWER(COALESCE(event_type,'')) IN ('reset','card_start')",
+  "SELECT COALESCE(MAX(ts), 0) AS ts FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND card_id IS NULL AND LOWER(COALESCE(event_type,'')) IN ('reset','card_start')",
 );
 // card_id IS NULL matters here, not just the boundary ts: once a customer's
 // original (legacy, card_id-less) card overflows, a real card_id gets minted
