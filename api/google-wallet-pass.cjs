@@ -157,12 +157,17 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
     programLogo: { sourceUri: { uri: logoUri } },
     hexBackgroundColor: colors.bg,
     reviewStatus: "UNDER_REVIEW",
-    // No cardBarcodeSectionDetails/firstBottomDetail here on purpose - that
-    // used to show the customer's name below the barcode, which read like a
-    // "customer ID" line the customer didn't want visible on the card. The
-    // name is still shown elsewhere (detail view's accountName), just not
-    // pinned under the QR code.
     classTemplateInfo: {
+      // Explicit null, not just omitted - PATCH on this API merges fields
+      // that are present rather than replacing the whole resource, so
+      // simply removing this key from the payload leaves an already-created
+      // class's old value in place forever. This used to show the
+      // customer's name below the barcode, which read like an exposed
+      // "customer ID" line on the card face - confirmed via a live PATCH
+      // that only an explicit null actually clears it. The name is still
+      // available elsewhere (the object's own accountName), just not
+      // pinned under the QR code.
+      cardBarcodeSectionDetails: null,
       // Reuses the same "remaining" text module already sent for the
       // detail view - the class only defines *where* this shows (a row on
       // the front card, above the barcode), each object's own value (either
