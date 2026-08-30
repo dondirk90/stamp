@@ -1575,8 +1575,14 @@ const countEventsByCafeUserCardId = db.prepare(
 const getLastCardBoundaryTsByCafeUser = db.prepare(
   "SELECT COALESCE(MAX(ts), 0) AS ts FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND LOWER(COALESCE(event_type,'')) IN ('reset','card_start')",
 );
+// card_id IS NULL matters here, not just the boundary ts: once a customer's
+// original (legacy, card_id-less) card overflows, a real card_id gets minted
+// for the new one - without this filter, this "legacy card" total kept
+// summing every later card's stamps too (they all pass the same ts/cafe/user
+// match), permanently inflating an already-installed pass that can never be
+// repointed at a different object id.
 const countEventsByCafeUserSinceTs = db.prepare(
-  "SELECT COALESCE(SUM(delta), 0) AS total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND ts >= ? AND LOWER(COALESCE(event_type,'')) NOT IN ('reset','card_start')",
+  "SELECT COALESCE(SUM(delta), 0) AS total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND ts >= ? AND card_id IS NULL AND LOWER(COALESCE(event_type,'')) NOT IN ('reset','card_start')",
 );
 const countEventsByUser = db.prepare(
   "SELECT COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed')",
@@ -1895,6 +1901,7 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerAddress,
         customerName: customerRow ? customerRow.username : null,
         cafeAddress,
+        cardId: objectRow.card_id,
         stampCount,
         threshold: program.stampsForReward,
         currentToken: objectRow.active_redeem_token || null,
@@ -1947,6 +1954,7 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         customerAddress: row.customer_address,
         customerName: customerRow ? customerRow.username : null,
         cafeAddress: cafeRow.address,
+        cardId: row.card_id,
         stampCount,
         threshold: program.stampsForReward,
         currentToken: row.active_redeem_token || null,
@@ -3066,6 +3074,12 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
       });
     }
 
+    // The redeemed card is left at its final count as a closed, historical
+    // record (delta: 0, purely an audit entry) rather than reset in place -
+    // "each full card gets its own id" (the same rule overflow-splitting
+    // follows) means redemption shouldn't quietly repurpose that same
+    // card_id as the next one to fill. A fresh card_id is opened instead so
+    // future stamps land somewhere new.
     const ev = {
       ts: now,
       cafe: cafeAddress,
@@ -3074,25 +3088,39 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
       txhash: localTx,
       status: "confirmed",
       event_type: "redeem",
-      delta: -10,
+      delta: 0,
       card_id: normalizedCardId,
     };
-
     await insertEvent.run(ev);
+
+    const newCardId = crypto.randomBytes(8).toString("hex");
+    const newCardEv = {
+      ts: now,
+      cafe: cafeAddress,
+      customer_name: customerName || null,
+      user: customer,
+      txhash: `local_${crypto.randomBytes(16).toString("hex")}`,
+      status: "confirmed",
+      event_type: "card_start",
+      delta: 0,
+      card_id: newCardId,
+    };
+    await insertEvent.run(newCardEv);
+
     notifyWalletPassUpdated(ev.user, ev.cafe);
     notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
-    const result = { ev, currentStamps, localTx };
 
     try {
-      broadcastEvent(result.ev);
+      broadcastEvent({ ...ev, newCardId });
     } catch (e) {}
 
     res.json({
       success: true,
       status: "confirmed",
       redeemed: true,
-      previousStamps: Number(result.currentStamps),
-      txHash: result.localTx,
+      previousStamps: Number(currentStamps),
+      txHash: localTx,
+      newCardId,
       message: "Reward redeemed.",
     });
   } catch (err) {
@@ -3947,6 +3975,75 @@ app.post("/admin/award-stamps", requireAdminKey, async (req, res) => {
   notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
 
   res.json({ ok: true, segments, overflowed, newCardId, newCardStamps });
+});
+
+// Manually simulates a reward redemption outside the normal cafe-scanner
+// flow - same "freeze the redeemed card, open a new one" path as
+// /redeem-reward, minus the single-use QR token dance (not needed for an
+// admin-authenticated test call). Lets the redeem flow be verified without
+// real cafe credentials.
+app.post("/admin/redeem-reward", requireAdminKey, async (req, res) => {
+  const customerAddress = String(req.body?.customer || "").trim();
+  const cafeAddress = String(req.body?.cafe || "").trim();
+  const cardIdRaw = req.body?.cardId != null ? String(req.body.cardId).trim() : "";
+  const normalizedCardId = cardIdRaw && cardIdRaw !== "__legacy__" ? cardIdRaw : null;
+  if (!/^0x[0-9a-f]{40}$/i.test(customerAddress) || !/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+    return res.status(400).json({ error: "invalid_address" });
+  }
+  const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+  if (!cafeRow) return res.status(404).json({ error: "cafe_not_found" });
+
+  const currentStamps = await getStampsByCafeUserCardId(
+    cafeAddress,
+    customerAddress,
+    normalizedCardId,
+  );
+  const program = getCafeProgramSettings(cafeRow);
+  const rewardThreshold = toBoundInt(program.stampsForReward, 10, 1, 50);
+  if (currentStamps < rewardThreshold) {
+    return res.status(400).json({
+      error: "insufficient_stamps",
+      current: currentStamps,
+      required: rewardThreshold,
+    });
+  }
+
+  const customerRow = await getCustomerByAddress.get(customerAddress);
+  const now = Date.now();
+  const ev = {
+    ts: now,
+    cafe: cafeAddress,
+    customer_name: customerRow?.username || null,
+    user: customerAddress,
+    txhash: `local_${crypto.randomBytes(16).toString("hex")}`,
+    status: "confirmed",
+    event_type: "redeem",
+    delta: 0,
+    card_id: normalizedCardId,
+  };
+  await insertEvent.run(ev);
+
+  const newCardId = crypto.randomBytes(8).toString("hex");
+  const newCardEv = {
+    ts: now,
+    cafe: cafeAddress,
+    customer_name: customerRow?.username || null,
+    user: customerAddress,
+    txhash: `local_${crypto.randomBytes(16).toString("hex")}`,
+    status: "confirmed",
+    event_type: "card_start",
+    delta: 0,
+    card_id: newCardId,
+  };
+  await insertEvent.run(newCardEv);
+
+  notifyWalletPassUpdated(customerAddress, cafeAddress);
+  notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
+  try {
+    broadcastEvent({ ...ev, newCardId });
+  } catch (e) {}
+
+  res.json({ ok: true, previousStamps: currentStamps, newCardId });
 });
 
 // Manage optional cafe gallery images

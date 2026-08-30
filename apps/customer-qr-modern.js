@@ -210,6 +210,13 @@
     t: 0,
   };
 
+  var addCardBannerState = {
+    el: null,
+    textEl: null,
+    btnEl: null,
+    hideTimer: 0,
+  };
+
   var sseState = {
     es: null,
     retryT: 0,
@@ -614,6 +621,98 @@
           if (toastState.el) toastState.el.style.display = "none";
         } catch (e1) {}
       }, 2600);
+    } catch (e) {}
+  }
+
+  function walletPassAddUrl(customerAddress, cafeAddress) {
+    return (
+      apiBase +
+      "/customers/" +
+      encodeURIComponent(customerAddress) +
+      "/wallet-pass?cafe=" +
+      encodeURIComponent(cafeAddress)
+    );
+  }
+
+  function googleWalletSaveAddUrl(customerAddress, cafeAddress) {
+    return (
+      apiBase +
+      "/customers/" +
+      encodeURIComponent(customerAddress) +
+      "/google-wallet-save-link?cafe=" +
+      encodeURIComponent(cafeAddress)
+    );
+  }
+
+  // Neither Apple nor Google lets a server push a brand new pass onto a
+  // device - a fresh card_id (from redemption or an overflow split) only
+  // ever becomes an actual wallet entry once the customer taps this
+  // themselves. No explicit cardId here on purpose: both endpoints default
+  // to the customer's latest card_id for this cafe when it's omitted.
+  function proceedToAddWalletCard(cafeAddress) {
+    if (!session || !session.address || !cafeAddress) return;
+    if (isIOS()) {
+      window.location.href = walletPassAddUrl(session.address, cafeAddress);
+      return;
+    }
+    fetch(googleWalletSaveAddUrl(session.address, cafeAddress))
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (result.ok && result.data && result.data.saveUrl) {
+          window.location.href = result.data.saveUrl;
+        }
+      })
+      .catch(function () {});
+  }
+
+  function hideAddCardBanner() {
+    try {
+      if (addCardBannerState.el) addCardBannerState.el.classList.remove("visible");
+      if (addCardBannerState.hideTimer) {
+        window.clearTimeout(addCardBannerState.hideTimer);
+        addCardBannerState.hideTimer = 0;
+      }
+    } catch (e) {}
+  }
+
+  function showAddCardBanner(cafeAddress, message) {
+    if (!cafeAddress) return;
+    try {
+      if (!addCardBannerState.el) {
+        var node = document.createElement("div");
+        node.id = "addCardBanner";
+        var textEl = document.createElement("div");
+        textEl.className = "addCardBannerText";
+        var btnEl = document.createElement("button");
+        btnEl.type = "button";
+        btnEl.className = "btn addCardBannerBtn";
+        btnEl.textContent = "Karte hinzufügen";
+        var closeEl = document.createElement("button");
+        closeEl.type = "button";
+        closeEl.className = "addCardBannerClose";
+        closeEl.setAttribute("aria-label", "Schließen");
+        closeEl.textContent = "×";
+        node.appendChild(textEl);
+        node.appendChild(btnEl);
+        node.appendChild(closeEl);
+        document.body.appendChild(node);
+        addCardBannerState.el = node;
+        addCardBannerState.textEl = textEl;
+        addCardBannerState.btnEl = btnEl;
+        closeEl.addEventListener("click", hideAddCardBanner);
+      }
+      addCardBannerState.textEl.textContent = message || "Neue Karte bereit";
+      addCardBannerState.btnEl.onclick = function () {
+        hideAddCardBanner();
+        proceedToAddWalletCard(cafeAddress);
+      };
+      addCardBannerState.el.classList.add("visible");
+      if (addCardBannerState.hideTimer) window.clearTimeout(addCardBannerState.hideTimer);
+      addCardBannerState.hideTimer = window.setTimeout(hideAddCardBanner, 15000);
     } catch (e) {}
   }
 
@@ -5818,6 +5917,17 @@
                   (cafeLabel ? " \u00b7 " + cafeLabel : ""),
                 null,
               );
+              try {
+                refreshWalletStamps();
+              } catch (eRefresh) {}
+              if (cafeAddr && obj.newCardId) {
+                showAddCardBanner(
+                  cafeAddr,
+                  "\ud83c\udf89 Eingel\u00f6st! Neue Stempelkarte" +
+                    (cafeLabel ? " \u00b7 " + cafeLabel : "") +
+                    " zum Wallet hinzuf\u00fcgen?",
+                );
+              }
             } else if (type === "card_start") {
               showToast(
                 "Neue Karte gestartet" + (cafeLabel ? " \u00b7 " + cafeLabel : ""),
@@ -5843,6 +5953,14 @@
               try {
                 refreshWalletStamps();
               } catch (eRefresh) {}
+              if (cafeAddr && obj.newCardId) {
+                showAddCardBanner(
+                  cafeAddr,
+                  "🎉 Karte voll! Neue Stempelkarte" +
+                    (cafeLabel ? " · " + cafeLabel : "") +
+                    " zum Wallet hinzufügen?",
+                );
+              }
             }
           }
 
