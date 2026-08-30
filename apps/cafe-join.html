@@ -350,7 +350,7 @@
         <h1>Deine Stempelkarte, direkt in der Wallet</h1>
         <p class="lede">
           Kurz anmelden – keine App nötig, die Karte landet danach direkt in
-          deiner Apple Wallet.
+          deiner Wallet.
         </p>
 
         <div class="legalChecks">
@@ -506,6 +506,15 @@
           );
         }
 
+        function googleWalletSaveLinkUrl(customerAddress) {
+          return (
+            "/api/customers/" +
+            encodeURIComponent(customerAddress) +
+            "/google-wallet-save-link?cafe=" +
+            encodeURIComponent(cafeAddress)
+          );
+        }
+
         var pageEl = document.querySelector(".page");
         function revealPage() {
           pageEl.classList.add("ready");
@@ -570,7 +579,28 @@
               window.close();
             }, 800);
           } else {
-            window.location.href = "/wallet";
+            // Android (and everything else non-iOS): try Google Wallet's
+            // own save link first - it's a real page navigation to
+            // pay.google.com, not an overlay like Apple's, so no special
+            // "stay on this tab" handling is needed here. Falls back to the
+            // plain web app if Google Wallet isn't configured/fails (e.g.
+            // not yet set up in this environment).
+            fetch(googleWalletSaveLinkUrl(address))
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { ok: res.ok, data: data };
+                });
+              })
+              .then(function (result) {
+                if (result.ok && result.data && result.data.saveUrl) {
+                  window.location.href = result.data.saveUrl;
+                } else {
+                  window.location.href = "/wallet";
+                }
+              })
+              .catch(function () {
+                window.location.href = "/wallet";
+              });
           }
         }
 
