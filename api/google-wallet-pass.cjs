@@ -157,22 +157,12 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
     programLogo: { sourceUri: { uri: logoUri } },
     hexBackgroundColor: colors.bg,
     reviewStatus: "UNDER_REVIEW",
-    // Without this, the member's name only shows on the detail page, not
-    // the collapsed card - the customer's own name should be visible at a
-    // glance, same as the "Kunde" headerField we added on the Apple side.
-    // Placed below the barcode (cardBarcodeSectionDetails), not as its own
-    // row above it - a full-width row there competed with the program name
-    // for space. The header itself (logo + program name) is a fixed Google
-    // layout with no override field, so a long cafe name can't be moved
-    // next to the logo from here.
+    // No cardBarcodeSectionDetails/firstBottomDetail here on purpose - that
+    // used to show the customer's name below the barcode, which read like a
+    // "customer ID" line the customer didn't want visible on the card. The
+    // name is still shown elsewhere (detail view's accountName), just not
+    // pinned under the QR code.
     classTemplateInfo: {
-      cardBarcodeSectionDetails: {
-        firstBottomDetail: {
-          fieldSelector: {
-            fields: [{ fieldPath: "object.accountName" }],
-          },
-        },
-      },
       // Reuses the same "remaining" text module already sent for the
       // detail view - the class only defines *where* this shows (a row on
       // the front card, above the barcode), each object's own value (either
