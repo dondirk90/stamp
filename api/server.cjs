@@ -2789,6 +2789,7 @@ app.post("/stamp", async (req, res) => {
       const ev = {
         ts: Date.now(),
         cafe: cafeAddress,
+        customer_name: null,
         user: customer,
         txhash: localTx,
         status: "confirmed",
@@ -3911,11 +3912,13 @@ app.post("/admin/award-stamps", requireAdminKey, async (req, res) => {
     threshold: program.stampsForReward,
   });
 
+  const customerRowForAward = await getCustomerByAddress.get(customerAddress);
   for (const seg of segments) {
     const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
     const ev = {
       ts: Date.now(),
       cafe: cafeAddress,
+      customer_name: customerRowForAward?.username || null,
       user: customerAddress,
       txhash: localTx,
       status: "confirmed",
