@@ -273,6 +273,14 @@ function buildPassJson({
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
+      // Apple only shows a lock-screen notification for a field whose
+      // *value* actually changed between pass versions - a pure profile
+      // save (color, logo, ...) never touches this field, so this fires
+      // only on real stamp/redeem events, not on every push. Only one
+      // field gets a changeMessage on purpose: if several fields on the
+      // same update have one, Wallet collapses them into a generic "Pass
+      // was changed" message instead of showing this custom text.
+      changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel.",
     },
     {
       key: "untilReward",

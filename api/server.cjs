@@ -1763,6 +1763,10 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         cafeAddress,
       ),
       appsBaseUrl: process.env.APPS_BASE_URL || "",
+      // Real stamp/redeem event - worth the lock-screen notification
+      // (capped at 3/24h by Google, so only fire it where it's genuinely
+      // earned, not on the profile-resync path below).
+      notify: true,
     });
   } catch (err) {
     console.warn("Failed to notify Google Wallet pass update:", err.message || err);

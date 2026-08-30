@@ -180,6 +180,7 @@ function buildLoyaltyObjectPayload({
   rewardDescription,
   barcodeMessage,
   appsBaseUrl,
+  notify,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
@@ -250,6 +251,13 @@ function buildLoyaltyObjectPayload({
       type: "QR_CODE",
       value: barcodeMessage,
     },
+    // Transient - only lives on this one request, has to be resent every
+    // time to trigger again. Google only supports this for loyaltyPoints.
+    // balance changes, capped at 3 notified updates per pass per 24h, so
+    // this is only set for genuine stamp/redeem events (see the `notify`
+    // param), never for a profile-driven resync (color, logo, ...) where
+    // the stamp count itself hasn't actually changed.
+    ...(notify ? { notifyPreference: "notifyOnUpdate" } : {}),
   };
 }
 
@@ -316,6 +324,7 @@ async function patchLoyaltyObjectStamps({
   customerName,
   barcodeMessage,
   appsBaseUrl,
+  notify,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -328,6 +337,7 @@ async function patchLoyaltyObjectStamps({
       rewardDescription: program.rewardDescription,
       barcodeMessage,
       appsBaseUrl,
+      notify,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {
