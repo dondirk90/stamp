@@ -141,7 +141,12 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
 
   return {
     id: loyaltyClassId(cafeId),
-    issuerName: "Kaffeekarte",
+    // "Kaffeekarte" here added no value and just took up the prominent
+    // header slot - the cafe's own name reads better there, even though
+    // programName repeats it below (Google's header layout is fixed, no
+    // override field exists to show something else instead - confirmed
+    // via the ClassTemplateInfo reference).
+    issuerName: cafeName,
     programName: cafeName,
     programLogo: { sourceUri: { uri: logoUri } },
     hexBackgroundColor: colors.bg,
