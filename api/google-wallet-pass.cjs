@@ -168,6 +168,21 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
         },
       },
     },
+    // Surfaces the pass automatically when the customer is nearby - Google
+    // decides the exact proximity/dwell threshold itself, no maxDistance
+    // param like Apple's. Only when the cafe has actually set a map
+    // location (many haven't - null lat/lng must NOT become 0,0, a real
+    // point in the Gulf of Guinea), no fallback/default coordinates.
+    ...(cafeRow.lat != null &&
+    cafeRow.lng != null &&
+    Number.isFinite(Number(cafeRow.lat)) &&
+    Number.isFinite(Number(cafeRow.lng))
+      ? {
+          merchantLocations: [
+            { latitude: Number(cafeRow.lat), longitude: Number(cafeRow.lng) },
+          ],
+        }
+      : {}),
   };
 }
 

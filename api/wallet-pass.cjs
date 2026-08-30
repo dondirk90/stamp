@@ -235,6 +235,8 @@ function buildPassJson({
   cafeWebsiteUrl,
   cafeInstagramUrl,
   barcodeMessage,
+  lat,
+  lng,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
@@ -354,6 +356,21 @@ function buildPassJson({
         ...(trimmedCustomerName ? { altText: trimmedCustomerName } : {}),
       },
     ],
+    // Surfaces the pass on the lock screen automatically when the customer
+    // is physically near the cafe - only when the cafe has actually set a
+    // map location (many haven't), no fallback/default coordinates.
+    ...(typeof lat === "number" && typeof lng === "number"
+      ? {
+          locations: [
+            {
+              latitude: lat,
+              longitude: lng,
+              relevantText: `${cafeName} ist in der Nähe – Zeit für einen Kaffee?`,
+            },
+          ],
+          maxDistance: 150,
+        }
+      : {}),
   };
 }
 
@@ -393,6 +410,8 @@ async function generateSignedPass({
     cafeWebsiteUrl: cafeRow && cafeRow.website_url,
     cafeInstagramUrl: cafeRow && cafeRow.instagram_url,
     barcodeMessage,
+    lat: cafeRow && cafeRow.lat != null ? Number(cafeRow.lat) : null,
+    lng: cafeRow && cafeRow.lng != null ? Number(cafeRow.lng) : null,
   });
 
   const buffers = {
