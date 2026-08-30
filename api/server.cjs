@@ -3919,6 +3919,23 @@ app.post("/admin/google-wallet/resync", requireAdminKey, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Apple-side equivalent - pushes an APNs "refresh" ping for every pass this
+// customer has for this cafe. The push itself carries no data (PassKit
+// doesn't work that way); it just tells the device to re-pull via the
+// webservice route, which recomputes with whatever the current code/data
+// says - useful for getting an already-installed pass to pick up a
+// server-side calculation fix without waiting for the customer's next
+// real stamp/redeem event.
+app.post("/admin/apple-wallet/resync", requireAdminKey, async (req, res) => {
+  const customerAddress = String(req.query?.customer || "").trim();
+  const cafeAddress = String(req.query?.cafe || "").trim();
+  if (!/^0x[0-9a-f]{40}$/i.test(customerAddress) || !/^0x[0-9a-f]{40}$/i.test(cafeAddress)) {
+    return res.status(400).json({ error: "invalid_address" });
+  }
+  await notifyWalletPassUpdated(customerAddress, cafeAddress);
+  res.json({ ok: true });
+});
+
 // Manually awards stamps outside the normal cafe-login flow - same
 // splitStampAward()/insertEvent path as /stamp-by-cafe, so it's a faithful
 // way to test the overflow-splitting logic (or fix a support case) without
