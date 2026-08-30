@@ -1233,8 +1233,6 @@ CREATE TABLE IF NOT EXISTS wallet_passes (
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_passes_customer_cafe ON wallet_passes(customer_address, cafe_id);
-
 CREATE TABLE IF NOT EXISTS wallet_registrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   device_library_identifier TEXT NOT NULL,
@@ -1261,7 +1259,6 @@ CREATE TABLE IF NOT EXISTS google_wallet_objects (
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_google_wallet_objects_customer_cafe ON google_wallet_objects(customer_address, cafe_id);
 `);
 }
 
