@@ -211,9 +211,11 @@ function buildLoyaltyObjectPayload({
       label: "Stempel",
       balance: { int: clampedStamps },
     },
-    imageModulesData: [
-      { id: "stamps", mainImage: { sourceUri: { uri: stampStripUri } } },
-    ],
+    // heroImage renders on the compact/collapsed front card itself;
+    // imageModulesData only shows after the customer opens the pass's
+    // detail view - the stamp progress should be visible at a glance, same
+    // as Apple's strip image, not buried behind a tap.
+    heroImage: { sourceUri: { uri: stampStripUri } },
     // Cafe-specific info first (only when set), the always-present
     // boilerplate (counts already visible on the card front anyway, terms)
     // last - same ordering rationale as the Apple pass's backFields.

@@ -1708,6 +1708,9 @@ const insertGoogleWalletObject = db.prepare(
 const touchGoogleWalletObjectUpdatedAt = db.prepare(
   "UPDATE google_wallet_objects SET updated_at = ? WHERE object_id = ?",
 );
+const listGoogleWalletObjectsByCafe = db.prepare(
+  "SELECT customer_address, object_id FROM google_wallet_objects WHERE cafe_id = ?",
+);
 
 async function getOrCreateGoogleWalletObject(customerAddress, cafeId, objectId) {
   const existing = await getGoogleWalletObjectByCustomerCafe.get(
@@ -1766,13 +1769,44 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
   }
 }
 
-// Cafe profile edits live entirely on the loyalty class, which every
-// customer's object references - one patch covers everyone, no per-customer
-// loop needed (unlike Apple's per-device push fan-out).
+// Cafe profile edits live mostly on the loyalty class (color, logo, name) -
+// one patch covers everyone there, no per-customer loop needed. But some
+// cafe-derived fields (info text, website/Instagram, terms, and the stamp
+// image's own color) are baked into each *object* instead, so they also
+// need a per-customer repatch - otherwise a color change only reaches the
+// visible card (class-level), while the stamp-progress image and back-page
+// text stay stale until that customer's next stamp event.
 async function notifyGoogleWalletClassForCafe(cafeRow) {
   if (!googleWalletPass.isGoogleWalletConfigured()) return;
   const appsBaseUrl = process.env.APPS_BASE_URL || "";
   await googleWalletPass.patchLoyaltyClassForCafe(cafeRow, appsBaseUrl);
+
+  try {
+    const objectRows = await listGoogleWalletObjectsByCafe.all(cafeRow.id);
+    const program = getCafeProgramSettings(cafeRow);
+    for (const row of objectRows) {
+      const customerRow = await getCustomerByAddress.get(row.customer_address);
+      const stampCount = await getCurrentCardStampsByCafeUser(
+        cafeRow.address,
+        row.customer_address,
+      );
+      await googleWalletPass.patchLoyaltyObjectStamps({
+        cafeRow,
+        program,
+        stampCount,
+        customerAddress: row.customer_address,
+        customerName: customerRow ? customerRow.username : null,
+        barcodeMessage: buildCafeScannerLink(
+          row.customer_address,
+          customerRow ? customerRow.username : null,
+          cafeRow.address,
+        ),
+        appsBaseUrl,
+      });
+    }
+  } catch (err) {
+    console.warn("Failed to resync Google Wallet objects for cafe:", err.message || err);
+  }
 }
 
 function buildCafeScannerLink(customerAddress, customerName, cafeAddress) {
