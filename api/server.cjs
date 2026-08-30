@@ -1618,9 +1618,13 @@ async function getStampsByCafeUserCardId(cafeAddress, userAddress, cardId) {
   return Number.isFinite(totalRaw) ? totalRaw : 0;
 }
 
+// Ordered by id (strictly increasing insert order), not ts - a single
+// overflow-splitting award can insert two segments within the same
+// millisecond, and `ORDER BY ts DESC` alone doesn't reliably break that tie
+// in insertion order (confirmed live: it returned the older segment).
 const getLatestCardIdForCustomerCafe = db.prepare(
   'SELECT card_id FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER("user") = LOWER(?) ' +
-    "AND (status IS NULL OR status = 'confirmed') ORDER BY ts DESC LIMIT 1",
+    "AND (status IS NULL OR status = 'confirmed') ORDER BY id DESC LIMIT 1",
 );
 
 // A stamp award (usually 1, but cafes can grant up to 20 at once via
