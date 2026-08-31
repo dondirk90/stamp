@@ -1584,6 +1584,27 @@ const hasCardBeenRedeemed = db.prepare(
 const getCardGroupsByCafeUser = db.prepare(
   "SELECT card_id, COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') GROUP BY card_id",
 );
+// "Current balance" for a customer at a cafe, meant to answer what staff
+// actually need at the counter ("does this customer have enough to redeem
+// right now") - sums only still-open cards, excluding any already-redeemed
+// (permanently frozen) ones. Reused wherever a customer-facing or
+// staff-facing total is shown, so it can't silently drift back to the old
+// "sum every card_id ever" behavior in just one of the several places that
+// show it.
+async function getOpenStampTotal(cafeAddress, customerAddress) {
+  const groups = await getCardGroupsByCafeUser.all(cafeAddress, customerAddress);
+  let total = 0;
+  for (const g of Array.isArray(groups) ? groups : []) {
+    const redeemedRow = await hasCardBeenRedeemed.get(
+      cafeAddress,
+      customerAddress,
+      g.card_id || null,
+    );
+    if (redeemedRow) continue;
+    total += Number(g.total || 0);
+  }
+  return total;
+}
 
 // Card boundaries: starting a new card should not delete old stamps.
 // We treat both legacy `reset` and future `card_start` as boundaries.
@@ -3556,16 +3577,22 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
       )
       .all(cafeAddressLower, customerLimit);
 
-    const customers = customersRows.map((row) => ({
-      address: row.user,
-      customerName: row.customer_name || null,
-      stampsAwarded: Number(row.stamps_awarded || 0),
-      stampsRedeemed: Number(row.stamps_redeemed || 0),
-      netStamps: Number(row.net_stamps || 0),
-      redemptions: Number(row.redemptions || 0),
-      lastActivityTs:
-        row.last_activity_ts != null ? Number(row.last_activity_ts) : null,
-    }));
+    const customers = [];
+    for (const row of customersRows) {
+      customers.push({
+        address: row.user,
+        customerName: row.customer_name || null,
+        stampsAwarded: Number(row.stamps_awarded || 0),
+        stampsRedeemed: Number(row.stamps_redeemed || 0),
+        // Not row.net_stamps (a raw SUM(delta) across every card_id ever,
+        // closed ones included) - staff need "does this customer have
+        // enough right now", not an all-time history number.
+        netStamps: await getOpenStampTotal(cafeAddressLower, row.user),
+        redemptions: Number(row.redemptions || 0),
+        lastActivityTs:
+          row.last_activity_ts != null ? Number(row.last_activity_ts) : null,
+      });
+    }
 
     res.json({
       ok: true,
