@@ -1662,12 +1662,41 @@ const getLatestCardIdForCustomerCafe = db.prepare(
 // stays the "active" card and behaves exactly as before, right up until it
 // first actually fills up, which is the only moment new real card_ids
 // start getting minted.
-async function splitStampAward({ cafeAddress, customerAddress, totalCount, threshold }) {
-  const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
-  let activeCardId = latestRow ? latestRow.card_id || null : null;
-  let activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
+// `explicitCardId`, when given, targets that specific card instead of
+// auto-resolving the customer's latest one - but still goes through the
+// exact same threshold/split logic below, never a raw unsplit dump. A
+// caller that already knows which card it means (e.g. a QR scanned once,
+// reused across several stamp taps on the same still-open scanner page)
+// should have its stamps land there *as long as it's still open*, not get
+// silently redirected to a different card - but if that target is already
+// full or redeemed, it still needs to open a fresh one and split overflow
+// exactly like the auto-resolve path would. Confirmed live: without this,
+// an explicit cardId let a card accumulate to 12/10 across three separate
+// stamp calls with no split ever firing, and the 2 overflow stamps were
+// gone the moment that card got redeemed (frozen at 12, new card opened at
+// 0, not 2).
+async function splitStampAward({
+  cafeAddress,
+  customerAddress,
+  totalCount,
+  threshold,
+  explicitCardId,
+}) {
+  let activeCardId;
+  let activeCount;
+  let hadExistingCard;
+  if (explicitCardId) {
+    activeCardId = explicitCardId;
+    activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
+    hadExistingCard = true;
+  } else {
+    const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
+    activeCardId = latestRow ? latestRow.card_id || null : null;
+    activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
+    hadExistingCard = !!latestRow;
+  }
 
-  if (!latestRow || activeCount >= threshold) {
+  if (!hadExistingCard || activeCount >= threshold) {
     activeCardId = crypto.randomBytes(8).toString("hex");
     activeCount = 0;
   }
@@ -2942,48 +2971,23 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       }
     } catch (e) {}
 
-    // A redeemed card is permanently closed (see /redeem-reward) - an
-    // explicit cardId that points at one is stale, not a genuine intent to
-    // keep filling it. Confirmed live: the cafe-scanner page keeps whatever
-    // cardId was in its URL when first opened, so repeated stamps after a
-    // redemption (without reloading the page/QR) kept silently piling onto
-    // an already-closed card, which displays frozen at 0 forever - the
-    // stamps were real in the ledger but permanently invisible on the
-    // pass. Falling through to the normal auto-split path here instead
-    // correctly redirects them to whatever the customer's actual current
-    // card is.
-    if (normalizedCardId) {
-      const redeemedRow = await hasCardBeenRedeemed.get(
-        cafeAddress,
-        customer,
-        normalizedCardId,
-      );
-      if (redeemedRow) normalizedCardId = null;
-    }
-
-    let segments;
-    let overflowed = false;
-    let newCardId = null;
-    let newCardStamps = 0;
-    if (normalizedCardId) {
-      // Caller explicitly targeted a specific card - respect that as-is,
-      // no auto-splitting (e.g. a flow that already knows which card it
-      // means shouldn't have stamps silently redirected elsewhere).
-      segments = [{ cardId: normalizedCardId, delta: cnt }];
-    } else {
-      const cafeRowForProgram = await getCafeRowByAddress.get(cafeAddress);
-      const program = getCafeProgramSettings(cafeRowForProgram);
-      const split = await splitStampAward({
-        cafeAddress,
-        customerAddress: customer,
-        totalCount: cnt,
-        threshold: program.stampsForReward,
-      });
-      segments = split.segments;
-      overflowed = split.overflowed;
-      newCardId = split.newCardId;
-      newCardStamps = split.newCardStamps;
-    }
+    // Always goes through splitStampAward, explicit cardId or not - it
+    // still targets that specific card when given, but never lets it
+    // accept more than `threshold` before opening a fresh one and
+    // splitting the remainder, exactly like the auto-resolve path.
+    const cafeRowForProgram = await getCafeRowByAddress.get(cafeAddress);
+    const program = getCafeProgramSettings(cafeRowForProgram);
+    const split = await splitStampAward({
+      cafeAddress,
+      customerAddress: customer,
+      totalCount: cnt,
+      threshold: program.stampsForReward,
+      explicitCardId: normalizedCardId,
+    });
+    const segments = split.segments;
+    const overflowed = split.overflowed;
+    const newCardId = split.newCardId;
+    const newCardStamps = split.newCardStamps;
 
     let lastTx = null;
     for (const seg of segments) {
