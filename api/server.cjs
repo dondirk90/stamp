@@ -1694,6 +1694,33 @@ async function getOpenStampTotal(cafeAddress, customerAddress) {
   return total;
 }
 
+// Redeeming a full card used to always mint a brand new card_id for
+// whatever comes next - but if the customer already has a different, still-
+// open, not-yet-full card (e.g. from an earlier overflow split that hasn't
+// been redeemed yet), minting yet another one just piles up more cards
+// nobody asked for, each needing its own separate "add to wallet" action.
+// This looks for an existing reusable one first - excludes the card
+// actually being redeemed and any already-closed ones, picks whichever
+// still-open card is furthest along (so a customer collecting toward two
+// different partial cards doesn't have progress arbitrarily reshuffled).
+async function findReusableOpenCard(cafeAddress, customerAddress, excludeCardId, threshold) {
+  const groups = await getCardGroupsByCafeUser.all(cafeAddress, customerAddress);
+  const excludeKey = String(excludeCardId || "");
+  let best = null;
+  for (const g of Array.isArray(groups) ? groups : []) {
+    const cid = g.card_id || null;
+    if (String(cid || "") === excludeKey) continue;
+    const total = Number(g.total || 0);
+    if (total >= threshold) continue;
+    const redeemedRow = await hasCardBeenRedeemed.get(cafeAddress, customerAddress, cid);
+    if (redeemedRow) continue;
+    if (!best || total > best.total) {
+      best = { cardId: cid, total };
+    }
+  }
+  return best; // null if nothing reusable found
+}
+
 // Card boundaries: starting a new card should not delete old stamps.
 // We treat both legacy `reset` and future `card_start` as boundaries.
 // card_id IS NULL for the same reason as countEventsByCafeUserSinceTs below:
@@ -3371,8 +3398,7 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
     // record (delta: 0, purely an audit entry) rather than reset in place -
     // "each full card gets its own id" (the same rule overflow-splitting
     // follows) means redemption shouldn't quietly repurpose that same
-    // card_id as the next one to fill. A fresh card_id is opened instead so
-    // future stamps land somewhere new.
+    // card_id as the next one to fill.
     const ev = {
       ts: now,
       cafe: cafeAddress,
@@ -3386,7 +3412,18 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
     };
     await insertEvent.run(ev);
 
-    const newCardId = crypto.randomBytes(8).toString("hex");
+    // Reuse an existing still-open, not-yet-full card if the customer has
+    // one (see findReusableOpenCard) instead of always minting a new one -
+    // otherwise a customer who already had a partial card from an earlier
+    // overflow ends up with yet another separate card to add to Wallet,
+    // for no real reason.
+    const reusable = await findReusableOpenCard(
+      cafeAddress,
+      customer,
+      normalizedCardId,
+      rewardThreshold,
+    );
+    const newCardId = reusable ? reusable.cardId : crypto.randomBytes(8).toString("hex");
     const newCardEv = {
       ts: now,
       cafe: cafeAddress,
@@ -3414,6 +3451,7 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
       previousStamps: Number(currentStamps),
       txHash: localTx,
       newCardId,
+      reusedExistingCard: !!reusable,
       message: "Reward redeemed.",
     });
   } catch (err) {
@@ -4359,7 +4397,13 @@ app.post("/admin/redeem-reward", requireAdminKey, async (req, res) => {
   };
   await insertEvent.run(ev);
 
-  const newCardId = crypto.randomBytes(8).toString("hex");
+  const reusable = await findReusableOpenCard(
+    cafeAddress,
+    customerAddress,
+    normalizedCardId,
+    rewardThreshold,
+  );
+  const newCardId = reusable ? reusable.cardId : crypto.randomBytes(8).toString("hex");
   const newCardEv = {
     ts: now,
     cafe: cafeAddress,
@@ -4379,7 +4423,12 @@ app.post("/admin/redeem-reward", requireAdminKey, async (req, res) => {
     broadcastEvent({ ...ev, newCardId });
   } catch (e) {}
 
-  res.json({ ok: true, previousStamps: currentStamps, newCardId });
+  res.json({
+    ok: true,
+    previousStamps: currentStamps,
+    newCardId,
+    reusedExistingCard: !!reusable,
+  });
 });
 
 // Manage optional cafe gallery images
