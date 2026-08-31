@@ -283,9 +283,14 @@ function buildLoyaltyObjectPayload({
         },
       ],
     },
+    // Without alternateText, Google Wallet falls back to showing the raw
+    // barcode value (a full URL containing the customer's address) as the
+    // caption under the QR code - reads like an exposed ID. Same fix as the
+    // Apple side's barcodes[0].altText, just a differently-named field here.
     barcode: {
       type: "QR_CODE",
       value: barcodeMessage,
+      ...(customerName ? { alternateText: customerName } : {}),
     },
     // Transient - only lives on this one request, has to be resent every
     // time to trigger again. Google only supports this for loyaltyPoints.

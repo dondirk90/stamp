@@ -1569,6 +1569,12 @@ const countEventsByCafeUser = db.prepare(
 const countEventsByCafeUserCardId = db.prepare(
   "SELECT COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') AND card_id = ?",
 );
+// COALESCE-on-both-sides because card_id can legitimately be NULL (a
+// customer's original, pre-multi-card card) - a plain `card_id = ?` never
+// matches a NULL column value via `=`, even when both sides are NULL.
+const hasCardBeenRedeemed = db.prepare(
+  "SELECT 1 as ok FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND COALESCE(card_id, '') = COALESCE(?, '') AND event_type = 'redeem' AND (status IS NULL OR status = 'confirmed') LIMIT 1",
+);
 
 // Card boundaries: starting a new card should not delete old stamps.
 // We treat both legacy `reset` and future `card_start` as boundaries.
@@ -1904,7 +1910,9 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
       stampCount = await resolveDisplayStampCount(
         stampCount,
         program.stampsForReward,
-        objectRow.active_redeem_token,
+        cafeAddress,
+        customerAddress,
+        objectRow.card_id,
       );
       await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
       const barcodeMessage = await resolveWalletBarcode({
@@ -1963,7 +1971,9 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
       stampCount = await resolveDisplayStampCount(
         stampCount,
         program.stampsForReward,
-        row.active_redeem_token,
+        cafeRow.address,
+        row.customer_address,
+        row.card_id,
       );
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: row.customer_address,
@@ -2004,19 +2014,29 @@ function buildCafeScannerLink(customerAddress, customerName, cafeAddress, cardId
   return u.toString();
 }
 
-// Once a card's redemption token has been consumed, its own stamp count
-// stays frozen (delta: 0, see /redeem-reward) as an accurate historical
-// record - but a wallet pass/object still tied to that exact card_id would
-// otherwise keep looking (and offering the same, now-dead, redeem QR)
-// exactly as full and unredeemed forever. Displaying it as freshly emptied
-// instead gives the customer a visible "yes, that worked" the moment they
-// look at the pass they're already holding, while the underlying ledger
-// entry (and the genuinely new card_id opened alongside it) stays untouched.
-async function resolveDisplayStampCount(rawStampCount, threshold, activeRedeemToken) {
-  if (rawStampCount < threshold || !activeRedeemToken) return rawStampCount;
+// A redeemed card's own stamp count stays frozen (delta: 0, see
+// /redeem-reward) as an accurate historical record - but a wallet
+// pass/object still tied to that exact card_id would otherwise keep
+// looking (and offering the same, now-dead, redeem QR) exactly as full and
+// unredeemed forever. Displaying it as freshly emptied instead gives the
+// customer a visible "yes, that worked" the moment they look at the pass
+// they're already holding, while the underlying ledger entry (and the
+// genuinely new card_id opened alongside it) stays untouched.
+//
+// Deliberately keyed off a permanent "was this card_id ever redeemed"
+// lookup, not the active_redeem_token column: resolveWalletBarcode clears
+// that token the moment isFull becomes false (i.e. the instant this
+// override itself takes effect), so checking the token here created a
+// one-shot flip-flop - the override fired once, wiped its own evidence,
+// and the very next check saw no token, fell back to the raw (still full)
+// count, and re-triggered "full" with a brand new redeem link. Confirmed
+// live on staging: a redeemed card briefly showed reset, then flipped back
+// to full with a fresh, never-scanned redeem QR on the next patch.
+async function resolveDisplayStampCount(rawStampCount, threshold, cafeAddress, customerAddress, cardId) {
+  if (rawStampCount < threshold) return rawStampCount;
   try {
-    const tokenRow = await getRedeemToken.get(activeRedeemToken);
-    if (tokenRow && tokenRow.used_at) return 0;
+    const row = await hasCardBeenRedeemed.get(cafeAddress, customerAddress, cardId);
+    if (row) return 0;
   } catch (err) {}
   return rawStampCount;
 }
@@ -5932,7 +5952,9 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
     stampCount = await resolveDisplayStampCount(
       stampCount,
       program.stampsForReward,
-      passRow.active_redeem_token,
+      cafeAddress,
+      rawAddress,
+      cardId,
     );
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
@@ -6015,7 +6037,9 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
     stampCount = await resolveDisplayStampCount(
       stampCount,
       program.stampsForReward,
-      objectRow.active_redeem_token,
+      cafeAddress,
+      rawAddress,
+      cardId,
     );
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
@@ -6083,15 +6107,12 @@ app.get("/customers/:customerAddress/google-wallet-stamp-strip.png", async (req,
     const cardId = req.query?.cardId ? String(req.query.cardId).trim() : null;
     let stampCount = await getStampsByCafeUserCardId(cafeAddress, rawAddress, cardId);
     const program = getCafeProgramSettings(cafeRow);
-    const objectRowForStrip = await getGoogleWalletObjectByCustomerCafeCard.get(
-      rawAddress,
-      cafeRow.id,
-      cardId,
-    );
     stampCount = await resolveDisplayStampCount(
       stampCount,
       program.stampsForReward,
-      objectRowForStrip?.active_redeem_token,
+      cafeAddress,
+      rawAddress,
+      cardId,
     );
     const colors = walletPass.resolveThemeColors(
       cafeRow.card_theme || "paper",
@@ -6244,7 +6265,9 @@ walletApiRouter.get(
       stampCount = await resolveDisplayStampCount(
         stampCount,
         program.stampsForReward,
-        passRow.active_redeem_token,
+        cafeRow.address,
+        passRow.customer_address,
+        passRow.card_id,
       );
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: passRow.customer_address,
