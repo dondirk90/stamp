@@ -1696,6 +1696,17 @@ const getLatestCardIdForCustomerCafe = db.prepare(
 // stamp calls with no split ever firing, and the 2 overflow stamps were
 // gone the moment that card got redeemed (frozen at 12, new card opened at
 // 0, not 2).
+//
+// An explicit target is only actually trusted, though, if it matches the
+// customer's true latest card, or if that latest card is already full/
+// doesn't exist - i.e. only in the situations where opening a new card
+// would be legitimate anyway. A customer should only ever end up with more
+// than one simultaneously open card because one of them is full, never
+// because some caller pointed at a stale or arbitrary card_id while the
+// real current one still had room. Confirmed live: a stale explicit
+// cardId (traced to a cached browser tab from before this exact fix)
+// forked a customer into three simultaneously open, all-under-threshold
+// cards (2, 3, 4 stamps) instead of one card correctly filling to 9.
 async function splitStampAward({
   cafeAddress,
   customerAddress,
@@ -1703,17 +1714,26 @@ async function splitStampAward({
   threshold,
   explicitCardId,
 }) {
+  const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
+  const latestCardId = latestRow ? latestRow.card_id || null : null;
+  const latestCount = latestRow
+    ? await getStampsByCafeUserCardId(cafeAddress, customerAddress, latestCardId)
+    : 0;
+  const latestIsFullOrMissing = !latestRow || latestCount >= threshold;
+
   let activeCardId;
   let activeCount;
   let hadExistingCard;
-  if (explicitCardId) {
+  if (
+    explicitCardId &&
+    (String(explicitCardId) === String(latestCardId || "") || latestIsFullOrMissing)
+  ) {
     activeCardId = explicitCardId;
     activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
     hadExistingCard = true;
   } else {
-    const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
-    activeCardId = latestRow ? latestRow.card_id || null : null;
-    activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
+    activeCardId = latestCardId;
+    activeCount = latestCount;
     hadExistingCard = !!latestRow;
   }
 
