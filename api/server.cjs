@@ -825,6 +825,71 @@ Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.
   return info;
 }
 
+// Most customers only ever look at their Wallet app, never the companion
+// web app - so once a card overflows into a new one, there's no reliable
+// way to reach an Android customer at all (Apple at least gets a
+// lock-screen notification on the pass it's already showing, see
+// buildPassJson's isFull branch; Google's notifyOnUpdate can't carry custom
+// text). Email is the one channel that doesn't depend on the customer
+// being in the app, at the counter, or on a specific platform - one tap on
+// either button below goes straight to that platform's native "Add to
+// Wallet" flow, no Kaffeekarte page in between.
+async function sendNewCardReadyEmail({
+  email,
+  customerName,
+  cafeName,
+  applePassUrl,
+  googleSaveUrl,
+}) {
+  const displayName = String(customerName || "").trim() || "Kaffeekarte Gast";
+  const cafeLabel = String(cafeName || "").trim() || "deinem Café";
+
+  const buttonsHtml = [
+    applePassUrl
+      ? `<a href="${applePassUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700; margin: 0 8px 8px 0;">Zu Apple Wallet hinzufügen</a>`
+      : "",
+    googleSaveUrl
+      ? `<a href="${googleSaveUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700; margin: 0 0 8px 0;">Zu Google Wallet hinzufügen</a>`
+      : "",
+  ].join("");
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Neue Stempelkarte bereit – ${cafeLabel}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 26px; line-height: 1.15; color: #181311;">🎉 Deine Karte bei ${cafeLabel} ist voll!</h1>
+              <p style="margin: 0; color: #5f544a;">Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon eine neue Karte für dich bereitgestellt. Füge sie mit einem Klick zu deinem Wallet hinzu:</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              <div style="margin-top: 8px;">${buttonsHtml}</div>
+              <p style="margin: 24px 0 0; color: #8a7d70; font-size: 12px;">Falls du gerade keine neue Karte brauchst, kannst du diese E-Mail ignorieren - deine Stempel bleiben so lange gespeichert, bis du sie einlöst.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Deine Karte bei ${cafeLabel} ist voll!
+
+Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon eine neue Karte für dich bereitgestellt.
+
+${applePassUrl ? `Apple Wallet: ${applePassUrl}\n` : ""}${googleSaveUrl ? `Google Wallet: ${googleSaveUrl}\n` : ""}
+Falls du gerade keine neue Karte brauchst, kannst du diese E-Mail ignorieren - deine Stempel bleiben so lange gespeichert, bis du sie einlöst.
+    `.trim(),
+  };
+
+  ensureEmailConfigured();
+
+  return emailTransporter.sendMail(mailOptions);
+}
+
 async function sendCustomerVerificationEmail({
   email,
   username,
@@ -2952,6 +3017,7 @@ app.post("/stamp", async (req, res) => {
           newCardStamps,
         });
       } catch (e) {}
+      notifyNewCardByEmail(customer, cafeAddress, newCardId);
     }
     notifyWalletPassUpdated(customer, cafeAddress);
     notifyGoogleWalletPassUpdated(customer, cafeAddress);
@@ -2962,6 +3028,65 @@ app.post("/stamp", async (req, res) => {
     res.status(500).json({ error: String(err.message || err) });
   }
 });
+
+// Fired only on a genuine overflow (a bulk award crossing the threshold
+// mid-request) - not on every redemption, since a redemption happens with
+// the customer standing right there, already looking at their phone. An
+// overflow can happen with the customer nowhere near their phone (a cafe
+// granting a bulk bonus), so email is the one channel guaranteed to reach
+// them regardless of platform or whether they ever open the app.
+async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
+  try {
+    const customerRow = await getCustomerByAddress.get(customerAddress);
+    if (!customerRow || !customerRow.email || !customerRow.email_verified_at) return;
+    const cafeRow = await getCafeRowByAddress.get(cafeAddress);
+    if (!cafeRow) return;
+    const program = getCafeProgramSettings(cafeRow);
+    const appsBaseUrl = process.env.APPS_BASE_URL || "";
+
+    const barcodeMessage = await resolveWalletBarcode({
+      customerAddress,
+      customerName: customerRow.username,
+      cafeAddress,
+      cardId: newCardId,
+      stampCount: 0,
+      threshold: program.stampsForReward,
+      currentToken: null,
+      persistToken: () => {},
+    });
+
+    const applePassUrl = walletPass.isWalletConfigured()
+      ? `${appsBaseUrl}/api/customers/${encodeURIComponent(customerAddress)}/wallet-pass?cafe=${encodeURIComponent(cafeAddress)}&cardId=${encodeURIComponent(newCardId)}`
+      : null;
+
+    let googleSaveUrl = null;
+    if (googleWalletPass.isGoogleWalletConfigured()) {
+      const { saveUrl } = googleWalletPass.buildSaveLink({
+        cafeRow,
+        program,
+        stampCount: 0,
+        customerAddress,
+        customerName: customerRow.username,
+        cardId: newCardId,
+        barcodeMessage,
+        appsBaseUrl,
+      });
+      googleSaveUrl = saveUrl;
+    }
+
+    if (!applePassUrl && !googleSaveUrl) return;
+
+    await sendNewCardReadyEmail({
+      email: customerRow.email,
+      customerName: customerRow.username,
+      cafeName: cafeRow.name,
+      applePassUrl,
+      googleSaveUrl,
+    });
+  } catch (err) {
+    console.warn("Failed to send new-card-ready email:", err.message || err);
+  }
+}
 
 // Stempel direkt durch das Café (Bearer Token required)
 app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
@@ -3060,6 +3185,7 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
           newCardStamps,
         });
       } catch (e) {}
+      notifyNewCardByEmail(customer, cafeAddress, newCardId);
     }
     notifyWalletPassUpdated(customer, cafeAddress);
     notifyGoogleWalletPassUpdated(customer, cafeAddress);
@@ -4137,6 +4263,7 @@ app.post("/admin/award-stamps", requireAdminKey, async (req, res) => {
         newCardStamps,
       });
     } catch (e) {}
+    notifyNewCardByEmail(customerAddress, cafeAddress, newCardId);
   }
   notifyWalletPassUpdated(customerAddress, cafeAddress);
   notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
