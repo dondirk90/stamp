@@ -838,11 +838,14 @@ async function sendNewCardReadyEmail({
   email,
   customerName,
   cafeName,
+  cardNumber,
   applePassUrl,
   googleSaveUrl,
+  profileUrl,
 }) {
   const displayName = String(customerName || "").trim() || "Kaffeekarte Gast";
   const cafeLabel = String(cafeName || "").trim() || "deinem Café";
+  const cardLabel = cardNumber ? `Stempelkarte #${cardNumber}` : "deine neue Stempelkarte";
 
   const buttonsHtml = [
     applePassUrl
@@ -865,11 +868,16 @@ async function sendNewCardReadyEmail({
             <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
               <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
               <h1 style="margin: 10px 0 8px; font-size: 26px; line-height: 1.15; color: #181311;">🎉 Deine Karte bei ${cafeLabel} ist voll!</h1>
-              <p style="margin: 0; color: #5f544a;">Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon eine neue Karte für dich bereitgestellt. Füge sie mit einem Klick zu deinem Wallet hinzu:</p>
+              <p style="margin: 0; color: #5f544a;">Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon <strong>${cardLabel}</strong> für dich bereitgestellt. Füge sie mit einem Klick zu deinem Wallet hinzu:</p>
             </div>
             <div style="padding: 24px 28px 30px;">
               <div style="margin-top: 8px;">${buttonsHtml}</div>
               <p style="margin: 24px 0 0; color: #8a7d70; font-size: 12px;">Falls du gerade keine neue Karte brauchst, kannst du diese E-Mail ignorieren - deine Stempel bleiben so lange gespeichert, bis du sie einlöst.</p>
+              ${
+                profileUrl
+                  ? `<p style="margin: 18px 0 0; color: #6b625a; font-size: 13px;">Alle deine Stempelkarten, dein Profil und mehr findest du in der Kaffeekarte-App: <a href="${profileUrl}" style="color: #1c1917;">${profileUrl}</a></p>`
+                  : ""
+              }
             </div>
           </div>
         </body>
@@ -878,10 +886,11 @@ async function sendNewCardReadyEmail({
     text: `
 Deine Karte bei ${cafeLabel} ist voll!
 
-Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon eine neue Karte für dich bereitgestellt.
+Hallo ${displayName}, deine Stempel gehen nicht verloren - wir haben schon ${cardLabel} für dich bereitgestellt.
 
 ${applePassUrl ? `Apple Wallet: ${applePassUrl}\n` : ""}${googleSaveUrl ? `Google Wallet: ${googleSaveUrl}\n` : ""}
 Falls du gerade keine neue Karte brauchst, kannst du diese E-Mail ignorieren - deine Stempel bleiben so lange gespeichert, bis du sie einlöst.
+${profileUrl ? `\nAlle deine Stempelkarten, dein Profil und mehr: ${profileUrl}` : ""}
     `.trim(),
   };
 
@@ -1649,6 +1658,20 @@ const hasCardBeenRedeemed = db.prepare(
 const getCardGroupsByCafeUser = db.prepare(
   "SELECT card_id, COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') GROUP BY card_id",
 );
+// Every card_id this customer has ever had at this cafe, oldest first (by
+// its first-ever event) - used to give a customer-facing "Stempelkarte #N"
+// label instead of the raw hex card_id, which means nothing to them.
+const getCardFirstSeenByCafeUser = db.prepare(
+  "SELECT card_id, MIN(id) as first_id FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') GROUP BY card_id ORDER BY first_id ASC",
+);
+async function getCardOrdinal(cafeAddress, customerAddress, cardId) {
+  const rows = await getCardFirstSeenByCafeUser.all(cafeAddress, customerAddress);
+  const key = String(cardId || "");
+  const index = (Array.isArray(rows) ? rows : []).findIndex(
+    (r) => String(r.card_id || "") === key,
+  );
+  return index >= 0 ? index + 1 : null;
+}
 // "Current balance" for a customer at a cafe, meant to answer what staff
 // actually need at the counter ("does this customer have enough to redeem
 // right now") - sums only still-open cards, excluding any already-redeemed
@@ -3076,12 +3099,17 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
 
     if (!applePassUrl && !googleSaveUrl) return;
 
+    const cardNumber = await getCardOrdinal(cafeAddress, customerAddress, newCardId);
+    const profileUrl = `${appsBaseUrl}/customer-profile`;
+
     await sendNewCardReadyEmail({
       email: customerRow.email,
       customerName: customerRow.username,
       cafeName: cafeRow.name,
+      cardNumber,
       applePassUrl,
       googleSaveUrl,
+      profileUrl,
     });
   } catch (err) {
     console.warn("Failed to send new-card-ready email:", err.message || err);
