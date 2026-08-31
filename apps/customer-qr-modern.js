@@ -214,6 +214,7 @@
     el: null,
     textEl: null,
     btnEl: null,
+    closeEl: null,
     hideTimer: 0,
   };
 
@@ -679,8 +680,17 @@
     } catch (e) {}
   }
 
-  function showAddCardBanner(cafeAddress, message) {
+  // `persistent` skips the auto-hide timer - used for the page-load check
+  // (backed by /customers/:address/cards' pendingWalletCardId) so the
+  // prompt survives until the customer actually acts or dismisses it,
+  // unlike the live SSE-triggered version which is fine to auto-dismiss
+  // since the app was open and the customer already saw it happen.
+  // `dismissKey`, when given, remembers a manual close so the same pending
+  // card doesn't nag again on every subsequent page load.
+  function showAddCardBanner(cafeAddress, message, opts) {
     if (!cafeAddress) return;
+    var persistent = !!(opts && opts.persistent);
+    var dismissKey = opts && opts.dismissKey ? String(opts.dismissKey) : "";
     try {
       if (!addCardBannerState.el) {
         var node = document.createElement("div");
@@ -703,16 +713,25 @@
         addCardBannerState.el = node;
         addCardBannerState.textEl = textEl;
         addCardBannerState.btnEl = btnEl;
-        closeEl.addEventListener("click", hideAddCardBanner);
+        addCardBannerState.closeEl = closeEl;
       }
       addCardBannerState.textEl.textContent = message || "Neue Karte bereit";
       addCardBannerState.btnEl.onclick = function () {
         hideAddCardBanner();
         proceedToAddWalletCard(cafeAddress);
       };
+      addCardBannerState.closeEl.onclick = function () {
+        hideAddCardBanner();
+        if (dismissKey) markCampaignSeen(dismissKey);
+      };
       addCardBannerState.el.classList.add("visible");
-      if (addCardBannerState.hideTimer) window.clearTimeout(addCardBannerState.hideTimer);
-      addCardBannerState.hideTimer = window.setTimeout(hideAddCardBanner, 15000);
+      if (addCardBannerState.hideTimer) {
+        window.clearTimeout(addCardBannerState.hideTimer);
+        addCardBannerState.hideTimer = 0;
+      }
+      if (!persistent) {
+        addCardBannerState.hideTimer = window.setTimeout(hideAddCardBanner, 15000);
+      }
     } catch (e) {}
   }
 
@@ -2461,6 +2480,42 @@
     return parts.join("|");
   }
 
+  // Durable counterpart to the SSE "redeem"/"card_overflow" handlers, which
+  // only show the add-card banner live and get missed if the app wasn't
+  // open at that exact moment. Runs on every /cards load instead, driven by
+  // the server's own pendingWalletCardId flag (set whenever the customer
+  // has at least one installed pass/object for a cafe that doesn't match
+  // their true latest card_id there).
+  function evaluatePendingWalletCards(cards) {
+    if (!session || !session.address) return;
+    var src = Array.isArray(cards) ? cards : [];
+    for (var i = 0; i < src.length; i++) {
+      var card = src[i] || {};
+      if (!card.pendingWalletCardId) continue;
+      var cafeAddress = normalizeAddr(card.cafeAddress || "");
+      if (!cafeAddress) continue;
+      var dismissKey = [
+        "addCardDismissed",
+        normalizeAddr(session.address),
+        cafeAddress,
+        String(card.pendingWalletCardId),
+      ].join("|");
+      if (wasCampaignSeenRecently(dismissKey, 7 * 24 * 60 * 60 * 1000)) continue;
+      var cafeLabel =
+        String(card.name || card.cafeName || "").trim() ||
+        String(card.address || "").trim() ||
+        "";
+      showAddCardBanner(
+        cafeAddress,
+        "🎉 Neue Stempelkarte bereit" +
+          (cafeLabel ? " · " + cafeLabel : "") +
+          " – zum Wallet hinzufügen?",
+        { persistent: true, dismissKey: dismissKey },
+      );
+      break; // one at a time - a second banner would just overwrite the first.
+    }
+  }
+
   function evaluateCardCampaigns(cards) {
     if (!session || !session.address) return;
     var src = Array.isArray(cards) ? cards : [];
@@ -2585,6 +2640,7 @@
       var digestChanged = nextDigest !== walletServerCardsDigest;
       walletServerCardsDigest = nextDigest;
       evaluateCardCampaigns(cards);
+      evaluatePendingWalletCards(cards);
       try {
         if (cards && cards.length) refreshWallet();
       } catch (eR0) {}

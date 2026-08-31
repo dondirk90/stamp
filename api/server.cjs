@@ -5882,6 +5882,47 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       customerRow?.username ||
       null;
 
+    // Neither wallet platform lets a server push a brand new pass onto a
+    // device - a fresh card_id (from redemption or an overflow split) only
+    // becomes an actual wallet entry once the customer taps an add-to-wallet
+    // link themselves. That used to only be surfaced via a momentary SSE
+    // toast (missed if the app wasn't open at that exact moment); this
+    // makes it durable by comparing, on every load, whether the customer's
+    // already-installed pass/object for this cafe matches their true
+    // latest card_id - only flagged when they've added at least one card
+    // for this cafe before (first-time registration is cafe-join's job,
+    // not this banner's).
+    for (const card of cards) {
+      if (!card.cafeId || !card.cafeAddress) continue;
+      try {
+        const latestRow = await getLatestCardIdForCustomerCafe.get(
+          card.cafeAddress,
+          rawAddress,
+        );
+        const latestCardId = latestRow ? latestRow.card_id || null : null;
+        const applePasses = await getWalletPassesByCustomerCafe.all(
+          rawAddress,
+          card.cafeId,
+        );
+        const googleObjects = await getGoogleWalletObjectsByCustomerCafe.all(
+          rawAddress,
+          card.cafeId,
+        );
+        const hasAnyInstalledCard =
+          (applePasses && applePasses.length) ||
+          (googleObjects && googleObjects.length);
+        if (!hasAnyInstalledCard) continue;
+        const matchesLatest = (rows) =>
+          Array.isArray(rows) &&
+          rows.some(
+            (r) => String(r.card_id || "") === String(latestCardId || ""),
+          );
+        if (!matchesLatest(applePasses) && !matchesLatest(googleObjects)) {
+          card.pendingWalletCardId = latestCardId;
+        }
+      } catch (err) {}
+    }
+
     res.json({
       ok: true,
       customer: {
