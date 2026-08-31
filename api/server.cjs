@@ -5947,6 +5947,7 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
           (googleObjects || []).map((r) => String(r.card_id || "")),
         );
         const openCards = [];
+        let openStampTotal = 0;
         for (const g of Array.isArray(groups) ? groups : []) {
           const cid = g.card_id || null;
           const redeemedRow = await hasCardBeenRedeemed.get(
@@ -5955,18 +5956,27 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
             cid,
           );
           if (redeemedRow) continue;
+          const stampCount = Number(g.total || 0);
+          // Counts toward the customer-facing total regardless of whether a
+          // wallet pass exists for it yet - netStamps is meant to answer
+          // "what's my real balance right now", not "what does my wallet
+          // app currently show". The old version summed every card_id ever,
+          // closed ones included, which is how a permanently-frozen 12-stamp
+          // redeemed card kept inflating this number forever.
+          openStampTotal += stampCount;
           const key = String(cid || "");
           const hasApplePass = appleCardIds.has(key);
           const hasGoogleObject = googleCardIds.has(key);
           if (hasApplePass && hasGoogleObject) continue;
           openCards.push({
             cardId: cid,
-            stampCount: Number(g.total || 0),
+            stampCount,
             hasApplePass,
             hasGoogleObject,
           });
         }
         if (openCards.length) card.openCards = openCards;
+        card.stats.netStamps = openStampTotal;
       } catch (err) {}
     }
 
