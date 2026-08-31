@@ -3469,18 +3469,31 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
 
     const cafeAddressLower = cafeAddress.toLowerCase();
 
+    // Redemptions are identified by event_type = 'redeem', not delta < 0 -
+    // a redeemed card is frozen (delta: 0, see /redeem-reward) rather than
+    // decremented, so it stays open as a historical record instead of
+    // resetting in place. stamps_redeemed sums each redeemed card's own
+    // frozen total via a correlated subquery (not just the cafe's reward
+    // threshold) since a card can be redeemed above threshold too (e.g. an
+    // overflow that landed on an already-full card before it split).
     const statsRow = await db
       .prepare(
         `SELECT
            COUNT(*) AS total_events,
            SUM(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS stamps_awarded,
-           SUM(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN (
+             SELECT COALESCE(SUM(se2.delta), 0) FROM stamp_events se2
+             WHERE LOWER(se2.cafe) = LOWER(stamp_events.cafe)
+               AND LOWER(se2."user") = LOWER(stamp_events."user")
+               AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
+               AND (se2.status IS NULL OR se2.status = 'confirmed')
+           ) ELSE 0 END) AS stamps_redeemed,
            SUM(delta) AS net_stamps,
-           SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS redemption_count,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemption_count,
            COUNT(DISTINCT "user") AS unique_customers,
            MAX(ts) AS last_activity_ts,
            MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts,
-           MAX(CASE WHEN delta < 0 THEN ts ELSE NULL END) AS last_redeem_ts
+           MAX(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN ts ELSE NULL END) AS last_redeem_ts
          FROM stamp_events
          WHERE LOWER(cafe) = ?`,
       )
@@ -3525,9 +3538,15 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
            "user" as user,
            MAX(customer_name) AS customer_name,
            SUM(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS stamps_awarded,
-           SUM(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN (
+             SELECT COALESCE(SUM(se2.delta), 0) FROM stamp_events se2
+             WHERE LOWER(se2.cafe) = LOWER(stamp_events.cafe)
+               AND LOWER(se2."user") = LOWER(stamp_events."user")
+               AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
+               AND (se2.status IS NULL OR se2.status = 'confirmed')
+           ) ELSE 0 END) AS stamps_redeemed,
            SUM(delta) AS net_stamps,
-           SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS redemptions,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            MAX(ts) AS last_activity_ts
          FROM stamp_events
          WHERE LOWER(cafe) = ?
@@ -4481,11 +4500,17 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
            cafe,
            COUNT(*) AS total_events,
            SUM(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS stamps_awarded,
-           SUM(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN (
+             SELECT COALESCE(SUM(se2.delta), 0) FROM stamp_events se2
+             WHERE LOWER(se2.cafe) = LOWER(stamp_events.cafe)
+               AND LOWER(se2."user") = LOWER(stamp_events."user")
+               AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
+               AND (se2.status IS NULL OR se2.status = 'confirmed')
+           ) ELSE 0 END) AS stamps_redeemed,
            SUM(delta) AS net_stamps,
-           SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS redemptions,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts,
-           MAX(CASE WHEN delta < 0 THEN ts ELSE NULL END) AS last_redeem_ts,
+           MAX(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN ts ELSE NULL END) AS last_redeem_ts,
            MAX(ts) AS last_activity_ts,
            COUNT(DISTINCT "user") AS unique_customers
          FROM stamp_events
@@ -4520,11 +4545,17 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
            "user" as user,
            MAX(ts) AS last_activity_ts,
            MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts,
-           MAX(CASE WHEN delta < 0 THEN ts ELSE NULL END) AS last_redeem_ts,
+           MAX(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN ts ELSE NULL END) AS last_redeem_ts,
            SUM(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS stamps_awarded,
-           SUM(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN (
+             SELECT COALESCE(SUM(se2.delta), 0) FROM stamp_events se2
+             WHERE LOWER(se2.cafe) = LOWER(stamp_events.cafe)
+               AND LOWER(se2."user") = LOWER(stamp_events."user")
+               AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
+               AND (se2.status IS NULL OR se2.status = 'confirmed')
+           ) ELSE 0 END) AS stamps_redeemed,
            SUM(delta) AS net_stamps,
-           SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS redemptions,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            MAX(CASE WHEN customer_name IS NOT NULL AND customer_name != '' THEN customer_name ELSE NULL END) AS customer_name
          FROM stamp_events
          GROUP BY cafe, "user"`,
@@ -5778,13 +5809,19 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
         `SELECT
            cafe,
            SUM(CASE WHEN delta > 0 THEN delta ELSE 0 END) AS stamps_awarded,
-           SUM(CASE WHEN delta < 0 THEN -delta ELSE 0 END) AS stamps_redeemed,
-           SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS redemptions,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN (
+             SELECT COALESCE(SUM(se2.delta), 0) FROM stamp_events se2
+             WHERE LOWER(se2.cafe) = LOWER(stamp_events.cafe)
+               AND LOWER(se2."user") = LOWER(stamp_events."user")
+               AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
+               AND (se2.status IS NULL OR se2.status = 'confirmed')
+           ) ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            SUM(delta) AS net_stamps,
            COUNT(*) AS total_events,
            MAX(ts) AS last_activity_ts,
            MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts,
-           MAX(CASE WHEN delta < 0 THEN ts ELSE NULL END) AS last_redeem_ts,
+           MAX(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN ts ELSE NULL END) AS last_redeem_ts,
            MAX(CASE WHEN customer_name IS NOT NULL AND customer_name != '' THEN customer_name ELSE NULL END) AS customer_name
          FROM stamp_events
          WHERE LOWER("user") = ?
