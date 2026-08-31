@@ -270,24 +270,37 @@ function buildPassJson({
     });
   }
 
+  // Most customers only ever look at the Wallet app, never the companion
+  // web app - so once a card fills up, the *only* channel that can reach
+  // them at all is a Wallet lock-screen notification on the pass they
+  // already have. Apple only shows one for a field whose value actually
+  // changed, and only one field per update may carry a changeMessage (more
+  // than one collapses into a generic "Pass was changed" instead of custom
+  // text) - so which field carries it has to switch depending on state:
+  // "earned" while still filling (routine "you got a stamp"), "untilReward"
+  // exactly on the update that completes the card (the one moment its own
+  // value changes from "noch X" to "Prämie verfügbar!"), nudging them to
+  // open the app for a new card since Wallet itself can't offer one.
+  const isFull = remaining <= 0;
   backFields.push(
     {
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
-      // Apple only shows a lock-screen notification for a field whose
-      // *value* actually changed between pass versions - a pure profile
-      // save (color, logo, ...) never touches this field, so this fires
-      // only on real stamp/redeem events, not on every push. Only one
-      // field gets a changeMessage on purpose: if several fields on the
-      // same update have one, Wallet collapses them into a generic "Pass
-      // was changed" message instead of showing this custom text.
-      changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel.",
+      ...(isFull
+        ? {}
+        : { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }),
     },
     {
       key: "untilReward",
       label: "Bis zur nächsten Prämie",
       value: remainingLine,
+      ...(isFull
+        ? {
+            changeMessage:
+              "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+          }
+        : {}),
     },
     {
       key: "terms",
