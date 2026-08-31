@@ -146,17 +146,31 @@ function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
 const STRIP_W = 375;
 const STRIP_H = 123;
 
-// A diagonal "EINGELÖST" ribbon over the (still fully-filled) stamp grid -
-// the visible signal that this specific card is closed/historical, not a
-// fresh empty one, without needing to hide how full it actually was.
+// A diagonal ribbon with a checkmark over the (still fully-filled) stamp
+// grid - the visible signal that this specific card is closed/historical,
+// not a fresh empty one, without needing to hide how full it actually was.
+// A vector checkmark rather than rendered text on purpose: this SVG gets
+// rasterized by sharp/librsvg server-side with no guaranteed system font
+// available in that environment (confirmed live - text here rendered as
+// tofu boxes), unlike the "Eingelöst ✓" wording on the pass's own
+// auxiliaryFields text, which iOS/Google render natively and isn't
+// affected by this at all.
 function renderRedeemedRibbon(w, h, scale) {
-  const bandHeight = 30 * scale;
+  const bandHeight = 34 * scale;
   const angle = -8;
-  const fontSize = 19 * scale;
+  const cx = w / 2;
+  const cy = h / 2;
+  const s = 11 * scale;
+  const x1 = cx - s * 1.1;
+  const y1 = cy;
+  const x2 = cx - s * 0.25;
+  const y2 = cy + s * 0.75;
+  const x3 = cx + s * 1.3;
+  const y3 = cy - s * 0.85;
   return `
-    <g transform="rotate(${angle} ${w / 2} ${h / 2})">
-      <rect x="${-w * 0.15}" y="${h / 2 - bandHeight / 2}" width="${w * 1.3}" height="${bandHeight}" fill="#171412" opacity="0.9" />
-      <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="900" font-size="${fontSize}" fill="#ffffff" letter-spacing="${1.5 * scale}">EINGELÖST &#10003;</text>
+    <g transform="rotate(${angle} ${cx} ${cy})">
+      <rect x="${-w * 0.15}" y="${cy - bandHeight / 2}" width="${w * 1.3}" height="${bandHeight}" fill="#171412" opacity="0.9" />
+      <path d="M ${x1} ${y1} L ${x2} ${y2} L ${x3} ${y3}" stroke="#ffffff" stroke-width="${3.2 * scale}" stroke-linecap="round" stroke-linejoin="round" fill="none" />
     </g>
   `;
 }
