@@ -625,38 +625,43 @@
     } catch (e) {}
   }
 
-  function walletPassAddUrl(customerAddress, cafeAddress) {
-    return (
+  function walletPassAddUrl(customerAddress, cafeAddress, cardId) {
+    var url =
       apiBase +
       "/customers/" +
       encodeURIComponent(customerAddress) +
       "/wallet-pass?cafe=" +
-      encodeURIComponent(cafeAddress)
-    );
+      encodeURIComponent(cafeAddress);
+    if (cardId) url += "&cardId=" + encodeURIComponent(cardId);
+    return url;
   }
 
-  function googleWalletSaveAddUrl(customerAddress, cafeAddress) {
-    return (
+  function googleWalletSaveAddUrl(customerAddress, cafeAddress, cardId) {
+    var url =
       apiBase +
       "/customers/" +
       encodeURIComponent(customerAddress) +
       "/google-wallet-save-link?cafe=" +
-      encodeURIComponent(cafeAddress)
-    );
+      encodeURIComponent(cafeAddress);
+    if (cardId) url += "&cardId=" + encodeURIComponent(cardId);
+    return url;
   }
 
   // Neither Apple nor Google lets a server push a brand new pass onto a
-  // device - a fresh card_id (from redemption or an overflow split) only
-  // ever becomes an actual wallet entry once the customer taps this
-  // themselves. No explicit cardId here on purpose: both endpoints default
-  // to the customer's latest card_id for this cafe when it's omitted.
-  function proceedToAddWalletCard(cafeAddress) {
+  // device - a card_id (from redemption, an overflow split, or just logging
+  // into a new device that never had it added) only ever becomes an actual
+  // wallet entry once the customer taps this themselves. cardId is optional:
+  // omit it to target the customer's latest card for this cafe (the common
+  // case), or pass a specific one - a customer can have more than one still-
+  // open card at once (e.g. a full one nobody's redeemed yet, plus a newer
+  // one collecting overflow), and each needs its own add action.
+  function proceedToAddWalletCard(cafeAddress, cardId) {
     if (!session || !session.address || !cafeAddress) return;
     if (isIOS()) {
-      window.location.href = walletPassAddUrl(session.address, cafeAddress);
+      window.location.href = walletPassAddUrl(session.address, cafeAddress, cardId);
       return;
     }
-    fetch(googleWalletSaveAddUrl(session.address, cafeAddress))
+    fetch(googleWalletSaveAddUrl(session.address, cafeAddress, cardId))
       .then(function (res) {
         return res.json().then(function (data) {
           return { ok: res.ok, data: data };
@@ -681,16 +686,18 @@
   }
 
   // `persistent` skips the auto-hide timer - used for the page-load check
-  // (backed by /customers/:address/cards' pendingWalletCardId) so the
-  // prompt survives until the customer actually acts or dismisses it,
-  // unlike the live SSE-triggered version which is fine to auto-dismiss
-  // since the app was open and the customer already saw it happen.
-  // `dismissKey`, when given, remembers a manual close so the same pending
-  // card doesn't nag again on every subsequent page load.
+  // (backed by /customers/:address/cards' openCards) so the prompt survives
+  // until the customer actually acts or dismisses it, unlike the live
+  // SSE-triggered version which is fine to auto-dismiss since the app was
+  // open and the customer already saw it happen. `dismissKey`, when given,
+  // remembers a manual close so the same pending card doesn't nag again on
+  // every subsequent page load. `cardId`, when given, targets that specific
+  // card instead of the customer's latest one for the cafe.
   function showAddCardBanner(cafeAddress, message, opts) {
     if (!cafeAddress) return;
     var persistent = !!(opts && opts.persistent);
     var dismissKey = opts && opts.dismissKey ? String(opts.dismissKey) : "";
+    var cardId = opts && opts.cardId ? String(opts.cardId) : "";
     try {
       if (!addCardBannerState.el) {
         var node = document.createElement("div");
@@ -718,7 +725,7 @@
       addCardBannerState.textEl.textContent = message || "Neue Karte bereit";
       addCardBannerState.btnEl.onclick = function () {
         hideAddCardBanner();
-        proceedToAddWalletCard(cafeAddress);
+        proceedToAddWalletCard(cafeAddress, cardId);
       };
       addCardBannerState.closeEl.onclick = function () {
         hideAddCardBanner();
@@ -2482,35 +2489,56 @@
 
   // Durable counterpart to the SSE "redeem"/"card_overflow" handlers, which
   // only show the add-card banner live and get missed if the app wasn't
-  // open at that exact moment. Runs on every /cards load instead, driven by
-  // the server's own pendingWalletCardId flag (set whenever the customer
-  // has at least one installed pass/object for a cafe that doesn't match
-  // their true latest card_id there).
+  // open at that exact moment - and also the mechanism behind "log in on a
+  // new device and get your real cards back": the balance always lives
+  // server-side, but each still-open card needs its own explicit add tap on
+  // this device, same platform constraint either way. Driven by the
+  // server's openCards list (every still-open card per cafe, not just the
+  // latest - a customer can have more than one open at once), filtered to
+  // whichever platform this device actually is.
   function evaluatePendingWalletCards(cards) {
     if (!session || !session.address) return;
     var src = Array.isArray(cards) ? cards : [];
+    var ios = isIOS();
     for (var i = 0; i < src.length; i++) {
       var card = src[i] || {};
-      if (!card.pendingWalletCardId) continue;
+      var openCards = Array.isArray(card.openCards) ? card.openCards : [];
+      if (!openCards.length) continue;
       var cafeAddress = normalizeAddr(card.cafeAddress || "");
       if (!cafeAddress) continue;
-      var dismissKey = [
-        "addCardDismissed",
-        normalizeAddr(session.address),
-        cafeAddress,
-        String(card.pendingWalletCardId),
-      ].join("|");
-      if (wasCampaignSeenRecently(dismissKey, 7 * 24 * 60 * 60 * 1000)) continue;
+
+      var target = null;
+      for (var j = 0; j < openCards.length; j++) {
+        var oc = openCards[j] || {};
+        var missing = ios ? !oc.hasApplePass : !oc.hasGoogleObject;
+        if (!missing) continue;
+        var dismissKey = [
+          "addCardDismissed",
+          ios ? "ios" : "android",
+          normalizeAddr(session.address),
+          cafeAddress,
+          String(oc.cardId || ""),
+        ].join("|");
+        if (wasCampaignSeenRecently(dismissKey, 7 * 24 * 60 * 60 * 1000)) continue;
+        target = { cardId: oc.cardId || null, dismissKey: dismissKey };
+        break;
+      }
+      if (!target) continue;
+
       var cafeLabel =
         String(card.name || card.cafeName || "").trim() ||
         String(card.address || "").trim() ||
         "";
       showAddCardBanner(
         cafeAddress,
-        "🎉 Neue Stempelkarte bereit" +
+        "🎉 Stempelkarte bereit" +
           (cafeLabel ? " · " + cafeLabel : "") +
           " – zum Wallet hinzufügen?",
-        { persistent: true, dismissKey: dismissKey },
+        {
+          persistent: true,
+          dismissKey: target.dismissKey,
+          cardId: target.cardId,
+        },
       );
       break; // one at a time - a second banner would just overwrite the first.
     }

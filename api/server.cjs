@@ -1575,6 +1575,15 @@ const countEventsByCafeUserCardId = db.prepare(
 const hasCardBeenRedeemed = db.prepare(
   "SELECT 1 as ok FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND COALESCE(card_id, '') = COALESCE(?, '') AND event_type = 'redeem' AND (status IS NULL OR status = 'confirmed') LIMIT 1",
 );
+// Every distinct card_id this customer has ever had at this cafe, with its
+// own isolated total - used to find every still-open (not yet redeemed)
+// card, not just "the latest one". A customer can genuinely have more than
+// one open card at once (a full one nobody has redeemed yet, plus a newer
+// one collecting overflow) - both are real, both deserve their own wallet
+// pass, restoring "the latest" alone would silently drop the first.
+const getCardGroupsByCafeUser = db.prepare(
+  "SELECT card_id, COALESCE(SUM(delta), 0) as total FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND (status IS NULL OR status = 'confirmed') GROUP BY card_id",
+);
 
 // Card boundaries: starting a new card should not delete old stamps.
 // We treat both legacy `reset` and future `card_start` as boundaries.
@@ -5901,24 +5910,24 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
       customerRow?.username ||
       null;
 
-    // Neither wallet platform lets a server push a brand new pass onto a
-    // device - a fresh card_id (from redemption or an overflow split) only
-    // becomes an actual wallet entry once the customer taps an add-to-wallet
-    // link themselves. That used to only be surfaced via a momentary SSE
-    // toast (missed if the app wasn't open at that exact moment); this
-    // makes it durable by comparing, on every load, whether the customer's
-    // already-installed pass/object for this cafe matches their true
-    // latest card_id - only flagged when they've added at least one card
-    // for this cafe before (first-time registration is cafe-join's job,
-    // not this banner's).
+    // Neither wallet platform lets a server push a pass onto a device the
+    // customer hasn't explicitly added it on themselves - not just right
+    // after a redeem/overflow on the same device, but also the moment they
+    // log into a brand new device: the real balance lives here, server-side,
+    // tied to the account, not to any one device's Wallet app. A customer
+    // can genuinely have more than one still-open card at once too (a full
+    // one nobody's redeemed yet, plus a newer one collecting overflow) -
+    // every open card is surfaced here, not just "the latest", so a second
+    // card never gets silently left behind on a new device. Redeemed
+    // (closed) cards are excluded - re-adding one would just show 0/reset
+    // (see resolveDisplayStampCount), no value in restoring it.
     for (const card of cards) {
       if (!card.cafeId || !card.cafeAddress) continue;
       try {
-        const latestRow = await getLatestCardIdForCustomerCafe.get(
+        const groups = await getCardGroupsByCafeUser.all(
           card.cafeAddress,
           rawAddress,
         );
-        const latestCardId = latestRow ? latestRow.card_id || null : null;
         const applePasses = await getWalletPassesByCustomerCafe.all(
           rawAddress,
           card.cafeId,
@@ -5927,18 +5936,33 @@ app.get("/customers/:customerAddress/cards", async (req, res) => {
           rawAddress,
           card.cafeId,
         );
-        const hasAnyInstalledCard =
-          (applePasses && applePasses.length) ||
-          (googleObjects && googleObjects.length);
-        if (!hasAnyInstalledCard) continue;
-        const matchesLatest = (rows) =>
-          Array.isArray(rows) &&
-          rows.some(
-            (r) => String(r.card_id || "") === String(latestCardId || ""),
+        const appleCardIds = new Set(
+          (applePasses || []).map((r) => String(r.card_id || "")),
+        );
+        const googleCardIds = new Set(
+          (googleObjects || []).map((r) => String(r.card_id || "")),
+        );
+        const openCards = [];
+        for (const g of Array.isArray(groups) ? groups : []) {
+          const cid = g.card_id || null;
+          const redeemedRow = await hasCardBeenRedeemed.get(
+            card.cafeAddress,
+            rawAddress,
+            cid,
           );
-        if (!matchesLatest(applePasses) && !matchesLatest(googleObjects)) {
-          card.pendingWalletCardId = latestCardId;
+          if (redeemedRow) continue;
+          const key = String(cid || "");
+          const hasApplePass = appleCardIds.has(key);
+          const hasGoogleObject = googleCardIds.has(key);
+          if (hasApplePass && hasGoogleObject) continue;
+          openCards.push({
+            cardId: cid,
+            stampCount: Number(g.total || 0),
+            hasApplePass,
+            hasGoogleObject,
+          });
         }
+        if (openCards.length) card.openCards = openCards;
       } catch (err) {}
     }
 
