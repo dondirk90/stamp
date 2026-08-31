@@ -2933,6 +2933,25 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       }
     } catch (e) {}
 
+    // A redeemed card is permanently closed (see /redeem-reward) - an
+    // explicit cardId that points at one is stale, not a genuine intent to
+    // keep filling it. Confirmed live: the cafe-scanner page keeps whatever
+    // cardId was in its URL when first opened, so repeated stamps after a
+    // redemption (without reloading the page/QR) kept silently piling onto
+    // an already-closed card, which displays frozen at 0 forever - the
+    // stamps were real in the ledger but permanently invisible on the
+    // pass. Falling through to the normal auto-split path here instead
+    // correctly redirects them to whatever the customer's actual current
+    // card is.
+    if (normalizedCardId) {
+      const redeemedRow = await hasCardBeenRedeemed.get(
+        cafeAddress,
+        customer,
+        normalizedCardId,
+      );
+      if (redeemedRow) normalizedCardId = null;
+    }
+
     let segments;
     let overflowed = false;
     let newCardId = null;
