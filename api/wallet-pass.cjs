@@ -146,10 +146,25 @@ function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
 const STRIP_W = 375;
 const STRIP_H = 123;
 
+// A diagonal "EINGELÖST" ribbon over the (still fully-filled) stamp grid -
+// the visible signal that this specific card is closed/historical, not a
+// fresh empty one, without needing to hide how full it actually was.
+function renderRedeemedRibbon(w, h, scale) {
+  const bandHeight = 30 * scale;
+  const angle = -8;
+  const fontSize = 19 * scale;
+  return `
+    <g transform="rotate(${angle} ${w / 2} ${h / 2})">
+      <rect x="${-w * 0.15}" y="${h / 2 - bandHeight / 2}" width="${w * 1.3}" height="${bandHeight}" fill="#171412" opacity="0.9" />
+      <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-weight="900" font-size="${fontSize}" fill="#ffffff" letter-spacing="${1.5 * scale}">EINGELÖST &#10003;</text>
+    </g>
+  `;
+}
+
 // Shared by buildStripBuffers (Apple, one SVG per @1x/2x/3x asset) and
 // buildStampStripPngBuffer (Google, a single standalone image) so both
 // wallets render the same stamp-progress grid from one source of truth.
-function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl) {
+function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed) {
   const w = STRIP_W * scale;
   const h = STRIP_H * scale;
   const rows = threshold <= 5 ? 1 : 2;
@@ -175,19 +190,21 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${icons}</svg>`;
+  const ribbon = isRedeemed ? renderRedeemedRibbon(w, h, scale) : "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${bgHex}" />${circles}${icons}${ribbon}</svg>`;
 }
 
 // Renders the stamp-progress strip using the cafe's chosen stamp symbol
 // (bean/cup/star/circle) for filled stamps, empty ones are always an
 // outline circle - same visual language as the in-app card.
-async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle) {
+async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed) {
   const beanBuffer = await getBeanBuffer();
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
   const out = {};
 
   for (const scale of [1, 2, 3]) {
-    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl);
+    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed);
     const name = scale === 1 ? "strip.png" : `strip@${scale}x.png`;
     out[name] = await sharp(Buffer.from(svg)).png().toBuffer();
   }
@@ -198,10 +215,10 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle
 // Same stamp-progress grid as a single standalone PNG, for Google Wallet's
 // imageModulesData (which references one hosted image, not an @1x/2x/3x
 // asset bundle like Apple's).
-async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle) {
+async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed) {
   const beanBuffer = await getBeanBuffer();
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
-  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl);
+  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed);
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
@@ -237,12 +254,21 @@ function buildPassJson({
   barcodeMessage,
   lat,
   lng,
+  isRedeemed,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
-  const remainingLine =
-    remaining <= 0 ? "Prämie verfügbar!" : `noch ${remaining}`;
+  // A redeemed card stays visibly at its final stamp count (a closed,
+  // historical record - see /redeem-reward) rather than resetting, so this
+  // text has to say so explicitly - otherwise "Prämie verfügbar!" would
+  // keep claiming a reward is still waiting on a card that's already been
+  // claimed, indistinguishable from one that's genuinely still full.
+  const remainingLine = isRedeemed
+    ? "Eingelöst ✓"
+    : remaining <= 0
+      ? "Prämie verfügbar!"
+      : `noch ${remaining}`;
 
   // Cafe-specific, actually interesting info first (only shown when a cafe
   // has set it); the always-present boilerplate (stamp counts already
@@ -271,16 +297,18 @@ function buildPassJson({
   }
 
   // Most customers only ever look at the Wallet app, never the companion
-  // web app - so once a card fills up, the *only* channel that can reach
-  // them at all is a Wallet lock-screen notification on the pass they
-  // already have. Apple only shows one for a field whose value actually
-  // changed, and only one field per update may carry a changeMessage (more
-  // than one collapses into a generic "Pass was changed" instead of custom
-  // text) - so which field carries it has to switch depending on state:
-  // "earned" while still filling (routine "you got a stamp"), "untilReward"
-  // exactly on the update that completes the card (the one moment its own
-  // value changes from "noch X" to "Prämie verfügbar!"), nudging them to
-  // open the app for a new card since Wallet itself can't offer one.
+  // web app - so a Wallet lock-screen notification on the pass they already
+  // have is often the only channel that can reach them at all. Apple only
+  // shows one for a field whose value actually changed, and only one field
+  // per update may carry a changeMessage (more than one collapses into a
+  // generic "Pass was changed" instead of custom text) - so which field
+  // carries it has to switch depending on state: "earned" while still
+  // filling (routine "you got a stamp"), "untilReward" on the update that
+  // completes the card (its value changes from "noch X" to "Prämie
+  // verfügbar!") nudging them to open the app for a new card, and again on
+  // the update that redeems it (its value changes a second time, to
+  // "Eingelöst ✓") confirming the redemption actually went through on the
+  // exact pass they're looking at.
   const isFull = remaining <= 0;
   backFields.push(
     {
@@ -295,12 +323,17 @@ function buildPassJson({
       key: "untilReward",
       label: "Bis zur nächsten Prämie",
       value: remainingLine,
-      ...(isFull
+      ...(isRedeemed
         ? {
             changeMessage:
-              "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+              "✓ Eingelöst! Öffne die Kaffeekarte-App für deine nächste Stempelkarte.",
           }
-        : {}),
+        : isFull
+          ? {
+              changeMessage:
+                "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+            }
+          : {}),
     },
     {
       key: "terms",
@@ -409,6 +442,7 @@ async function generateSignedPass({
   webServiceURL,
   barcodeMessage,
   customerName,
+  isRedeemed,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -436,6 +470,7 @@ async function generateSignedPass({
     barcodeMessage,
     lat: cafeRow && cafeRow.lat != null ? Number(cafeRow.lat) : null,
     lng: cafeRow && cafeRow.lng != null ? Number(cafeRow.lng) : null,
+    isRedeemed,
   });
 
   const buffers = {
@@ -447,6 +482,7 @@ async function generateSignedPass({
       colors.bg,
       colors.fg,
       program.stampStyle,
+      isRedeemed,
     )),
   };
 

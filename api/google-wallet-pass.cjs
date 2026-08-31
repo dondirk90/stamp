@@ -216,11 +216,20 @@ function buildLoyaltyObjectPayload({
   barcodeMessage,
   appsBaseUrl,
   notify,
+  isRedeemed,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
-  const remainingLine =
-    remaining <= 0 ? "Prämie verfügbar!" : `noch ${remaining}`;
+  // A redeemed card stays visibly at its final stamp count (a closed,
+  // historical record - see /redeem-reward) rather than resetting, so this
+  // has to say so explicitly - "Prämie verfügbar!" would otherwise keep
+  // claiming a reward is still waiting on a card that's already been
+  // claimed.
+  const remainingLine = isRedeemed
+    ? "Eingelöst ✓"
+    : remaining <= 0
+      ? "Prämie verfügbar!"
+      : `noch ${remaining}`;
   const base = String(appsBaseUrl || "").replace(/\/$/, "");
   const colors = walletPass.resolveThemeColors(
     cafeRow.card_theme || "paper",
@@ -229,10 +238,11 @@ function buildLoyaltyObjectPayload({
   );
   // no-store on the server side, and a cache-busting query param here too -
   // Google caches this image by URL, so the version tag must change
-  // whenever anything the image actually renders changes (stamp count *or*
-  // color), not just the stamp count - a color-only cafe update otherwise
-  // leaves customers with a stale-colored strip until their next stamp.
-  const version = `${clampedStamps}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}`;
+  // whenever anything the image actually renders changes (stamp count,
+  // color, *or* the redeemed ribbon), not just the stamp count - otherwise
+  // a stale cached image (without the ribbon) could keep showing after
+  // redemption until some other field happens to change the version too.
+  const version = `${clampedStamps}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}-${isRedeemed ? "r" : "o"}`;
   const stampStripUri =
     `${base}/api/customers/${customerAddress}/google-wallet-stamp-strip.png` +
     `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
@@ -305,7 +315,7 @@ function buildLoyaltyObjectPayload({
 // Called when the customer taps "Add to Google Wallet". Google creates the
 // class/object from what's embedded in the JWT the first time it sees these
 // ids - no separate insert() call needed before this.
-function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl }) {
+function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed }) {
   const account = loadServiceAccount();
   const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
   const loyaltyObject = buildLoyaltyObjectPayload({
@@ -318,6 +328,7 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     rewardDescription: program.rewardDescription,
     barcodeMessage,
     appsBaseUrl,
+    isRedeemed,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -368,6 +379,7 @@ async function patchLoyaltyObjectStamps({
   barcodeMessage,
   appsBaseUrl,
   notify,
+  isRedeemed,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -382,6 +394,7 @@ async function patchLoyaltyObjectStamps({
       barcodeMessage,
       appsBaseUrl,
       notify,
+      isRedeemed,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {
