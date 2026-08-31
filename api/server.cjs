@@ -1807,25 +1807,39 @@ async function splitStampAward({
   const latestCount = latestRow
     ? await getStampsByCafeUserCardId(cafeAddress, customerAddress, latestCardId)
     : 0;
-  const latestIsFullOrMissing = !latestRow || latestCount >= threshold;
+  // Deliberately NOT the same as "no latestRow" - trusting an explicit
+  // target because the customer has *real* full history is legitimate
+  // (redemption/overflow continuation); trusting one because they have *no*
+  // history at all is not, and was the actual gap here (see below).
+  const latestIsFull = !!latestRow && latestCount >= threshold;
 
   let activeCardId;
   let activeCount;
-  let hadExistingCard;
   if (
     explicitCardId &&
-    (String(explicitCardId) === String(latestCardId || "") || latestIsFullOrMissing)
+    latestRow &&
+    (String(explicitCardId) === String(latestCardId || "") || latestIsFull)
   ) {
     activeCardId = explicitCardId;
     activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
-    hadExistingCard = true;
   } else {
+    // card_id = null for a customer with zero prior events (latestRow
+    // missing) is intentional, not a fallback - it's the exact same
+    // default the wallet-pass issuance endpoint already uses for them.
+    // Minting a random card_id here instead (the previous behavior)
+    // created two different "first cards" that nothing pointed at the
+    // same way: the pass they'd already added stayed on card_id = null
+    // forever, while every real stamp silently landed on a random id no
+    // pass was ever issued for. Confirmed live on a customer wiped clean
+    // for a fresh test: registered a pass (card_id = null), then their
+    // very first stamps went to a brand new random card instead - the
+    // pass never showed anything, no notification ever fired, because
+    // nothing about that pass's own card had actually changed.
     activeCardId = latestCardId;
     activeCount = latestCount;
-    hadExistingCard = !!latestRow;
   }
 
-  if (!hadExistingCard || activeCount >= threshold) {
+  if (activeCount >= threshold) {
     activeCardId = crypto.randomBytes(8).toString("hex");
     activeCount = 0;
   }
