@@ -288,6 +288,7 @@ function buildLoyaltyObjectPayload({
       ...(cardNumber
         ? [{ id: "cardNumber", header: "Karten-Nr.", body: `#${cardNumber}` }]
         : []),
+      { id: "cardId", header: "Karten-ID", body: cardId || "Standard" },
       ...(customerEmail
         ? [{ id: "email", header: "E-Mail", body: customerEmail }]
         : []),

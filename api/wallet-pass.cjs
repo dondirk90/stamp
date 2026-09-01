@@ -272,6 +272,7 @@ function buildPassJson({
   customerEmail,
   customerId,
   cardNumber,
+  cardId,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
@@ -364,6 +365,10 @@ function buildPassJson({
     ...(cardNumber
       ? [{ key: "cardNumber", label: "Karten-Nr.", value: `#${cardNumber}` }]
       : []),
+    // Raw card_id, distinct from the human-friendly ordinal above - null for
+    // a customer's first/default card (see splitStampAward in server.cjs),
+    // so that state gets its own label rather than printing "null".
+    { key: "cardId", label: "Karten-ID", value: cardId || "Standard" },
     ...(customerEmail
       ? [{ key: "email", label: "E-Mail", value: customerEmail }]
       : []),
@@ -478,6 +483,7 @@ async function generateSignedPass({
   customerEmail,
   customerId,
   cardNumber,
+  cardId,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -509,6 +515,7 @@ async function generateSignedPass({
     customerEmail,
     customerId,
     cardNumber,
+    cardId,
   });
 
   const buffers = {
