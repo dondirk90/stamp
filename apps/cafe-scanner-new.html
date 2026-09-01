@@ -722,12 +722,17 @@
         pointer-events: none;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
+      /* Sits nested inside #scannerScreen, the one framed panel on this
+         screen (same "no frame within a frame" convention as .viewSection/
+         .cardSection above and #profileCard's card--hairline) - a hairline
+         divider instead of its own border+background. */
       .customer-info {
-        background: var(--surface-muted);
-        padding: 20px;
-        border-radius: var(--radius);
+        background: transparent;
+        padding: 20px 0 0;
+        border-radius: 0;
         margin-top: 24px;
-        border: 1px solid color-mix(in srgb, var(--border) 90%, white 10%);
+        border: none;
+        border-top: 1px solid var(--border);
       }
 
       #scannerScreen.customerLoaded .scannerStage {
@@ -1189,11 +1194,14 @@
           gap: 12px;
         }
 
+        /* The eyebrow label + lead paragraph explain "this is a camera,
+           point it at a QR code" - once the camera preview is this size
+           and this close to the top, that's already obvious, and this text
+           was pushing the actual preview down toward (or past) the fold on
+           smaller phones. Keeps the still-functional Kamera-starten button. */
+        .scannerEyebrow,
         .scannerLead {
-          margin-top: 6px;
-          font-size: 13px;
-          line-height: 1.4;
-          max-width: 30ch;
+          display: none;
         }
 
         .cameraControls {
@@ -1211,9 +1219,17 @@
           padding: 0;
         }
 
+        /* Redundant with #scannerStatus right under the video (both are
+           JS-driven "what to do next" text, built at different times) -
+           dropping this second copy on mobile, where space is tightest,
+           is what actually buys the extra room for #video below. */
+        #scanHint {
+          display: none !important;
+        }
+
         #video {
           aspect-ratio: 3 / 4;
-          max-height: min(56svh, 520px);
+          max-height: min(68svh, 620px);
         }
 
         .scan-overlay {
@@ -5478,7 +5494,16 @@
         }
 
         if (targetView !== "scan") {
-          stopScannerCamera();
+          // Pause the decode loop but keep the camera stream itself alive -
+          // switching Scan -> Dashboard -> Scan used to call
+          // stopScannerCamera() (stops every track, drops the stream) and
+          // then re-request it with getUserMedia() on the way back, causing
+          // a visible relight/flicker on every single tab switch even
+          // though permission was already granted. Same pause-not-teardown
+          // pattern the visibilitychange handler below already uses for
+          // backgrounding - only pagehide (the page actually going away)
+          // still calls the full stopScannerCamera().
+          pauseScannerLoop();
         }
         if (targetView === "profile") return;
         if (targetView === "home") {
