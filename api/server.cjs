@@ -1703,13 +1703,20 @@ async function getOpenStampTotal(cafeAddress, customerAddress) {
 // actually being redeemed and any already-closed ones, picks whichever
 // still-open card is furthest along (so a customer collecting toward two
 // different partial cards doesn't have progress arbitrarily reshuffled).
-async function findReusableOpenCard(cafeAddress, customerAddress, excludeCardId, threshold) {
+async function findReusableOpenCard(cafeAddress, customerAddress, excludeCardIds, threshold) {
   const groups = await getCardGroupsByCafeUser.all(cafeAddress, customerAddress);
-  const excludeKey = String(excludeCardId || "");
+  // Accepts either a single card_id (the common case) or an array - a
+  // multi-segment overflow award needs to exclude every card it has already
+  // assigned a segment to in this same call, not just the one it just filled.
+  const excludeSet = new Set(
+    (Array.isArray(excludeCardIds) ? excludeCardIds : [excludeCardIds]).map((c) =>
+      String(c || ""),
+    ),
+  );
   let best = null;
   for (const g of Array.isArray(groups) ? groups : []) {
     const cid = g.card_id || null;
-    if (String(cid || "") === excludeKey) continue;
+    if (excludeSet.has(String(cid || ""))) continue;
     const total = Number(g.total || 0);
     if (total >= threshold) continue;
     const redeemedRow = await hasCardBeenRedeemed.get(cafeAddress, customerAddress, cid);
@@ -1812,16 +1819,28 @@ const getLatestCardIdForCustomerCafe = db.prepare(
 // gone the moment that card got redeemed (frozen at 12, new card opened at
 // 0, not 2).
 //
-// An explicit target is only actually trusted, though, if it matches the
-// customer's true latest card, or if that latest card is already full/
-// doesn't exist - i.e. only in the situations where opening a new card
-// would be legitimate anyway. A customer should only ever end up with more
-// than one simultaneously open card because one of them is full, never
-// because some caller pointed at a stale or arbitrary card_id while the
-// real current one still had room. Confirmed live: a stale explicit
-// cardId (traced to a cached browser tab from before this exact fix)
-// forked a customer into three simultaneously open, all-under-threshold
-// cards (2, 3, 4 stamps) instead of one card correctly filling to 9.
+// An explicit target is trusted directly whenever it's a genuinely open
+// card - exists in this customer's real history and isn't at/over threshold
+// yet. That single count check also rules out already-redeemed cards for
+// free: redemption is only ever reachable once a card is full (see
+// /redeem-reward's redeemToken gating), so a redeemed card's frozen total is
+// always >= threshold too. Deliberately NOT gated on "matches the latest
+// card" - a customer can legitimately have more than one open card at once
+// (see findReusableOpenCard below), and whichever one was actually scanned
+// should get the stamps, not whichever happens to be most recent by
+// insertion order. Confirmed live: a customer's older still-open card (1
+// stamp, genuinely the one saved to their phone's Wallet) got skipped in
+// favor of an unrelated "latest" card purely because that one had been
+// touched more recently by earlier testing.
+//
+// Still gated on `latestRow` existing at all, though - trusting an explicit
+// target for a customer with *no* real history is a different, already-
+// fixed bug: it created two unrelated "first cards" where only one had a
+// wallet pass actually pointing at it. Confirmed live on a customer wiped
+// clean for a fresh test: registered a pass (card_id = null), then their
+// very first stamps went to a brand new random card instead - the pass
+// never showed anything, no notification ever fired, because nothing about
+// that pass's own card had actually changed.
 async function splitStampAward({
   cafeAddress,
   customerAddress,
@@ -1831,46 +1850,52 @@ async function splitStampAward({
 }) {
   const latestRow = await getLatestCardIdForCustomerCafe.get(cafeAddress, customerAddress);
   const latestCardId = latestRow ? latestRow.card_id || null : null;
-  const latestCount = latestRow
-    ? await getStampsByCafeUserCardId(cafeAddress, customerAddress, latestCardId)
-    : 0;
-  // Deliberately NOT the same as "no latestRow" - trusting an explicit
-  // target because the customer has *real* full history is legitimate
-  // (redemption/overflow continuation); trusting one because they have *no*
-  // history at all is not, and was the actual gap here (see below).
-  const latestIsFull = !!latestRow && latestCount >= threshold;
 
   let activeCardId;
   let activeCount;
-  if (
-    explicitCardId &&
-    latestRow &&
-    (String(explicitCardId) === String(latestCardId || "") || latestIsFull)
-  ) {
-    activeCardId = explicitCardId;
-    activeCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, activeCardId);
-  } else {
-    // card_id = null for a customer with zero prior events (latestRow
-    // missing) is intentional, not a fallback - it's the exact same
-    // default the wallet-pass issuance endpoint already uses for them.
-    // Minting a random card_id here instead (the previous behavior)
-    // created two different "first cards" that nothing pointed at the
-    // same way: the pass they'd already added stayed on card_id = null
-    // forever, while every real stamp silently landed on a random id no
-    // pass was ever issued for. Confirmed live on a customer wiped clean
-    // for a fresh test: registered a pass (card_id = null), then their
-    // very first stamps went to a brand new random card instead - the
-    // pass never showed anything, no notification ever fired, because
-    // nothing about that pass's own card had actually changed.
-    activeCardId = latestCardId;
-    activeCount = latestCount;
+  if (explicitCardId && latestRow) {
+    const explicitCount = await getStampsByCafeUserCardId(
+      cafeAddress,
+      customerAddress,
+      explicitCardId,
+    );
+    if (explicitCount < threshold) {
+      activeCardId = explicitCardId;
+      activeCount = explicitCount;
+    }
   }
 
-  if (activeCount >= threshold) {
-    activeCardId = crypto.randomBytes(8).toString("hex");
-    activeCount = 0;
+  if (activeCardId === undefined) {
+    const latestCount = latestRow
+      ? await getStampsByCafeUserCardId(cafeAddress, customerAddress, latestCardId)
+      : 0;
+    if (latestRow && latestCount < threshold) {
+      activeCardId = latestCardId;
+      activeCount = latestCount;
+    } else if (latestRow) {
+      // The latest card (and any stale/full explicit target above) can't
+      // take more stamps - before minting yet another brand new card,
+      // consolidate onto any other still-open card this customer already
+      // has (see findReusableOpenCard), so a customer never ends up with
+      // more simultaneously open cards than the ones that are genuinely
+      // full and awaiting redemption.
+      const reusable = await findReusableOpenCard(
+        cafeAddress,
+        customerAddress,
+        latestCardId,
+        threshold,
+      );
+      activeCardId = reusable ? reusable.cardId : crypto.randomBytes(8).toString("hex");
+      activeCount = reusable ? reusable.total : 0;
+    } else {
+      // card_id = null for a customer with zero prior events is
+      // intentional, not a fallback - see the doc comment above.
+      activeCardId = null;
+      activeCount = 0;
+    }
   }
 
+  const usedCardIds = [activeCardId];
   const segments = [];
   let remaining = Math.max(0, Math.floor(totalCount));
   while (remaining > 0) {
@@ -1880,10 +1905,20 @@ async function splitStampAward({
     remaining -= take;
     activeCount += take;
     if (remaining > 0) {
-      // This card is now full and there's still more to award - spill into
-      // a fresh one instead of overfilling the current one.
-      activeCardId = crypto.randomBytes(8).toString("hex");
-      activeCount = 0;
+      // This card is now full and there's still more to award - consolidate
+      // onto another already-open card first, same reasoning as above.
+      // usedCardIds (not just this one card) so a large bulk grant spanning
+      // 3+ cards can't loop back onto one it already filled earlier in this
+      // same call, before that fill is reflected in the DB.
+      const reusable = await findReusableOpenCard(
+        cafeAddress,
+        customerAddress,
+        usedCardIds,
+        threshold,
+      );
+      activeCardId = reusable ? reusable.cardId : crypto.randomBytes(8).toString("hex");
+      activeCount = reusable ? reusable.total : 0;
+      usedCardIds.push(activeCardId);
     }
   }
 
