@@ -1646,8 +1646,31 @@ const countEventsByCafeUserCardId = db.prepare(
 // COALESCE-on-both-sides because card_id can legitimately be NULL (a
 // customer's original, pre-multi-card card) - a plain `card_id = ?` never
 // matches a NULL column value via `=`, even when both sides are NULL.
+//
+// Requires the redeem event to be the *most recent* event on this card_id,
+// not just "a redeem event exists somewhere in its history" - card_id = NULL
+// is the shared default for every legacy/brand-new customer and can
+// legitimately be redeemed and then start collecting fresh stamps again
+// (every hex-minted card_id, by contrast, is one-shot: splitStampAward never
+// assigns new stamps to one that's already full/redeemed, so for those the
+// two phrasings agree). Confirmed live: a card_id = NULL redeemed back in
+// July under the old decrement-based redeem model, then given a brand new
+// stamp today, was still reported as permanently redeemed - the pass showed
+// "already redeemed" the instant a single fresh stamp landed on it.
 const hasCardBeenRedeemed = db.prepare(
-  "SELECT 1 as ok FROM stamp_events WHERE LOWER(cafe) = LOWER(?) AND LOWER(\"user\") = LOWER(?) AND COALESCE(card_id, '') = COALESCE(?, '') AND event_type = 'redeem' AND (status IS NULL OR status = 'confirmed') LIMIT 1",
+  `SELECT 1 as ok FROM stamp_events se
+   WHERE LOWER(se.cafe) = LOWER(?) AND LOWER(se."user") = LOWER(?)
+     AND COALESCE(se.card_id, '') = COALESCE(?, '')
+     AND se.event_type = 'redeem'
+     AND (se.status IS NULL OR se.status = 'confirmed')
+     AND NOT EXISTS (
+       SELECT 1 FROM stamp_events se2
+       WHERE LOWER(se2.cafe) = LOWER(se.cafe) AND LOWER(se2."user") = LOWER(se."user")
+         AND COALESCE(se2.card_id, '') = COALESCE(se.card_id, '')
+         AND se2.id > se.id
+         AND (se2.status IS NULL OR se2.status = 'confirmed')
+     )
+   LIMIT 1`,
 );
 // Every distinct card_id this customer has ever had at this cafe, with its
 // own isolated total - used to find every still-open (not yet redeemed)
