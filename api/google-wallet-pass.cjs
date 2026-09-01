@@ -217,6 +217,9 @@ function buildLoyaltyObjectPayload({
   appsBaseUrl,
   notify,
   isRedeemed,
+  customerEmail,
+  customerId,
+  cardNumber,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
@@ -277,6 +280,17 @@ function buildLoyaltyObjectPayload({
         ? [{ id: "cafeInstagram", header: "Instagram", body: cafeRow.instagram_url }]
         : []),
       { id: "remaining", header: "Bis zum Gratis-Kaffee", body: remainingLine },
+      // Account info - see the matching comment in wallet-pass.cjs's
+      // buildPassJson for why these three exist.
+      ...(customerId
+        ? [{ id: "customerId", header: "Kunden-ID", body: String(customerId) }]
+        : []),
+      ...(cardNumber
+        ? [{ id: "cardNumber", header: "Karten-Nr.", body: `#${cardNumber}` }]
+        : []),
+      ...(customerEmail
+        ? [{ id: "email", header: "E-Mail", body: customerEmail }]
+        : []),
       {
         id: "terms",
         header: "Nutzungsbedingungen",
@@ -315,7 +329,7 @@ function buildLoyaltyObjectPayload({
 // Called when the customer taps "Add to Google Wallet". Google creates the
 // class/object from what's embedded in the JWT the first time it sees these
 // ids - no separate insert() call needed before this.
-function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed }) {
+function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber }) {
   const account = loadServiceAccount();
   const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
   const loyaltyObject = buildLoyaltyObjectPayload({
@@ -329,6 +343,9 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     barcodeMessage,
     appsBaseUrl,
     isRedeemed,
+    customerEmail,
+    customerId,
+    cardNumber,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -380,6 +397,9 @@ async function patchLoyaltyObjectStamps({
   appsBaseUrl,
   notify,
   isRedeemed,
+  customerEmail,
+  customerId,
+  cardNumber,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -395,6 +415,9 @@ async function patchLoyaltyObjectStamps({
       appsBaseUrl,
       notify,
       isRedeemed,
+      customerEmail,
+      customerId,
+      cardNumber,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {

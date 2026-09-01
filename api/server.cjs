@@ -2120,6 +2120,7 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerAddress,
         objectRow.card_id,
       ));
+      const cardNumber = await getCardOrdinal(cafeAddress, customerAddress, objectRow.card_id);
       await touchGoogleWalletObjectUpdatedAt.run(Date.now(), objectRow.object_id);
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress,
@@ -2147,6 +2148,9 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         // (capped at 3/24h by Google, so only fire it where it's genuinely
         // earned, not on the profile-resync path below).
         notify: true,
+        customerEmail: customerRow ? customerRow.email : null,
+        customerId: customerRow ? customerRow.customer_id : null,
+        cardNumber,
       });
     }
   } catch (err) {
@@ -2181,6 +2185,7 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         row.customer_address,
         row.card_id,
       ));
+      const cardNumber = await getCardOrdinal(cafeRow.address, row.customer_address, row.card_id);
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: row.customer_address,
         customerName: customerRow ? customerRow.username : null,
@@ -2203,6 +2208,9 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         cardId: row.card_id,
         barcodeMessage,
         appsBaseUrl,
+        customerEmail: customerRow ? customerRow.email : null,
+        customerId: customerRow ? customerRow.customer_id : null,
+        cardNumber,
       });
     }
   } catch (err) {
@@ -3086,6 +3094,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
     if (!cafeRow) return;
     const program = getCafeProgramSettings(cafeRow);
     const appsBaseUrl = process.env.APPS_BASE_URL || "";
+    const cardNumber = await getCardOrdinal(cafeAddress, customerAddress, newCardId);
 
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress,
@@ -3113,13 +3122,15 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
         cardId: newCardId,
         barcodeMessage,
         appsBaseUrl,
+        customerEmail: customerRow.email || null,
+        customerId: customerRow.customer_id || null,
+        cardNumber,
       });
       googleSaveUrl = saveUrl;
     }
 
     if (!applePassUrl && !googleSaveUrl) return;
 
-    const cardNumber = await getCardOrdinal(cafeAddress, customerAddress, newCardId);
     const profileUrl = `${appsBaseUrl}/customer-profile`;
 
     await sendNewCardReadyEmail({
@@ -6329,6 +6340,7 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
     );
     const program = getCafeProgramSettings(cafeRow);
     const isRedeemed = !!(await hasCardBeenRedeemed.get(cafeAddress, rawAddress, cardId));
+    const cardNumber = await getCardOrdinal(cafeAddress, rawAddress, cardId);
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
@@ -6352,6 +6364,9 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
       webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
       barcodeMessage,
       customerName: customerRow?.username || null,
+      customerEmail: customerRow?.email || null,
+      customerId: customerRow?.customer_id || null,
+      cardNumber,
     });
 
     res.setHeader("Content-Type", "application/vnd.apple.pkpass");
@@ -6410,6 +6425,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       objectId,
     );
     const isRedeemed = !!(await hasCardBeenRedeemed.get(cafeAddress, rawAddress, cardId));
+    const cardNumber = await getCardOrdinal(cafeAddress, rawAddress, cardId);
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress: rawAddress,
       customerName: customerRow?.username || null,
@@ -6433,6 +6449,9 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       cardId,
       barcodeMessage,
       appsBaseUrl: process.env.APPS_BASE_URL || "",
+      customerEmail: customerRow?.email || null,
+      customerId: customerRow?.customer_id || null,
+      cardNumber,
     });
 
     res.json({ ok: true, saveUrl });
@@ -6633,6 +6652,11 @@ walletApiRouter.get(
         passRow.customer_address,
         passRow.card_id,
       ));
+      const cardNumber = await getCardOrdinal(
+        cafeRow.address,
+        passRow.customer_address,
+        passRow.card_id,
+      );
       const barcodeMessage = await resolveWalletBarcode({
         customerAddress: passRow.customer_address,
         customerName: customerRow?.username || null,
@@ -6656,6 +6680,9 @@ walletApiRouter.get(
         webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
         barcodeMessage,
         customerName: customerRow?.username || null,
+        customerEmail: customerRow?.email || null,
+        customerId: customerRow?.customer_id || null,
+        cardNumber,
       });
 
       res.setHeader("Content-Type", "application/vnd.apple.pkpass");

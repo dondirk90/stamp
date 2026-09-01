@@ -269,6 +269,9 @@ function buildPassJson({
   lat,
   lng,
   isRedeemed,
+  customerEmail,
+  customerId,
+  cardNumber,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
@@ -349,6 +352,21 @@ function buildPassJson({
             }
           : {}),
     },
+    // Account info - lets a customer confirm which email/card a support
+    // conversation is about, and lets them self-check the recovery email on
+    // file (see /customers/register's verification flow) without having to
+    // dig through the app. cardNumber comes from getCardOrdinal() and is
+    // only null before this card's very first stamp, which can't happen
+    // here since a pass always renders an already-existing card.
+    ...(customerId
+      ? [{ key: "customerId", label: "Kunden-ID", value: String(customerId) }]
+      : []),
+    ...(cardNumber
+      ? [{ key: "cardNumber", label: "Karten-Nr.", value: `#${cardNumber}` }]
+      : []),
+    ...(customerEmail
+      ? [{ key: "email", label: "E-Mail", value: customerEmail }]
+      : []),
     {
       key: "terms",
       label: "Nutzungsbedingungen",
@@ -457,6 +475,9 @@ async function generateSignedPass({
   barcodeMessage,
   customerName,
   isRedeemed,
+  customerEmail,
+  customerId,
+  cardNumber,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -485,6 +506,9 @@ async function generateSignedPass({
     lat: cafeRow && cafeRow.lat != null ? Number(cafeRow.lat) : null,
     lng: cafeRow && cafeRow.lng != null ? Number(cafeRow.lng) : null,
     isRedeemed,
+    customerEmail,
+    customerId,
+    cardNumber,
   });
 
   const buffers = {
