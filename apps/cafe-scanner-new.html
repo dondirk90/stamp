@@ -1063,6 +1063,13 @@
 
       @media (max-width: 720px) {
         body {
+          /* Shared with .topbar's own "top" below and the loginCard/
+             appShell clearance rules further down, so the floating
+             topbar's position and the space reserved for it underneath
+             can't drift apart. Same pattern as customer-qr-modern.html's
+             --topbar-top - env(safe-area-inset-top) alone isn't reliably
+             enough breathing room on every device. */
+          --topbar-top: max(24px, calc(8px + var(--safe-top, 0px)));
           padding: calc(8px + var(--safe-top, 0px))
             calc(var(--space-3) + var(--safe-right, 0px))
             calc(12px + var(--safe-bottom, 0px) + 88px)
@@ -1078,12 +1085,18 @@
           overscroll-behavior-x: none;
         }
 
+        /* position: sticky + the transform: scale() below (for the
+           pull-to-stretch effect) is a known WebKit combination that can
+           silently stop sticking during momentum scrolling - confirmed
+           live, the banner drifted down out of place while swiping instead
+           of staying pinned like the bottom tab bar does. Fixed instead,
+           same fix already proven on the customer app's floating topbar. */
         .topbar {
-          position: sticky;
-          top: calc(8px + var(--safe-top, 0px));
-          left: auto;
-          right: auto;
-          margin: 0 0 var(--space-4);
+          position: fixed;
+          top: var(--topbar-top);
+          left: calc(var(--space-3) + var(--safe-left, 0px));
+          right: calc(var(--space-3) + var(--safe-right, 0px));
+          margin: 0;
           padding: 14px 20px;
           border: 1px solid rgba(255, 241, 233, 0.14);
           border-radius: 28px;
@@ -1096,6 +1109,15 @@
           z-index: 70;
           transform: scale(var(--topbar-stretch, 1));
           transform-origin: top center;
+        }
+
+        /* .topbar is now fixed (out of flow, see above) - both screens
+           that used to just follow it in normal flow need their own
+           clearance now. 124px ≈ topbar's own rendered height (76px
+           min-height + 28px padding + 2px border) plus the 16px gap it
+           used to provide via margin-bottom. */
+        #loginCard {
+          margin-top: calc(var(--topbar-top, 24px) + 124px);
         }
 
         .card,
@@ -1125,7 +1147,12 @@
         }
 
         #appShell {
-          padding-top: 0;
+          /* .topbar is fixed (out of flow, see above) now instead of
+             sticky - it used to just follow the topbar in normal flow, so
+             this now needs its own clearance. 124px ≈ topbar's own
+             rendered height (76px min-height + 28px padding + 2px border)
+             plus the 16px gap it used to provide via margin-bottom. */
+          padding-top: calc(var(--topbar-top, 24px) + 124px);
           padding-bottom: calc(96px + var(--safe-bottom, 0px));
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px));
         }
