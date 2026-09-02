@@ -3185,7 +3185,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
       // has nothing to re-patch (notifyGoogleWalletPassUpdated only walks
       // objects it already knows about), leaving the card frozen at
       // whatever this one snapshot said forever. Confirmed live.
-      const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, customerAddress, newCardId);
+      const objectId = googleWalletPass.loyaltyObjectId(cafeRow.address, customerAddress, newCardId);
       await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
       const { saveUrl } = googleWalletPass.buildSaveLink({
         cafeRow,
@@ -6507,7 +6507,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
     );
     const program = getCafeProgramSettings(cafeRow);
 
-    const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, rawAddress, cardId);
+    const objectId = googleWalletPass.loyaltyObjectId(cafeRow.address, rawAddress, cardId);
     const objectRow = await getOrCreateGoogleWalletObject(
       rawAddress,
       cafeRow.id,
