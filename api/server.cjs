@@ -3504,14 +3504,16 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
     notifyWalletPassUpdated(ev.user, ev.cafe);
     notifyGoogleWalletPassUpdated(ev.user, ev.cafe);
     // Same reasoning as the overflow-during-stamping notification in
-    // /stamp-by-cafe: this card_id (freshly minted, or an older still-open
-    // one just reused) may not be in the customer's Wallet yet - the only
-    // card that definitely still is is the one that just got redeemed and
-    // is now frozen. Without this, the customer has no way to find out a
-    // new/reused card exists short of re-scanning the table QR or
-    // stumbling onto their profile page. Confirmed live: a redeemed card's
-    // reused-and-still-collecting successor sat invisible for hours.
-    notifyNewCardByEmail(ev.user, ev.cafe, newCardId);
+    // /stamp-by-cafe: a freshly minted card_id may not be in the customer's
+    // Wallet yet - the only card that definitely still is is the one that
+    // just got redeemed and is now frozen. Only for a genuinely new mint,
+    // though (!reusable) - a reused still-open card already got its own
+    // email the moment it was created (by the overflow that opened it, or
+    // an earlier redemption's mint), so sending another one here would just
+    // be a second email about a card the customer already knows about.
+    if (!reusable) {
+      notifyNewCardByEmail(ev.user, ev.cafe, newCardId);
+    }
 
     try {
       broadcastEvent({ ...ev, newCardId });
@@ -4493,7 +4495,9 @@ app.post("/admin/redeem-reward", requireAdminKey, async (req, res) => {
   notifyWalletPassUpdated(customerAddress, cafeAddress);
   notifyGoogleWalletPassUpdated(customerAddress, cafeAddress);
   // Same reasoning as /redeem-reward - see its comment above this same call.
-  notifyNewCardByEmail(customerAddress, cafeAddress, newCardId);
+  if (!reusable) {
+    notifyNewCardByEmail(customerAddress, cafeAddress, newCardId);
+  }
   try {
     broadcastEvent({ ...ev, newCardId });
   } catch (e) {}
