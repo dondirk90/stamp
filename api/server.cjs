@@ -3153,13 +3153,19 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
     const program = getCafeProgramSettings(cafeRow);
     const appsBaseUrl = process.env.APPS_BASE_URL || "";
     const cardNumber = await getCardOrdinal(cafeAddress, customerAddress, newCardId);
+    // Not always 0 - a reused still-open card (see findReusableOpenCard in
+    // /redeem-reward) can already have real progress the moment this email
+    // goes out. Confirmed live: an email sent for a card at 2 stamps but
+    // opened later, after more had landed, created the Google object frozen
+    // at 2 forever (see the getOrCreateGoogleWalletObject comment below).
+    const stampCount = await getStampsByCafeUserCardId(cafeAddress, customerAddress, newCardId);
 
     const barcodeMessage = await resolveWalletBarcode({
       customerAddress,
       customerName: customerRow.username,
       cafeAddress,
       cardId: newCardId,
-      stampCount: 0,
+      stampCount,
       threshold: program.stampsForReward,
       currentToken: null,
       persistToken: () => {},
@@ -3171,10 +3177,20 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
 
     let googleSaveUrl = null;
     if (googleWalletPass.isGoogleWalletConfigured()) {
+      // Unlike the Apple link above (a direct fetch of our own always-live
+      // route), tapping this save link hands the customer straight to
+      // Google's servers with a JWT snapshot baked in - our own server
+      // never hears about it. Without registering the object here the same
+      // way the HTTP save-link route does, every later stamp on this card
+      // has nothing to re-patch (notifyGoogleWalletPassUpdated only walks
+      // objects it already knows about), leaving the card frozen at
+      // whatever this one snapshot said forever. Confirmed live.
+      const objectId = googleWalletPass.loyaltyObjectId(cafeRow.id, customerAddress, newCardId);
+      await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
       const { saveUrl } = googleWalletPass.buildSaveLink({
         cafeRow,
         program,
-        stampCount: 0,
+        stampCount,
         customerAddress,
         customerName: customerRow.username,
         cardId: newCardId,
