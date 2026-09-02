@@ -113,6 +113,12 @@ jobs:
             APPLE_SERVICES_ID=${{ secrets.APPLE_SERVICES_ID }}
             APPLE_KEY_ID=${{ secrets.APPLE_KEY_ID }}
             APPLE_PRIVATE_KEY_BASE64=${{ secrets.APPLE_PRIVATE_KEY_BASE64 }}
+            APPLE_PASS_CERT_BASE64=${{ secrets.APPLE_PASS_CERT_BASE64 }}
+            APPLE_PASS_KEY_BASE64=${{ secrets.APPLE_PASS_KEY_BASE64 }}
+            APPLE_PASS_KEY_PASSPHRASE=${{ secrets.APPLE_PASS_KEY_PASSPHRASE }}
+            APPLE_WWDR_CERT_BASE64=${{ secrets.APPLE_WWDR_CERT_BASE64 }}
+            GOOGLE_WALLET_ISSUER_ID=${{ secrets.GOOGLE_WALLET_ISSUER_ID }}
+            GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64=${{ secrets.GOOGLE_WALLET_SERVICE_ACCOUNT_JSON_BASE64 }}
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
@@ -120,6 +126,15 @@ jobs:
 
             cd "$APP_DIR"
             docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging up -d --build
+            # `up -d` only recreates a container when the *service definition*
+            # changes (image, env, etc.) - caddy's Caddyfile is a bind-mounted
+            # file, so editing it is invisible to that check and the running
+            # process keeps serving its old, already-loaded config until told
+            # otherwise. `caddy reload` (the zero-downtime signal) didn't
+            # reliably pick up the new config here, so force a full restart
+            # instead - a couple seconds of caddy downtime is fine for this
+            # traffic level, and it's guaranteed to pick up the fresh file.
+            docker compose -p stamp-staging -f infra/docker/docker-compose.staging.yml --env-file .env.staging restart caddy
             for i in $(seq 1 30); do
               if curl --fail --silent --show-error "http://127.0.0.1:${{ secrets.STAGING_APPS_PORT || '8081' }}/api/health" >/dev/null; then
                 break

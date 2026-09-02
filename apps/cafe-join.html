@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kaffeekarte – Stempelkarte holen</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      /* Committed to the cafe's own branding end to end: page background,
+         text color and the primary button all come from the cafe's chosen
+         card color (cardBgColor/cardFgColor or its card_theme preset),
+         resolved by JS below. Only kept neutral where it's a genuine
+         usability need, not leftover Kaffeekarte styling: form input
+         fields (typed text needs a light, consistent surface regardless of
+         page color) and the Google/Apple buttons (their brand guidelines
+         fix that styling, we can't recolor them). */
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+      }
+
+      /* theme.css forces `body { background: var(--bg) !important; }` (a
+         guard against legacy pages setting stray gradients), so the cafe
+         background has to live on a full-viewport wrapper instead of body
+         itself - body's own background is irrelevant, this covers it. */
+      .page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cafe-bg, var(--background, var(--color-background)));
+        color: var(--cafe-fg, var(--text));
+        padding: 24px 16px;
+        /* Hidden until JS resolves the cafe's real color (or gives up) -
+           otherwise this briefly flashes the generic Kaffeekarte fallback
+           before switching to the cafe's own color, which read as broken. */
+        opacity: 0;
+        transition: opacity 160ms ease;
+      }
+
+      .page.ready {
+        opacity: 1;
+      }
+
+      .sheet {
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .cafeHeader {
+        text-align: center;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        margin-bottom: 22px;
+      }
+
+      .cafeLogo {
+        width: 84px;
+        height: 84px;
+        border-radius: 20px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.94);
+        flex: none;
+        margin-bottom: 10px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      .cafeLogo.fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 2.1rem;
+        color: var(--cafe-fg, var(--brand));
+      }
+
+      .cafeName {
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .poweredBy {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        opacity: 0.6;
+        margin: 22px 0 0;
+      }
+
+      .poweredBy .bean {
+        font-size: 0.85rem;
+      }
+
+      h1 {
+        /* theme.css sets its own h1 color unconditionally - overridden
+           explicitly here, inheritance alone would lose to it. */
+        color: var(--cafe-fg, var(--text));
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        line-height: 1.22;
+        margin: 0 0 6px;
+      }
+
+      .lede {
+        opacity: 0.82;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+
+      .legalChecks {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .legalCheck {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        /* theme.css sets `label { color: var(--text) }` unconditionally -
+           this *is* a label, so it needs its own explicit override too. */
+        color: var(--cafe-fg, var(--text));
+        opacity: 0.82;
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .legalCheck input[type="checkbox"] {
+        margin-top: 2px;
+        accent-color: var(--cafe-fg, var(--brand));
+      }
+
+      .legalCheck a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .oauthButtons {
+        display: grid;
+        gap: 10px;
+      }
+
+      .oauthBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 52px;
+        border-radius: 12px;
+        font-size: 0.98rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .oauthBtn:hover {
+        transform: scale(1.012);
+      }
+
+      .oauthBtn:active {
+        transform: scale(0.99);
+      }
+
+      .oauthBtn:focus-visible {
+        outline: 2px solid var(--cafe-fg, var(--brand));
+        outline-offset: 2px;
+      }
+
+      /* Google/Apple brand guidelines fix these colors - not recolored.
+         !important because theme.css forces button backgrounds to --brand
+         with its own !important rule (a guard against unstyled buttons on
+         other pages) - has to be beaten deliberately, not by accident. */
+      #googleBtn {
+        border: 1px solid rgba(17, 17, 17, 0.14);
+        background: rgba(255, 255, 255, 0.96) !important;
+        color: #171513 !important;
+      }
+
+      #appleBtn {
+        border: 1px solid rgba(17, 17, 17, 0.14);
+        background: #000 !important;
+        color: #fff !important;
+      }
+
+      .oauthLogo {
+        width: 19px;
+        height: 19px;
+        flex: none;
+      }
+
+      .orDivider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0;
+        opacity: 0.6;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .orDivider::before,
+      .orDivider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: currentColor;
+        opacity: 0.35;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--cafe-fg, var(--text));
+        font-size: 0.8rem;
+        font-weight: 600;
+        opacity: 0.82;
+      }
+
+      /* Inputs stay on a light, neutral surface regardless of the cafe's
+         color - typed text needs a consistently readable field, not a
+         design opinion. */
+      .field input[type="text"],
+      .field input[type="email"],
+      .field input[type="password"] {
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 10px;
+        padding: 11px 13px;
+        font-size: 1rem;
+        font-family: inherit;
+        background: #fff;
+        color: #171513;
+      }
+
+      .field input:focus-visible {
+        outline: 2px solid var(--cafe-fg, var(--brand));
+        outline-offset: 1px;
+      }
+
+      .submitBtn {
+        margin-top: 4px;
+        width: 100%;
+        border: none;
+      }
+
+      /* Needs the #id, not just .submitBtn - theme.css's
+         `button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain)`
+         guard has higher specificity (4 :not() clauses) than a single
+         class, even with !important on both sides. */
+      #submitBtn {
+        background: #000 !important;
+        color: #fff !important;
+      }
+
+      .statusMsg {
+        min-height: 1.2em;
+        margin: 12px 0 0;
+        font-size: 0.88rem;
+        color: var(--color-error);
+      }
+
+      .statusMsg[data-ok="true"] {
+        color: var(--color-success);
+      }
+
+      .fallbackLink {
+        display: none;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      .fallbackLink a {
+        color: inherit;
+      }
+
+      .successView {
+        text-align: center;
+      }
+
+      .successIcon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+      }
+
+      .successView h1 {
+        margin: 0 0 8px;
+      }
+
+      .successView .lede {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+    <main class="sheet">
+      <div class="cafeHeader">
+        <img class="cafeLogo" id="cafeLogo" alt="" style="display: none" />
+        <div class="cafeLogo fallback" id="cafeLogoFallback">☕</div>
+        <p class="cafeName" id="cafeName">Kaffeekarte</p>
+      </div>
+
+      <div class="sheetBody">
+        <div class="successView" id="successView" style="display: none">
+          <div class="successIcon">✓</div>
+          <h1>Fertig!</h1>
+          <p class="lede">
+            Deine Stempelkarte ist jetzt in deiner Wallet. Du kannst dieses
+            Fenster jetzt schließen.
+          </p>
+          <p class="fallbackLink" id="fallbackLink">
+            Hat sich nichts geöffnet?
+            <a href="#" id="fallbackLinkHref">Stempelkarte erneut öffnen</a>
+          </p>
+        </div>
+
+        <div id="joinFlow">
+        <h1>Deine Stempelkarte, direkt in der Wallet</h1>
+        <p class="lede">
+          Kurz anmelden – keine App nötig, die Karte landet danach direkt in
+          deiner Wallet.
+        </p>
+
+        <div class="legalChecks">
+          <label class="legalCheck" for="acceptPrivacy">
+            <input type="checkbox" id="acceptPrivacy" />
+            <span
+              >Ich habe die
+              <a href="/datenschutz" target="_blank" rel="noreferrer"
+                >Datenschutzerklärung</a
+              >
+              gelesen.</span
+            >
+          </label>
+          <label class="legalCheck" for="acceptTerms">
+            <input type="checkbox" id="acceptTerms" />
+            <span
+              >Ich akzeptiere die
+              <a href="/agb" target="_blank" rel="noreferrer">AGB</a> von
+              Kaffeekarte.</span
+            >
+          </label>
+        </div>
+
+        <div class="oauthButtons">
+          <button class="oauthBtn" id="googleBtn" type="button">
+            <svg class="oauthLogo" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#EA4335"
+                d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.8 2.9l3 2.4c1.8-1.6 2.8-4 2.8-6.9 0-.7-.1-1.5-.2-2.2H12z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 21c2.6 0 4.9-.9 6.5-2.4l-3-2.4c-.8.6-1.9 1-3.5 1-2.7 0-4.9-1.8-5.7-4.3l-3.1 2.4C4.8 18.6 8.1 21 12 21z"
+              />
+              <path
+                fill="#4A90E2"
+                d="M6.3 12.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L3.2 6.7C2.4 8.2 2 9.5 2 11s.4 2.8 1.2 4.3l3.1-2.4z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M12 4.8c1.4 0 2.7.5 3.7 1.5l2.7-2.7C16.9 2.1 14.7 1 12 1 8.1 1 4.8 3.4 3.2 6.7l3.1 2.4c.8-2.5 3-4.3 5.7-4.3z"
+              />
+            </svg>
+            Mit Google fortfahren
+          </button>
+          <button class="oauthBtn" id="appleBtn" type="button">
+            <svg
+              class="oauthLogo"
+              viewBox="0 0 384 512"
+              aria-hidden="true"
+              style="color: #fff"
+            >
+              <path
+                fill="currentColor"
+                d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5c0 25.9 4.7 52.7 14.2 80.3 12.6 36.7 58.2 126.7 105.7 125.2 24.9-.6 42.5-17.7 74.9-17.7 31.5 0 47.8 17.7 75.6 17.7 47.9-.7 89.2-82.7 101.2-119.5-64.4-30.3-56.9-88.7-56.9-90.8zM256.8 88.1c26.9-32 24.5-61.2 23.7-71.7-23.8 1.4-51.3 16.4-67 34.9-17.3 19.8-27.5 44.4-25.3 71.9 25.8 2 49.4-11.2 68.6-35.1z"
+              />
+            </svg>
+            Mit Apple fortfahren
+          </button>
+        </div>
+
+        <div class="orDivider">oder</div>
+
+        <form id="joinForm" novalidate>
+          <div class="field">
+            <label for="username">Name</label>
+            <input id="username" type="text" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="email">E-Mail</label>
+            <input id="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="password">Passwort</label>
+            <input
+              id="password"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </div>
+
+          <button class="btn primary submitBtn" type="submit" id="submitBtn">
+            Stempelkarte holen
+          </button>
+        </form>
+
+        <p class="statusMsg" id="statusMsg"></p>
+        </div>
+
+        <p class="poweredBy"><span class="bean">☕</span> Kaffeekarte</p>
+      </div>
+    </main>
+    </div>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var cafeAddress = (params.get("cafe") || "").trim();
+
+        var cafeNameEl = document.getElementById("cafeName");
+        var cafeLogoEl = document.getElementById("cafeLogo");
+        var cafeLogoFallbackEl = document.getElementById("cafeLogoFallback");
+        var form = document.getElementById("joinForm");
+        var submitBtn = document.getElementById("submitBtn");
+        var statusMsg = document.getElementById("statusMsg");
+        var fallbackLink = document.getElementById("fallbackLink");
+        var fallbackLinkHref = document.getElementById("fallbackLinkHref");
+
+        var ERROR_MESSAGES = {
+          invalid_username: "Bitte einen Namen eingeben.",
+          invalid_email: "Bitte eine gültige E-Mail-Adresse eingeben.",
+          invalid_password: "Das Passwort braucht mindestens 6 Zeichen.",
+          privacy_consent_required: "Bitte die Datenschutzerklärung bestätigen.",
+          terms_consent_required: "Bitte die AGB bestätigen.",
+          email_already_registered:
+            "Diese E-Mail ist schon registriert. Bitte in der Kaffeekarte-App anmelden.",
+          email_verification_pending:
+            "Für diese E-Mail läuft schon eine Registrierung – bitte den Bestätigungslink in deinem Postfach nutzen.",
+        };
+
+        function isIOS() {
+          return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+        }
+
+        // Gleiche 6 Presets wie card_theme im Cafe-Profil - eine Karte mit
+        // z. B. "latte" statt eigener Hex-Farbe hat sonst kein cardBgColor/
+        // cardFgColor und wuerde hier unbrandet bleiben.
+        var THEME_HEX = {
+          paper: { bg: "#f7efe1", fg: "#171412" },
+          clean: { bg: "#ffffff", fg: "#131313" },
+          ink: { bg: "#201811", fg: "#f4e9da" },
+          brand: { bg: "#6b452c", fg: "#ffffff" },
+          latte: { bg: "#ecd7b4", fg: "#211a15" },
+          mono: { bg: "#eef0ee", fg: "#111111" },
+        };
+
+        function applyCafeColors(cafe) {
+          var preset = THEME_HEX[cafe.cardTheme] || THEME_HEX.paper;
+          var bg = cafe.cardBgColor || preset.bg;
+          var fg = cafe.cardFgColor || preset.fg;
+          document.documentElement.style.setProperty("--cafe-bg", bg);
+          document.documentElement.style.setProperty("--cafe-fg", fg);
+        }
+
+        function walletPassUrl(customerAddress) {
+          return (
+            "/api/customers/" +
+            encodeURIComponent(customerAddress) +
+            "/wallet-pass?cafe=" +
+            encodeURIComponent(cafeAddress)
+          );
+        }
+
+        function googleWalletSaveLinkUrl(customerAddress) {
+          return (
+            "/api/customers/" +
+            encodeURIComponent(customerAddress) +
+            "/google-wallet-save-link?cafe=" +
+            encodeURIComponent(cafeAddress)
+          );
+        }
+
+        var pageEl = document.querySelector(".page");
+        function revealPage() {
+          pageEl.classList.add("ready");
+        }
+
+        if (!cafeAddress) {
+          cafeNameEl.textContent = "Café nicht gefunden";
+          statusMsg.textContent =
+            "Dieser Link ist nicht vollständig. Bitte den QR-Code erneut scannen.";
+          submitBtn.disabled = true;
+          revealPage();
+          return;
+        }
+
+        fetch("/api/cafes/public")
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (data) {
+            var cafes = (data && data.cafes) || [];
+            var cafe = cafes.find(function (c) {
+              return (
+                String(c.cafeAddress || "").toLowerCase() ===
+                cafeAddress.toLowerCase()
+              );
+            });
+            if (!cafe) return;
+
+            cafeNameEl.textContent = cafe.name || "Kaffeekarte";
+            document.title = (cafe.name || "Kaffeekarte") + " – Stempelkarte holen";
+
+            if (cafe.logoDataUrl) {
+              cafeLogoEl.src = cafe.logoDataUrl;
+              cafeLogoEl.style.display = "block";
+              cafeLogoFallbackEl.style.display = "none";
+            }
+
+            applyCafeColors(cafe);
+          })
+          .catch(function () {
+            /* Café-Infos sind nur Deko - Formular funktioniert auch ohne. */
+          })
+          .then(revealPage);
+
+        function proceedToWallet(address) {
+          var passUrl = walletPassUrl(address);
+
+          if (isIOS()) {
+            // Navigating to a .pkpass URL doesn't actually leave the page -
+            // Safari intercepts it and shows the native "Add to Wallet"
+            // sheet, then returns here. Show the success state up front so
+            // there's something other than the bare form to come back to,
+            // and try to close the tab as a bonus (silently no-ops if the
+            // browser won't allow it, e.g. because the tab wasn't opened
+            // by script).
+            document.getElementById("joinFlow").style.display = "none";
+            document.getElementById("successView").style.display = "block";
+            fallbackLink.style.display = "block";
+            fallbackLinkHref.href = passUrl;
+            window.location.href = passUrl;
+            setTimeout(function () {
+              window.close();
+            }, 800);
+          } else {
+            // Android (and everything else non-iOS): try Google Wallet's
+            // own save link first - it's a real page navigation to
+            // pay.google.com, not an overlay like Apple's, so no special
+            // "stay on this tab" handling is needed here. Falls back to the
+            // plain web app if Google Wallet isn't configured/fails (e.g.
+            // not yet set up in this environment).
+            fetch(googleWalletSaveLinkUrl(address))
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  return { ok: res.ok, data: data };
+                });
+              })
+              .then(function (result) {
+                if (result.ok && result.data && result.data.saveUrl) {
+                  window.location.href = result.data.saveUrl;
+                } else {
+                  window.location.href = "/wallet";
+                }
+              })
+              .catch(function () {
+                window.location.href = "/wallet";
+              });
+          }
+        }
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          statusMsg.textContent = "";
+          statusMsg.removeAttribute("data-ok");
+
+          var username = document.getElementById("username").value.trim();
+          var email = document.getElementById("email").value.trim();
+          var password = document.getElementById("password").value;
+          var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
+          var acceptTerms = document.getElementById("acceptTerms").checked;
+
+          if (!acceptPrivacy || !acceptTerms) {
+            statusMsg.textContent =
+              "Bitte zuerst Datenschutzerklärung und AGB oben bestätigen.";
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Einen Moment …";
+
+          fetch("/api/customers/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username,
+              email: email,
+              password: password,
+              acceptPrivacy: acceptPrivacy,
+              acceptTerms: acceptTerms,
+            }),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.address) {
+                var code = result.data && result.data.error;
+                throw new Error(ERROR_MESSAGES[code] || "Registrierung fehlgeschlagen. Bitte erneut versuchen.");
+              }
+              proceedToWallet(result.data.address);
+            })
+            .catch(function (err) {
+              statusMsg.textContent = err.message || "Registrierung fehlgeschlagen.";
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Stempelkarte holen";
+            });
+        });
+
+        function startOauth(provider) {
+          var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
+          var acceptTerms = document.getElementById("acceptTerms").checked;
+          if (!acceptPrivacy || !acceptTerms) {
+            statusMsg.textContent =
+              "Bitte zuerst Datenschutzerklärung und AGB oben bestätigen.";
+            return;
+          }
+          var qs = new URLSearchParams({
+            mode: "register",
+            acceptLegal: "1",
+            cafe: cafeAddress,
+            returnTo: "cafe-join",
+          });
+          window.location.href = "/api/auth/" + provider + "/start?" + qs.toString();
+        }
+
+        document.getElementById("googleBtn").addEventListener("click", function () {
+          startOauth("google");
+        });
+        document.getElementById("appleBtn").addEventListener("click", function () {
+          startOauth("apple");
+        });
+
+        var OAUTH_ERROR_MESSAGES = {
+          google_no_account:
+            "Kein Konto mit dieser Google-Adresse gefunden. Bitte unten mit E-Mail registrieren.",
+          apple_no_account:
+            "Kein Konto mit dieser Apple-ID gefunden. Bitte unten mit E-Mail registrieren.",
+          google_email_not_verified:
+            "Deine Google-E-Mail ist nicht bestätigt. Bitte unten mit E-Mail registrieren.",
+          apple_email_not_verified:
+            "Deine Apple-E-Mail ist nicht bestätigt. Bitte unten mit E-Mail registrieren.",
+        };
+
+        var oauthToken = params.get("oauthToken");
+        var oauthError = params.get("oauthError");
+
+        if (oauthToken) {
+          statusMsg.textContent = "Einen Moment …";
+          fetch("/api/customers/oauth/consume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: oauthToken }),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.address) {
+                throw new Error("Anmeldung fehlgeschlagen. Bitte erneut versuchen.");
+              }
+              proceedToWallet(result.data.address);
+            })
+            .catch(function (err) {
+              statusMsg.textContent = err.message || "Anmeldung fehlgeschlagen.";
+            });
+        } else if (oauthError) {
+          statusMsg.textContent =
+            OAUTH_ERROR_MESSAGES[oauthError] ||
+            "Anmeldung nicht möglich. Bitte mit E-Mail registrieren.";
+        }
+      })();
+    </script>
+  </body>
+</html>

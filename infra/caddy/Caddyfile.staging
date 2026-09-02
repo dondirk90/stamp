@@ -15,6 +15,14 @@
     reverse_proxy apps:8080
   }
 
+  @adminCafeDesign path /admin-cafe-design.html
+  handle @adminCafeDesign {
+    basic_auth {
+      {$ADMIN_BASIC_USER} {$ADMIN_BASIC_HASH}
+    }
+    reverse_proxy apps:8080
+  }
+
   @adminApi path /api/admin/*
   handle @adminApi {
     basic_auth {

@@ -344,7 +344,7 @@ a:hover {
    .card selbst zu aendern, damit die Cafe-App (Phase 1d) unabhaengig
    entscheiden kann. */
 .card--hairline {
-  border: 1px solid var(--border);
+  border: none;
   box-shadow: none;
 }
 
@@ -421,7 +421,7 @@ select,
 textarea {
   color: var(--text);
   background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(17, 17, 17, 0.1);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   /* iOS Safari auto-zooms the page on focus when a field's font-size is
@@ -448,7 +448,6 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: rgba(107, 69, 44, 0.42);
   box-shadow: 0 0 0 3px var(--focus);
 }
 

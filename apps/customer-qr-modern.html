@@ -651,7 +651,7 @@
           padding: 96px 16px 28px;
           border-radius: 30px;
           background: transparent;
-          border: 1px solid var(--border);
+          border: none;
           box-shadow: none;
           backdrop-filter: none;
         }
@@ -1706,6 +1706,60 @@
         background: var(--surface);
         z-index: 10000;
         pointer-events: none;
+      }
+
+      /* Persistent prompt (unlike the auto-dismissing toast) offering to add
+         a freshly-opened card to Apple/Google Wallet - redemption/overflow
+         opens a new card_id server-side, but neither wallet platform lets a
+         server push a brand new pass onto the device without the customer
+         tapping an add-to-wallet link themselves. */
+      #addCardBanner {
+        position: fixed;
+        left: 50%;
+        bottom: calc(18px + var(--safe-bottom, 0px));
+        transform: translateX(-50%);
+        width: calc(100vw - 28px - var(--safe-left, 0px) - var(--safe-right, 0px));
+        max-width: 360px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 12px 12px 16px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow:
+          0 12px 28px rgba(68, 41, 22, 0.16),
+          0 1px 0 rgba(255, 255, 255, 0.58) inset;
+        color: var(--text);
+        z-index: 10000;
+      }
+
+      #addCardBanner.visible {
+        display: flex;
+      }
+
+      #addCardBanner .addCardBannerText {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      #addCardBanner .addCardBannerBtn {
+        flex: none;
+        white-space: nowrap;
+      }
+
+      #addCardBanner .addCardBannerClose {
+        flex: none;
+        background: none;
+        border: none;
+        color: var(--text-muted, var(--text));
+        opacity: 0.6;
+        font-size: 18px;
+        line-height: 1;
+        padding: 4px;
+        cursor: pointer;
       }
 
       .walletItem {

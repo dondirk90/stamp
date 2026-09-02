@@ -722,12 +722,17 @@
         pointer-events: none;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
+      /* Sits nested inside #scannerScreen, the one framed panel on this
+         screen (same "no frame within a frame" convention as .viewSection/
+         .cardSection above and #profileCard's card--hairline) - a hairline
+         divider instead of its own border+background. */
       .customer-info {
-        background: var(--surface-muted);
-        padding: 20px;
-        border-radius: var(--radius);
+        background: transparent;
+        padding: 20px 0 0;
+        border-radius: 0;
         margin-top: 24px;
-        border: 1px solid color-mix(in srgb, var(--border) 90%, white 10%);
+        border: none;
+        border-top: 1px solid var(--border);
       }
 
       #scannerScreen.customerLoaded .scannerStage {
@@ -740,10 +745,6 @@
 
       #scannerScreen.customerLoaded .scannerMain {
         padding-bottom: 6px;
-      }
-
-      #scannerScreen.customerLoaded .scannerLead {
-        max-width: none;
       }
       .customer-info .label {
         font-weight: 600;
@@ -1185,19 +1186,9 @@
           border-radius: 20px;
         }
 
-        .scannerMainHead {
-          gap: 12px;
-        }
-
-        .scannerLead {
-          margin-top: 6px;
-          font-size: 13px;
-          line-height: 1.4;
-          max-width: 30ch;
-        }
-
         .cameraControls {
           gap: 10px;
+          bottom: 14px;
         }
 
         #cameraStartBtn {
@@ -1213,7 +1204,7 @@
 
         #video {
           aspect-ratio: 3 / 4;
-          max-height: min(56svh, 520px);
+          max-height: min(68svh, 620px);
         }
 
         .scan-overlay {
@@ -1221,7 +1212,6 @@
           height: min(58vw, 220px);
         }
 
-        .scannerStatus,
         .scannerHintCompact {
           margin-top: 8px;
           font-size: 12px;
@@ -1274,18 +1264,6 @@
         #scannerScreen.customerLoaded .scannerMain {
           padding: 14px;
         }
-
-        #scannerScreen.customerLoaded .scannerMainHead {
-          gap: 10px;
-        }
-
-        #scannerScreen.customerLoaded .scannerLead {
-          font-size: 13px;
-        }
-
-        #scannerScreen.customerLoaded .scannerStatus {
-          margin-top: 0;
-        }
       }
 
       @media (max-width: 520px) {
@@ -1328,46 +1306,23 @@
         box-shadow: none;
       }
 
-      .scannerMainHead {
-        display: grid;
-        gap: 18px;
-        justify-items: center;
-        text-align: center;
-      }
-
-      .scannerEyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-      }
-
-      .scannerEyebrowDot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 84%, transparent 16%);
-        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 12%, transparent 88%);
-      }
-
-      .scannerLead {
-        margin-top: 8px;
-        color: var(--text-muted);
-        font-size: 15px;
-        line-height: 1.55;
-        max-width: 40ch;
-      }
-
+      /* Floats directly on the camera feed instead of sitting in its own
+         row above it - the button IS the instruction ("Kamera starten"
+         says what happens), so no separate eyebrow/lead copy needed above
+         it either (removed). Same bottom-action-bar-over-the-viewfinder
+         pattern as Apple Camera/Google Pay's own scanners. */
       .cameraControls {
+        position: absolute;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        z-index: 2;
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
         align-items: center;
         justify-content: center;
+        width: calc(100% - 32px);
       }
 
       .cameraControls button {
@@ -1387,14 +1342,19 @@
           0 1px 0 rgba(255, 255, 255, 0.1) inset;
       }
 
+      /* Transparent read fine on a solid page background, but not on a
+         live camera feed underneath it - needs its own legibility, same
+         frosted-glass treatment as #scannerStatus below. */
       .cameraSecondary {
-        background: transparent;
-        color: var(--text);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(20, 14, 10, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.24);
       }
 
       .cameraSecondary:hover {
-        background: rgba(255, 248, 241, 0.08);
+        background: rgba(20, 14, 10, 0.66);
       }
 
       .scannerHintCompact {
@@ -1403,6 +1363,15 @@
         font-size: 12px;
         text-align: center;
         opacity: 0.9;
+      }
+
+      /* Redundant with #scannerStatus right under the video - both are
+         JS-driven "what to do next" text, built at different times, saying
+         nearly the same thing. A modern scan screen (see BRAND.md's
+         hairlines-not-cards direction) has exactly one free-standing status
+         line under the camera, not a second one in its own boxed panel. */
+      #scanHint {
+        display: none !important;
       }
 
       .scannerMetaList {
@@ -1464,10 +1433,25 @@
         line-height: 1.45;
       }
 
+      /* Floats over the top of the camera feed as a frosted pill instead
+         of sitting as plain text below it - needs its own contrast against
+         whatever the camera is pointed at, not var(--text-muted) which
+         assumes a solid page background. */
       .scannerStatus {
-        margin-top: 12px;
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        max-width: calc(100% - 32px);
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(20, 14, 10, 0.55);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #fff;
         font-size: 13px;
-        color: var(--text-muted);
+        line-height: 1.35;
         text-align: center;
       }
 
@@ -1883,10 +1867,10 @@
         display: none !important;
       }
 
-      /* These sit nested inside #profileCard, which is already the one
-         legitimate framed panel per screen - giving each subsection its
-         own border+background too stacked "frame inside frame" boxes all
-         the way down. A hairline divider separates them instead. */
+      /* These sit nested inside #profileCard (now borderless, same
+         card--hairline treatment as the rest of the app) - giving each
+         subsection its own border+background would still stack boxes
+         inside a box. A hairline divider separates them instead. */
       .viewSection,
       .cardSection,
       .heroCard {
@@ -2655,32 +2639,6 @@
 
             <div class="scannerWorkspace">
               <div class="scannerMain">
-                <div class="scannerMainHead">
-                  <div>
-                    <div class="scannerEyebrow">
-                      <span class="scannerEyebrowDot" aria-hidden="true"></span>
-                      Scanner bereit
-                    </div>
-                    <div class="scannerLead">
-                      Starte die Kamera und halte den QR ruhig in den Rahmen.
-                      Genau das ist hier die Hauptsache.
-                    </div>
-                  </div>
-                  <div class="cameraControls">
-                    <button id="cameraStartBtn" type="button">
-                      Kamera starten
-                    </button>
-                    <button
-                      id="cameraStopBtn"
-                      type="button"
-                      class="cameraSecondary"
-                      style="display: none"
-                    >
-                      Kamera pausieren
-                    </button>
-                  </div>
-                </div>
-
                 <div id="scanHint" class="hintBox scannerHintCompact">
                   Noch kein Kunde geladen. Starte die Kamera oder öffne einen
                   QR-Link direkt aus den Karten.
@@ -2696,10 +2654,23 @@
                       webkit-playsinline
                     ></video>
                     <div class="scan-overlay" aria-hidden="true"></div>
-                  </div>
-                  <div id="scannerStatus" class="scannerStatus">
-                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
-                    scannen willst.
+                    <div id="scannerStatus" class="scannerStatus">
+                      Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
+                      scannen willst.
+                    </div>
+                    <div class="cameraControls">
+                      <button id="cameraStartBtn" type="button">
+                        Kamera starten
+                      </button>
+                      <button
+                        id="cameraStopBtn"
+                        type="button"
+                        class="cameraSecondary"
+                        style="display: none"
+                      >
+                        Kamera pausieren
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2838,7 +2809,7 @@
 
             <div
               id="profileCard"
-              class="card"
+              class="card card--hairline"
               style="padding: var(--space-5); display: none"
             >
               <div id="setupHero">
@@ -3162,6 +3133,20 @@
                   <div class="muted" style="margin-top: 6px">
                     Das Design wird in der Kundenkarte automatisch verwendet und
                     orientiert sich eher an einer echten gedruckten Treuekarte als an einer allzu eifrigen App.
+                  </div>
+                  <div style="display: flex; gap: 20px; margin-top: 10px">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
+                      Hintergrund
+                      <input id="profileBgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
+                      Text/Symbole
+                      <input id="profileFgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
+                    </label>
+                  </div>
+                  <div class="muted" style="margin-top: 6px">
+                    Freie Farbwahl überschreibt das oben gewählte Design. Design nochmal
+                    anklicken setzt die Farben auf die Vorlage zurück.
                   </div>
                 </div>
 
@@ -4544,6 +4529,18 @@
         return out.join("");
       }
 
+      // Same hex pairs as the data-pass-theme presets in
+      // customer-qr-modern.html, so a preset click here shows exactly what
+      // the customer's card will look like.
+      const THEME_HEX = {
+        paper: { bg: "#f7efe1", fg: "#171412" },
+        clean: { bg: "#ffffff", fg: "#131313" },
+        ink: { bg: "#201811", fg: "#f4e9da" },
+        brand: { bg: "#6b452c", fg: "#ffffff" },
+        latte: { bg: "#ecd7b4", fg: "#211a15" },
+        mono: { bg: "#eef0ee", fg: "#111111" },
+      };
+
       function renderProfile(cafeInfo) {
         const aboutEl = document.getElementById("profileAbout");
         const redeemEl = document.getElementById("profileRedeemMessage");
@@ -4688,6 +4685,16 @@
           program && program.stampStyle ? String(program.stampStyle).toLowerCase() : "bean";
         if (themeEl) themeEl.value = nextTheme;
 
+        const presetHex = THEME_HEX[nextTheme] || THEME_HEX.paper;
+        const bgColorEl = document.getElementById("profileBgColor");
+        const fgColorEl = document.getElementById("profileFgColor");
+        profileState.cardBgColor =
+          cafeInfo && cafeInfo.cardBgColor ? String(cafeInfo.cardBgColor) : null;
+        profileState.cardFgColor =
+          cafeInfo && cafeInfo.cardFgColor ? String(cafeInfo.cardFgColor) : null;
+        if (bgColorEl) bgColorEl.value = profileState.cardBgColor || presetHex.bg;
+        if (fgColorEl) fgColorEl.value = profileState.cardFgColor || presetHex.fg;
+
         if (profileState.logoDataUrl) {
           logoPreview.src = profileState.logoDataUrl;
           logoPreview.style.display = "block";
@@ -4750,6 +4757,11 @@
           "--pass-card-bg",
           profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
         );
+
+        const bgColorEl = document.getElementById("profileBgColor");
+        const fgColorEl = document.getElementById("profileFgColor");
+        previewEl.style.setProperty("--pass-bg", (bgColorEl && bgColorEl.value) || "");
+        previewEl.style.setProperty("--pass-ink", (fgColorEl && fgColorEl.value) || "");
 
         const titleEl = document.getElementById("previewCardTitle");
         if (titleEl) titleEl.textContent = (cafe && cafe.name) || "Café";
@@ -5004,6 +5016,10 @@
                 .trim()
                 .toLowerCase()
             : "bean";
+          const bgColorEl = document.getElementById("profileBgColor");
+          const fgColorEl = document.getElementById("profileFgColor");
+          const cardBgColor = bgColorEl ? String(bgColorEl.value || "").trim() : "";
+          const cardFgColor = fgColorEl ? String(fgColorEl.value || "").trim() : "";
 
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
@@ -5024,6 +5040,8 @@
               lat: lat || null,
               lng: lng || null,
               cardTheme: cardTheme || null,
+              cardBgColor: cardBgColor || null,
+              cardFgColor: cardFgColor || null,
               stampStyle: stampStyle || "bean",
               stampsForReward: stampsForReward || null,
               rewardDescription: rewardDescription || null,
@@ -5335,10 +5353,24 @@
           "profileStampStyle",
           "profileRewardThreshold",
           "profileRewardDescription",
+          "profileBgColor",
+          "profileFgColor",
         ].forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.addEventListener("input", renderCardPreview);
         });
+
+        const themeSelectEl = document.getElementById("profileCardTheme");
+        if (themeSelectEl) {
+          themeSelectEl.addEventListener("change", () => {
+            const preset = THEME_HEX[themeSelectEl.value] || THEME_HEX.paper;
+            const bgColorEl = document.getElementById("profileBgColor");
+            const fgColorEl = document.getElementById("profileFgColor");
+            if (bgColorEl) bgColorEl.value = preset.bg;
+            if (fgColorEl) fgColorEl.value = preset.fg;
+            renderCardPreview();
+          });
+        }
       }
 
       async function profileRefreshAll() {
@@ -5417,7 +5449,16 @@
         }
 
         if (targetView !== "scan") {
-          stopScannerCamera();
+          // Pause the decode loop but keep the camera stream itself alive -
+          // switching Scan -> Dashboard -> Scan used to call
+          // stopScannerCamera() (stops every track, drops the stream) and
+          // then re-request it with getUserMedia() on the way back, causing
+          // a visible relight/flicker on every single tab switch even
+          // though permission was already granted. Same pause-not-teardown
+          // pattern the visibilitychange handler below already uses for
+          // backgrounding - only pagehide (the page actually going away)
+          // still calls the full stopScannerCamera().
+          pauseScannerLoop();
         }
         if (targetView === "profile") return;
         if (targetView === "home") {
@@ -5748,11 +5789,20 @@
       // URL-basierter Scan (ohne Kamera)
       let pendingScan = null;
       let pendingAction = "stamp";
+      // True only when this tab was opened by a customer-QR link (e.g. the
+      // OS Camera app handing a scanned URL to the browser) - never for the
+      // staff's own in-app camera scanning a QR live via jsQR, which never
+      // touches the URL at all. Workaround for iOS/Android opening a fresh
+      // Safari/Chrome tab per Camera-app scan with no way from web code to
+      // reuse an existing one - closing this one-shot tab once its action
+      // is done at least stops them piling up (see the awardBtn handler).
+      let openedViaExternalScanLink = false;
       function capturePendingFromURL() {
         try {
           const params = new URLSearchParams(window.location.search);
           const c = params.get("customer");
           if (c) {
+            openedViaExternalScanLink = true;
             const legacyRedeem = params.get("redeem") === "true";
             pendingScan = {
               address: c,
@@ -6317,6 +6367,20 @@
               "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Karten-Link.",
             );
             void resumeScannerCameraIfAllowed();
+
+            // This tab exists for exactly one customer QR link - its job is
+            // now done, and iOS/Android open a fresh tab per Camera-app
+            // scan with no way from web code to reuse an existing one, so
+            // this is the only lever available to stop them piling up.
+            // Reset happens first (above) so that if the browser silently
+            // refuses to close it (same no-op-if-not-allowed behavior as
+            // the "Add to Wallet" close attempt in cafe-join.html - most
+            // reliable when, like here, the tab was opened externally
+            // rather than by an in-page script), it's left ready for the
+            // next scan instead of stuck showing the last customer.
+            if (openedViaExternalScanLink) {
+              window.close();
+            }
           }, 1800);
         } catch (e) {
           showToast(userSafeErrorMessage(e), true);
