@@ -746,10 +746,6 @@
       #scannerScreen.customerLoaded .scannerMain {
         padding-bottom: 6px;
       }
-
-      #scannerScreen.customerLoaded .scannerLead {
-        max-width: none;
-      }
       .customer-info .label {
         font-weight: 600;
         color: var(--text);
@@ -1190,22 +1186,9 @@
           border-radius: 20px;
         }
 
-        .scannerMainHead {
-          gap: 12px;
-        }
-
-        /* The eyebrow label + lead paragraph explain "this is a camera,
-           point it at a QR code" - once the camera preview is this size
-           and this close to the top, that's already obvious, and this text
-           was pushing the actual preview down toward (or past) the fold on
-           smaller phones. Keeps the still-functional Kamera-starten button. */
-        .scannerEyebrow,
-        .scannerLead {
-          display: none;
-        }
-
         .cameraControls {
           gap: 10px;
+          bottom: 14px;
         }
 
         #cameraStartBtn {
@@ -1229,7 +1212,6 @@
           height: min(58vw, 220px);
         }
 
-        .scannerStatus,
         .scannerHintCompact {
           margin-top: 8px;
           font-size: 12px;
@@ -1282,18 +1264,6 @@
         #scannerScreen.customerLoaded .scannerMain {
           padding: 14px;
         }
-
-        #scannerScreen.customerLoaded .scannerMainHead {
-          gap: 10px;
-        }
-
-        #scannerScreen.customerLoaded .scannerLead {
-          font-size: 13px;
-        }
-
-        #scannerScreen.customerLoaded .scannerStatus {
-          margin-top: 0;
-        }
       }
 
       @media (max-width: 520px) {
@@ -1336,46 +1306,23 @@
         box-shadow: none;
       }
 
-      .scannerMainHead {
-        display: grid;
-        gap: 18px;
-        justify-items: center;
-        text-align: center;
-      }
-
-      .scannerEyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-      }
-
-      .scannerEyebrowDot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 84%, transparent 16%);
-        box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 12%, transparent 88%);
-      }
-
-      .scannerLead {
-        margin-top: 8px;
-        color: var(--text-muted);
-        font-size: 15px;
-        line-height: 1.55;
-        max-width: 40ch;
-      }
-
+      /* Floats directly on the camera feed instead of sitting in its own
+         row above it - the button IS the instruction ("Kamera starten"
+         says what happens), so no separate eyebrow/lead copy needed above
+         it either (removed). Same bottom-action-bar-over-the-viewfinder
+         pattern as Apple Camera/Google Pay's own scanners. */
       .cameraControls {
+        position: absolute;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        z-index: 2;
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
         align-items: center;
         justify-content: center;
+        width: calc(100% - 32px);
       }
 
       .cameraControls button {
@@ -1395,14 +1342,19 @@
           0 1px 0 rgba(255, 255, 255, 0.1) inset;
       }
 
+      /* Transparent read fine on a solid page background, but not on a
+         live camera feed underneath it - needs its own legibility, same
+         frosted-glass treatment as #scannerStatus below. */
       .cameraSecondary {
-        background: transparent;
-        color: var(--text);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(20, 14, 10, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.24);
       }
 
       .cameraSecondary:hover {
-        background: rgba(255, 248, 241, 0.08);
+        background: rgba(20, 14, 10, 0.66);
       }
 
       .scannerHintCompact {
@@ -1481,10 +1433,25 @@
         line-height: 1.45;
       }
 
+      /* Floats over the top of the camera feed as a frosted pill instead
+         of sitting as plain text below it - needs its own contrast against
+         whatever the camera is pointed at, not var(--text-muted) which
+         assumes a solid page background. */
       .scannerStatus {
-        margin-top: 12px;
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        max-width: calc(100% - 32px);
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(20, 14, 10, 0.55);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #fff;
         font-size: 13px;
-        color: var(--text-muted);
+        line-height: 1.35;
         text-align: center;
       }
 
@@ -2672,32 +2639,6 @@
 
             <div class="scannerWorkspace">
               <div class="scannerMain">
-                <div class="scannerMainHead">
-                  <div>
-                    <div class="scannerEyebrow">
-                      <span class="scannerEyebrowDot" aria-hidden="true"></span>
-                      Scanner bereit
-                    </div>
-                    <div class="scannerLead">
-                      Starte die Kamera und halte den QR ruhig in den Rahmen.
-                      Genau das ist hier die Hauptsache.
-                    </div>
-                  </div>
-                  <div class="cameraControls">
-                    <button id="cameraStartBtn" type="button">
-                      Kamera starten
-                    </button>
-                    <button
-                      id="cameraStopBtn"
-                      type="button"
-                      class="cameraSecondary"
-                      style="display: none"
-                    >
-                      Kamera pausieren
-                    </button>
-                  </div>
-                </div>
-
                 <div id="scanHint" class="hintBox scannerHintCompact">
                   Noch kein Kunde geladen. Starte die Kamera oder öffne einen
                   QR-Link direkt aus den Karten.
@@ -2713,10 +2654,23 @@
                       webkit-playsinline
                     ></video>
                     <div class="scan-overlay" aria-hidden="true"></div>
-                  </div>
-                  <div id="scannerStatus" class="scannerStatus">
-                    Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
-                    scannen willst.
+                    <div id="scannerStatus" class="scannerStatus">
+                      Kamera bereit. Tippe auf "Kamera starten", wenn du direkt
+                      scannen willst.
+                    </div>
+                    <div class="cameraControls">
+                      <button id="cameraStartBtn" type="button">
+                        Kamera starten
+                      </button>
+                      <button
+                        id="cameraStopBtn"
+                        type="button"
+                        class="cameraSecondary"
+                        style="display: none"
+                      >
+                        Kamera pausieren
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
