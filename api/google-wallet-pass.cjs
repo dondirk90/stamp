@@ -110,13 +110,25 @@ async function patchWalletResource(path, body) {
 // IDs are deterministic (issuerId + cafe/customer), not DB-generated - the
 // same (customer, cafe) pair always maps to the same class/object id, so we
 // never need to look one up before patching it.
+//
+// Keyed by the cafe's address, not its numeric DB id - staging and
+// production are separate databases that each auto-increment their own
+// cafes.id from 1, so "cafe 2" is a different real cafe in each one. Since
+// staging and prod share the same GOOGLE_WALLET_ISSUER_ID (one Google
+// issuer account, not one per environment), an id built from the bare
+// integer collided across environments: confirmed live, a customer
+// registering at a brand-new production cafe (also happened to be
+// "cafe 2" there) was handed a Google Wallet class Google already had on
+// file under that same id - from staging's own "cafe 2" - so they saw that
+// cafe's name/logo instead of the one they'd actually just joined. The
+// address is a random per-cafe value, so this can't recur.
 function sanitizeIdPart(value) {
   return String(value || "").replace(/[^A-Za-z0-9_-]/g, "");
 }
 
-function loyaltyClassId(cafeId) {
+function loyaltyClassId(cafeAddress) {
   const issuerId = sanitizeEnv("GOOGLE_WALLET_ISSUER_ID");
-  return `${issuerId}.cafe_${sanitizeIdPart(cafeId)}`;
+  return `${issuerId}.cafe_${sanitizeIdPart(cafeAddress)}`;
 }
 
 // cardId omitted (legacy/pre-multi-card customers, still the common case)
@@ -124,10 +136,10 @@ function loyaltyClassId(cafeId) {
 // already saved keeps matching, it doesn't need re-issuing just because
 // this feature shipped. Only a customer who's actually overflowed past a
 // full card gets a second, distinctly-suffixed object id.
-function loyaltyObjectId(cafeId, customerAddress, cardId) {
+function loyaltyObjectId(cafeAddress, customerAddress, cardId) {
   const issuerId = sanitizeEnv("GOOGLE_WALLET_ISSUER_ID");
   const suffix = cardId ? `_${sanitizeIdPart(cardId)}` : "";
-  return `${issuerId}.cafe_${sanitizeIdPart(cafeId)}_${sanitizeIdPart(customerAddress)}${suffix}`;
+  return `${issuerId}.cafe_${sanitizeIdPart(cafeAddress)}_${sanitizeIdPart(customerAddress)}${suffix}`;
 }
 
 function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
@@ -146,7 +158,7 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
       : `${base}/assets/app-icon-mark.png`;
 
   return {
-    id: loyaltyClassId(cafeId),
+    id: loyaltyClassId(cafeRow.address),
     // "Kaffeekarte" here added no value and just took up the prominent
     // header slot - the cafe's own name reads better there, even though
     // programName repeats it below (Google's header layout is fixed, no
@@ -252,8 +264,8 @@ function buildLoyaltyObjectPayload({
     (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
   return {
-    id: loyaltyObjectId(cafeRow.id, customerAddress, cardId),
-    classId: loyaltyClassId(cafeRow.id),
+    id: loyaltyObjectId(cafeRow.address, customerAddress, cardId),
+    classId: loyaltyClassId(cafeRow.address),
     state: "ACTIVE",
     accountId: customerAddress,
     accountName: customerName || undefined,
