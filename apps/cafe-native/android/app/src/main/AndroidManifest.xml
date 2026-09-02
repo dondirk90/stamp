@@ -22,6 +22,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links: a scanned customer QR (a plain https:// link to
+                 /cafe-scanner-new.html) opens directly in this app instead
+                 of a browser tab, once Play-installed and once
+                 /.well-known/assetlinks.json (served by the API, see
+                 server.cjs) verifies against this app's signing
+                 certificate. autoVerify triggers that check on install;
+                 without a verified assetlinks.json the OS silently falls
+                 back to the disambiguation chooser instead of failing
+                 outright, so this is safe to ship ahead of the
+                 fingerprints being in place. Scoped to the actual scanned
+                 path, not the whole domain, so other kaffeekarte.app links
+                 (marketing, the customer app's own pages) don't also pull
+                 up this app. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="kaffeekarte.app"
+                    android:pathPrefix="/cafe-scanner" />
+                <data
+                    android:scheme="https"
+                    android:host="staging.kaffeekarte.app"
+                    android:pathPrefix="/cafe-scanner" />
+            </intent-filter>
+
         </activity>
 
         <provider

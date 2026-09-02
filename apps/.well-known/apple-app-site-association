@@ -8,6 +8,10 @@
           { "/": "/auth/*" },
           { "/": "/customer-*" }
         ]
+      },
+      {
+        "appIDs": ["P7633QY6QK.app.kaffeekarte.cafe"],
+        "components": [{ "/": "/cafe-scanner*" }]
       }
     ]
   }
