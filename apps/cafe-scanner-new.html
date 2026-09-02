@@ -5789,11 +5789,20 @@
       // URL-basierter Scan (ohne Kamera)
       let pendingScan = null;
       let pendingAction = "stamp";
+      // True only when this tab was opened by a customer-QR link (e.g. the
+      // OS Camera app handing a scanned URL to the browser) - never for the
+      // staff's own in-app camera scanning a QR live via jsQR, which never
+      // touches the URL at all. Workaround for iOS/Android opening a fresh
+      // Safari/Chrome tab per Camera-app scan with no way from web code to
+      // reuse an existing one - closing this one-shot tab once its action
+      // is done at least stops them piling up (see the awardBtn handler).
+      let openedViaExternalScanLink = false;
       function capturePendingFromURL() {
         try {
           const params = new URLSearchParams(window.location.search);
           const c = params.get("customer");
           if (c) {
+            openedViaExternalScanLink = true;
             const legacyRedeem = params.get("redeem") === "true";
             pendingScan = {
               address: c,
@@ -6358,6 +6367,20 @@
               "Bereit fuer den naechsten QR. Starte die Kamera erneut oder warte auf den naechsten Karten-Link.",
             );
             void resumeScannerCameraIfAllowed();
+
+            // This tab exists for exactly one customer QR link - its job is
+            // now done, and iOS/Android open a fresh tab per Camera-app
+            // scan with no way from web code to reuse an existing one, so
+            // this is the only lever available to stop them piling up.
+            // Reset happens first (above) so that if the browser silently
+            // refuses to close it (same no-op-if-not-allowed behavior as
+            // the "Add to Wallet" close attempt in cafe-join.html - most
+            // reliable when, like here, the tab was opened externally
+            // rather than by an in-page script), it's left ready for the
+            // next scan instead of stuck showing the last customer.
+            if (openedViaExternalScanLink) {
+              window.close();
+            }
           }, 1800);
         } catch (e) {
           showToast(userSafeErrorMessage(e), true);
