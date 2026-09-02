@@ -99,6 +99,11 @@
         font-size: 0.85rem;
       }
 
+      .poweredBy a {
+        color: inherit;
+        text-decoration: none;
+      }
+
       h1 {
         /* theme.css sets its own h1 color unconditionally - overridden
            explicitly here, inheritance alone would lose to it. */
@@ -294,6 +299,14 @@
         font-size: 0.85rem;
       }
 
+      .verifyHint {
+        display: none;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
       .fallbackLink a {
         color: inherit;
       }
@@ -343,6 +356,20 @@
           <p class="fallbackLink" id="fallbackLink">
             Hat sich nichts geöffnet?
             <a href="#" id="fallbackLinkHref">Stempelkarte erneut öffnen</a>
+          </p>
+        </div>
+
+        <div class="successView" id="pendingView" style="display: none">
+          <div class="successIcon">📧</div>
+          <h1>Fast geschafft!</h1>
+          <p class="lede">
+            Wir haben dir eine Bestätigungsmail an <strong id="pendingEmail"></strong>
+            geschickt. Klicke auf den Link darin, dann landet deine
+            Stempelkarte direkt in deiner Wallet.
+          </p>
+          <p class="fallbackLink" id="resendWrap">
+            Keine Mail bekommen?
+            <a href="#" id="resendLink">Erneut senden</a>
           </p>
         </div>
 
@@ -433,6 +460,16 @@
               required
             />
           </div>
+          <div class="field">
+            <label for="passwordConfirm">Passwort bestätigen</label>
+            <input
+              id="passwordConfirm"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </div>
 
           <button class="btn primary submitBtn" type="submit" id="submitBtn">
             Stempelkarte holen
@@ -442,7 +479,12 @@
         <p class="statusMsg" id="statusMsg"></p>
         </div>
 
-        <p class="poweredBy"><span class="bean">☕</span> Kaffeekarte</p>
+        <p class="poweredBy">
+          <span class="bean">☕</span>
+          <a href="https://kaffeekarte.app" target="_blank" rel="noreferrer"
+            >Kaffeekarte</a
+          >
+        </p>
       </div>
     </main>
     </div>
@@ -460,11 +502,17 @@
         var statusMsg = document.getElementById("statusMsg");
         var fallbackLink = document.getElementById("fallbackLink");
         var fallbackLinkHref = document.getElementById("fallbackLinkHref");
+        var joinFlowEl = document.getElementById("joinFlow");
+        var pendingViewEl = document.getElementById("pendingView");
+        var pendingEmailEl = document.getElementById("pendingEmail");
+        var resendLink = document.getElementById("resendLink");
+        var pendingEmailAddress = "";
 
         var ERROR_MESSAGES = {
           invalid_username: "Bitte einen Namen eingeben.",
           invalid_email: "Bitte eine gültige E-Mail-Adresse eingeben.",
           invalid_password: "Das Passwort braucht mindestens 6 Zeichen.",
+          passwords_dont_match: "Die Passwörter stimmen nicht überein.",
           privacy_consent_required: "Bitte die Datenschutzerklärung bestätigen.",
           terms_consent_required: "Bitte die AGB bestätigen.",
           email_already_registered:
@@ -570,7 +618,8 @@
             // and try to close the tab as a bonus (silently no-ops if the
             // browser won't allow it, e.g. because the tab wasn't opened
             // by script).
-            document.getElementById("joinFlow").style.display = "none";
+            joinFlowEl.style.display = "none";
+            pendingViewEl.style.display = "none";
             document.getElementById("successView").style.display = "block";
             fallbackLink.style.display = "block";
             fallbackLinkHref.href = passUrl;
@@ -612,12 +661,18 @@
           var username = document.getElementById("username").value.trim();
           var email = document.getElementById("email").value.trim();
           var password = document.getElementById("password").value;
+          var passwordConfirm = document.getElementById("passwordConfirm").value;
           var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
           var acceptTerms = document.getElementById("acceptTerms").checked;
 
           if (!acceptPrivacy || !acceptTerms) {
             statusMsg.textContent =
               "Bitte zuerst Datenschutzerklärung und AGB oben bestätigen.";
+            return;
+          }
+
+          if (password !== passwordConfirm) {
+            statusMsg.textContent = ERROR_MESSAGES.passwords_dont_match;
             return;
           }
 
@@ -633,6 +688,7 @@
               password: password,
               acceptPrivacy: acceptPrivacy,
               acceptTerms: acceptTerms,
+              cafe: cafeAddress,
             }),
           })
             .then(function (res) {
@@ -645,7 +701,15 @@
                 var code = result.data && result.data.error;
                 throw new Error(ERROR_MESSAGES[code] || "Registrierung fehlgeschlagen. Bitte erneut versuchen.");
               }
-              proceedToWallet(result.data.address);
+              // The wallet pass isn't created yet - it only happens once
+              // the customer actually clicks the verification link (see
+              // the verifyToken handling below), so their recovery email
+              // is confirmed working before anything depends on it.
+              pendingEmailAddress = email;
+              pendingEmailEl.textContent = email;
+              joinFlowEl.style.display = "none";
+              document.getElementById("successView").style.display = "none";
+              pendingViewEl.style.display = "block";
             })
             .catch(function (err) {
               statusMsg.textContent = err.message || "Registrierung fehlgeschlagen.";
@@ -653,6 +717,25 @@
               submitBtn.textContent = "Stempelkarte holen";
             });
         });
+
+        if (resendLink) {
+          resendLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (!pendingEmailAddress) return;
+            resendLink.textContent = "Wird gesendet …";
+            fetch("/api/customers/resend-verification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: pendingEmailAddress, cafe: cafeAddress }),
+            })
+              .then(function () {
+                resendLink.textContent = "Erneut gesendet ✓";
+              })
+              .catch(function () {
+                resendLink.textContent = "Erneut senden";
+              });
+          });
+        }
 
         function startOauth(provider) {
           var acceptPrivacy = document.getElementById("acceptPrivacy").checked;
@@ -688,6 +771,40 @@
           apple_email_not_verified:
             "Deine Apple-E-Mail ist nicht bestätigt. Bitte unten mit E-Mail registrieren.",
         };
+
+        // Landing here from the verification email (see buildCustomerVerifyUrl
+        // in server.cjs) - confirms the token, then proceeds straight into
+        // "add to Wallet" for this same cafe, same as a fresh registration
+        // would have before email verification was required first.
+        var verifyToken = params.get("verifyToken");
+        if (verifyToken) {
+          joinFlowEl.style.display = "none";
+          pendingViewEl.style.display = "none";
+          statusMsg.textContent = "Einen Moment …";
+          fetch("/api/customers/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: verifyToken }),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.address) {
+                throw new Error(
+                  "Dieser Bestätigungslink ist ungültig oder abgelaufen. Bitte fordere über die App eine neue E-Mail an.",
+                );
+              }
+              statusMsg.textContent = "";
+              proceedToWallet(result.data.address);
+            })
+            .catch(function (err) {
+              joinFlowEl.style.display = "block";
+              statusMsg.textContent = err.message || "Bestätigung fehlgeschlagen.";
+            });
+        }
 
         var oauthToken = params.get("oauthToken");
         var oauthError = params.get("oauthError");
