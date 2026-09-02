@@ -34,6 +34,20 @@ const { z } = require("zod");
 
 const EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
+// Registering from a specific cafe's table-QR flow (cafe-join.html) needs
+// the verification link to route back there (not the generic /wallet app),
+// otherwise there's no way to resume straight into "add this card to
+// Wallet" once the customer actually clicks the link - the wallet pass now
+// only gets created after verification, not immediately at registration.
+function buildCustomerVerifyUrl(appsBaseUrl, token, cafeAddress) {
+  const qs = new URLSearchParams({ verifyToken: token });
+  if (cafeAddress) {
+    qs.set("cafe", cafeAddress);
+    return `${appsBaseUrl}/cafe-join?${qs.toString()}`;
+  }
+  return `${appsBaseUrl}/wallet?${qs.toString()}`;
+}
+
 function sanitizeEnv(key) {
   const v = process.env[key];
   if (!v) return v;
@@ -6798,9 +6812,13 @@ app.use("/wallet", walletApiRouter);
 
 app.post("/customers/register", async (req, res) => {
   try {
-    const { username, email, password, acceptPrivacy, acceptTerms } = req.body || {};
+    const { username, email, password, acceptPrivacy, acceptTerms, cafe } = req.body || {};
     const uname = username != null ? String(username).trim() : "";
     const em = email != null ? String(email).trim() : "";
+    const cafeAddress =
+      cafe != null && /^0x[0-9a-f]{40}$/i.test(String(cafe).trim())
+        ? String(cafe).trim()
+        : null;
     const pw = password != null ? String(password) : "";
 
     if (!uname || uname.length < 2) {
@@ -6828,7 +6846,7 @@ app.post("/customers/register", async (req, res) => {
         const token = crypto.randomBytes(24).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         const appsBaseUrl = getAppsBaseUrlFromRequest(req);
-        const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(token)}`;
+        const verifyUrl = buildCustomerVerifyUrl(appsBaseUrl, token, cafeAddress);
         try {
           await insertCustomerEmailVerification.run(existing.id, tokenHash, now, expiresAt);
           await sendCustomerVerificationEmail({
@@ -6888,9 +6906,7 @@ app.post("/customers/register", async (req, res) => {
       );
     }
 
-    const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(
-      verificationToken,
-    )}`;
+    const verifyUrl = buildCustomerVerifyUrl(appsBaseUrl, verificationToken, cafeAddress);
 
     try {
       const mailInfo = await sendCustomerVerificationEmail({
@@ -7586,7 +7602,15 @@ app.post("/customers/verify-email", async (req, res) => {
     const verifiedCustomer = await getCustomerById.get(row.customer_id);
     notifyAdminCustomerVerified(verifiedCustomer);
 
-    return res.json({ ok: true });
+    // The wallet pass is now only created once verification succeeds (see
+    // cafe-join.html), not immediately at registration - the frontend needs
+    // the address back here to proceed straight into "add to Wallet"
+    // without a second lookup.
+    return res.json({
+      ok: true,
+      address: verifiedCustomer?.address || null,
+      username: verifiedCustomer?.username || null,
+    });
   } catch (e) {
     return res
       .status(500)
@@ -7601,6 +7625,11 @@ app.post("/customers/resend-verification", async (req, res) => {
     if (!email || !email.includes("@")) {
       return res.status(400).json({ ok: false, error: "invalid_email" });
     }
+    const cafeRaw = req.body?.cafe;
+    const cafeAddress =
+      cafeRaw != null && /^0x[0-9a-f]{40}$/i.test(String(cafeRaw).trim())
+        ? String(cafeRaw).trim()
+        : null;
 
     const customer = await getCustomerAuthByEmail.get(email);
     if (!customer) {
@@ -7615,7 +7644,7 @@ app.post("/customers/resend-verification", async (req, res) => {
     const token = crypto.randomBytes(24).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const appsBaseUrl = getAppsBaseUrlFromRequest(req);
-    const verifyUrl = `${appsBaseUrl}/wallet?verifyToken=${encodeURIComponent(token)}`;
+    const verifyUrl = buildCustomerVerifyUrl(appsBaseUrl, token, cafeAddress);
 
     try {
       await insertCustomerEmailVerification.run(
