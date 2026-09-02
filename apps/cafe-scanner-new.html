@@ -1219,14 +1219,6 @@
           padding: 0;
         }
 
-        /* Redundant with #scannerStatus right under the video (both are
-           JS-driven "what to do next" text, built at different times) -
-           dropping this second copy on mobile, where space is tightest,
-           is what actually buys the extra room for #video below. */
-        #scanHint {
-          display: none !important;
-        }
-
         #video {
           aspect-ratio: 3 / 4;
           max-height: min(68svh, 620px);
@@ -1419,6 +1411,15 @@
         font-size: 12px;
         text-align: center;
         opacity: 0.9;
+      }
+
+      /* Redundant with #scannerStatus right under the video - both are
+         JS-driven "what to do next" text, built at different times, saying
+         nearly the same thing. A modern scan screen (see BRAND.md's
+         hairlines-not-cards direction) has exactly one free-standing status
+         line under the camera, not a second one in its own boxed panel. */
+      #scanHint {
+        display: none !important;
       }
 
       .scannerMetaList {
