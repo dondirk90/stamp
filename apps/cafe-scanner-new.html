@@ -3949,6 +3949,22 @@
       function goToScanner() {
         setDrawerOpen(false);
         setUtilityMenuOpen(false);
+        // Explicitly navigating to the scanner is itself an "I want to scan
+        // now" signal (see the comment in showView()) - but showView() only
+        // auto-starts the camera when no customer is loaded, and a customer
+        // can still be sitting cached here from an earlier scan (e.g.
+        // restored via last_scanned_customer on login, or simply left over
+        // from before this navigation). Clear it first so the camera always
+        // comes on, matching what the button visually promises.
+        if (scannedCustomer) {
+          scannedCustomer = null;
+          pendingScan = null;
+          pendingAction = "stamp";
+          localStorage.removeItem("last_scanned_customer");
+          if (customerInfo) customerInfo.style.display = "none";
+          setCustomerLoadedUi(false);
+          applyActionUi();
+        }
         navigateToCafeView("scan");
       }
 
