@@ -802,7 +802,13 @@
         width: 100%;
         margin-top: 0;
         padding: 10px 12px;
-        background: transparent;
+        /* !important needed: theme.css's global legacy-button override
+           (button:not(.secondary):not(.ghost)...{background: var(--brand)
+           !important}) otherwise wins over this transparent background,
+           leaving near-white text (var(--text)) on the near-white
+           --brand fill it forces instead - invisible/washed-out preset
+           numbers. */
+        background: transparent !important;
         color: var(--text);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
@@ -811,11 +817,11 @@
       }
 
       .stamp-presets button:hover {
-        background: var(--surface-muted);
+        background: var(--surface-muted) !important;
       }
 
       .stamp-presets button.active {
-        background: var(--brand);
+        background: var(--brand) !important;
         color: var(--on-brand, white);
         border-color: transparent;
       }
@@ -5935,7 +5941,7 @@
             return;
           }
           const v = updateStampUiFromValue() || 1;
-          awardBtn.textContent = `Freigeben (${v})`;
+          awardBtn.textContent = `${v} Stempel vergeben`;
         }
 
         if (scanTitle) {
@@ -5978,7 +5984,7 @@
             } catch (e) {}
             try {
               if (awardBtn && pendingAction === "stamp") {
-                awardBtn.textContent = `Freigeben (${amt})`;
+                awardBtn.textContent = `${amt} Stempel vergeben`;
               }
             } catch (e) {}
           } catch (e) {}
@@ -6684,6 +6690,14 @@
           }
         }
 
+        function hasPendingScan() {
+          try {
+            return !!new URLSearchParams(window.location.search).get("customer");
+          } catch (e) {
+            return false;
+          }
+        }
+
         function markSeen() {
           try {
             localStorage.setItem(STORAGE_KEY, "1");
@@ -6775,6 +6789,11 @@
             if (!isMobileBrowser()) return;
             if (isStandalone()) return;
             if (wasSeen()) return;
+            // A scanned customer QR (?customer=...) means the barista is
+            // mid-action - the approval screen needs to appear immediately,
+            // not get blocked by a promotional interstitial they have to
+            // dismiss first. Show it another time instead.
+            if (hasPendingScan()) return;
             openInstallHint();
           }, 900);
         });
