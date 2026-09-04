@@ -232,6 +232,17 @@ function buildLoyaltyObjectPayload({
   customerEmail,
   customerId,
   cardNumber,
+  // Overrides the freshly-computed loyaltyObjectId() below - needed when
+  // patching an object that already exists (see patchLoyaltyObjectStamps):
+  // the id formula changed once already (cafe.id -> cafe.address, to fix a
+  // staging/prod collision), and objects created under the old formula
+  // still only exist on Google's side under their *original* id. Always
+  // recomputing fresh here would silently patch a different, phantom
+  // object the customer never actually saved to their wallet - confirmed
+  // live: a real customer's stamp count stopped updating entirely the
+  // moment that formula changed, with no error anywhere (Google 200s a
+  // patch to an id nobody saved just fine, it just creates an orphan).
+  objectId,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
@@ -264,7 +275,7 @@ function buildLoyaltyObjectPayload({
     (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
   return {
-    id: loyaltyObjectId(cafeRow.address, customerAddress, cardId),
+    id: objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId),
     classId: loyaltyClassId(cafeRow.address),
     state: "ACTIVE",
     accountId: customerAddress,
@@ -413,6 +424,11 @@ async function patchLoyaltyObjectStamps({
   customerEmail,
   customerId,
   cardNumber,
+  // The object's actual, already-saved id (google_wallet_objects.object_id)
+  // - see the comment on buildLoyaltyObjectPayload's objectId param. Falls
+  // back to the freshly-computed id only when the caller doesn't have an
+  // existing row yet (e.g. a brand-new save link).
+  objectId,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -431,6 +447,7 @@ async function patchLoyaltyObjectStamps({
       customerEmail,
       customerId,
       cardNumber,
+      objectId,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {

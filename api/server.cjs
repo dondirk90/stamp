@@ -2223,6 +2223,7 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerEmail: customerRow ? customerRow.email : null,
         customerId: customerRow ? customerRow.customer_id : null,
         cardNumber,
+        objectId: objectRow.object_id,
       });
     }
   } catch (err) {
@@ -2283,6 +2284,7 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         customerEmail: customerRow ? customerRow.email : null,
         customerId: customerRow ? customerRow.customer_id : null,
         cardNumber,
+        objectId: row.object_id,
       });
     }
   } catch (err) {
