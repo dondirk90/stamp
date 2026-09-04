@@ -142,7 +142,26 @@ function loyaltyObjectId(cafeAddress, customerAddress, cardId) {
   return `${issuerId}.cafe_${sanitizeIdPart(cafeAddress)}_${sanitizeIdPart(customerAddress)}${suffix}`;
 }
 
-function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
+// The class an object *actually* belongs to - not necessarily
+// loyaltyClassId(cafeRow.address), if this object's id predates that
+// formula (cafe.id -> cafe.address, fixing a staging/prod collision). A
+// class is shared cafe-wide, so it can't be recomputed fresh per object
+// either: an existing object's classId is always exactly its own id's
+// prefix up to "_<customerAddress>...", by construction (see
+// loyaltyObjectId above). Used by both the object payload and the save-link
+// JWT's declared class - they must always agree, or Google's save flow
+// itself breaks (confirmed live: "Ein Problem ist aufgetreten" on the
+// Google-hosted save page when the JWT declared one class but the object
+// inside referenced a different, undeclared one).
+function resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId) {
+  const resolvedId = objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId);
+  const idSuffix = `_${sanitizeIdPart(customerAddress)}${cardId ? `_${sanitizeIdPart(cardId)}` : ""}`;
+  return resolvedId.endsWith(idSuffix)
+    ? resolvedId.slice(0, resolvedId.length - idSuffix.length)
+    : loyaltyClassId(cafeRow.address);
+}
+
+function buildLoyaltyClassPayload(cafeRow, appsBaseUrl, classId) {
   const cafeId = cafeRow.id;
   const cafeName = cafeRow.name || "Kaffeekarte";
   const cardTheme = cafeRow.card_theme || "paper";
@@ -158,7 +177,7 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
       : `${base}/assets/app-icon-mark.png`;
 
   return {
-    id: loyaltyClassId(cafeRow.address),
+    id: classId || loyaltyClassId(cafeRow.address),
     // "Kaffeekarte" here added no value and just took up the prominent
     // header slot - the cafe's own name reads better there, even though
     // programName repeats it below (Google's header layout is fixed, no
@@ -274,28 +293,11 @@ function buildLoyaltyObjectPayload({
     `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
     (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
-  // classId must match whatever class the object was *actually* created
-  // against - the class id formula changed once already (cafe.id ->
-  // cafe.address, same migration that motivated the objectId override
-  // above), and a class is shared cafe-wide, never per-object, so it can't
-  // just be recomputed fresh either: an existing (pre-migration) object's
-  // classId is always exactly its objectId's prefix up to "_<customer>...",
-  // by construction (see loyaltyObjectId/loyaltyClassId). Recomputing it
-  // fresh here made every patch to an existing object target a class that
-  // was never created under the new id, which Google 404s as
-  // "classNotFound" - silently, since patchWalletResource treats 404 as a
-  // no-op - so the object just never updated, with no error visible
-  // anywhere. Confirmed live: intercepting the outgoing PATCH showed
-  // exactly this 404 on a real customer's frozen pass.
   const resolvedId = objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId);
-  const idSuffix = `_${sanitizeIdPart(customerAddress)}${cardId ? `_${sanitizeIdPart(cardId)}` : ""}`;
-  const resolvedClassId = resolvedId.endsWith(idSuffix)
-    ? resolvedId.slice(0, resolvedId.length - idSuffix.length)
-    : loyaltyClassId(cafeRow.address);
 
   return {
     id: resolvedId,
-    classId: resolvedClassId,
+    classId: resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId),
     state: "ACTIVE",
     accountId: customerAddress,
     accountName: customerName || undefined,
@@ -384,7 +386,16 @@ function buildLoyaltyObjectPayload({
 // patch-time fix below, on the very next "delete and re-add".
 function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber, objectId }) {
   const account = loadServiceAccount();
-  const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
+  // Must declare the SAME class the object below will reference - Google's
+  // save flow itself breaks otherwise (see resolveClassIdForObject's
+  // comment): declaring one class while the object points at a different,
+  // undeclared one showed up live as a generic "Ein Problem ist
+  // aufgetreten" on Google's own save page, not an error from our server.
+  const loyaltyClass = buildLoyaltyClassPayload(
+    cafeRow,
+    appsBaseUrl,
+    resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId),
+  );
   const loyaltyObject = buildLoyaltyObjectPayload({
     cafeRow,
     customerAddress,
