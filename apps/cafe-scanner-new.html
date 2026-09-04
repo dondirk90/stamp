@@ -1176,8 +1176,56 @@
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
           display: flex;
           flex-direction: column;
-          justify-content: center;
           gap: 12px;
+        }
+
+        #homeScreen {
+          justify-content: center;
+        }
+
+        /* The scan screen's whole job is the camera - it gets to fill
+           essentially all the available height instead of sharing it
+           evenly like #homeScreen's short intro text does, which used to
+           leave a large empty gap between the (width-constrained, so
+           height-constrained too) camera card and the bottom tab bar.
+           Chain of flex:1/min-height:0 down to #video so the fill actually
+           reaches it - a single "flex:1" on a distant ancestor doesn't
+           propagate through non-flex children. */
+        #scannerScreen {
+          justify-content: flex-start;
+        }
+
+        #scannerScreen .scannerWorkspace {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          align-items: stretch;
+        }
+
+        #scannerScreen .scannerMain {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        #scannerScreen .scannerStage {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        #scannerScreen #videoContainer {
+          flex: 1;
+          min-height: 0;
+        }
+
+        /* Collapses back to content size once a customer is loaded and
+           .scannerStage (see below) hides - otherwise this would keep
+           claiming flex:1 worth of now-empty space above #customerInfo. */
+        #scannerScreen.customerLoaded .scannerWorkspace {
+          flex: 0 0 auto;
         }
 
         #homeScreen .homeGrid,
@@ -1229,9 +1277,22 @@
           padding: 0;
         }
 
-        #video {
-          aspect-ratio: 3 / 4;
-          max-height: min(68svh, 620px);
+        /* #videoContainer is now a flex:1 box (see #scannerScreen rules
+           above) whose height comes from the layout, not from an
+           aspect-ratio - so #video fills it via position:absolute+inset
+           instead of sizing itself, cropping via object-fit rather than
+           leaving letterboxed space. Scoped under #scannerScreen (not a
+           bare #video) so its specificity beats the later, unconditional
+           #video{aspect-ratio:4/5} rule further down this stylesheet -
+           equal specificity would otherwise let source order pick that
+           one, silently undoing this on mobile. */
+        #scannerScreen #video {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          max-height: none;
+          object-fit: cover;
         }
 
         .scan-overlay {
