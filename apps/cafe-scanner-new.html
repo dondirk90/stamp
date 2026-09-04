@@ -802,13 +802,6 @@
         width: 100%;
         margin-top: 0;
         padding: 10px 12px;
-        /* !important needed: theme.css's global legacy-button override
-           (button:not(.secondary):not(.ghost)...{background: var(--brand)
-           !important}) otherwise wins over this transparent background,
-           leaving near-white text (var(--text)) on the near-white
-           --brand fill it forces instead - invisible/washed-out preset
-           numbers. */
-        background: transparent !important;
         color: var(--text);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
@@ -816,11 +809,27 @@
         font-weight: 900;
       }
 
-      .stamp-presets button:hover {
+      /* !important + ID-scoped selector needed: theme.css's global
+         legacy-button override (button:not(.secondary):not(.ghost):
+         not(.miniBtn):not(.passMain){background:var(--brand) !important})
+         has specificity (0,4,1) from its four :not() classes - higher than
+         a plain .stamp-presets button (0,1,1) even with matching
+         !important, so it kept winning. #stampPresets (an ID) beats it
+         regardless of class count. Without this, near-white preset text
+         renders on the near-white --brand background that rule forces -
+         invisible/washed-out preset numbers. */
+      #stampPresets button {
+        background: transparent !important;
+      }
+
+      #stampPresets button:hover {
         background: var(--surface-muted) !important;
       }
 
-      .stamp-presets button.active {
+      /* ID-scoped for the same reason as #stampPresets button above - needs
+         to outrank that rule's own !important transparent, not just
+         theme.css's. */
+      #stampPresets button.active {
         background: var(--brand) !important;
         color: var(--on-brand, white);
         border-color: transparent;
