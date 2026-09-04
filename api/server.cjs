@@ -2187,7 +2187,6 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerAddress,
         objectRow.card_id,
       );
-      console.warn("TEMP_DEBUG notify", JSON.stringify({ objectId: objectRow.object_id, cardId: objectRow.card_id, stampCount }));
       const isRedeemed = !!(await hasCardBeenRedeemed.get(
         cafeAddress,
         customerAddress,

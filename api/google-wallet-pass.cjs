@@ -274,9 +274,28 @@ function buildLoyaltyObjectPayload({
     `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
     (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
+  // classId must match whatever class the object was *actually* created
+  // against - the class id formula changed once already (cafe.id ->
+  // cafe.address, same migration that motivated the objectId override
+  // above), and a class is shared cafe-wide, never per-object, so it can't
+  // just be recomputed fresh either: an existing (pre-migration) object's
+  // classId is always exactly its objectId's prefix up to "_<customer>...",
+  // by construction (see loyaltyObjectId/loyaltyClassId). Recomputing it
+  // fresh here made every patch to an existing object target a class that
+  // was never created under the new id, which Google 404s as
+  // "classNotFound" - silently, since patchWalletResource treats 404 as a
+  // no-op - so the object just never updated, with no error visible
+  // anywhere. Confirmed live: intercepting the outgoing PATCH showed
+  // exactly this 404 on a real customer's frozen pass.
+  const resolvedId = objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId);
+  const idSuffix = `_${sanitizeIdPart(customerAddress)}${cardId ? `_${sanitizeIdPart(cardId)}` : ""}`;
+  const resolvedClassId = resolvedId.endsWith(idSuffix)
+    ? resolvedId.slice(0, resolvedId.length - idSuffix.length)
+    : loyaltyClassId(cafeRow.address);
+
   return {
-    id: objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId),
-    classId: loyaltyClassId(cafeRow.address),
+    id: resolvedId,
+    classId: resolvedClassId,
     state: "ACTIVE",
     accountId: customerAddress,
     accountName: customerName || undefined,
