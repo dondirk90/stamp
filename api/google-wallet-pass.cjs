@@ -439,10 +439,21 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
 // Cafe profile edits (color, logo, name) live on the class, which every
 // customer's object references - one patch updates it for everyone at once,
 // unlike Apple where each device needs its own push.
-async function patchLoyaltyClassForCafe(cafeRow, appsBaseUrl) {
+// classId override needed for the same reason as everywhere else in this
+// file: a cafe whose objects predate the cafe.id -> cafe.address migration
+// has its *real*, customer-visible class under the old id, not the one this
+// would compute fresh. Called once per distinct classId actually in use
+// (see notifyGoogleWalletClassForCafe in server.cjs) - patching only the
+// fresh one left every legacy object's class (name/logo/color) frozen at
+// whatever it was when first created, never picking up later profile edits.
+// Confirmed live: a cafe's Google Wallet card kept showing an old test
+// name and color from months ago, long after the dashboard had been
+// updated repeatedly - every one of those edits had been patching a class
+// no customer's object actually referenced.
+async function patchLoyaltyClassForCafe(cafeRow, appsBaseUrl, classId) {
   if (!isGoogleWalletConfigured()) return;
   try {
-    const payload = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
+    const payload = buildLoyaltyClassPayload(cafeRow, appsBaseUrl, classId);
     await patchWalletResource(`loyaltyClass/${payload.id}`, payload);
   } catch (err) {
     console.warn("Failed to patch Google Wallet loyalty class:", err.message || err);
@@ -504,4 +515,9 @@ module.exports = {
   // Needed by server.cjs to get-or-create the tracking row *before* calling
   // buildSaveLink, so the redeem-token resolver has something to read/write.
   loyaltyObjectId,
+  // Needed by notifyGoogleWalletClassForCafe to find every distinct class a
+  // cafe's existing objects actually reference, so a profile edit (name,
+  // logo, color) patches all of them, not just the one freshly computed
+  // from the cafe's current address.
+  resolveClassIdForObject,
 };
