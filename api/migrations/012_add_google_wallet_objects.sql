@@ -12,4 +12,9 @@ CREATE TABLE IF NOT EXISTS google_wallet_objects (
   created_at BIGINT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_google_wallet_objects_customer_cafe ON google_wallet_objects(customer_address, cafe_id);
+-- Same story as wallet_passes in 010_add_wallet_tables.sql: this narrow
+-- (customer, cafe) index was superseded by 014_add_wallet_multi_card_support.sql's
+-- wider (customer, cafe, card_id) one. Left here, it would keep trying to
+-- reinstate itself on every deploy (migrate.cjs re-applies every file's
+-- current content every time) and fail as soon as any customer legitimately
+-- has more than one Google Wallet object per cafe.

@@ -11,7 +11,16 @@ CREATE TABLE IF NOT EXISTS wallet_passes (
   created_at BIGINT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_passes_customer_cafe ON wallet_passes(customer_address, cafe_id);
+-- The (customer, cafe) unique index that used to live here was replaced by
+-- 014_add_wallet_multi_card_support.sql's wider (customer, cafe, card_id)
+-- one, which is required once a customer can legitimately hold more than
+-- one wallet pass per cafe (multi-card overflow). migrate.cjs re-applies
+-- every migration file's *current* content on every deploy (not just once -
+-- see its own comment), so leaving the old CREATE UNIQUE INDEX statement
+-- here would keep trying to reinstate the narrower, now-incompatible
+-- constraint on every single deploy, and fail outright the moment any real
+-- customer has overflowed into a second card by then. Confirmed live: this
+-- is exactly what broke a production deploy.
 
 CREATE TABLE IF NOT EXISTS wallet_registrations (
   id BIGSERIAL PRIMARY KEY,
