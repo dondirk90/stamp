@@ -1192,11 +1192,17 @@
            empty gap between the (width-constrained, so height-constrained
            too) camera card and the bottom tab bar. #scannerScreen renders
            as a plain block (see note above), so this is a direct height
-           budget - min-height of #scannerScreen (176px chrome) minus
-           .scannerMain's padding (28px) and .scannerStage's margin-top
-           (10px) - rather than a flex-grow that would never apply here. */
+           budget rather than a flex-grow that would never apply here.
+           305px accounts for: topbar + its top/bottom clearance, the
+           panel's own top padding, .scannerMain/.scannerStage's padding
+           and margin, and the floating "Kamera pausieren" button's own
+           height plus a clear gap above the fixed bottom tab bar -
+           measured empirically against the live page, not derived from
+           the individual box's declared paddings alone (several of which
+           come from a shared flex rule that never actually applies here,
+           see note above). */
         #scannerScreen #videoContainer {
-          height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 214px);
+          height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 305px);
           min-height: 320px;
         }
 
