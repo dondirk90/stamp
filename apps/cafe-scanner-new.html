@@ -1176,56 +1176,28 @@
           min-height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 176px);
           display: flex;
           flex-direction: column;
+          justify-content: center;
           gap: 12px;
         }
 
-        #homeScreen {
-          justify-content: center;
-        }
+        /* Note: whichever screen is active gets its `display` force-set to
+           "block" inline by navigateToCafeView() (see the script below), so
+           the display:flex/justify-content above never actually takes
+           effect while a screen is showing - only while both are hidden.
+           #videoContainer below is sized directly with a calc() height for
+           that reason, not via flex-grow. */
 
         /* The scan screen's whole job is the camera - it gets to fill
-           essentially all the available height instead of sharing it
-           evenly like #homeScreen's short intro text does, which used to
-           leave a large empty gap between the (width-constrained, so
-           height-constrained too) camera card and the bottom tab bar.
-           Chain of flex:1/min-height:0 down to #video so the fill actually
-           reaches it - a single "flex:1" on a distant ancestor doesn't
-           propagate through non-flex children. */
-        #scannerScreen {
-          justify-content: flex-start;
-        }
-
-        #scannerScreen .scannerWorkspace {
-          flex: 1;
-          min-height: 0;
-          display: flex;
-          align-items: stretch;
-        }
-
-        #scannerScreen .scannerMain {
-          flex: 1;
-          min-height: 0;
-          display: flex;
-          flex-direction: column;
-        }
-
-        #scannerScreen .scannerStage {
-          flex: 1;
-          min-height: 0;
-          display: flex;
-          flex-direction: column;
-        }
-
+           essentially all the available height instead of leaving a large
+           empty gap between the (width-constrained, so height-constrained
+           too) camera card and the bottom tab bar. #scannerScreen renders
+           as a plain block (see note above), so this is a direct height
+           budget - min-height of #scannerScreen (176px chrome) minus
+           .scannerMain's padding (28px) and .scannerStage's margin-top
+           (10px) - rather than a flex-grow that would never apply here. */
         #scannerScreen #videoContainer {
-          flex: 1;
-          min-height: 0;
-        }
-
-        /* Collapses back to content size once a customer is loaded and
-           .scannerStage (see below) hides - otherwise this would keep
-           claiming flex:1 worth of now-empty space above #customerInfo. */
-        #scannerScreen.customerLoaded .scannerWorkspace {
-          flex: 0 0 auto;
+          height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 214px);
+          min-height: 320px;
         }
 
         #homeScreen .homeGrid,
@@ -1277,20 +1249,17 @@
           padding: 0;
         }
 
-        /* #videoContainer is now a flex:1 box (see #scannerScreen rules
-           above) whose height comes from the layout, not from an
-           aspect-ratio - so #video fills it via position:absolute+inset
-           instead of sizing itself, cropping via object-fit rather than
-           leaving letterboxed space. Scoped under #scannerScreen (not a
-           bare #video) so its specificity beats the later, unconditional
-           #video{aspect-ratio:4/5} rule further down this stylesheet -
-           equal specificity would otherwise let source order pick that
-           one, silently undoing this on mobile. */
+        /* #videoContainer now has an explicit calc() height (see above)
+           instead of an aspect-ratio - #video just fills it and crops via
+           object-fit rather than leaving letterboxed space. Scoped under
+           #scannerScreen (not a bare #video) so its specificity beats the
+           later, unconditional #video{aspect-ratio:4/5} rule further down
+           this stylesheet - equal specificity would otherwise let source
+           order pick that one, silently undoing this on mobile. */
         #scannerScreen #video {
-          position: absolute;
-          inset: 0;
           width: 100%;
           height: 100%;
+          aspect-ratio: unset;
           max-height: none;
           object-fit: cover;
         }
