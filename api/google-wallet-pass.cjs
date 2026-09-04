@@ -372,7 +372,17 @@ function buildLoyaltyObjectPayload({
 // Called when the customer taps "Add to Google Wallet". Google creates the
 // class/object from what's embedded in the JWT the first time it sees these
 // ids - no separate insert() call needed before this.
-function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber }) {
+//
+// objectId must be the caller's already-resolved google_wallet_objects row
+// id (getOrCreateGoogleWalletObject's return value), not left to default -
+// re-tapping "Add to Google Wallet" for a (customer, cafe, card) that
+// already has a tracked row (e.g. the customer deleted and re-added the
+// pass) must keep targeting that SAME object, or Google creates a second,
+// differently-id'd object while our DB keeps patching the original one
+// going forward, and the customer's newly-(re)saved pass never updates
+// again. Confirmed live: happened immediately after the objectId/classId
+// patch-time fix below, on the very next "delete and re-add".
+function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber, objectId }) {
   const account = loadServiceAccount();
   const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
   const loyaltyObject = buildLoyaltyObjectPayload({
@@ -389,6 +399,7 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     customerEmail,
     customerId,
     cardNumber,
+    objectId,
   });
 
   const now = Math.floor(Date.now() / 1000);

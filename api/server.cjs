@@ -3202,7 +3202,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
       // objects it already knows about), leaving the card frozen at
       // whatever this one snapshot said forever. Confirmed live.
       const objectId = googleWalletPass.loyaltyObjectId(cafeRow.address, customerAddress, newCardId);
-      await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
+      const objectRow = await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
       const { saveUrl } = googleWalletPass.buildSaveLink({
         cafeRow,
         program,
@@ -3215,6 +3215,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
         customerEmail: customerRow.email || null,
         customerId: customerRow.customer_id || null,
         cardNumber,
+        objectId: objectRow.object_id,
       });
       googleSaveUrl = saveUrl;
     }
@@ -6540,8 +6541,11 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       stampCount,
       threshold: program.stampsForReward,
       currentToken: objectRow.active_redeem_token || null,
+      // objectRow.object_id, not the freshly-computed objectId above - same
+      // stale-id trap as everywhere else here, this row may predate the
+      // cafe.id -> cafe.address id migration.
       persistToken: (token) =>
-        setGoogleWalletObjectRedeemToken.run(token, objectId),
+        setGoogleWalletObjectRedeemToken.run(token, objectRow.object_id),
       isRedeemed,
     });
 
@@ -6558,6 +6562,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       customerEmail: customerRow?.email || null,
       customerId: customerRow?.customer_id || null,
       cardNumber,
+      objectId: objectRow.object_id,
     });
 
     res.json({ ok: true, saveUrl });
