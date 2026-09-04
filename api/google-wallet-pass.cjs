@@ -142,7 +142,26 @@ function loyaltyObjectId(cafeAddress, customerAddress, cardId) {
   return `${issuerId}.cafe_${sanitizeIdPart(cafeAddress)}_${sanitizeIdPart(customerAddress)}${suffix}`;
 }
 
-function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
+// The class an object *actually* belongs to - not necessarily
+// loyaltyClassId(cafeRow.address), if this object's id predates that
+// formula (cafe.id -> cafe.address, fixing a staging/prod collision). A
+// class is shared cafe-wide, so it can't be recomputed fresh per object
+// either: an existing object's classId is always exactly its own id's
+// prefix up to "_<customerAddress>...", by construction (see
+// loyaltyObjectId above). Used by both the object payload and the save-link
+// JWT's declared class - they must always agree, or Google's save flow
+// itself breaks (confirmed live: "Ein Problem ist aufgetreten" on the
+// Google-hosted save page when the JWT declared one class but the object
+// inside referenced a different, undeclared one).
+function resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId) {
+  const resolvedId = objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId);
+  const idSuffix = `_${sanitizeIdPart(customerAddress)}${cardId ? `_${sanitizeIdPart(cardId)}` : ""}`;
+  return resolvedId.endsWith(idSuffix)
+    ? resolvedId.slice(0, resolvedId.length - idSuffix.length)
+    : loyaltyClassId(cafeRow.address);
+}
+
+function buildLoyaltyClassPayload(cafeRow, appsBaseUrl, classId) {
   const cafeId = cafeRow.id;
   const cafeName = cafeRow.name || "Kaffeekarte";
   const cardTheme = cafeRow.card_theme || "paper";
@@ -158,7 +177,7 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl) {
       : `${base}/assets/app-icon-mark.png`;
 
   return {
-    id: loyaltyClassId(cafeRow.address),
+    id: classId || loyaltyClassId(cafeRow.address),
     // "Kaffeekarte" here added no value and just took up the prominent
     // header slot - the cafe's own name reads better there, even though
     // programName repeats it below (Google's header layout is fixed, no
@@ -232,6 +251,17 @@ function buildLoyaltyObjectPayload({
   customerEmail,
   customerId,
   cardNumber,
+  // Overrides the freshly-computed loyaltyObjectId() below - needed when
+  // patching an object that already exists (see patchLoyaltyObjectStamps):
+  // the id formula changed once already (cafe.id -> cafe.address, to fix a
+  // staging/prod collision), and objects created under the old formula
+  // still only exist on Google's side under their *original* id. Always
+  // recomputing fresh here would silently patch a different, phantom
+  // object the customer never actually saved to their wallet - confirmed
+  // live: a real customer's stamp count stopped updating entirely the
+  // moment that formula changed, with no error anywhere (Google 200s a
+  // patch to an id nobody saved just fine, it just creates an orphan).
+  objectId,
 }) {
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
   const remaining = Math.max(threshold - clampedStamps, 0);
@@ -263,9 +293,11 @@ function buildLoyaltyObjectPayload({
     `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
     (cardId ? `&cardId=${encodeURIComponent(cardId)}` : "");
 
+  const resolvedId = objectId || loyaltyObjectId(cafeRow.address, customerAddress, cardId);
+
   return {
-    id: loyaltyObjectId(cafeRow.address, customerAddress, cardId),
-    classId: loyaltyClassId(cafeRow.address),
+    id: resolvedId,
+    classId: resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId),
     state: "ACTIVE",
     accountId: customerAddress,
     accountName: customerName || undefined,
@@ -342,9 +374,28 @@ function buildLoyaltyObjectPayload({
 // Called when the customer taps "Add to Google Wallet". Google creates the
 // class/object from what's embedded in the JWT the first time it sees these
 // ids - no separate insert() call needed before this.
-function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber }) {
+//
+// objectId must be the caller's already-resolved google_wallet_objects row
+// id (getOrCreateGoogleWalletObject's return value), not left to default -
+// re-tapping "Add to Google Wallet" for a (customer, cafe, card) that
+// already has a tracked row (e.g. the customer deleted and re-added the
+// pass) must keep targeting that SAME object, or Google creates a second,
+// differently-id'd object while our DB keeps patching the original one
+// going forward, and the customer's newly-(re)saved pass never updates
+// again. Confirmed live: happened immediately after the objectId/classId
+// patch-time fix below, on the very next "delete and re-add".
+function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customerName, cardId, barcodeMessage, appsBaseUrl, isRedeemed, customerEmail, customerId, cardNumber, objectId }) {
   const account = loadServiceAccount();
-  const loyaltyClass = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
+  // Must declare the SAME class the object below will reference - Google's
+  // save flow itself breaks otherwise (see resolveClassIdForObject's
+  // comment): declaring one class while the object points at a different,
+  // undeclared one showed up live as a generic "Ein Problem ist
+  // aufgetreten" on Google's own save page, not an error from our server.
+  const loyaltyClass = buildLoyaltyClassPayload(
+    cafeRow,
+    appsBaseUrl,
+    resolveClassIdForObject(cafeRow, customerAddress, cardId, objectId),
+  );
   const loyaltyObject = buildLoyaltyObjectPayload({
     cafeRow,
     customerAddress,
@@ -359,6 +410,7 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
     customerEmail,
     customerId,
     cardNumber,
+    objectId,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -387,10 +439,21 @@ function buildSaveLink({ cafeRow, program, stampCount, customerAddress, customer
 // Cafe profile edits (color, logo, name) live on the class, which every
 // customer's object references - one patch updates it for everyone at once,
 // unlike Apple where each device needs its own push.
-async function patchLoyaltyClassForCafe(cafeRow, appsBaseUrl) {
+// classId override needed for the same reason as everywhere else in this
+// file: a cafe whose objects predate the cafe.id -> cafe.address migration
+// has its *real*, customer-visible class under the old id, not the one this
+// would compute fresh. Called once per distinct classId actually in use
+// (see notifyGoogleWalletClassForCafe in server.cjs) - patching only the
+// fresh one left every legacy object's class (name/logo/color) frozen at
+// whatever it was when first created, never picking up later profile edits.
+// Confirmed live: a cafe's Google Wallet card kept showing an old test
+// name and color from months ago, long after the dashboard had been
+// updated repeatedly - every one of those edits had been patching a class
+// no customer's object actually referenced.
+async function patchLoyaltyClassForCafe(cafeRow, appsBaseUrl, classId) {
   if (!isGoogleWalletConfigured()) return;
   try {
-    const payload = buildLoyaltyClassPayload(cafeRow, appsBaseUrl);
+    const payload = buildLoyaltyClassPayload(cafeRow, appsBaseUrl, classId);
     await patchWalletResource(`loyaltyClass/${payload.id}`, payload);
   } catch (err) {
     console.warn("Failed to patch Google Wallet loyalty class:", err.message || err);
@@ -413,6 +476,11 @@ async function patchLoyaltyObjectStamps({
   customerEmail,
   customerId,
   cardNumber,
+  // The object's actual, already-saved id (google_wallet_objects.object_id)
+  // - see the comment on buildLoyaltyObjectPayload's objectId param. Falls
+  // back to the freshly-computed id only when the caller doesn't have an
+  // existing row yet (e.g. a brand-new save link).
+  objectId,
 }) {
   if (!isGoogleWalletConfigured()) return;
   try {
@@ -431,6 +499,7 @@ async function patchLoyaltyObjectStamps({
       customerEmail,
       customerId,
       cardNumber,
+      objectId,
     });
     await patchWalletResource(`loyaltyObject/${payload.id}`, payload);
   } catch (err) {
@@ -446,4 +515,9 @@ module.exports = {
   // Needed by server.cjs to get-or-create the tracking row *before* calling
   // buildSaveLink, so the redeem-token resolver has something to read/write.
   loyaltyObjectId,
+  // Needed by notifyGoogleWalletClassForCafe to find every distinct class a
+  // cafe's existing objects actually reference, so a profile edit (name,
+  // logo, color) patches all of them, not just the one freshly computed
+  // from the cafe's current address.
+  resolveClassIdForObject,
 };

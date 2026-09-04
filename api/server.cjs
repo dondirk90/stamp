@@ -2223,6 +2223,7 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
         customerEmail: customerRow ? customerRow.email : null,
         customerId: customerRow ? customerRow.customer_id : null,
         cardNumber,
+        objectId: objectRow.object_id,
       });
     }
   } catch (err) {
@@ -2240,11 +2241,29 @@ async function notifyGoogleWalletPassUpdated(customerAddress, cafeAddress) {
 async function notifyGoogleWalletClassForCafe(cafeRow) {
   if (!googleWalletPass.isGoogleWalletConfigured()) return;
   const appsBaseUrl = process.env.APPS_BASE_URL || "";
-  await googleWalletPass.patchLoyaltyClassForCafe(cafeRow, appsBaseUrl);
 
   try {
     const objectRows = await listGoogleWalletObjectsByCafe.all(cafeRow.id);
     const program = getCafeProgramSettings(cafeRow);
+
+    // Patch every distinct class this cafe's *existing* objects actually
+    // reference - not just the one freshly computed from the cafe's current
+    // address. A cafe whose objects predate the cafe.id -> cafe.address
+    // migration has its real, customer-visible class under the old id;
+    // patching only the fresh one left it frozen at whatever it was first
+    // created with (confirmed live: a stale test name/color kept showing
+    // despite repeated dashboard edits). Always includes the current/fresh
+    // id too, so the class is ready for the next customer who saves new.
+    const classIds = new Set([googleWalletPass.resolveClassIdForObject(cafeRow, "", null, null)]);
+    for (const row of objectRows) {
+      classIds.add(
+        googleWalletPass.resolveClassIdForObject(cafeRow, row.customer_address, row.card_id, row.object_id),
+      );
+    }
+    for (const classId of classIds) {
+      await googleWalletPass.patchLoyaltyClassForCafe(cafeRow, appsBaseUrl, classId);
+    }
+
     for (const row of objectRows) {
       const customerRow = await getCustomerByAddress.get(row.customer_address);
       const stampCount = await getStampsByCafeUserCardId(
@@ -2283,6 +2302,7 @@ async function notifyGoogleWalletClassForCafe(cafeRow) {
         customerEmail: customerRow ? customerRow.email : null,
         customerId: customerRow ? customerRow.customer_id : null,
         cardNumber,
+        objectId: row.object_id,
       });
     }
   } catch (err) {
@@ -3200,7 +3220,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
       // objects it already knows about), leaving the card frozen at
       // whatever this one snapshot said forever. Confirmed live.
       const objectId = googleWalletPass.loyaltyObjectId(cafeRow.address, customerAddress, newCardId);
-      await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
+      const objectRow = await getOrCreateGoogleWalletObject(customerAddress, cafeRow.id, newCardId, objectId);
       const { saveUrl } = googleWalletPass.buildSaveLink({
         cafeRow,
         program,
@@ -3213,6 +3233,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
         customerEmail: customerRow.email || null,
         customerId: customerRow.customer_id || null,
         cardNumber,
+        objectId: objectRow.object_id,
       });
       googleSaveUrl = saveUrl;
     }
@@ -6538,8 +6559,11 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       stampCount,
       threshold: program.stampsForReward,
       currentToken: objectRow.active_redeem_token || null,
+      // objectRow.object_id, not the freshly-computed objectId above - same
+      // stale-id trap as everywhere else here, this row may predate the
+      // cafe.id -> cafe.address id migration.
       persistToken: (token) =>
-        setGoogleWalletObjectRedeemToken.run(token, objectId),
+        setGoogleWalletObjectRedeemToken.run(token, objectRow.object_id),
       isRedeemed,
     });
 
@@ -6556,6 +6580,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
       customerEmail: customerRow?.email || null,
       customerId: customerRow?.customer_id || null,
       cardNumber,
+      objectId: objectRow.object_id,
     });
 
     res.json({ ok: true, saveUrl });

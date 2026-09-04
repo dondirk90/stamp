@@ -802,7 +802,6 @@
         width: 100%;
         margin-top: 0;
         padding: 10px 12px;
-        background: transparent;
         color: var(--text);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
@@ -810,12 +809,28 @@
         font-weight: 900;
       }
 
-      .stamp-presets button:hover {
-        background: var(--surface-muted);
+      /* !important + ID-scoped selector needed: theme.css's global
+         legacy-button override (button:not(.secondary):not(.ghost):
+         not(.miniBtn):not(.passMain){background:var(--brand) !important})
+         has specificity (0,4,1) from its four :not() classes - higher than
+         a plain .stamp-presets button (0,1,1) even with matching
+         !important, so it kept winning. #stampPresets (an ID) beats it
+         regardless of class count. Without this, near-white preset text
+         renders on the near-white --brand background that rule forces -
+         invisible/washed-out preset numbers. */
+      #stampPresets button {
+        background: transparent !important;
       }
 
-      .stamp-presets button.active {
-        background: var(--brand);
+      #stampPresets button:hover {
+        background: var(--surface-muted) !important;
+      }
+
+      /* ID-scoped for the same reason as #stampPresets button above - needs
+         to outrank that rule's own !important transparent, not just
+         theme.css's. */
+      #stampPresets button.active {
+        background: var(--brand) !important;
         color: var(--on-brand, white);
         border-color: transparent;
       }
@@ -1180,6 +1195,32 @@
           gap: 12px;
         }
 
+        /* Note: whichever screen is active gets its `display` force-set to
+           "block" inline by navigateToCafeView() (see the script below), so
+           the display:flex/justify-content above never actually takes
+           effect while a screen is showing - only while both are hidden.
+           #videoContainer below is sized directly with a calc() height for
+           that reason, not via flex-grow. */
+
+        /* The scan screen's whole job is the camera - it gets to fill
+           essentially all the available height instead of leaving a large
+           empty gap between the (width-constrained, so height-constrained
+           too) camera card and the bottom tab bar. #scannerScreen renders
+           as a plain block (see note above), so this is a direct height
+           budget rather than a flex-grow that would never apply here.
+           305px accounts for: topbar + its top/bottom clearance, the
+           panel's own top padding, .scannerMain/.scannerStage's padding
+           and margin, and the floating "Kamera pausieren" button's own
+           height plus a clear gap above the fixed bottom tab bar -
+           measured empirically against the live page, not derived from
+           the individual box's declared paddings alone (several of which
+           come from a shared flex rule that never actually applies here,
+           see note above). */
+        #scannerScreen #videoContainer {
+          height: calc(100svh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 305px);
+          min-height: 320px;
+        }
+
         #homeScreen .homeGrid,
         #homeScreen .menuInfo,
         #homePending,
@@ -1229,9 +1270,19 @@
           padding: 0;
         }
 
-        #video {
-          aspect-ratio: 3 / 4;
-          max-height: min(68svh, 620px);
+        /* #videoContainer now has an explicit calc() height (see above)
+           instead of an aspect-ratio - #video just fills it and crops via
+           object-fit rather than leaving letterboxed space. Scoped under
+           #scannerScreen (not a bare #video) so its specificity beats the
+           later, unconditional #video{aspect-ratio:4/5} rule further down
+           this stylesheet - equal specificity would otherwise let source
+           order pick that one, silently undoing this on mobile. */
+        #scannerScreen #video {
+          width: 100%;
+          height: 100%;
+          aspect-ratio: unset;
+          max-height: none;
+          object-fit: cover;
         }
 
         .scan-overlay {
@@ -3898,6 +3949,22 @@
       function goToScanner() {
         setDrawerOpen(false);
         setUtilityMenuOpen(false);
+        // Explicitly navigating to the scanner is itself an "I want to scan
+        // now" signal (see the comment in showView()) - but showView() only
+        // auto-starts the camera when no customer is loaded, and a customer
+        // can still be sitting cached here from an earlier scan (e.g.
+        // restored via last_scanned_customer on login, or simply left over
+        // from before this navigation). Clear it first so the camera always
+        // comes on, matching what the button visually promises.
+        if (scannedCustomer) {
+          scannedCustomer = null;
+          pendingScan = null;
+          pendingAction = "stamp";
+          localStorage.removeItem("last_scanned_customer");
+          if (customerInfo) customerInfo.style.display = "none";
+          setCustomerLoadedUi(false);
+          applyActionUi();
+        }
         navigateToCafeView("scan");
       }
 
@@ -5891,7 +5958,7 @@
         function updateAwardButtonLabel() {
           if (!awardBtn) return;
           if (isRedeem) {
-            awardBtn.textContent = "Einlösen";
+            awardBtn.textContent = "Ein Getränk ausgeben 🙂";
             return;
           }
           if (isReset) {
@@ -5899,7 +5966,7 @@
             return;
           }
           const v = updateStampUiFromValue() || 1;
-          awardBtn.textContent = `Freigeben (${v})`;
+          awardBtn.textContent = `${v} Stempel vergeben`;
         }
 
         if (scanTitle) {
@@ -5942,7 +6009,7 @@
             } catch (e) {}
             try {
               if (awardBtn && pendingAction === "stamp") {
-                awardBtn.textContent = `Freigeben (${amt})`;
+                awardBtn.textContent = `${amt} Stempel vergeben`;
               }
             } catch (e) {}
           } catch (e) {}
@@ -6648,6 +6715,14 @@
           }
         }
 
+        function hasPendingScan() {
+          try {
+            return !!new URLSearchParams(window.location.search).get("customer");
+          } catch (e) {
+            return false;
+          }
+        }
+
         function markSeen() {
           try {
             localStorage.setItem(STORAGE_KEY, "1");
@@ -6739,6 +6814,11 @@
             if (!isMobileBrowser()) return;
             if (isStandalone()) return;
             if (wasSeen()) return;
+            // A scanned customer QR (?customer=...) means the barista is
+            // mid-action - the approval screen needs to appear immediately,
+            // not get blocked by a promotional interstitial they have to
+            // dismiss first. Show it another time instead.
+            if (hasPendingScan()) return;
             openInstallHint();
           }, 900);
         });
