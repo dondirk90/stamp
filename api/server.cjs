@@ -5053,17 +5053,60 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       return (a.name || "").localeCompare(b.name || "");
     });
 
+    const appleWalletByCustomer = new Map();
+    for (const row of await db
+      .prepare(
+        `SELECT wp.customer_address AS customer_address,
+           COUNT(DISTINCT wp.cafe_id) AS downloaded_cafes,
+           COUNT(DISTINCT CASE WHEN wr.serial_number IS NOT NULL THEN wp.cafe_id END) AS active_cafes
+         FROM wallet_passes wp
+         LEFT JOIN wallet_registrations wr ON wr.serial_number = wp.serial_number
+         GROUP BY wp.customer_address`,
+      )
+      .all()) {
+      appleWalletByCustomer.set(String(row.customer_address).toLowerCase(), {
+        downloadedCafes: Number(row.downloaded_cafes || 0),
+        activeCafes: Number(row.active_cafes || 0),
+      });
+    }
+
+    const googleWalletByCustomer = new Map();
+    for (const row of await db
+      .prepare(
+        `SELECT customer_address AS customer_address, COUNT(DISTINCT cafe_id) AS cafes
+         FROM google_wallet_objects
+         GROUP BY customer_address`,
+      )
+      .all()) {
+      googleWalletByCustomer.set(
+        String(row.customer_address).toLowerCase(),
+        Number(row.cafes || 0),
+      );
+    }
+
     const registeredCustomers = (await listCustomers.all())
-      .map((row) => ({
-        id: row.id != null ? Number(row.id) : null,
-        customerId: row.customer_id || null,
-        username: row.username || null,
-        email: row.email || null,
-        address: row.address || null,
-        createdAt: row.created_at != null ? Number(row.created_at) : null,
-        emailVerifiedAt:
-          row.email_verified_at != null ? Number(row.email_verified_at) : null,
-      }))
+      .map((row) => {
+        const addrKey = row.address ? String(row.address).toLowerCase() : "";
+        const apple = appleWalletByCustomer.get(addrKey) || {
+          downloadedCafes: 0,
+          activeCafes: 0,
+        };
+        return {
+          id: row.id != null ? Number(row.id) : null,
+          customerId: row.customer_id || null,
+          username: row.username || null,
+          email: row.email || null,
+          address: row.address || null,
+          createdAt: row.created_at != null ? Number(row.created_at) : null,
+          emailVerifiedAt:
+            row.email_verified_at != null
+              ? Number(row.email_verified_at)
+              : null,
+          walletAppleActiveCafes: apple.activeCafes,
+          walletAppleDownloadedCafes: apple.downloadedCafes,
+          walletGoogleCafes: googleWalletByCustomer.get(addrKey) || 0,
+        };
+      })
       .sort((a, b) => {
         const bCreated = b.createdAt || 0;
         const aCreated = a.createdAt || 0;
