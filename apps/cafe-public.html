@@ -72,39 +72,6 @@
         overflow: hidden;
       }
 
-      .hero img {
-        width: 100%;
-        height: 260px;
-        object-fit: cover;
-        display: block;
-        background: var(--surface-muted);
-      }
-
-      @media (min-width: 860px) {
-        .hero img {
-          height: 340px;
-        }
-      }
-
-      .gallery {
-        display: none;
-        gap: 10px;
-        overflow-x: auto;
-        padding: 14px clamp(22px, 4vw, 36px) 0;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .thumb {
-        width: 110px;
-        height: 76px;
-        border-radius: 14px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-        object-fit: cover;
-        flex: 0 0 auto;
-        cursor: pointer;
-      }
-
       .profileBody {
         padding: clamp(22px, 4vw, 36px);
         display: grid;
@@ -182,20 +149,12 @@
         max-width: 62ch;
       }
 
-      .factsGrid {
+      /* Bewusst schlicht: keine Box-Karten mehr fuer Belohnung/Standort/Links,
+         nur ruhige, gestapelte Textzeilen - passt zum "kurzer Text + Link"
+         Minimalismus, ohne die Infos ganz zu verlieren. */
+      .profileMeta {
         display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      }
-
-      .factCard {
-        padding: 16px 18px;
-        border-radius: 20px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.6);
-        display: grid;
-        gap: 6px;
-        align-content: start;
+        gap: 10px;
       }
 
       .factLabel {
@@ -254,11 +213,6 @@
       <div class="card card--hairline profileCard">
         <div id="error" class="notice danger" style="display: none; margin: 20px"></div>
 
-        <div class="hero" id="heroWrap" style="display: none">
-          <img id="heroImg" alt="Café Bild" />
-        </div>
-        <div class="gallery" id="gallery"></div>
-
         <div class="profileBody">
           <div class="profileHead">
             <div class="logo" id="logoWrap" style="display: none">
@@ -280,16 +234,16 @@
             </div>
           </div>
 
-          <div class="factsGrid">
-            <div class="factCard" id="rewardCard" style="display: none">
+          <div class="profileMeta">
+            <div id="rewardCard" style="display: none">
               <div class="factLabel">Belohnung</div>
               <div class="factValue" id="rewardValue"></div>
             </div>
-            <div class="factCard" id="locationCard" style="display: none">
+            <div id="locationCard" style="display: none">
               <div class="factLabel">Standort</div>
               <div class="factValue" id="locationValue"></div>
             </div>
-            <div class="factCard" id="linksCard" style="display: none">
+            <div id="linksCard" style="display: none">
               <div class="factLabel">Mehr vom Café</div>
               <div class="factValue" id="linksValue"></div>
             </div>
@@ -356,33 +310,6 @@
           .replace(/'/g, "&#39;");
       }
 
-      function formatRichText(raw) {
-        const src = String(raw || "");
-        if (!src.trim()) return "";
-        const lines = src.split(/\r?\n/);
-        const out = [];
-        for (const line of lines) {
-          const trimmed = String(line || "").trim();
-          if (!trimmed) {
-            out.push('<div style="height:10px"></div>');
-            continue;
-          }
-          let style = "font-weight:500;font-size:15px;line-height:1.6";
-          let content = trimmed;
-          if (/^##\s+/.test(content)) {
-            style = "font-weight:900;font-size:17px;line-height:1.25";
-            content = content.replace(/^##\s+/, "");
-          } else if (/^#\s+/.test(content)) {
-            style = "font-weight:900;font-size:20px;line-height:1.2";
-            content = content.replace(/^#\s+/, "");
-          }
-          let safe = escapeHtml(content);
-          safe = safe.replace(/\*\*([^*][\s\S]*?)\*\*/g, "<strong>$1</strong>");
-          out.push(`<div style="${style}">${safe}</div>`);
-        }
-        return out.join("");
-      }
-
       function normalizeAddr(v) {
         return v ? String(v).toLowerCase() : "";
       }
@@ -438,39 +365,6 @@
         if (!el) return;
         el.textContent = msg || "";
         el.style.display = msg ? "block" : "none";
-      }
-
-      function setHero(src) {
-        const wrap = document.getElementById("heroWrap");
-        const img = document.getElementById("heroImg");
-        if (!wrap || !img) return;
-        if (!src) {
-          wrap.style.display = "none";
-          img.removeAttribute("src");
-          return;
-        }
-        img.src = src;
-        wrap.style.display = "block";
-      }
-
-      function renderGallery(list) {
-        const g = document.getElementById("gallery");
-        if (!g) return;
-        g.innerHTML = "";
-        const arr = Array.isArray(list) ? list : [];
-        if (arr.length <= 1) {
-          g.style.display = "none";
-          return;
-        }
-        for (const src of arr) {
-          const img = document.createElement("img");
-          img.className = "thumb";
-          img.alt = "Café Bild";
-          img.src = src;
-          img.addEventListener("click", () => setHero(src));
-          g.appendChild(img);
-        }
-        g.style.display = "flex";
       }
 
       (async function boot() {
@@ -582,11 +476,17 @@
             }
           }
 
-          const about = cafe.about ? String(cafe.about).trim() : "";
+          // Kurzbeschreibung zuerst (das ist das neue Minimal-Profil), lange
+          // "Ueber uns"-Texte aelterer Cafe-Profile bleiben als Fallback
+          // sichtbar statt plötzlich leer zu wirken.
+          const shortDesc = cafe.shortDescription
+            ? String(cafe.shortDescription).trim()
+            : "";
+          const about = shortDesc || (cafe.about ? String(cafe.about).trim() : "");
           const aboutEl = document.getElementById("about");
           const aboutEmpty = document.getElementById("aboutEmpty");
           if (aboutEl) {
-            aboutEl.innerHTML = formatRichText(about);
+            aboutEl.textContent = about;
             aboutEl.style.display = about ? "block" : "none";
           }
           if (aboutEmpty) aboutEmpty.style.display = about ? "none" : "block";
@@ -597,18 +497,6 @@
             redeemEl.style.display = "none";
           }
 
-
-          // Hero/gallery prefer real photos; avoid using the logo as the hero image.
-          const images = [];
-          if (Array.isArray(cafe.images)) {
-            for (const x of cafe.images) {
-              if (!x) continue;
-              const s = String(x);
-              if (s && !images.includes(s)) images.push(s);
-            }
-          }
-          setHero(images[0] || logo || "");
-          renderGallery(images.length ? images : logo ? [logo] : []);
 
           const cafeAddress = cafe.cafeAddress ? String(cafe.cafeAddress) : "";
           const addBtn = document.getElementById("addBtn");

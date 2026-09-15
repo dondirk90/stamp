@@ -4803,10 +4803,15 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       lastActivityTs: null,
       lastStampTs: null,
       lastRedemptionTs: null,
+      walletAppleDownloaded: 0,
+      walletAppleActive: 0,
+      walletApplePushDevices: 0,
+      walletGoogleAdded: 0,
     });
 
     const results = [];
     const cafeByAddress = new Map();
+    const cafeById = new Map();
 
     for (const row of cafeRows) {
       const resolvedAddress = row.address || null;
@@ -4827,6 +4832,9 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       results.push(entry);
       if (resolvedAddress) {
         cafeByAddress.set(resolvedAddress.toLowerCase(), entry);
+      }
+      if (row.id != null) {
+        cafeById.set(Number(row.id), entry);
       }
     }
 
@@ -4959,6 +4967,46 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       });
     }
 
+    // Apple: wallet_passes rows exist once a .pkpass is downloaded, but only
+    // a matching wallet_registrations row (written by Apple's own PassKit
+    // web service when the device actually adds/removes the pass) confirms
+    // it really ended up in the customer's Wallet. Google has no such
+    // confirmation callback, so google_wallet_objects only tells us the save
+    // flow was started, not completed.
+    const appleWalletRows = await db
+      .prepare(
+        `SELECT wp.cafe_id AS cafe_id,
+           COUNT(DISTINCT wp.customer_address) AS downloaded,
+           COUNT(DISTINCT CASE WHEN wr.serial_number IS NOT NULL THEN wp.customer_address END) AS active,
+           COUNT(DISTINCT wr.device_library_identifier) AS push_devices
+         FROM wallet_passes wp
+         LEFT JOIN wallet_registrations wr ON wr.serial_number = wp.serial_number
+         GROUP BY wp.cafe_id`,
+      )
+      .all();
+
+    for (const row of appleWalletRows) {
+      const entry = cafeById.get(Number(row.cafe_id));
+      if (!entry) continue;
+      entry.stats.walletAppleDownloaded = Number(row.downloaded || 0);
+      entry.stats.walletAppleActive = Number(row.active || 0);
+      entry.stats.walletApplePushDevices = Number(row.push_devices || 0);
+    }
+
+    const googleWalletRows = await db
+      .prepare(
+        `SELECT cafe_id AS cafe_id, COUNT(DISTINCT customer_address) AS added
+         FROM google_wallet_objects
+         GROUP BY cafe_id`,
+      )
+      .all();
+
+    for (const row of googleWalletRows) {
+      const entry = cafeById.get(Number(row.cafe_id));
+      if (!entry) continue;
+      entry.stats.walletGoogleAdded = Number(row.added || 0);
+    }
+
     const rawEvents = await db
       .prepare(
         'SELECT id, ts, cafe, "user" as user, customer_name, txhash, event_type, delta FROM stamp_events ORDER BY ts DESC LIMIT ?',
@@ -5005,17 +5053,60 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       return (a.name || "").localeCompare(b.name || "");
     });
 
+    const appleWalletByCustomer = new Map();
+    for (const row of await db
+      .prepare(
+        `SELECT wp.customer_address AS customer_address,
+           COUNT(DISTINCT wp.cafe_id) AS downloaded_cafes,
+           COUNT(DISTINCT CASE WHEN wr.serial_number IS NOT NULL THEN wp.cafe_id END) AS active_cafes
+         FROM wallet_passes wp
+         LEFT JOIN wallet_registrations wr ON wr.serial_number = wp.serial_number
+         GROUP BY wp.customer_address`,
+      )
+      .all()) {
+      appleWalletByCustomer.set(String(row.customer_address).toLowerCase(), {
+        downloadedCafes: Number(row.downloaded_cafes || 0),
+        activeCafes: Number(row.active_cafes || 0),
+      });
+    }
+
+    const googleWalletByCustomer = new Map();
+    for (const row of await db
+      .prepare(
+        `SELECT customer_address AS customer_address, COUNT(DISTINCT cafe_id) AS cafes
+         FROM google_wallet_objects
+         GROUP BY customer_address`,
+      )
+      .all()) {
+      googleWalletByCustomer.set(
+        String(row.customer_address).toLowerCase(),
+        Number(row.cafes || 0),
+      );
+    }
+
     const registeredCustomers = (await listCustomers.all())
-      .map((row) => ({
-        id: row.id != null ? Number(row.id) : null,
-        customerId: row.customer_id || null,
-        username: row.username || null,
-        email: row.email || null,
-        address: row.address || null,
-        createdAt: row.created_at != null ? Number(row.created_at) : null,
-        emailVerifiedAt:
-          row.email_verified_at != null ? Number(row.email_verified_at) : null,
-      }))
+      .map((row) => {
+        const addrKey = row.address ? String(row.address).toLowerCase() : "";
+        const apple = appleWalletByCustomer.get(addrKey) || {
+          downloadedCafes: 0,
+          activeCafes: 0,
+        };
+        return {
+          id: row.id != null ? Number(row.id) : null,
+          customerId: row.customer_id || null,
+          username: row.username || null,
+          email: row.email || null,
+          address: row.address || null,
+          createdAt: row.created_at != null ? Number(row.created_at) : null,
+          emailVerifiedAt:
+            row.email_verified_at != null
+              ? Number(row.email_verified_at)
+              : null,
+          walletAppleActiveCafes: apple.activeCafes,
+          walletAppleDownloadedCafes: apple.downloadedCafes,
+          walletGoogleCafes: googleWalletByCustomer.get(addrKey) || 0,
+        };
+      })
       .sort((a, b) => {
         const bCreated = b.createdAt || 0;
         const aCreated = a.createdAt || 0;
