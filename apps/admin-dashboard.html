@@ -640,6 +640,22 @@
           (sum, c) => sum + (c.stats?.uniqueCustomers || 0),
           0,
         );
+        const totalWalletAppleActive = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.walletAppleActive || 0),
+          0,
+        );
+        const totalWalletAppleDownloaded = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.walletAppleDownloaded || 0),
+          0,
+        );
+        const totalWalletApplePushDevices = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.walletApplePushDevices || 0),
+          0,
+        );
+        const totalWalletGoogleAdded = data.cafes.reduce(
+          (sum, c) => sum + (c.stats?.walletGoogleAdded || 0),
+          0,
+        );
         const registeredCustomers = Array.isArray(data.customers)
           ? data.customers.length
           : 0;
@@ -678,6 +694,18 @@
           <div class="summary-card">
             <div class="summary-label">Aktive Kunden gesamt</div>
             <div class="summary-value">${formatNumber(totalCustomers)}</div>
+          </div>
+          <div class="summary-card" title="Bestätigt durch Apples PassKit-Webservice, d.h. wirklich zu Apple Wallet hinzugefügt (${formatNumber(
+            totalWalletAppleDownloaded,
+          )} Pässe generiert, davon aktiv). ${formatNumber(
+            totalWalletApplePushDevices,
+          )} erreichbare Geräte.">
+            <div class="summary-label">Wallet-Pass aktiv (Apple)</div>
+            <div class="summary-value">${formatNumber(totalWalletAppleActive)}</div>
+          </div>
+          <div class="summary-card" title="Google bestätigt nicht serverseitig, ob der Save-Flow abgeschlossen wurde - Zahl zeigt gestartete/abgeschlossene Speicherungen.">
+            <div class="summary-label">Wallet-Pass hinzugefügt (Google)</div>
+            <div class="summary-value">${formatNumber(totalWalletGoogleAdded)}</div>
           </div>
           <div class="summary-card">
             <div class="summary-label">Registrierte Kunden</div>
@@ -737,6 +765,16 @@
                   <td>${formatNumber(stats.stampsAwarded)}</td>
                   <td>${formatNumber(stats.stampsRedeemed)}</td>
                   <td>${formatNumber(stats.netStamps)}</td>
+                  <td title="${formatNumber(
+                    stats.walletAppleActive,
+                  )} aktiv von ${formatNumber(
+                    stats.walletAppleDownloaded,
+                  )} generierten Pässen, ${formatNumber(
+                    stats.walletApplePushDevices,
+                  )} erreichbare Geräte">${formatNumber(
+                    stats.walletAppleActive,
+                  )} / ${formatNumber(stats.walletAppleDownloaded)}</td>
+                  <td>${formatNumber(stats.walletGoogleAdded)}</td>
                   <td>${formatDate(stats.lastActivityTs)}</td>
                 </tr>
               `;
@@ -744,7 +782,7 @@
             .join("") ||
           `
             <tr>
-              <td colspan="10" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="12" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Cafés gefunden
               </td>
             </tr>
@@ -764,6 +802,8 @@
                   <th>Vergeben</th>
                   <th>Eingelöst</th>
                   <th>Saldo</th>
+                  <th title="Aktiv (bestätigt durch Apple) / generierte Pässe">Wallet Apple</th>
+                  <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet Google</th>
                   <th>Zuletzt aktiv</th>
                 </tr>
               </thead>

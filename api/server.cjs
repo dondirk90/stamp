@@ -4803,10 +4803,15 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       lastActivityTs: null,
       lastStampTs: null,
       lastRedemptionTs: null,
+      walletAppleDownloaded: 0,
+      walletAppleActive: 0,
+      walletApplePushDevices: 0,
+      walletGoogleAdded: 0,
     });
 
     const results = [];
     const cafeByAddress = new Map();
+    const cafeById = new Map();
 
     for (const row of cafeRows) {
       const resolvedAddress = row.address || null;
@@ -4827,6 +4832,9 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       results.push(entry);
       if (resolvedAddress) {
         cafeByAddress.set(resolvedAddress.toLowerCase(), entry);
+      }
+      if (row.id != null) {
+        cafeById.set(Number(row.id), entry);
       }
     }
 
@@ -4957,6 +4965,46 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         lastRedemptionTs:
           row.last_redeem_ts != null ? Number(row.last_redeem_ts) : null,
       });
+    }
+
+    // Apple: wallet_passes rows exist once a .pkpass is downloaded, but only
+    // a matching wallet_registrations row (written by Apple's own PassKit
+    // web service when the device actually adds/removes the pass) confirms
+    // it really ended up in the customer's Wallet. Google has no such
+    // confirmation callback, so google_wallet_objects only tells us the save
+    // flow was started, not completed.
+    const appleWalletRows = await db
+      .prepare(
+        `SELECT wp.cafe_id AS cafe_id,
+           COUNT(DISTINCT wp.customer_address) AS downloaded,
+           COUNT(DISTINCT CASE WHEN wr.serial_number IS NOT NULL THEN wp.customer_address END) AS active,
+           COUNT(DISTINCT wr.device_library_identifier) AS push_devices
+         FROM wallet_passes wp
+         LEFT JOIN wallet_registrations wr ON wr.serial_number = wp.serial_number
+         GROUP BY wp.cafe_id`,
+      )
+      .all();
+
+    for (const row of appleWalletRows) {
+      const entry = cafeById.get(Number(row.cafe_id));
+      if (!entry) continue;
+      entry.stats.walletAppleDownloaded = Number(row.downloaded || 0);
+      entry.stats.walletAppleActive = Number(row.active || 0);
+      entry.stats.walletApplePushDevices = Number(row.push_devices || 0);
+    }
+
+    const googleWalletRows = await db
+      .prepare(
+        `SELECT cafe_id AS cafe_id, COUNT(DISTINCT customer_address) AS added
+         FROM google_wallet_objects
+         GROUP BY cafe_id`,
+      )
+      .all();
+
+    for (const row of googleWalletRows) {
+      const entry = cafeById.get(Number(row.cafe_id));
+      if (!entry) continue;
+      entry.stats.walletGoogleAdded = Number(row.added || 0);
     }
 
     const rawEvents = await db
