@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Kaffeekarte für Cafés - Ein Werkzeug für den Caféalltag</title>
+    <title>Kaffeekarte für Cafés - Die Stempelkarte in Apple & Google Wallet</title>
     <meta
       name="description"
-      content="Digitale Stammkarten für unabhängige Cafés: ein Klick zum QR, eigene Karte pflegen, gemacht für echte Schichten."
+      content="Digitale Stammkarten für unabhängige Cafés: kein App-Download für deine Gäste, die Karte lebt direkt in Apple Wallet und Google Wallet - mit deinem Logo, deiner Farbe."
     />
     <link rel="stylesheet" href="/theme.css?v=20260712b" />
     <style>
@@ -184,6 +184,70 @@
         margin-bottom: 8px;
       }
 
+      /* Dark contrast anchor, same role as the guest landing's manifesto
+         panel (BRAND.md: "Dark = Arbeit", one deliberate dark panel breaks
+         up the otherwise light marketing page) - here it carries the
+         "why Wallet" argument instead of the brand manifesto. */
+      .walletShowcase {
+        padding: clamp(40px, 7vw, 76px) clamp(24px, 6vw, 76px);
+        border-radius: 34px;
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: clamp(32px, 5vw, 56px);
+        align-items: center;
+        background:
+          radial-gradient(circle at 84% -4%, rgba(213, 173, 132, 0.18), rgba(213, 173, 132, 0) 44%),
+          linear-gradient(165deg, rgba(44, 30, 21, 0.94) 0%, rgba(33, 23, 18, 0.95) 56%, rgba(25, 16, 9, 0.97) 100%),
+          url("/assets/coffee-beans-hero.jpg");
+        background-size: cover;
+        background-position: center 30%;
+        color: rgba(255, 247, 239, 0.94);
+        box-shadow: 0 28px 56px rgba(40, 24, 14, 0.2);
+      }
+
+      .walletShowcase .sectionKicker {
+        color: rgba(242, 228, 216, 0.52);
+      }
+
+      .walletShowcase h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(34px, 4.6vw, 52px);
+        line-height: 1;
+        letter-spacing: -0.045em;
+        color: rgba(255, 247, 239, 0.96);
+      }
+
+      .walletShowcase p {
+        margin: 14px 0 0;
+        max-width: 46ch;
+        font-size: 17px;
+        line-height: 1.65;
+        color: rgba(242, 228, 216, 0.78);
+      }
+
+      .walletShowcaseClaim {
+        margin-top: 18px;
+        font-family: var(--font-serif);
+        font-size: 20px;
+        letter-spacing: -0.02em;
+        color: #d9b48d;
+      }
+
+      .walletShowcaseImage {
+        display: grid;
+        justify-items: center;
+      }
+
+      .walletShowcaseImage img {
+        width: 100%;
+        max-width: 320px;
+        border-radius: 20px;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      }
+
       .footerNote {
         margin-bottom: 14px;
         color: rgba(59, 42, 31, 0.7);
@@ -207,6 +271,18 @@
       @media (max-width: 1080px) {
         .grid {
           grid-template-columns: 1fr;
+        }
+
+        .walletShowcase {
+          grid-template-columns: 1fr;
+        }
+
+        .walletShowcaseImage {
+          order: -1;
+        }
+
+        .walletShowcaseImage img {
+          max-width: 220px;
         }
       }
 
@@ -255,12 +331,12 @@
 
       <section class="heroCard">
         <div class="sectionKicker">Für Cafés</div>
-        <h1 class="heroTitle">Ein Werkzeug für den Caféalltag.</h1>
+        <h1 class="heroTitle">Deine Karte. In jedem Wallet.</h1>
         <span class="accentRule" aria-hidden="true"></span>
         <p class="heroLead">
-          QR zeigen, Karten und Verwaltung leben in derselben ruhigen Oberfläche.
-          Schnell genug für die Theke, hochwertig genug fürs Produktgefühl –
-          gemacht für echte Schichten, nicht für Folien.
+          Kein App-Download, keine Anmeldung an der Theke. Deine Gäste
+          scannen einmal – danach lebt die Stempelkarte direkt in Apple
+          Wallet oder Google Wallet, mit deinem Logo und deiner Farbe.
         </p>
         <div class="heroActions">
           <a class="btn primary" href="/cafe-onboarding">Café registrieren</a>
@@ -271,19 +347,32 @@
       <section class="section section--divider">
         <div class="editorialGrid">
           <div class="editorialIndex">01</div>
-          <div class="grid" aria-label="Vorteile">
-            <article class="panel">
-              <h2>Ein Klick zum QR</h2>
-              <p>Keine Umwege, keine Theken-Hektik. Der Arbeitsmodus zeigt genau das, was an der Theke gebraucht wird.</p>
-            </article>
-            <article class="panel">
-              <h2>Eigene Karte pflegen</h2>
-              <p>Reward, Beschreibung, Website und Bild an einem Ort – deine Karte sieht so aus, wie dein Café sich anfühlt.</p>
-            </article>
-            <article class="panel">
-              <h2>Stammgäste, die wiederkommen</h2>
-              <p>Deine Gäste sammeln Stempel digital statt auf Papier und haben dein Café immer dabei.</p>
-            </article>
+          <div class="walletShowcase">
+            <div>
+              <div class="sectionKicker">Warum Wallet</div>
+              <h2>Keine App.<br />Keine Reibung.</h2>
+              <p>
+                Eine eigene App verlangt Download, Account, Speicherplatz –
+                für eine Stempelkarte ist das zu viel Hürde. Wallet kennt
+                jeder, es ist auf jedem Handy schon installiert.
+              </p>
+              <p>
+                Ein QR-Scan genügt. Die Karte landet dort, wo Gäste ohnehin
+                hinschauen: auf dem Sperrbildschirm, direkt neben Bordkarte
+                und Ticket.
+              </p>
+              <div class="walletShowcaseClaim">
+                Good coffee deserves better loyalty.
+              </div>
+            </div>
+            <div class="walletShowcaseImage">
+              <img
+                src="/assets/wallet-pass-example.png"
+                alt="Beispiel einer Kaffeekarte-Stempelkarte in Apple Wallet"
+                width="640"
+                height="400"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -291,6 +380,40 @@
       <section class="section section--divider">
         <div class="editorialGrid">
           <div class="editorialIndex">02</div>
+          <div class="grid" aria-label="Wallet-Vorteile">
+            <article class="panel">
+              <div class="panelNo">01</div>
+              <h2>Kein Download</h2>
+              <p>
+                Ein QR-Code, ein Scan – die Karte ist sofort im Wallet. Kein
+                App Store, kein Passwort, keine zweite App auf dem
+                Homescreen deiner Gäste.
+              </p>
+            </article>
+            <article class="panel">
+              <div class="panelNo">02</div>
+              <h2>Bleibt automatisch aktuell</h2>
+              <p>
+                Jeder Stempel aktualisiert die Karte in Echtzeit. Ist sie
+                voll, bekommt dein Gast eine Mitteilung direkt auf dem
+                Sperrbildschirm – ganz ohne dein Zutun.
+              </p>
+            </article>
+            <article class="panel">
+              <div class="panelNo">03</div>
+              <h2>Sieht aus wie dein Café</h2>
+              <p>
+                Eigenes Logo, eigene Farbe, eigene Prämie – keine generische
+                Vorlage. Die Karte trägt deine Handschrift, nicht unsere.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--divider">
+        <div class="editorialGrid">
+          <div class="editorialIndex">03</div>
           <div class="grid" aria-label="So startest du">
             <article class="panel">
               <div class="panelNo">1</div>
@@ -305,7 +428,10 @@
             <article class="panel">
               <div class="panelNo">3</div>
               <h2>QR an die Theke</h2>
-              <p>Gäste zeigen ihren QR, du stempelst. Mehr braucht der Alltag nicht.</p>
+              <p>
+                Gäste zeigen ihren QR, du stempelst – die Karte aktualisiert
+                sich in Apple und Google Wallet von selbst.
+              </p>
             </article>
           </div>
         </div>
@@ -313,7 +439,7 @@
 
       <p class="footerNote section section--divider">
         Kaffeekarte ist für unabhängige Cafés gebaut: weniger Software,
-        mehr Cafégefühl – und Gäste, die gerne wiederkommen.
+        mehr Cafégefühl – und Gäste, die ihre Karte nie wieder verlieren.
       </p>
       <div class="footerLinks" aria-label="Weitere Seiten">
         <a href="/">Für Gäste</a>
