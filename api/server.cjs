@@ -5069,6 +5069,95 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       entry.stats.walletGoogleAdded = Number(row.added || 0);
     }
 
+    // Customers who have a wallet pass for a cafe but have never actually
+    // been stamped there don't show up in entry.customers at all (that list
+    // comes purely from stamp_events) - surface them separately so "loaded
+    // the pass, never got a stamp" isn't invisible in the dashboard.
+    const allCustomerRows = await listCustomers.all();
+    const customerNameByAddress = new Map();
+    for (const row of allCustomerRows) {
+      if (row.address) {
+        customerNameByAddress.set(
+          String(row.address).toLowerCase(),
+          row.username || null,
+        );
+      }
+    }
+
+    const walletOnlyByCafe = new Map();
+    function addWalletOnlyCandidate(cafeId, address, createdAt, walletApple, walletGoogle) {
+      const entry = cafeById.get(Number(cafeId));
+      if (!entry) return;
+      const key = String(address).toLowerCase();
+      if (entry._stampedCustomerKeys.has(key)) return; // already has real stamp activity
+      if (!walletOnlyByCafe.has(entry)) walletOnlyByCafe.set(entry, new Map());
+      const byCustomer = walletOnlyByCafe.get(entry);
+      const existing = byCustomer.get(key);
+      if (existing) {
+        existing.walletApple = existing.walletApple || walletApple;
+        existing.walletGoogle = existing.walletGoogle || walletGoogle;
+        existing.createdAt = Math.min(existing.createdAt, createdAt);
+      } else {
+        byCustomer.set(key, {
+          user: address,
+          customerName: customerNameByAddress.get(key) || null,
+          walletApple,
+          walletGoogle,
+          createdAt,
+        });
+      }
+    }
+
+    for (const entry of results) {
+      entry._stampedCustomerKeys = new Set(
+        entry.customers.map((c) => String(c.user).toLowerCase()),
+      );
+    }
+
+    const applyWalletRows = await db
+      .prepare(
+        `SELECT wp.cafe_id AS cafe_id, wp.customer_address AS customer_address,
+           MIN(wp.created_at) AS created_at
+         FROM wallet_passes wp
+         GROUP BY wp.cafe_id, wp.customer_address`,
+      )
+      .all();
+    for (const row of applyWalletRows) {
+      addWalletOnlyCandidate(
+        row.cafe_id,
+        row.customer_address,
+        Number(row.created_at || 0),
+        true,
+        false,
+      );
+    }
+
+    const googleWalletCustomerRows = await db
+      .prepare(
+        `SELECT cafe_id AS cafe_id, customer_address AS customer_address,
+           MIN(created_at) AS created_at
+         FROM google_wallet_objects
+         GROUP BY cafe_id, customer_address`,
+      )
+      .all();
+    for (const row of googleWalletCustomerRows) {
+      addWalletOnlyCandidate(
+        row.cafe_id,
+        row.customer_address,
+        Number(row.created_at || 0),
+        false,
+        true,
+      );
+    }
+
+    for (const entry of results) {
+      const byCustomer = walletOnlyByCafe.get(entry);
+      entry.walletOnlyCustomers = byCustomer
+        ? Array.from(byCustomer.values()).sort((a, b) => b.createdAt - a.createdAt)
+        : [];
+      delete entry._stampedCustomerKeys;
+    }
+
     const rawEvents = await db
       .prepare(
         'SELECT id, ts, cafe, "user" as user, customer_name, txhash, event_type, delta FROM stamp_events ORDER BY ts DESC LIMIT ?',
@@ -5146,7 +5235,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       );
     }
 
-    const registeredCustomers = (await listCustomers.all())
+    const registeredCustomers = allCustomerRows
       .map((row) => {
         const addrKey = row.address ? String(row.address).toLowerCase() : "";
         const apple = appleWalletByCustomer.get(addrKey) || {
@@ -5188,6 +5277,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         createdAt: entry.createdAt,
         stats: entry.stats,
         customers: entry.customers,
+        walletOnlyCustomers: entry.walletOnlyCustomers || [],
         events: entry.events,
         isUnknown: entry.isUnknown || false,
       })),
