@@ -843,6 +843,19 @@
               lastActivityTs: c.lastActivityTs,
             });
           }
+          // Wallet-Pass geladen, aber noch nie gestempelt - taucht in
+          // cafe.customers nicht auf (das kommt nur aus stamp_events), muss
+          // hier aber trotzdem als Café mit 0 Stempeln erscheinen.
+          for (const c of cafe.walletOnlyCustomers || []) {
+            if (!c.user) continue;
+            const key = String(c.user).toLowerCase();
+            if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
+            cafesByCustomer.get(key).push({
+              name: cafe.name || "Unbenanntes Café",
+              netStamps: 0,
+              lastActivityTs: null,
+            });
+          }
         }
 
         const customersOverviewRows =
