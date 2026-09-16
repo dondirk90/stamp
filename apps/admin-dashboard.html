@@ -831,6 +831,20 @@
           </div>
         `;
 
+        const cafesByCustomer = new Map();
+        for (const cafe of data.cafes || []) {
+          for (const c of cafe.customers || []) {
+            if (!c.user) continue;
+            const key = String(c.user).toLowerCase();
+            if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
+            cafesByCustomer.get(key).push({
+              name: cafe.name || "Unbenanntes Café",
+              netStamps: c.netStamps || 0,
+              lastActivityTs: c.lastActivityTs,
+            });
+          }
+        }
+
         const customersOverviewRows =
           (data.customers || [])
             .map((customer) => {
@@ -857,6 +871,21 @@
                 customer.walletGoogleCafes,
                 false,
               );
+              const cafeCards = customer.address
+                ? cafesByCustomer.get(String(customer.address).toLowerCase()) || []
+                : [];
+              const cafeChips = cafeCards.length
+                ? cafeCards
+                    .map(
+                      (c) =>
+                        `<span class="badge badge-neutral" title="Zuletzt aktiv: ${escapeHtml(
+                          formatDate(c.lastActivityTs),
+                        )}">${escapeHtml(c.name)} (${formatNumber(
+                          c.netStamps,
+                        )})</span>`,
+                    )
+                    .join(" ")
+                : "—";
               return `
                 <tr>
                   <td>${username}</td>
@@ -866,13 +895,14 @@
                   <td>${walletAddress}</td>
                   <td>${walletApple}</td>
                   <td>${walletGoogle}</td>
+                  <td>${cafeChips}</td>
                 </tr>
               `;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="7" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="8" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Kunden gefunden
               </td>
             </tr>
@@ -890,6 +920,7 @@
                   <th>Wallet</th>
                   <th title="Bestätigt durch Apples PassKit-Webservice">Wallet-Pass Apple</th>
                   <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet-Pass Google</th>
+                  <th title="Stempelstand pro Café. Basiert auf den pro Café geladenen Kunden (Kundenlimit oben) - bei Cafés mit mehr Kunden als dem Limit können hier vereinzelt Karten fehlen.">Cafés</th>
                 </tr>
               </thead>
               <tbody>
