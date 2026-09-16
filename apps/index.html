@@ -232,10 +232,27 @@
         gap: 16px;
       }
 
+      /* Each mini card stands in for a real Wallet pass, so it carries a
+         real card color instead of a flat neutral background - "your card
+         looks like this once it's in Apple/Google Wallet" only reads if it
+         actually looks like a colored pass, not a gray list row. Two
+         different themes across the two example cards also shows that
+         every café gets its own color, not one shared template. */
       .miniCard {
         padding: 18px;
         border-radius: 24px;
-        background: rgba(255, 255, 255, 0.55);
+        background: var(--mini-bg);
+        color: var(--mini-fg);
+      }
+
+      .miniCard[data-mini-theme="brand"] {
+        --mini-bg: #4a3728;
+        --mini-fg: #f7f4ef;
+      }
+
+      .miniCard[data-mini-theme="terracotta"] {
+        --mini-bg: #b96b52;
+        --mini-fg: #ffffff;
       }
 
       .miniTop,
@@ -251,7 +268,8 @@
         font-weight: 900;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.6);
+        color: var(--mini-fg);
+        opacity: 0.72;
       }
 
       .miniMeta {
@@ -264,7 +282,7 @@
         display: grid;
         place-items: center;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.92);
       }
 
       .miniLogo img {
@@ -277,11 +295,13 @@
         font-size: 30px;
         line-height: 0.95;
         letter-spacing: -0.05em;
+        color: var(--mini-fg);
       }
 
       .miniSub {
         margin: 8px 0 0;
-        color: rgba(59, 42, 31, 0.74);
+        color: var(--mini-fg);
+        opacity: 0.76;
       }
 
       .miniProgress {
@@ -297,7 +317,8 @@
         gap: 10px;
         font-size: 12px;
         font-weight: 800;
-        color: rgba(59, 42, 31, 0.7);
+        color: var(--mini-fg);
+        opacity: 0.86;
       }
 
       .beanRow {
@@ -309,11 +330,11 @@
       .bean {
         aspect-ratio: 1;
         border-radius: 999px;
-        background: rgba(81, 58, 40, 0.12);
+        background: color-mix(in srgb, var(--mini-fg) 22%, transparent);
       }
 
       .bean.filled {
-        background: var(--color-coffee);
+        background: var(--mini-fg);
       }
 
       .mockupFooter {
@@ -623,7 +644,7 @@
               <span class="mockupMenu"></span>
             </div>
             <div class="mockupScreen">
-  <div class="miniCard" data-featured-card="0">
+  <div class="miniCard" data-mini-theme="brand" data-featured-card="0">
     <div class="miniTop">
       <span>Deine Lieblingscaf&eacute;s</span>
       <span>3 Karten</span>
@@ -653,7 +674,7 @@
     </div>
   </div>
 
-  <div class="miniCard miniCardSecondary" data-featured-card="1">
+  <div class="miniCard miniCardSecondary" data-mini-theme="terracotta" data-featured-card="1">
     <div class="miniTop">
       <span>Bereit fürs Caf&eacute;</span>
       <span>Im Caf&eacute; zeigen</span>
