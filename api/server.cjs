@@ -4424,7 +4424,8 @@ app.post("/admin/logo-preview", requireAdminKey, async (req, res) => {
       fgColor: fg,
       standee: `data:image/png;base64,${images.standee.toString("base64")}`,
       registration: `data:image/png;base64,${images.registration.toString("base64")}`,
-      walletPass: `data:image/png;base64,${images.walletPass.toString("base64")}`,
+      walletPassApple: `data:image/png;base64,${images.walletPassApple.toString("base64")}`,
+      walletPassGoogle: `data:image/png;base64,${images.walletPassGoogle.toString("base64")}`,
     });
   } catch (err) {
     console.error("Error in /admin/logo-preview:", err);

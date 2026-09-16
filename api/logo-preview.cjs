@@ -352,12 +352,38 @@ async function renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }) {
 }
 
 const PASS_W = 640;
-const PASS_H = 400;
 
-// Uses the real production stamp-strip renderer (same code the actual
-// Wallet pass uses) so this one piece of the mockup is pixel-real, not
-// approximated - only the surrounding card shape is a stand-in.
-async function renderWalletPassMockup({ logoBuffer, cafeName, bg, fg }) {
+async function buildPreviewQr(size) {
+  const dataUrl = await QRCode.toDataURL("https://kaffeekarte.app/wallet", {
+    width: size * 3,
+    margin: 0,
+    errorCorrectionLevel: "M",
+    color: { dark: "#1a1a1a", light: "#ffffff" },
+  });
+  return sharp(Buffer.from(dataUrl.split(",")[1], "base64"))
+    .resize(size, size)
+    .png()
+    .toBuffer();
+}
+
+// Small self-identifying badge baked into the corner of each mockup - these
+// images get downloaded and shared individually, so "which wallet is this"
+// has to survive outside the admin tool's own labeled UI.
+function platformBadgeSvg(x, y, label, fg) {
+  const w = label.length * 6.4 + 34;
+  return `<g>
+    <rect x="${x}" y="${y}" width="${w}" height="22" rx="11" fill="${fg}" opacity="0.14" />
+    <text x="${x + w / 2}" y="${y + 15}" text-anchor="middle" font-family="${FONT_SANS}" font-size="11" font-weight="700" letter-spacing="0.04em" fill="${fg}">${escapeXml(label)}</text>
+  </g>`;
+}
+
+// Apple Wallet Store Card, laid out exactly like the real pass this app
+// issues (see buildPassJson in wallet-pass.cjs): logo top-left, the same
+// stamp-strip image as the strip image, "cafeName" as the secondary field
+// centered under it, "remaining" as the smaller auxiliary field under that,
+// then the QR barcode - no invented layout, just that structure with
+// placeholder data.
+async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
   const colors = walletPass.resolveThemeColors(null, bg, fg);
   const stripBuffer = await walletPass.buildStampStripPngBuffer(
     6,
@@ -368,48 +394,131 @@ async function renderWalletPassMockup({ logoBuffer, cafeName, bg, fg }) {
     false,
   );
   const stripMeta = await sharp(stripBuffer).metadata();
+  const stripTargetW = PASS_W - 80;
+  const stripH = Math.round((stripMeta.height / stripMeta.width) * stripTargetW);
+  const qrSize = 108;
 
-  const textTopY = logoBuffer ? 130 : 70;
-  const cardNameSvg = `<text x="40" y="${textTopY}" font-family="${FONT_SANS}" font-size="24" font-weight="700" fill="${colors.fg}">${escapeXml(cafeName || "Café")}</text>`;
-  const rewardLabelSvg = `<text x="40" y="${textTopY + 26}" font-family="${FONT_SANS}" font-size="13" fill="${colors.fg}" opacity="0.75">6 von 10 Stempeln</text>`;
+  let y = 36;
+  const logoTop = y;
+  y += 40 + 16; // logo height + gap
+  const stripTop = y;
+  y += stripH + 34;
+  const secondaryY = y;
+  y += 22;
+  const auxiliaryY = y;
+  y += 30;
+  const qrBoxTop = y;
+  y += qrSize + 28 + 28; // box padding + bottom margin
+  const passH = y;
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PASS_W}" height="${PASS_H}">
-    <rect x="0" y="0" width="${PASS_W}" height="${PASS_H}" rx="28" fill="${colors.bg}" />
-    ${cardNameSvg}
-    ${rewardLabelSvg}
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PASS_W}" height="${passH}">
+    <rect x="0" y="0" width="${PASS_W}" height="${passH}" rx="24" fill="${colors.bg}" />
+    ${platformBadgeSvg(PASS_W - 130, 24, "APPLE WALLET", colors.fg)}
+    <text x="${PASS_W / 2}" y="${secondaryY}" text-anchor="middle" font-family="${FONT_SANS}" font-size="19" font-weight="700" fill="${colors.fg}">${escapeXml(cafeName || "Café")}</text>
+    <text x="${PASS_W / 2}" y="${auxiliaryY}" text-anchor="middle" font-family="${FONT_SANS}" font-size="13" fill="${colors.fg}" opacity="0.75">noch 4</text>
+    <rect x="${PASS_W / 2 - qrSize / 2 - 14}" y="${qrBoxTop}" width="${qrSize + 28}" height="${qrSize + 28}" rx="16" fill="#ffffff" />
   </svg>`;
 
   const composites = [];
   if (logoBuffer) {
     const logo = await sharp(logoBuffer)
-      .resize(160, 50, { fit: "inside", withoutEnlargement: true })
+      .resize(140, 40, { fit: "inside", withoutEnlargement: true })
       .png()
       .toBuffer();
-    composites.push({ input: logo, left: 40, top: 40 });
+    composites.push({ input: logo, left: 40, top: logoTop });
   }
 
-  const stripTargetW = PASS_W - 80;
   const stripResized = await sharp(stripBuffer)
-    .resize(stripTargetW, Math.round((stripMeta.height / stripMeta.width) * stripTargetW))
+    .resize(stripTargetW, stripH)
     .png()
     .toBuffer();
-  const stripResizedMeta = await sharp(stripResized).metadata();
+  composites.push({ input: stripResized, left: 40, top: stripTop });
+
+  const qr = await buildPreviewQr(qrSize);
   composites.push({
-    input: stripResized,
-    left: 40,
-    top: PASS_H - stripResizedMeta.height - 40,
+    input: qr,
+    left: Math.round(PASS_W / 2 - qrSize / 2),
+    top: qrBoxTop + 14,
+  });
+
+  return sharp(Buffer.from(svg)).composite(composites).png().toBuffer();
+}
+
+// Google Wallet loyalty card: logo + issuerName/programName inline in the
+// header (Google's fixed header layout - no centered-title override exists,
+// see the comment in google-wallet-pass.cjs's buildLoyaltyClassPayload),
+// the "remaining" text as the front-card row Google's cardTemplateOverride
+// defines, then the hero/strip image (shown once the pass is opened) and
+// the barcode.
+async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
+  const colors = walletPass.resolveThemeColors(null, bg, fg);
+  const stripBuffer = await walletPass.buildStampStripPngBuffer(
+    6,
+    10,
+    colors.bg,
+    colors.fg,
+    "bean",
+    false,
+  );
+  const stripMeta = await sharp(stripBuffer).metadata();
+  const stripTargetW = PASS_W - 80;
+  const stripH = Math.round((stripMeta.height / stripMeta.width) * stripTargetW);
+  const qrSize = 108;
+  const headerTextX = logoBuffer ? 100 : 40;
+
+  let y = 46;
+  const logoTop = y - 14;
+  const nameY = y;
+  y += 34;
+  const remainingY = y;
+  y += 34;
+  const stripTop = y;
+  y += stripH + 34;
+  const qrBoxTop = y;
+  y += qrSize + 28 + 28;
+  const passH = y;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PASS_W}" height="${passH}">
+    <rect x="0" y="0" width="${PASS_W}" height="${passH}" rx="16" fill="${colors.bg}" />
+    ${platformBadgeSvg(PASS_W - 140, 24, "GOOGLE WALLET", colors.fg)}
+    <text x="${headerTextX}" y="${nameY}" font-family="${FONT_SANS}" font-size="21" font-weight="700" fill="${colors.fg}">${escapeXml(cafeName || "Café")}</text>
+    <text x="${headerTextX}" y="${remainingY}" font-family="${FONT_SANS}" font-size="14" fill="${colors.fg}" opacity="0.8">noch 4 Stempel</text>
+    <rect x="${PASS_W / 2 - qrSize / 2 - 14}" y="${qrBoxTop}" width="${qrSize + 28}" height="${qrSize + 28}" rx="16" fill="#ffffff" />
+  </svg>`;
+
+  const composites = [];
+  if (logoBuffer) {
+    const logo = await sharp(logoBuffer)
+      .resize(48, 48, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    composites.push({ input: logo, left: 40, top: logoTop });
+  }
+
+  const stripResized = await sharp(stripBuffer)
+    .resize(stripTargetW, stripH)
+    .png()
+    .toBuffer();
+  composites.push({ input: stripResized, left: 40, top: stripTop });
+
+  const qr = await buildPreviewQr(qrSize);
+  composites.push({
+    input: qr,
+    left: Math.round(PASS_W / 2 - qrSize / 2),
+    top: qrBoxTop + 14,
   });
 
   return sharp(Buffer.from(svg)).composite(composites).png().toBuffer();
 }
 
 async function renderPreviewImages({ logoBuffer, cafeName, rewardText, bg, fg }) {
-  const [standee, registration, walletPassImg] = await Promise.all([
+  const [standee, registration, walletPassApple, walletPassGoogle] = await Promise.all([
     renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg }),
     renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }),
-    renderWalletPassMockup({ logoBuffer, cafeName, bg, fg }),
+    renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }),
+    renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }),
   ]);
-  return { standee, registration, walletPass: walletPassImg };
+  return { standee, registration, walletPassApple, walletPassGoogle };
 }
 
 module.exports = {
