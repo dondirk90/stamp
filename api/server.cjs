@@ -29,6 +29,7 @@ const jwt = require("jsonwebtoken");
 const jwksRsa = require("jwks-rsa");
 const walletPass = require("./wallet-pass.cjs");
 const googleWalletPass = require("./google-wallet-pass.cjs");
+const logoPreview = require("./logo-preview.cjs");
 
 const { z } = require("zod");
 
@@ -4372,6 +4373,67 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   );
 });
 
+// Sales-demo helper: given just a logo (no cafe row exists yet), auto-detect
+// a brand color and render mockup images of the standee, registration
+// screen, and wallet pass, so a prospect can be shown "this is what it'd
+// look like for you" before they sign up. Nothing here touches the DB.
+app.post("/admin/logo-preview", requireAdminKey, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawLogo = body.logoDataUrl;
+    if (!rawLogo) {
+      return res.status(400).json({ ok: false, error: "logo_required" });
+    }
+    const m =
+      /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+        String(rawLogo),
+      );
+    if (!m) {
+      return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+    }
+    const base64 = String(m[3] || "").replace(/\s+/g, "");
+    if (base64.length > 1_500_000) {
+      return res.status(413).json({ ok: false, error: "logo_too_large" });
+    }
+    const logoBuffer = Buffer.from(base64, "base64");
+
+    const cafeName = String(body.cafeName || "").trim().slice(0, 80) || null;
+    const rewardText =
+      String(body.rewardText || "").trim().slice(0, 120) || null;
+
+    const hexRe = /^#[0-9a-f]{6}$/i;
+    let bg = hexRe.test(body.bgColor || "") ? body.bgColor : null;
+    let fg = hexRe.test(body.fgColor || "") ? body.fgColor : null;
+    if (!bg || !fg) {
+      const detected = await logoPreview.extractColorsFromLogo(logoBuffer);
+      bg = bg || detected.bg;
+      fg = fg || detected.fg;
+    }
+
+    const images = await logoPreview.renderPreviewImages({
+      logoBuffer,
+      cafeName,
+      rewardText,
+      bg,
+      fg,
+    });
+
+    res.json({
+      ok: true,
+      bgColor: bg,
+      fgColor: fg,
+      standee: `data:image/png;base64,${images.standee.toString("base64")}`,
+      registration: `data:image/png;base64,${images.registration.toString("base64")}`,
+      walletPass: `data:image/png;base64,${images.walletPass.toString("base64")}`,
+    });
+  } catch (err) {
+    console.error("Error in /admin/logo-preview:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
 // Manually re-patches a customer's Google Wallet object with the current
 // stamp count/profile - useful for support ("card looks stale, resync it")
 // and to test the PATCH path without needing to award a real stamp.
@@ -5007,6 +5069,95 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       entry.stats.walletGoogleAdded = Number(row.added || 0);
     }
 
+    // Customers who have a wallet pass for a cafe but have never actually
+    // been stamped there don't show up in entry.customers at all (that list
+    // comes purely from stamp_events) - surface them separately so "loaded
+    // the pass, never got a stamp" isn't invisible in the dashboard.
+    const allCustomerRows = await listCustomers.all();
+    const customerNameByAddress = new Map();
+    for (const row of allCustomerRows) {
+      if (row.address) {
+        customerNameByAddress.set(
+          String(row.address).toLowerCase(),
+          row.username || null,
+        );
+      }
+    }
+
+    const walletOnlyByCafe = new Map();
+    function addWalletOnlyCandidate(cafeId, address, createdAt, walletApple, walletGoogle) {
+      const entry = cafeById.get(Number(cafeId));
+      if (!entry) return;
+      const key = String(address).toLowerCase();
+      if (entry._stampedCustomerKeys.has(key)) return; // already has real stamp activity
+      if (!walletOnlyByCafe.has(entry)) walletOnlyByCafe.set(entry, new Map());
+      const byCustomer = walletOnlyByCafe.get(entry);
+      const existing = byCustomer.get(key);
+      if (existing) {
+        existing.walletApple = existing.walletApple || walletApple;
+        existing.walletGoogle = existing.walletGoogle || walletGoogle;
+        existing.createdAt = Math.min(existing.createdAt, createdAt);
+      } else {
+        byCustomer.set(key, {
+          user: address,
+          customerName: customerNameByAddress.get(key) || null,
+          walletApple,
+          walletGoogle,
+          createdAt,
+        });
+      }
+    }
+
+    for (const entry of results) {
+      entry._stampedCustomerKeys = new Set(
+        entry.customers.map((c) => String(c.user).toLowerCase()),
+      );
+    }
+
+    const applyWalletRows = await db
+      .prepare(
+        `SELECT wp.cafe_id AS cafe_id, wp.customer_address AS customer_address,
+           MIN(wp.created_at) AS created_at
+         FROM wallet_passes wp
+         GROUP BY wp.cafe_id, wp.customer_address`,
+      )
+      .all();
+    for (const row of applyWalletRows) {
+      addWalletOnlyCandidate(
+        row.cafe_id,
+        row.customer_address,
+        Number(row.created_at || 0),
+        true,
+        false,
+      );
+    }
+
+    const googleWalletCustomerRows = await db
+      .prepare(
+        `SELECT cafe_id AS cafe_id, customer_address AS customer_address,
+           MIN(created_at) AS created_at
+         FROM google_wallet_objects
+         GROUP BY cafe_id, customer_address`,
+      )
+      .all();
+    for (const row of googleWalletCustomerRows) {
+      addWalletOnlyCandidate(
+        row.cafe_id,
+        row.customer_address,
+        Number(row.created_at || 0),
+        false,
+        true,
+      );
+    }
+
+    for (const entry of results) {
+      const byCustomer = walletOnlyByCafe.get(entry);
+      entry.walletOnlyCustomers = byCustomer
+        ? Array.from(byCustomer.values()).sort((a, b) => b.createdAt - a.createdAt)
+        : [];
+      delete entry._stampedCustomerKeys;
+    }
+
     const rawEvents = await db
       .prepare(
         'SELECT id, ts, cafe, "user" as user, customer_name, txhash, event_type, delta FROM stamp_events ORDER BY ts DESC LIMIT ?',
@@ -5084,7 +5235,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       );
     }
 
-    const registeredCustomers = (await listCustomers.all())
+    const registeredCustomers = allCustomerRows
       .map((row) => {
         const addrKey = row.address ? String(row.address).toLowerCase() : "";
         const apple = appleWalletByCustomer.get(addrKey) || {
@@ -5126,6 +5277,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         createdAt: entry.createdAt,
         stats: entry.stats,
         customers: entry.customers,
+        walletOnlyCustomers: entry.walletOnlyCustomers || [],
         events: entry.events,
         isUnknown: entry.isUnknown || false,
       })),

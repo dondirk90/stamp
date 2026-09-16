@@ -843,6 +843,19 @@
               lastActivityTs: c.lastActivityTs,
             });
           }
+          // Wallet-Pass geladen, aber noch nie gestempelt - taucht in
+          // cafe.customers nicht auf (das kommt nur aus stamp_events), muss
+          // hier aber trotzdem als Café mit 0 Stempeln erscheinen.
+          for (const c of cafe.walletOnlyCustomers || []) {
+            if (!c.user) continue;
+            const key = String(c.user).toLowerCase();
+            if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
+            cafesByCustomer.get(key).push({
+              name: cafe.name || "Unbenanntes Café",
+              netStamps: 0,
+              lastActivityTs: null,
+            });
+          }
         }
 
         const customersOverviewRows =
@@ -1029,6 +1042,35 @@
                   </td>
                 </tr>`;
 
+            const walletOnlyCustomers = cafe.walletOnlyCustomers || [];
+            const walletOnlyRows =
+              walletOnlyCustomers
+                .map((cust) => {
+                  const customerAddr = cust.user
+                    ? `<span class="address" title="${escapeHtml(
+                        cust.user,
+                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                    : "—";
+                  const nameCell = cust.customerName
+                    ? escapeHtml(cust.customerName)
+                    : "—";
+                  const appleCell = cust.walletApple
+                    ? '<span class="badge badge-neutral">Apple</span>'
+                    : "—";
+                  const googleCell = cust.walletGoogle
+                    ? '<span class="badge badge-neutral">Google</span>'
+                    : "—";
+                  return `
+                  <tr>
+                    <td>${customerAddr}</td>
+                    <td>${nameCell}</td>
+                    <td>${appleCell}</td>
+                    <td>${googleCell}</td>
+                    <td>${formatDate(cust.createdAt)}</td>
+                  </tr>`;
+                })
+                .join("") || "";
+
             return `
               <div class="card cafe-card">
                 <div class="cafe-header">
@@ -1113,6 +1155,29 @@
                     </tbody>
                   </table>
                 </div>
+
+                ${
+                  walletOnlyCustomers.length
+                    ? `
+                <div class="section-title" title="Wallet-Pass geladen (Apple bestätigt / Google ohne Bestätigung möglich), aber noch nie gestempelt - taucht deshalb oben nicht auf.">Wallet-Pass ohne Stempel (${walletOnlyCustomers.length})</div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Kunde</th>
+                        <th>Name</th>
+                        <th>Apple</th>
+                        <th>Google</th>
+                        <th>Pass erstellt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${walletOnlyRows}
+                    </tbody>
+                  </table>
+                </div>`
+                    : ""
+                }
               </div>`;
           })
           .join("");
