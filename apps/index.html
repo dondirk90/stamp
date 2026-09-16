@@ -1082,13 +1082,12 @@
             return res.json();
           })
           .then(function (payload) {
+            // /api/cafes/public already excludes internal test/demo cafés
+            // server-side (isInternalTestCafe in server.cjs) - only a
+            // has-a-name sanity check is left to do here.
             var cafes = Array.isArray(payload && payload.cafes)
               ? payload.cafes.filter(function (cafe) {
-                  var name = cafe && String(cafe.name || "").trim();
-                  if (!name) return false;
-                  // Interne Test-Einträge gehören nicht auf die Landingpage.
-                  if (/test|debug|demo/i.test(name)) return false;
-                  return true;
+                  return !!(cafe && String(cafe.name || "").trim());
                 })
               : [];
 

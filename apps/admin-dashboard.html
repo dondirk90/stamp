@@ -396,6 +396,21 @@
           </div>
           <div id="customersOverviewContainer"></div>
         </div>
+        <div class="card">
+          <div class="section-title">Test-Cafés aufräumen</div>
+          <div class="section-subtitle">
+            Café-Einträge, deren Name "test"/"debug"/"demo" enthält oder
+            deren hinterlegte E-Mail "dirk.belger" enthält. Löschen ist
+            endgültig und entfernt auch Stempel-Events, Wallet-Pässe und
+            Sitzungen dieses Cafés.
+          </div>
+          <button class="btn btn-secondary" id="loadTestCandidatesBtn" type="button">
+            Kandidaten laden
+          </button>
+          <p class="section-subtitle" id="testCandidatesStatus"></p>
+          <div id="testCandidatesContainer"></div>
+        </div>
+
         <div id="cafesContainer"></div>
       </section>
     </div>
@@ -433,6 +448,11 @@
         cafesContainer: document.getElementById("cafesContainer"),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
+        loadTestCandidatesBtn: document.getElementById("loadTestCandidatesBtn"),
+        testCandidatesStatus: document.getElementById("testCandidatesStatus"),
+        testCandidatesContainer: document.getElementById(
+          "testCandidatesContainer",
+        ),
       };
 
       const state = {
@@ -1253,6 +1273,116 @@
         setDashboardControlsVisible(true);
         fetchActivity(true);
       }
+
+      function adminApiUrl(path) {
+        return buildApiUrl(state.config.apiBase, path);
+      }
+
+      function adminHeaders() {
+        const headers = {};
+        if (state.config && state.config.adminKey) {
+          headers["x-admin-key"] = state.config.adminKey;
+        }
+        return headers;
+      }
+
+      function renderTestCandidates(cafes) {
+        if (!cafes.length) {
+          refs.testCandidatesContainer.innerHTML = "";
+          refs.testCandidatesStatus.textContent = "Keine Test-Cafés gefunden.";
+          return;
+        }
+        refs.testCandidatesStatus.textContent = `${cafes.length} gefunden.`;
+        refs.testCandidatesContainer.innerHTML = `
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Café</th>
+                  <th>E-Mail</th>
+                  <th>Angelegt</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cafes
+                  .map(
+                    (cafe) => `
+                  <tr data-cafe-id="${cafe.id}">
+                    <td>${escapeHtml(cafe.name || "Unbenanntes Café")}</td>
+                    <td>${escapeHtml(cafe.email || "—")}</td>
+                    <td>${formatDate(cafe.createdAt)}</td>
+                    <td>
+                      <button class="btn btn-secondary deleteTestCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">
+                        Löschen
+                      </button>
+                    </td>
+                  </tr>`,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        refs.testCandidatesContainer
+          .querySelectorAll(".deleteTestCafeBtn")
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              handleDeleteTestCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+            });
+          });
+      }
+
+      async function fetchTestCandidates() {
+        if (!state.config) return;
+        refs.testCandidatesStatus.textContent = "Lade …";
+        refs.loadTestCandidatesBtn.disabled = true;
+        try {
+          const res = await fetch(adminApiUrl("/admin/cafes/test-candidates"), {
+            headers: adminHeaders(),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          renderTestCandidates(data.cafes || []);
+        } catch (err) {
+          refs.testCandidatesStatus.textContent =
+            stampUI.userSafeErrorMessage(err, "Kandidaten konnten nicht geladen werden.");
+        } finally {
+          refs.loadTestCandidatesBtn.disabled = false;
+        }
+      }
+
+      async function handleDeleteTestCafe(cafeId, cafeName) {
+        if (!state.config) return;
+        const confirmed = window.confirm(
+          `"${cafeName}" (Café #${cafeId}) endgültig löschen? Das entfernt auch alle Stempel-Events und Wallet-Pässe dieses Cafés. Nicht rückgängig zu machen.`,
+        );
+        if (!confirmed) return;
+
+        const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}`);
+        url.searchParams.set("confirm", "DELETE");
+
+        try {
+          const res = await fetch(url.toString(), {
+            method: "DELETE",
+            headers: adminHeaders(),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          fetchTestCandidates();
+        } catch (err) {
+          window.alert(
+            stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
+          );
+        }
+      }
+
+      refs.loadTestCandidatesBtn.addEventListener("click", fetchTestCandidates);
 
       refs.configForm.addEventListener("submit", handleSubmit);
       refs.advancedToggleBtn.addEventListener("click", function () {

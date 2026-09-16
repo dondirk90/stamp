@@ -371,6 +371,7 @@ const server = http.createServer((req, res) => {
   if (pathname === "/fuer-cafes") pathname = "/fuer-cafes.html";
   if (pathname === "/aufsteller") pathname = "/guest-qr-standee.html";
   if (pathname === "/cafe-join") pathname = "/cafe-join.html";
+  if (pathname === "/cafes") pathname = "/cafes.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
   if (pathname === "/cafe-public" || pathname === "/cafe-public.html")

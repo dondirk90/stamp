@@ -4373,6 +4373,83 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   );
 });
 
+// Lists cafés that look like internal test/demo accounts (see
+// isInternalTestCafe, defined with /cafes/public below) so they can be
+// reviewed before cleanup - a query, not a destructive action.
+app.get("/admin/cafes/test-candidates", requireAdminKey, async (req, res) => {
+  try {
+    const rows = await db
+      .prepare(
+        "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY id DESC",
+      )
+      .all();
+    const candidates = rows
+      .filter((row) => isInternalTestCafe(row))
+      .map((row) => ({
+        id: row.id,
+        name: row.name || null,
+        email: row.email || null,
+        cafeAddress: row.address || null,
+        locationAddress: row.location_address || null,
+        createdAt: row.created_at != null ? Number(row.created_at) : null,
+      }));
+    res.json({ ok: true, cafes: candidates });
+  } catch (err) {
+    console.error("Error in /admin/cafes/test-candidates:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Permanently deletes one café and everything tied to it (sessions, stamp
+// events, redeem tokens, QR nonces - wallet_passes/wallet_registrations/
+// google_wallet_objects cascade via their own FK on cafe_id). Same cleanup
+// sequence as the self-service /cafes/me/delete-account, just
+// admin-authenticated instead of password-gated. ?confirm=DELETE is
+// required so this can never fire from an accidental request.
+app.delete("/admin/cafes/:cafeId", requireAdminKey, async (req, res) => {
+  try {
+    const cafeId = Number(req.params.cafeId);
+    if (!Number.isFinite(cafeId)) {
+      return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+    }
+    if (String(req.query?.confirm || "") !== "DELETE") {
+      return res
+        .status(400)
+        .json({ ok: false, error: "delete_confirmation_required" });
+    }
+    const cafeRow = await getCafeById.get(cafeId);
+    if (!cafeRow) {
+      return res.status(404).json({ ok: false, error: "cafe_not_found" });
+    }
+
+    const cafeAddress =
+      cafeRow.address != null ? String(cafeRow.address).trim() : "";
+    const cafeIdText = String(cafeRow.id);
+
+    await deleteCafeSessionsByCafeId.run(cafeRow.id);
+    await deleteCafeEmailVerificationsByCafeId.run(cafeRow.id);
+    await deleteCafePasswordResetsByCafeId.run(cafeRow.id);
+    await deleteQrNoncesByCafeId.run(cafeIdText);
+    if (cafeAddress) {
+      await deleteRedeemTokensByCafeAddress.run(cafeAddress, cafeAddress);
+      await deleteStampEventsByCafeAddress.run(cafeAddress);
+    }
+    await deleteCafeById.run(cafeRow.id);
+
+    res.json({
+      ok: true,
+      deleted: { cafeId: cafeRow.id, name: cafeRow.name || null },
+    });
+  } catch (err) {
+    console.error("Error in DELETE /admin/cafes/:cafeId:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
 // Sales-demo helper: given just a logo (no cafe row exists yet), auto-detect
 // a brand color and render mockup images of the standee, registration
 // screen, and wallet pass, so a prospect can be shown "this is what it'd
@@ -6270,16 +6347,28 @@ app.get("/cafes", async (req, res) => {
   }
 });
 
+// Test/internal café rows never belong in a customer-facing list - kept
+// here as the single source of truth (rather than duplicated per consumer)
+// so every caller of /cafes/public automatically stays clean.
+function isInternalTestCafe(row) {
+  const email = String(row.email || "").toLowerCase();
+  if (email.includes("dirk.belger")) return true;
+  const name = String(row.name || "");
+  if (/test|debug|demo/i.test(name)) return true;
+  return false;
+}
+
 // Public café list (safe for customer-facing apps)
 app.get("/cafes/public", async (req, res) => {
   try {
     const rows = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
+        "SELECT id, name, email, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes ORDER BY id DESC",
       )
       .all();
 
     const cafes = rows
+      .filter((row) => !isInternalTestCafe(row))
       .map((row) => {
         const address = row.location_address || null;
         return {
@@ -6336,11 +6425,11 @@ app.get("/cafes/public/:id", async (req, res) => {
 
     const row = await db
       .prepare(
-        "SELECT id, name, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
+        "SELECT id, name, email, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
       )
       .get(id);
 
-    if (!row) {
+    if (!row || isInternalTestCafe(row)) {
       return res.status(404).json({ ok: false, error: "cafe_not_found" });
     }
 
