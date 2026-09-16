@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kaffeekarte Admin – Logo-Vorschau</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--background, var(--color-background));
+        color: var(--text);
+        font-family: var(--font-sans);
+        padding: 32px 16px 60px;
+      }
+
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: 1.7rem;
+        margin: 0 0 4px;
+      }
+
+      .sub {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        margin: 0 0 24px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px;
+        margin-bottom: 18px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .field:last-child {
+        margin-bottom: 0;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .field .hint {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      .field input[type="text"] {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: var(--color-surface-elevated, #fff);
+        color: var(--text);
+      }
+
+      .logoRow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logoPreview {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        object-fit: contain;
+        background: var(--color-surface-elevated, #fff);
+        display: none;
+      }
+
+      .row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .colorPickers {
+        display: flex;
+        gap: 20px;
+      }
+
+      .colorPickerField {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
+      .colorPickerField input[type="color"] {
+        width: 40px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+      }
+
+      .btn {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        min-height: 44px;
+        padding: 0 20px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .btn.primary {
+        background: var(--brand);
+        color: #fff;
+        width: 100%;
+      }
+
+      .btn.primary:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .statusMsg {
+        min-height: 1.2em;
+        margin-top: 12px;
+        font-size: 0.88rem;
+        color: var(--color-error);
+      }
+
+      .statusMsg[data-ok="true"] {
+        color: var(--color-success);
+      }
+
+      .results {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+      }
+
+      .resultCard {
+        display: grid;
+        gap: 10px;
+      }
+
+      .resultCard h2 {
+        font-size: 0.95rem;
+        margin: 0;
+      }
+
+      .resultCard img {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--color-surface-elevated, #fff);
+        display: block;
+      }
+
+      .resultCard a {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      .resultCard a:hover {
+        text-decoration: underline;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Logo-Vorschau (Admin)</h1>
+      <p class="sub">
+        Logo eines noch nicht angelegten Cafés hochladen und sehen, wie
+        Aufsteller, Registrierung und Wallet-Pass für dieses Café aussehen
+        würden. Nichts hiervon wird gespeichert.
+      </p>
+
+      <div class="card">
+        <div class="field">
+          <label for="logoInput"
+            >Logo <span class="hint">(quadratisch wirkt am besten)</span></label
+          >
+          <div class="logoRow">
+            <img class="logoPreview" id="logoPreview" alt="" />
+            <input id="logoInput" type="file" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="cafeNameInput">Café-Name</label>
+            <input id="cafeNameInput" type="text" placeholder="z. B. Café Impact" />
+          </div>
+          <div class="field">
+            <label for="rewardInput">Prämie <span class="hint">(optional)</span></label>
+            <input
+              id="rewardInput"
+              type="text"
+              placeholder="z. B. Gratis Kaffee ab 10 Stempeln"
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label
+            >Farbe
+            <span class="hint"
+              >(automatisch aus dem Logo erkannt, hier bei Bedarf
+              korrigierbar)</span
+            ></label
+          >
+          <div class="colorPickers">
+            <label class="colorPickerField">
+              <span>Hintergrund</span>
+              <input id="bgColorInput" type="color" value="#4a3728" />
+            </label>
+            <label class="colorPickerField">
+              <span>Text/Symbole</span>
+              <input id="fgColorInput" type="color" value="#f7f4ef" />
+            </label>
+          </div>
+        </div>
+
+        <button class="btn primary" id="generateBtn" type="button" disabled>
+          Vorschau generieren
+        </button>
+        <p class="statusMsg" id="statusMsg"></p>
+      </div>
+
+      <div class="results hidden" id="results">
+        <div class="resultCard">
+          <h2>Aufsteller</h2>
+          <img id="standeeImg" alt="Aufsteller-Vorschau" />
+          <a id="standeeDownload" download="aufsteller-vorschau.png"
+            >Bild herunterladen</a
+          >
+        </div>
+        <div class="resultCard">
+          <h2>Registrierung</h2>
+          <img id="registrationImg" alt="Registrierungs-Vorschau" />
+          <a id="registrationDownload" download="registrierung-vorschau.png"
+            >Bild herunterladen</a
+          >
+        </div>
+        <div class="resultCard">
+          <h2>Wallet-Pass</h2>
+          <img id="walletPassImg" alt="Wallet-Pass-Vorschau" />
+          <a id="walletPassDownload" download="wallet-pass-vorschau.png"
+            >Bild herunterladen</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var refs = {
+          logoInput: document.getElementById("logoInput"),
+          logoPreview: document.getElementById("logoPreview"),
+          cafeNameInput: document.getElementById("cafeNameInput"),
+          rewardInput: document.getElementById("rewardInput"),
+          bgColorInput: document.getElementById("bgColorInput"),
+          fgColorInput: document.getElementById("fgColorInput"),
+          generateBtn: document.getElementById("generateBtn"),
+          statusMsg: document.getElementById("statusMsg"),
+          results: document.getElementById("results"),
+          standeeImg: document.getElementById("standeeImg"),
+          standeeDownload: document.getElementById("standeeDownload"),
+          registrationImg: document.getElementById("registrationImg"),
+          registrationDownload: document.getElementById("registrationDownload"),
+          walletPassImg: document.getElementById("walletPassImg"),
+          walletPassDownload: document.getElementById("walletPassDownload"),
+        };
+
+        var state = {
+          logoDataUrl: null,
+          // Colors only get auto-detected once, right after upload - once
+          // the admin has (possibly) hand-adjusted them, every later
+          // regeneration must send exactly what's in the pickers, never
+          // silently re-detect and overwrite an intentional correction.
+          colorsTouchedByUser: false,
+        };
+
+        function setStatus(text, ok) {
+          refs.statusMsg.textContent = text || "";
+          if (ok) {
+            refs.statusMsg.setAttribute("data-ok", "true");
+          } else {
+            refs.statusMsg.removeAttribute("data-ok");
+          }
+        }
+
+        function generate(autoDetectColors) {
+          if (!state.logoDataUrl) return;
+          refs.generateBtn.disabled = true;
+          setStatus("Generiere Vorschau …");
+
+          var body = {
+            logoDataUrl: state.logoDataUrl,
+            cafeName: refs.cafeNameInput.value.trim(),
+            rewardText: refs.rewardInput.value.trim(),
+          };
+          if (!autoDetectColors) {
+            body.bgColor = refs.bgColorInput.value;
+            body.fgColor = refs.fgColorInput.value;
+          }
+
+          fetch("/api/admin/logo-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                throw new Error(
+                  (result.data && result.data.error) ||
+                    "Vorschau konnte nicht erzeugt werden.",
+                );
+              }
+              var data = result.data;
+              refs.bgColorInput.value = data.bgColor;
+              refs.fgColorInput.value = data.fgColor;
+
+              refs.standeeImg.src = data.standee;
+              refs.standeeDownload.href = data.standee;
+              refs.registrationImg.src = data.registration;
+              refs.registrationDownload.href = data.registration;
+              refs.walletPassImg.src = data.walletPass;
+              refs.walletPassDownload.href = data.walletPass;
+              refs.results.classList.remove("hidden");
+
+              setStatus("Vorschau aktuell.", true);
+            })
+            .catch(function (err) {
+              setStatus(err.message || "Vorschau konnte nicht erzeugt werden.");
+            })
+            .finally(function () {
+              refs.generateBtn.disabled = false;
+            });
+        }
+
+        refs.logoInput.addEventListener("change", function () {
+          var file = refs.logoInput.files && refs.logoInput.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            state.logoDataUrl = String(reader.result);
+            state.colorsTouchedByUser = false;
+            refs.logoPreview.src = state.logoDataUrl;
+            refs.logoPreview.style.display = "block";
+            refs.generateBtn.disabled = false;
+            // Fresh logo -> re-detect its color instead of keeping whatever
+            // was picked (or auto-detected) for the previous one.
+            generate(true);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        refs.bgColorInput.addEventListener("input", function () {
+          state.colorsTouchedByUser = true;
+        });
+        refs.fgColorInput.addEventListener("input", function () {
+          state.colorsTouchedByUser = true;
+        });
+
+        refs.generateBtn.addEventListener("click", function () {
+          generate(!state.colorsTouchedByUser);
+        });
+      })();
+    </script>
+  </body>
+</html>

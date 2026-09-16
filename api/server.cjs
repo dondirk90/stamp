@@ -29,6 +29,7 @@ const jwt = require("jsonwebtoken");
 const jwksRsa = require("jwks-rsa");
 const walletPass = require("./wallet-pass.cjs");
 const googleWalletPass = require("./google-wallet-pass.cjs");
+const logoPreview = require("./logo-preview.cjs");
 
 const { z } = require("zod");
 
@@ -4370,6 +4371,67 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   return res.status(result.status).json(
     result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
   );
+});
+
+// Sales-demo helper: given just a logo (no cafe row exists yet), auto-detect
+// a brand color and render mockup images of the standee, registration
+// screen, and wallet pass, so a prospect can be shown "this is what it'd
+// look like for you" before they sign up. Nothing here touches the DB.
+app.post("/admin/logo-preview", requireAdminKey, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawLogo = body.logoDataUrl;
+    if (!rawLogo) {
+      return res.status(400).json({ ok: false, error: "logo_required" });
+    }
+    const m =
+      /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+        String(rawLogo),
+      );
+    if (!m) {
+      return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+    }
+    const base64 = String(m[3] || "").replace(/\s+/g, "");
+    if (base64.length > 1_500_000) {
+      return res.status(413).json({ ok: false, error: "logo_too_large" });
+    }
+    const logoBuffer = Buffer.from(base64, "base64");
+
+    const cafeName = String(body.cafeName || "").trim().slice(0, 80) || null;
+    const rewardText =
+      String(body.rewardText || "").trim().slice(0, 120) || null;
+
+    const hexRe = /^#[0-9a-f]{6}$/i;
+    let bg = hexRe.test(body.bgColor || "") ? body.bgColor : null;
+    let fg = hexRe.test(body.fgColor || "") ? body.fgColor : null;
+    if (!bg || !fg) {
+      const detected = await logoPreview.extractColorsFromLogo(logoBuffer);
+      bg = bg || detected.bg;
+      fg = fg || detected.fg;
+    }
+
+    const images = await logoPreview.renderPreviewImages({
+      logoBuffer,
+      cafeName,
+      rewardText,
+      bg,
+      fg,
+    });
+
+    res.json({
+      ok: true,
+      bgColor: bg,
+      fgColor: fg,
+      standee: `data:image/png;base64,${images.standee.toString("base64")}`,
+      registration: `data:image/png;base64,${images.registration.toString("base64")}`,
+      walletPass: `data:image/png;base64,${images.walletPass.toString("base64")}`,
+    });
+  } catch (err) {
+    console.error("Error in /admin/logo-preview:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
 });
 
 // Manually re-patches a customer's Google Wallet object with the current
