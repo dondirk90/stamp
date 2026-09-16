@@ -558,6 +558,134 @@
         color: rgba(59, 42, 31, 0.5);
       }
 
+      /* Café-picker: "Karte holen" opens this instead of navigating to the
+         full app, so someone can get straight to a specific café's pass
+         without an extra login/app detour first. */
+      .cafePickerOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(25, 16, 9, 0.5);
+        backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 100;
+      }
+
+      .cafePickerOverlay.hidden {
+        display: none;
+      }
+
+      .cafePickerModal {
+        width: min(480px, 100%);
+        max-height: min(640px, 86vh);
+        display: flex;
+        flex-direction: column;
+        border-radius: 28px;
+        background: var(--color-surface-elevated, #fff);
+        box-shadow: 0 30px 60px rgba(25, 16, 9, 0.32);
+        overflow: hidden;
+      }
+
+      .cafePickerHeader {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 24px 24px 0;
+      }
+
+      .cafePickerHeader h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .cafePickerClose {
+        appearance: none;
+        border: 0;
+        background: rgba(81, 58, 40, 0.08);
+        color: inherit;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        flex: none;
+      }
+
+      .cafePickerLead {
+        margin: 8px 24px 0;
+        color: rgba(59, 42, 31, 0.72);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .cafePickerList {
+        margin-top: 14px;
+        padding: 4px 12px 16px;
+        overflow-y: auto;
+      }
+
+      .cafePickerRow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        padding: 12px;
+        border-radius: 16px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .cafePickerRow:hover {
+        background: rgba(81, 58, 40, 0.06);
+      }
+
+      .cafePickerLogo {
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: 12px;
+        background: rgba(81, 58, 40, 0.08);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+
+      .cafePickerLogo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .cafePickerLogo svg {
+        width: 20px;
+        height: 20px;
+        opacity: 0.6;
+      }
+
+      .cafePickerName {
+        margin: 0;
+        font-weight: 800;
+        font-size: 15px;
+      }
+
+      .cafePickerAddress {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .cafePickerStatus {
+        padding: 12px 24px 20px;
+        color: rgba(59, 42, 31, 0.66);
+        font-size: 14px;
+      }
+
       @media (max-width: 1080px) {
         .hero {
           grid-template-columns: 1fr;
@@ -628,7 +756,7 @@
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
           <div class="heroActions" id="cta">
-            <a class="btn primary" href="/wallet">Karte holen</a>
+            <button class="btn primary" type="button" id="cafePickerOpenBtn">Karte holen</button>
             <a class="btn secondary" href="/wallet">Cafés entdecken</a>
           </div>
           <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
@@ -831,6 +959,20 @@
 
       <p class="footerLegal">App Store is a trademark of Apple Inc., registered in the U.S. and other countries.</p>
     </div>
+
+    <div class="cafePickerOverlay hidden" id="cafePickerOverlay" role="dialog" aria-modal="true" aria-labelledby="cafePickerTitle">
+      <div class="cafePickerModal">
+        <div class="cafePickerHeader">
+          <h2 id="cafePickerTitle">Café auswählen</h2>
+          <button class="cafePickerClose" type="button" id="cafePickerCloseBtn" aria-label="Schließen">×</button>
+        </div>
+        <p class="cafePickerLead">
+          Wähle dein Café, um die Stempelkarte direkt in dein Wallet zu holen.
+        </p>
+        <div class="cafePickerList" id="cafePickerList"></div>
+      </div>
+    </div>
+
     <script src="/ui.js?v=20260717a"></script>
     <script>
       (function () {
@@ -863,6 +1005,77 @@
           node.innerHTML = escapeHtml(value);
         }
 
+        // --- Café picker ("Karte holen") ---
+        var cafesState = { status: "loading", cafes: [] };
+        var overlay = document.getElementById("cafePickerOverlay");
+        var openBtn = document.getElementById("cafePickerOpenBtn");
+        var closeBtn = document.getElementById("cafePickerCloseBtn");
+        var listEl = document.getElementById("cafePickerList");
+
+        function renderCafePickerRow(cafe) {
+          if (!cafe || !cafe.cafeAddress) return "";
+          var href = "/cafe-join?cafe=" + encodeURIComponent(cafe.cafeAddress);
+          var logo = cafe.logoDataUrl
+            ? '<img src="' + escapeHtml(cafe.logoDataUrl) + '" alt="" />'
+            : "☕";
+          var addressLine = cafe.address
+            ? '<p class="cafePickerAddress">' + escapeHtml(cafe.address) + "</p>"
+            : "";
+          return (
+            '<a class="cafePickerRow" href="' + escapeHtml(href) + '">' +
+            '<span class="cafePickerLogo">' + logo + "</span>" +
+            "<span>" +
+            '<p class="cafePickerName">' + escapeHtml(cafe.name || "Café") + "</p>" +
+            addressLine +
+            "</span>" +
+            "</a>"
+          );
+        }
+
+        function renderCafePickerList() {
+          if (!listEl) return;
+          if (cafesState.status === "loading") {
+            listEl.innerHTML = '<p class="cafePickerStatus">Cafés werden geladen …</p>';
+            return;
+          }
+          if (cafesState.status === "error") {
+            listEl.innerHTML =
+              '<p class="cafePickerStatus">Cafés konnten nicht geladen werden. Bitte versuche es später erneut.</p>';
+            return;
+          }
+          if (!cafesState.cafes.length) {
+            listEl.innerHTML = '<p class="cafePickerStatus">Aktuell sind noch keine Cafés verfügbar.</p>';
+            return;
+          }
+          listEl.innerHTML = cafesState.cafes.map(renderCafePickerRow).join("");
+        }
+
+        function openCafePicker() {
+          if (!overlay) return;
+          overlay.classList.remove("hidden");
+          document.body.style.overflow = "hidden";
+          renderCafePickerList();
+        }
+
+        function closeCafePicker() {
+          if (!overlay) return;
+          overlay.classList.add("hidden");
+          document.body.style.overflow = "";
+        }
+
+        if (openBtn) openBtn.addEventListener("click", openCafePicker);
+        if (closeBtn) closeBtn.addEventListener("click", closeCafePicker);
+        if (overlay) {
+          overlay.addEventListener("click", function (event) {
+            if (event.target === overlay) closeCafePicker();
+          });
+        }
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && overlay && !overlay.classList.contains("hidden")) {
+            closeCafePicker();
+          }
+        });
+
         fetch("/api/cafes/public", { cache: "no-store" })
           .then(function (res) {
             if (!res.ok) throw new Error("cafes_http_" + res.status);
@@ -879,6 +1092,10 @@
                 })
               : [];
 
+            cafesState.status = "loaded";
+            cafesState.cafes = cafes;
+            renderCafePickerList();
+
             if (!cafes.length) return;
 
             var featuredCards = Array.prototype.slice.call(
@@ -893,6 +1110,8 @@
           })
           .catch(function () {
             // Keep neutral fallback copy if the public list is temporarily unavailable.
+            cafesState.status = "error";
+            renderCafePickerList();
           });
       })();
     </script>
