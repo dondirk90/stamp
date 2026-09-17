@@ -201,6 +201,15 @@
         würden. Nichts hiervon wird gespeichert.
       </p>
 
+      <div class="field" style="margin-bottom: 24px">
+        <label for="adminToolSelect">Admin-Tool</label>
+        <select id="adminToolSelect">
+          <option value="/admin-dashboard.html">Dashboard</option>
+          <option value="/admin-cafe-design.html">Kartendesign</option>
+          <option value="/admin-logo-preview.html" selected>Logo-Vorschau</option>
+        </select>
+      </div>
+
       <div class="card">
         <div class="field">
           <label for="logoInput"
@@ -408,6 +417,13 @@
         refs.generateBtn.addEventListener("click", function () {
           generate(!state.colorsTouchedByUser);
         });
+
+        var adminToolSelect = document.getElementById("adminToolSelect");
+        if (adminToolSelect) {
+          adminToolSelect.addEventListener("change", function () {
+            window.location.href = adminToolSelect.value;
+          });
+        }
       })();
     </script>
   </body>
