@@ -371,6 +371,7 @@ const server = http.createServer((req, res) => {
   if (pathname === "/fuer-cafes") pathname = "/fuer-cafes.html";
   if (pathname === "/aufsteller") pathname = "/guest-qr-standee.html";
   if (pathname === "/cafe-join") pathname = "/cafe-join.html";
+  if (pathname === "/cafes") pathname = "/cafes.html";
   if (pathname === "/customer-history" || pathname === "/customer-history.html")
     pathname = "/customer-qr-modern.html";
   if (pathname === "/cafe-public" || pathname === "/cafe-public.html")
@@ -434,6 +435,7 @@ const server = http.createServer((req, res) => {
     else if (ext === ".png") contentType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".svg") contentType = "image/svg+xml";
+    else if (ext === ".xml") contentType = "application/xml; charset=utf-8";
 
     // CORS Headers für Smartphone
     res.writeHead(200, {

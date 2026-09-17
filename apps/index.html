@@ -34,6 +34,23 @@
       name="description"
       content="Der digitale Ort für deine Lieblingscafés. Karte zeigen, Stempel sammeln und kleine Belohnungen für guten Kaffee."
     />
+    <link rel="canonical" href="https://kaffeekarte.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kaffeekarte" />
+    <meta property="og:title" content="Kaffeekarte - Dein Lieblingscafé. Immer dabei." />
+    <meta
+      property="og:description"
+      content="Digitale Stammkarten für unabhängige Cafés. Kein App-Download - die Karte landet direkt in Apple Wallet oder Google Wallet."
+    />
+    <meta property="og:image" content="https://kaffeekarte.app/assets/og-image.png" />
+    <meta property="og:url" content="https://kaffeekarte.app/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kaffeekarte - Dein Lieblingscafé. Immer dabei." />
+    <meta
+      name="twitter:description"
+      content="Digitale Stammkarten für unabhängige Cafés. Kein App-Download - die Karte landet direkt in Apple Wallet oder Google Wallet."
+    />
+    <meta name="twitter:image" content="https://kaffeekarte.app/assets/og-image.png" />
     <link rel="stylesheet" href="/theme.css?v=20260712b" />
     <style>
       :root {
@@ -232,10 +249,27 @@
         gap: 16px;
       }
 
+      /* Each mini card stands in for a real Wallet pass, so it carries a
+         real card color instead of a flat neutral background - "your card
+         looks like this once it's in Apple/Google Wallet" only reads if it
+         actually looks like a colored pass, not a gray list row. Two
+         different themes across the two example cards also shows that
+         every café gets its own color, not one shared template. */
       .miniCard {
         padding: 18px;
         border-radius: 24px;
-        background: rgba(255, 255, 255, 0.55);
+        background: var(--mini-bg);
+        color: var(--mini-fg);
+      }
+
+      .miniCard[data-mini-theme="brand"] {
+        --mini-bg: #4a3728;
+        --mini-fg: #f7f4ef;
+      }
+
+      .miniCard[data-mini-theme="terracotta"] {
+        --mini-bg: #b96b52;
+        --mini-fg: #ffffff;
       }
 
       .miniTop,
@@ -251,7 +285,8 @@
         font-weight: 900;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: rgba(59, 42, 31, 0.6);
+        color: var(--mini-fg);
+        opacity: 0.72;
       }
 
       .miniMeta {
@@ -264,7 +299,7 @@
         display: grid;
         place-items: center;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.92);
       }
 
       .miniLogo img {
@@ -277,11 +312,13 @@
         font-size: 30px;
         line-height: 0.95;
         letter-spacing: -0.05em;
+        color: var(--mini-fg);
       }
 
       .miniSub {
         margin: 8px 0 0;
-        color: rgba(59, 42, 31, 0.74);
+        color: var(--mini-fg);
+        opacity: 0.76;
       }
 
       .miniProgress {
@@ -297,7 +334,8 @@
         gap: 10px;
         font-size: 12px;
         font-weight: 800;
-        color: rgba(59, 42, 31, 0.7);
+        color: var(--mini-fg);
+        opacity: 0.86;
       }
 
       .beanRow {
@@ -309,11 +347,11 @@
       .bean {
         aspect-ratio: 1;
         border-radius: 999px;
-        background: rgba(81, 58, 40, 0.12);
+        background: color-mix(in srgb, var(--mini-fg) 22%, transparent);
       }
 
       .bean.filled {
-        background: var(--color-coffee);
+        background: var(--mini-fg);
       }
 
       .mockupFooter {
@@ -537,6 +575,134 @@
         color: rgba(59, 42, 31, 0.5);
       }
 
+      /* Café-picker: "Karte holen" opens this instead of navigating to the
+         full app, so someone can get straight to a specific café's pass
+         without an extra login/app detour first. */
+      .cafePickerOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(25, 16, 9, 0.5);
+        backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 100;
+      }
+
+      .cafePickerOverlay.hidden {
+        display: none;
+      }
+
+      .cafePickerModal {
+        width: min(480px, 100%);
+        max-height: min(640px, 86vh);
+        display: flex;
+        flex-direction: column;
+        border-radius: 28px;
+        background: var(--color-surface-elevated, #fff);
+        box-shadow: 0 30px 60px rgba(25, 16, 9, 0.32);
+        overflow: hidden;
+      }
+
+      .cafePickerHeader {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 24px 24px 0;
+      }
+
+      .cafePickerHeader h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .cafePickerClose {
+        appearance: none;
+        border: 0;
+        background: rgba(81, 58, 40, 0.08);
+        color: inherit;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        flex: none;
+      }
+
+      .cafePickerLead {
+        margin: 8px 24px 0;
+        color: rgba(59, 42, 31, 0.72);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .cafePickerList {
+        margin-top: 14px;
+        padding: 4px 12px 16px;
+        overflow-y: auto;
+      }
+
+      .cafePickerRow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        padding: 12px;
+        border-radius: 16px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .cafePickerRow:hover {
+        background: rgba(81, 58, 40, 0.06);
+      }
+
+      .cafePickerLogo {
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: 12px;
+        background: rgba(81, 58, 40, 0.08);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+
+      .cafePickerLogo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .cafePickerLogo svg {
+        width: 20px;
+        height: 20px;
+        opacity: 0.6;
+      }
+
+      .cafePickerName {
+        margin: 0;
+        font-weight: 800;
+        font-size: 15px;
+      }
+
+      .cafePickerAddress {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .cafePickerStatus {
+        padding: 12px 24px 20px;
+        color: rgba(59, 42, 31, 0.66);
+        font-size: 14px;
+      }
+
       @media (max-width: 1080px) {
         .hero {
           grid-template-columns: 1fr;
@@ -553,7 +719,7 @@
 
       @media (max-width: 760px) {
         .page {
-          width: min(100% - 20px, var(--page-max));
+          width: min(100% - 40px, var(--page-max));
         }
 
         .header {
@@ -607,7 +773,7 @@
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
           <div class="heroActions" id="cta">
-            <a class="btn primary" href="/wallet">Karte holen</a>
+            <button class="btn primary" type="button" id="cafePickerOpenBtn">Karte holen</button>
             <a class="btn secondary" href="/wallet">Cafés entdecken</a>
           </div>
           <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
@@ -623,7 +789,7 @@
               <span class="mockupMenu"></span>
             </div>
             <div class="mockupScreen">
-  <div class="miniCard" data-featured-card="0">
+  <div class="miniCard" data-mini-theme="brand" data-featured-card="0">
     <div class="miniTop">
       <span>Deine Lieblingscaf&eacute;s</span>
       <span>3 Karten</span>
@@ -653,7 +819,7 @@
     </div>
   </div>
 
-  <div class="miniCard miniCardSecondary" data-featured-card="1">
+  <div class="miniCard miniCardSecondary" data-mini-theme="terracotta" data-featured-card="1">
     <div class="miniTop">
       <span>Bereit fürs Caf&eacute;</span>
       <span>Im Caf&eacute; zeigen</span>
@@ -810,6 +976,20 @@
 
       <p class="footerLegal">App Store is a trademark of Apple Inc., registered in the U.S. and other countries.</p>
     </div>
+
+    <div class="cafePickerOverlay hidden" id="cafePickerOverlay" role="dialog" aria-modal="true" aria-labelledby="cafePickerTitle">
+      <div class="cafePickerModal">
+        <div class="cafePickerHeader">
+          <h2 id="cafePickerTitle">Café auswählen</h2>
+          <button class="cafePickerClose" type="button" id="cafePickerCloseBtn" aria-label="Schließen">×</button>
+        </div>
+        <p class="cafePickerLead">
+          Wähle dein Café, um die Stempelkarte direkt in dein Wallet zu holen.
+        </p>
+        <div class="cafePickerList" id="cafePickerList"></div>
+      </div>
+    </div>
+
     <script src="/ui.js?v=20260717a"></script>
     <script>
       (function () {
@@ -842,21 +1022,95 @@
           node.innerHTML = escapeHtml(value);
         }
 
+        // --- Café picker ("Karte holen") ---
+        var cafesState = { status: "loading", cafes: [] };
+        var overlay = document.getElementById("cafePickerOverlay");
+        var openBtn = document.getElementById("cafePickerOpenBtn");
+        var closeBtn = document.getElementById("cafePickerCloseBtn");
+        var listEl = document.getElementById("cafePickerList");
+
+        function renderCafePickerRow(cafe) {
+          if (!cafe || !cafe.cafeAddress) return "";
+          var href = "/cafe-join?cafe=" + encodeURIComponent(cafe.cafeAddress);
+          var logo = cafe.logoDataUrl
+            ? '<img src="' + escapeHtml(cafe.logoDataUrl) + '" alt="" />'
+            : "☕";
+          var addressLine = cafe.address
+            ? '<p class="cafePickerAddress">' + escapeHtml(cafe.address) + "</p>"
+            : "";
+          return (
+            '<a class="cafePickerRow" href="' + escapeHtml(href) + '">' +
+            '<span class="cafePickerLogo">' + logo + "</span>" +
+            "<span>" +
+            '<p class="cafePickerName">' + escapeHtml(cafe.name || "Café") + "</p>" +
+            addressLine +
+            "</span>" +
+            "</a>"
+          );
+        }
+
+        function renderCafePickerList() {
+          if (!listEl) return;
+          if (cafesState.status === "loading") {
+            listEl.innerHTML = '<p class="cafePickerStatus">Cafés werden geladen …</p>';
+            return;
+          }
+          if (cafesState.status === "error") {
+            listEl.innerHTML =
+              '<p class="cafePickerStatus">Cafés konnten nicht geladen werden. Bitte versuche es später erneut.</p>';
+            return;
+          }
+          if (!cafesState.cafes.length) {
+            listEl.innerHTML = '<p class="cafePickerStatus">Aktuell sind noch keine Cafés verfügbar.</p>';
+            return;
+          }
+          listEl.innerHTML = cafesState.cafes.map(renderCafePickerRow).join("");
+        }
+
+        function openCafePicker() {
+          if (!overlay) return;
+          overlay.classList.remove("hidden");
+          document.body.style.overflow = "hidden";
+          renderCafePickerList();
+        }
+
+        function closeCafePicker() {
+          if (!overlay) return;
+          overlay.classList.add("hidden");
+          document.body.style.overflow = "";
+        }
+
+        if (openBtn) openBtn.addEventListener("click", openCafePicker);
+        if (closeBtn) closeBtn.addEventListener("click", closeCafePicker);
+        if (overlay) {
+          overlay.addEventListener("click", function (event) {
+            if (event.target === overlay) closeCafePicker();
+          });
+        }
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && overlay && !overlay.classList.contains("hidden")) {
+            closeCafePicker();
+          }
+        });
+
         fetch("/api/cafes/public", { cache: "no-store" })
           .then(function (res) {
             if (!res.ok) throw new Error("cafes_http_" + res.status);
             return res.json();
           })
           .then(function (payload) {
+            // /api/cafes/public already excludes internal test/demo cafés
+            // server-side (isInternalTestCafe in server.cjs) - only a
+            // has-a-name sanity check is left to do here.
             var cafes = Array.isArray(payload && payload.cafes)
               ? payload.cafes.filter(function (cafe) {
-                  var name = cafe && String(cafe.name || "").trim();
-                  if (!name) return false;
-                  // Interne Test-Einträge gehören nicht auf die Landingpage.
-                  if (/test|debug|demo/i.test(name)) return false;
-                  return true;
+                  return !!(cafe && String(cafe.name || "").trim());
                 })
               : [];
+
+            cafesState.status = "loaded";
+            cafesState.cafes = cafes;
+            renderCafePickerList();
 
             if (!cafes.length) return;
 
@@ -872,6 +1126,8 @@
           })
           .catch(function () {
             // Keep neutral fallback copy if the public list is temporarily unavailable.
+            cafesState.status = "error";
+            renderCafePickerList();
           });
       })();
     </script>

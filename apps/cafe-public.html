@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Profil - Kaffeekarte</title>
+    <meta
+      name="description"
+      content="Café-Profil auf Kaffeekarte: Öffnungszeiten, Story und Stempelkarte direkt in Apple Wallet oder Google Wallet."
+    />
+    <link rel="canonical" id="canonicalLink" href="https://kaffeekarte.app/cafe-public" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kaffeekarte" />
+    <meta id="ogTitle" property="og:title" content="Café Profil - Kaffeekarte" />
+    <meta
+      id="ogDescription"
+      property="og:description"
+      content="Café-Profil auf Kaffeekarte: Öffnungszeiten, Story und Stempelkarte direkt in Apple Wallet oder Google Wallet."
+    />
+    <meta property="og:image" content="https://kaffeekarte.app/assets/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://kaffeekarte.app/assets/og-image.png" />
     <link rel="stylesheet" href="/theme.css" />
     <style>
       :root {
@@ -386,6 +402,26 @@
           const addr = document.getElementById("addr");
           if (title) title.textContent = cafe.name || "Café";
           if (addr) addr.textContent = cafe.address || "";
+
+          // Every café gets its own <title>/description/canonical instead of
+          // the static "Café Profil - Kaffeekarte" fallback - matters for
+          // search results and browser tabs. Social-share previews (WhatsApp,
+          // Facebook) fetch these tags without running JS, so they'll still
+          // see the generic head values above, not this per-café update.
+          const cafeName = cafe.name || "Café";
+          const pageTitle = `${cafeName} - Kaffeekarte`;
+          const pageDescription = cafe.shortDescription
+            ? `${cafeName}: ${cafe.shortDescription}`
+            : `${cafeName} auf Kaffeekarte: Stempelkarte direkt in Apple Wallet oder Google Wallet${cafe.address ? " - " + cafe.address : ""}.`;
+          document.title = pageTitle;
+          const descMeta = document.querySelector('meta[name="description"]');
+          if (descMeta) descMeta.setAttribute("content", pageDescription);
+          const ogTitle = document.getElementById("ogTitle");
+          if (ogTitle) ogTitle.setAttribute("content", pageTitle);
+          const ogDescription = document.getElementById("ogDescription");
+          if (ogDescription) ogDescription.setAttribute("content", pageDescription);
+          const canonicalLink = document.getElementById("canonicalLink");
+          if (canonicalLink) canonicalLink.setAttribute("href", window.location.href);
 
           const rewardCard = document.getElementById("rewardCard");
           const rewardValue = document.getElementById("rewardValue");
