@@ -435,6 +435,7 @@ const server = http.createServer((req, res) => {
     else if (ext === ".png") contentType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".svg") contentType = "image/svg+xml";
+    else if (ext === ".xml") contentType = "application/xml; charset=utf-8";
 
     // CORS Headers für Smartphone
     res.writeHead(200, {

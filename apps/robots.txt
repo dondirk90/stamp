@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin-dashboard.html
+Disallow: /admin-cafe-design.html
+Disallow: /admin-logo-preview.html
+Disallow: /cafe-scanner
+Disallow: /cafe-onboarding
+Disallow: /cafe-join
+Disallow: /wallet
+Disallow: /lan-setup.html
+Disallow: /cafe-logout.html
+
+Sitemap: https://kaffeekarte.app/sitemap.xml
