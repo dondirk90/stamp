@@ -5314,6 +5314,86 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         return String(a.username || "").localeCompare(String(b.username || ""));
       });
 
+    // Day/hour buckets use Europe/Berlin local time (not server TZ, which
+    // in Docker is typically UTC) so the charts match what a café owner in
+    // Cologne actually experiences as "today" / "this hour".
+    const berlinDayFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const berlinHourFormatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      hour: "2-digit",
+      hour12: false,
+    });
+    const dayKey = (ts) => berlinDayFormatter.format(new Date(ts));
+    const hourKey = (ts) => Number(berlinHourFormatter.format(new Date(ts))) % 24;
+
+    const CHART_DAYS = 30;
+    const chartWindowStart = Date.now() - CHART_DAYS * 86400000;
+
+    const chartDayList = [];
+    for (let i = CHART_DAYS - 1; i >= 0; i--) {
+      chartDayList.push(dayKey(Date.now() - i * 86400000));
+    }
+
+    const stampChartRows = await db
+      .prepare(
+        `SELECT ts FROM stamp_events WHERE delta > 0 AND ts >= ?`,
+      )
+      .all(chartWindowStart);
+
+    const stampsByDay = new Map(chartDayList.map((d) => [d, 0]));
+    const stampsByHour = new Array(24).fill(0);
+    for (const row of stampChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      if (stampsByDay.has(d)) stampsByDay.set(d, stampsByDay.get(d) + 1);
+      stampsByHour[hourKey(ts)] += 1;
+    }
+
+    const appleWalletChartRows = await db
+      .prepare(`SELECT created_at AS ts FROM wallet_passes WHERE created_at >= ?`)
+      .all(chartWindowStart);
+    const googleWalletChartRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM google_wallet_objects WHERE created_at >= ?`,
+      )
+      .all(chartWindowStart);
+
+    const walletDownloadsByDay = new Map(
+      chartDayList.map((d) => [d, { apple: 0, google: 0 }]),
+    );
+    for (const row of appleWalletChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      if (walletDownloadsByDay.has(d)) walletDownloadsByDay.get(d).apple += 1;
+    }
+    for (const row of googleWalletChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      if (walletDownloadsByDay.has(d)) walletDownloadsByDay.get(d).google += 1;
+    }
+
+    const charts = {
+      days: CHART_DAYS,
+      timezone: "Europe/Berlin",
+      dailyStamps: chartDayList.map((d) => ({
+        date: d,
+        count: stampsByDay.get(d) || 0,
+      })),
+      dailyWalletDownloads: chartDayList.map((d) => {
+        const v = walletDownloadsByDay.get(d) || { apple: 0, google: 0 };
+        return { date: d, apple: v.apple, google: v.google, total: v.apple + v.google };
+      }),
+      hourlyStamps: stampsByHour.map((count, hour) => ({ hour, count })),
+    };
+
     res.json({
       ok: true,
       cafes: results.map((entry) => ({
@@ -5331,6 +5411,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         isUnknown: entry.isUnknown || false,
       })),
       customers: registeredCustomers,
+      charts,
       meta: {
         eventsPerCafe,
         customerLimit,

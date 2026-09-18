@@ -257,6 +257,58 @@
         color: var(--text-muted);
         margin-bottom: 10px;
       }
+      .chart-wrap {
+        margin-top: 4px;
+      }
+      .chart-wrap svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .chart-bar {
+        fill: var(--brand);
+      }
+      .chart-bar-google {
+        fill: var(--color-coffee-light, #b99174);
+      }
+      .chart-axis-line {
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+      .chart-axis-label {
+        font-size: 10px;
+        fill: var(--text-muted);
+      }
+      .chart-empty {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 12px 0;
+      }
+      .chart-legend {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .chart-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .chart-legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .chart-legend-dot-apple {
+        background: var(--brand);
+      }
+      .chart-legend-dot-google {
+        background: var(--color-coffee-light, #b99174);
+      }
       .overview-email {
         font-family: var(--font-mono);
         font-size: 12px;
@@ -483,6 +535,29 @@
 
         <div class="dashboardSection" data-section="uebersicht">
           <div class="summary-grid" id="summaryGrid"></div>
+
+          <div class="card">
+            <div class="section-title">Stempel pro Tag</div>
+            <div class="section-subtitle">Vergebene Stempel über alle Cafés, letzte 30 Tage.</div>
+            <div class="chart-wrap" id="chartStampsPerDay"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Wallet-Karten pro Tag</div>
+            <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe über alle Cafés, letzte 30 Tage.</div>
+            <div class="chart-legend">
+              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+            </div>
+            <div class="chart-wrap" id="chartWalletPerDay"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Stempel im Tagesverlauf</div>
+            <div class="section-subtitle">Zu welcher Uhrzeit Stempel vergeben werden (letzte 30 Tage, Ortszeit Europe/Berlin).</div>
+            <div class="chart-wrap" id="chartHourly"></div>
+          </div>
+
           <div class="card">
             <div class="section-title">Café-Übersicht</div>
             <div class="section-subtitle">
@@ -543,6 +618,9 @@
         loading: document.getElementById("loading"),
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
+        chartStampsPerDay: document.getElementById("chartStampsPerDay"),
+        chartWalletPerDay: document.getElementById("chartWalletPerDay"),
+        chartHourly: document.getElementById("chartHourly"),
         overviewContainer: document.getElementById("overviewContainer"),
         customersOverviewContainer: document.getElementById(
           "customersOverviewContainer",
@@ -760,6 +838,144 @@
         }
       }
 
+      function shortDayLabel(dateStr) {
+        const parts = String(dateStr || "").split("-");
+        if (parts.length !== 3) return dateStr || "";
+        return `${parts[2]}.${parts[1]}.`;
+      }
+
+      // Minimal dependency-free bar chart as inline SVG. Scales fluidly via
+      // width:100%/height:auto (viewBox aspect ratio) instead of a resize
+      // listener, and exposes exact values through native <title> tooltips
+      // rather than a JS hover handler.
+      function buildBarChartSvg(items, options) {
+        const opts = Object.assign(
+          { width: 600, height: 100, barClass: "chart-bar", labelEvery: null },
+          options,
+        );
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const h =
+            it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
+          const y = opts.height - h;
+          const title = escapeHtml(
+            it.title != null ? it.title : `${it.label}: ${it.value}`,
+          );
+          bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
+            2,
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      // Same idea as buildBarChartSvg but stacks two series (Apple/Google)
+      // per bar instead of one.
+      function buildStackedBarChartSvg(items, options) {
+        const opts = Object.assign({ width: 600, height: 100, labelEvery: null }, options);
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(
+          1,
+          ...items.map((it) => (it.apple || 0) + (it.google || 0)),
+        );
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const apple = it.apple || 0;
+          const google = it.google || 0;
+          const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
+          const googleH = google > 0 ? (google / maxValue) * opts.height : 0;
+          const title = escapeHtml(
+            it.title != null
+              ? it.title
+              : `${it.label}: ${apple} Apple, ${google} Google`,
+          );
+          if (appleH > 0) {
+            const y = opts.height - appleH;
+            bars += `<rect class="chart-bar" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${appleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (googleH > 0) {
+            const y = opts.height - appleH - googleH;
+            bars += `<rect class="chart-bar-google" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${googleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function renderCharts(charts) {
+        if (!charts) {
+          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
+          refs.chartStampsPerDay.innerHTML = empty;
+          refs.chartWalletPerDay.innerHTML = empty;
+          refs.chartHourly.innerHTML = empty;
+          return;
+        }
+
+        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.count,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+        }));
+        refs.chartStampsPerDay.innerHTML = buildBarChartSvg(dailyStamps, {});
+
+        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          apple: d.apple,
+          google: d.google,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.apple,
+          )} Apple, ${formatNumber(d.google)} Google`,
+        }));
+        refs.chartWalletPerDay.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
+
+        const hourly = (charts.hourlyStamps || []).map((h) => ({
+          label: `${String(h.hour).padStart(2, "0")}h`,
+          value: h.count,
+          title: `${String(h.hour).padStart(2, "0")}:00 Uhr: ${formatNumber(
+            h.count,
+          )} Stempel`,
+        }));
+        refs.chartHourly.innerHTML = buildBarChartSvg(hourly, { labelEvery: 4 });
+      }
+
       function renderDashboard() {
         const { data } = state;
         if (!data) return;
@@ -895,14 +1111,14 @@
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     cafe.email,
                   )}">${escapeHtml(cafe.email)}</a>`
-                : "â€”";
+                : "—";
               const location = cafe.locationAddress
                 ? escapeHtml(cafe.locationAddress)
                 : cafe.address
                   ? `<span class="address" title="${escapeHtml(
                       cafe.address,
                     )}">${escapeHtml(shortenAddress(cafe.address, 6))}</span>`
-                  : "â€”";
+                  : "—";
               return `
                 <tr>
                   <td>${cafeNameCell}</td>
@@ -1011,7 +1227,7 @@
             .map((customer) => {
               const usernameText = customer.username
                 ? escapeHtml(customer.username)
-                : "â€”";
+                : "—";
               const username = customer.address
                 ? `<a href="#" class="customerDetailLink" data-customer-user="${escapeHtml(
                     customer.address,
@@ -1021,12 +1237,12 @@
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     customer.email,
                   )}">${escapeHtml(customer.email)}</a>`
-                : "â€”";
+                : "—";
               const walletAddress = customer.address
                 ? `<span class="address" title="${escapeHtml(
                     customer.address,
                   )}">${escapeHtml(shortenAddress(customer.address))}</span>`
-                : "â€”";
+                : "—";
               const walletApple = renderWalletPassBadge(
                 customer.walletAppleActiveCafes,
                 customer.walletAppleDownloadedCafes,
@@ -1098,6 +1314,7 @@
 
         wireDetailLinks(refs.customersOverviewContainer);
 
+        renderCharts(data.charts);
         renderCafeDetail();
         renderCustomerDetail();
       }
