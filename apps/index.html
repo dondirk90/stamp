@@ -464,38 +464,6 @@
         line-height: 1.55;
       }
 
-      .featureGrid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: clamp(28px, 4vw, 48px);
-      }
-
-      .featureIcon {
-        width: 30px;
-        height: 30px;
-        color: var(--brand);
-        margin-bottom: 10px;
-      }
-
-      .featureIcon svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
-
-      .feature h2 {
-        margin: 12px 0 8px;
-        font-size: 24px;
-        line-height: 1.05;
-        letter-spacing: -0.03em;
-      }
-
-      .feature p {
-        margin: 0;
-        color: rgba(59, 42, 31, 0.76);
-        line-height: 1.55;
-      }
-
       .journeyList {
         display: grid;
         gap: clamp(24px, 3vw, 36px);
@@ -731,10 +699,6 @@
         .heroVisual {
           order: -1;
         }
-
-        .featureGrid {
-          grid-template-columns: 1fr;
-        }
       }
 
       @media (max-width: 760px) {
@@ -832,10 +796,6 @@
 
         .sectionHead {
           margin-bottom: 32px;
-        }
-
-        .featureGrid {
-          gap: 40px;
         }
 
         .journeyList {
@@ -1006,50 +966,9 @@
         </div>
       </section>
 
-      <section class="section section--divider">
-        <div class="editorialGrid">
-          <div class="editorialIndex">02</div>
-          <div class="featureGrid">
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>
-                  <circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Karten</div>
-              <h2>Alle Karten an einem Ort</h2>
-              <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
-            </article>
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>
-                  <path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>
-                  <line x1="4" y1="12" x2="20" y2="12"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Karte zeigen</div>
-              <h2>Karte zeigen, Stempel sammeln</h2>
-              <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
-            </article>
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Cafés entdecken</div>
-              <h2>Lieblingscafés entdecken</h2>
-              <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
       <section class="section section--divider" id="ablauf">
         <div class="editorialGrid">
-          <div class="editorialIndex">03</div>
+          <div class="editorialIndex">02</div>
           <div class="journey">
             <div class="sectionHead">
               <div class="sectionKicker">So funktioniert's</div>
