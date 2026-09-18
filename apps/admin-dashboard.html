@@ -687,18 +687,20 @@
           : '<span class="badge badge-warning">offen</span>';
       }
 
+      // "geladen" = Pass/Objekt serverseitig erzeugt, aber nicht bestätigt
+      // wirklich im Wallet gelandet zu sein. Bei Apple ist das ein
+      // Zwischenzustand vor "aktiv" (Apples PassKit-Webservice kann die
+      // Übernahme bestätigen); bei Google ist "geladen" der bestmögliche
+      // Zustand überhaupt - Google liefert keinen Bestätigungs-Callback,
+      // "aktiv" ist für Google strukturell nie erreichbar.
       function renderWalletPassBadge(activeCount, totalCount, confirmed) {
         if (!totalCount) return "—";
-        const label = confirmed
-          ? activeCount
-            ? "aktiv"
-            : "nur geladen"
-          : "hinzugefügt";
-        const badgeClass = confirmed && !activeCount ? "badge-warning" : "badge-neutral";
+        const label = confirmed && activeCount ? "aktiv" : "geladen";
+        const badgeClass = confirmed && activeCount ? "badge-neutral" : "badge-warning";
         const suffix = totalCount > 1 ? ` (${totalCount})` : "";
         const title = confirmed
           ? `${activeCount} von ${totalCount} Café(s) bestätigt aktiv`
-          : `${totalCount} Café(s), keine serverseitige Bestätigung möglich`;
+          : `${totalCount} Café(s), keine serverseitige Bestätigung möglich (Google liefert keinen Bestätigungs-Callback)`;
         return `<span class="badge ${badgeClass}" title="${escapeHtml(
           title,
         )}">${label}${suffix}</span>`;
@@ -1161,8 +1163,8 @@
             <div class="summary-label">Wallet-Pass aktiv (Apple)</div>
             <div class="summary-value">${formatNumber(totalWalletAppleActive)}</div>
           </div>
-          <div class="summary-card" title="Google bestätigt nicht serverseitig, ob der Save-Flow abgeschlossen wurde - Zahl zeigt gestartete/abgeschlossene Speicherungen.">
-            <div class="summary-label">Wallet-Pass hinzugefügt (Google)</div>
+          <div class="summary-card" title="Google bestätigt nicht serverseitig, ob der Save-Flow abgeschlossen wurde - Zahl zeigt gestartete/abgeschlossene Speicherungen. 'Aktiv' ist für Google strukturell nie feststellbar.">
+            <div class="summary-label">Wallet-Pass geladen (Google)</div>
             <div class="summary-value">${formatNumber(totalWalletGoogleAdded)}</div>
           </div>
           <div class="summary-card">
@@ -1227,16 +1229,16 @@
                   <td>${formatNumber(stats.stampsAwarded)}</td>
                   <td>${formatNumber(stats.stampsRedeemed)}</td>
                   <td>${formatNumber(stats.netStamps)}</td>
-                  <td title="${formatNumber(
+                  <td>${renderWalletPassBadge(
                     stats.walletAppleActive,
-                  )} aktiv von ${formatNumber(
                     stats.walletAppleDownloaded,
-                  )} generierten Pässen, ${formatNumber(
-                    stats.walletApplePushDevices,
-                  )} erreichbare Geräte">${formatNumber(
-                    stats.walletAppleActive,
-                  )} / ${formatNumber(stats.walletAppleDownloaded)}</td>
-                  <td>${formatNumber(stats.walletGoogleAdded)}</td>
+                    true,
+                  )}</td>
+                  <td>${renderWalletPassBadge(
+                    stats.walletGoogleAdded,
+                    stats.walletGoogleAdded,
+                    false,
+                  )}</td>
                   <td>${formatDate(stats.lastActivityTs)}</td>
                 </tr>
               `;
@@ -1264,7 +1266,7 @@
                   <th>Vergeben</th>
                   <th>Eingelöst</th>
                   <th>Saldo</th>
-                  <th title="Aktiv (bestätigt durch Apple) / generierte Pässe">Wallet Apple</th>
+                  <th title="Bestätigt durch Apples PassKit-Webservice">Wallet Apple</th>
                   <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet Google</th>
                   <th>Zuletzt aktiv</th>
                 </tr>
