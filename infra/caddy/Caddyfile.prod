@@ -31,6 +31,16 @@
     reverse_proxy apps:8080
   }
 
+  # Called by a scheduled GitHub Actions workflow (no interactive user, so no
+  # basic-auth password available to it) - protected by requireAdminKey on
+  # the Node side instead, via the x-admin-key header the caller sends
+  # itself. Must come before the general @adminApi matcher below, which
+  # would otherwise both demand basic_auth and overwrite x-admin-key.
+  @adminOnboardingReminders path /api/admin/customers/onboarding-reminders
+  handle @adminOnboardingReminders {
+    reverse_proxy apps:8080
+  }
+
   @adminApi path /api/admin/*
   handle @adminApi {
     basic_auth {
