@@ -286,6 +286,17 @@
         background: var(--surface);
         color: var(--text);
       }
+      .backLink {
+        display: inline-block;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      .backLink:hover {
+        color: var(--text);
+      }
       .hidden {
         display: none !important;
       }
@@ -407,7 +418,6 @@
           <select id="sectionSelect">
             <optgroup label="Dieses Dashboard">
               <option value="uebersicht">Übersicht</option>
-              <option value="cafe-details">Café-Details</option>
             </optgroup>
             <optgroup label="Andere Admin-Tools">
               <option value="link:/admin-cafe-design.html">Kartendesign</option>
@@ -421,21 +431,32 @@
           <div class="card">
             <div class="section-title">Café-Übersicht</div>
             <div class="section-subtitle">
-              Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick.
+              Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick. Klick auf einen Café-Namen für Details.
             </div>
             <div id="overviewContainer"></div>
           </div>
           <div class="card">
             <div class="section-title">Kunden-Ãœbersicht</div>
             <div class="section-subtitle">
-              Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus.
+              Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus. Klick auf einen Namen für Details.
             </div>
             <div id="customersOverviewContainer"></div>
           </div>
         </div>
 
-        <div class="dashboardSection" data-section="cafe-details" hidden>
-          <div id="cafesContainer"></div>
+        <!-- Nur per Klick erreichbar (Café-Name in der Übersicht), nicht über
+             das Dropdown - zeigt immer genau ein Café, nicht mehr alle
+             gestapelt. -->
+        <div class="dashboardSection" data-section="cafe-detail" hidden>
+          <a href="#" class="backLink" id="cafeDetailBackLink">← Zurück zur Übersicht</a>
+          <div id="cafeDetailContainer"></div>
+        </div>
+
+        <!-- Nur per Klick erreichbar (Kunde in der Übersicht oder in einem
+             Café-Detail). -->
+        <div class="dashboardSection" data-section="kunden-detail" hidden>
+          <a href="#" class="backLink" id="customerDetailBackLink">← Zurück zur Übersicht</a>
+          <div id="customerDetailContainer"></div>
         </div>
 
       </section>
@@ -471,7 +492,14 @@
         customersOverviewContainer: document.getElementById(
           "customersOverviewContainer",
         ),
-        cafesContainer: document.getElementById("cafesContainer"),
+        cafeDetailContainer: document.getElementById("cafeDetailContainer"),
+        cafeDetailBackLink: document.getElementById("cafeDetailBackLink"),
+        customerDetailContainer: document.getElementById(
+          "customerDetailContainer",
+        ),
+        customerDetailBackLink: document.getElementById(
+          "customerDetailBackLink",
+        ),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
         sectionSelect: document.getElementById("sectionSelect"),
@@ -480,6 +508,9 @@
       const state = {
         config: null,
         data: null,
+        cafesByCustomer: new Map(),
+        selectedCafeId: null,
+        selectedCustomerUser: null,
       };
 
       function escapeHtml(value) {
@@ -801,6 +832,10 @@
             .map((cafe) => {
               const stats = cafe.stats || {};
               const cafeName = escapeHtml(cafe.name || "Unbenanntes CafÃ©");
+              const cafeNameCell =
+                cafe.id != null
+                  ? `<a href="#" class="cafeDetailLink" data-cafe-id="${cafe.id}">${cafeName}</a>`
+                  : cafeName;
               const email = cafe.email
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     cafe.email,
@@ -815,7 +850,7 @@
                   : "â€”";
               return `
                 <tr>
-                  <td>${cafeName}</td>
+                  <td>${cafeNameCell}</td>
                   <td>${email}</td>
                   <td>${renderVerificationStatus(cafe.emailVerifiedAt)}</td>
                   <td>${formatDate(cafe.createdAt)}</td>
@@ -887,6 +922,15 @@
             });
           });
 
+        refs.overviewContainer
+          .querySelectorAll(".cafeDetailLink")
+          .forEach((link) => {
+            link.addEventListener("click", function (event) {
+              event.preventDefault();
+              openCafeDetail(Number(link.dataset.cafeId));
+            });
+          });
+
         const cafesByCustomer = new Map();
         for (const cafe of data.cafes || []) {
           for (const c of cafe.customers || []) {
@@ -894,7 +938,10 @@
             const key = String(c.user).toLowerCase();
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
+              cafeId: cafe.id,
               name: cafe.name || "Unbenanntes Café",
+              stampsAwarded: c.stampsAwarded || 0,
+              stampsRedeemed: c.stampsRedeemed || 0,
               netStamps: c.netStamps || 0,
               lastActivityTs: c.lastActivityTs,
             });
@@ -907,19 +954,28 @@
             const key = String(c.user).toLowerCase();
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
+              cafeId: cafe.id,
               name: cafe.name || "Unbenanntes Café",
+              stampsAwarded: 0,
+              stampsRedeemed: 0,
               netStamps: 0,
               lastActivityTs: null,
             });
           }
         }
+        state.cafesByCustomer = cafesByCustomer;
 
         const customersOverviewRows =
           (data.customers || [])
             .map((customer) => {
-              const username = customer.username
+              const usernameText = customer.username
                 ? escapeHtml(customer.username)
                 : "â€”";
+              const username = customer.address
+                ? `<a href="#" class="customerDetailLink" data-customer-user="${escapeHtml(
+                    customer.address,
+                  )}">${usernameText}</a>`
+                : usernameText;
               const email = customer.email
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     customer.email,
@@ -999,8 +1055,16 @@
           </div>
         `;
 
-        refs.cafesContainer.innerHTML = data.cafes
-          .map((cafe) => {
+        wireDetailLinks(refs.customersOverviewContainer);
+
+        renderCafeDetail();
+        renderCustomerDetail();
+      }
+
+      // Builds one café's detail card - used only by renderCafeDetail() now
+      // that "show every café stacked" is gone in favour of picking one via
+      // the Übersicht table.
+      function buildCafeCardHtml(cafe) {
             const stats = cafe.stats || {};
             const customers = cafe.customers || [];
             const events = cafe.events || [];
@@ -1071,9 +1135,11 @@
                   const balanceClass =
                     cust.netStamps >= 0 ? "delta-positive" : "delta-negative";
                   const customerAddr = cust.user
-                    ? `<span class="address" title="${escapeHtml(
+                    ? `<a href="#" class="customerDetailLink address" title="${escapeHtml(
                         cust.user,
-                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                      )}" data-customer-user="${escapeHtml(
+                        cust.user,
+                      )}">${escapeHtml(shortenAddress(cust.user))}</a>`
                     : "—";
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
@@ -1103,9 +1169,11 @@
               walletOnlyCustomers
                 .map((cust) => {
                   const customerAddr = cust.user
-                    ? `<span class="address" title="${escapeHtml(
+                    ? `<a href="#" class="customerDetailLink address" title="${escapeHtml(
                         cust.user,
-                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                      )}" data-customer-user="${escapeHtml(
+                        cust.user,
+                      )}">${escapeHtml(shortenAddress(cust.user))}</a>`
                     : "—";
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
@@ -1235,8 +1303,180 @@
                     : ""
                 }
               </div>`;
-          })
-          .join("");
+      }
+
+      function wireDetailLinks(container) {
+        if (!container) return;
+        container.querySelectorAll(".cafeDetailLink").forEach((link) => {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            openCafeDetail(Number(link.dataset.cafeId));
+          });
+        });
+        container.querySelectorAll(".customerDetailLink").forEach((link) => {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            openCustomerDetail(link.dataset.customerUser);
+          });
+        });
+      }
+
+      function renderCafeDetail() {
+        if (!refs.cafeDetailContainer) return;
+        const cafes = (state.data && state.data.cafes) || [];
+        const cafe = cafes.find((c) => c.id === state.selectedCafeId);
+        if (!cafe) {
+          refs.cafeDetailContainer.innerHTML =
+            '<p class="section-subtitle">Kein Café ausgewählt - wähle eins in der Übersicht.</p>';
+          return;
+        }
+        refs.cafeDetailContainer.innerHTML = buildCafeCardHtml(cafe);
+        wireDetailLinks(refs.cafeDetailContainer);
+        refs.cafeDetailContainer
+          .querySelectorAll(".deleteAnyCafeBtn")
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              handleDeleteAnyCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+            });
+          });
+      }
+
+      function openCafeDetail(cafeId) {
+        state.selectedCafeId = cafeId;
+        renderCafeDetail();
+        setActiveSection("cafe-detail");
+      }
+
+      // Customer-detail is cross-café by nature - every café this address
+      // has any relationship with (stamped or wallet-only), not just the
+      // one it was opened from, since that's the whole point of having a
+      // dedicated customer view instead of just the per-café row.
+      function buildCustomerDetailHtml(customerUser) {
+        const key = String(customerUser || "").toLowerCase();
+        const registered = ((state.data && state.data.customers) || []).find(
+          (c) => c.address && String(c.address).toLowerCase() === key,
+        );
+        const cafeRows = state.cafesByCustomer.get(key) || [];
+
+        const addrDisplay = customerUser
+          ? `<span class="address" title="${escapeHtml(customerUser)}">${escapeHtml(
+              shortenAddress(customerUser),
+            )}</span>`
+          : "—";
+        const nameDisplay = registered && registered.username
+          ? escapeHtml(registered.username)
+          : "—";
+        const emailDisplay =
+          registered && registered.email
+            ? `<a class="overview-email" href="mailto:${encodeURIComponent(
+                registered.email,
+              )}">${escapeHtml(registered.email)}</a>`
+            : "—";
+        const walletApple = registered
+          ? renderWalletPassBadge(
+              registered.walletAppleActiveCafes,
+              registered.walletAppleDownloadedCafes,
+              true,
+            )
+          : "—";
+        const walletGoogle = registered
+          ? renderWalletPassBadge(
+              registered.walletGoogleCafes,
+              registered.walletGoogleCafes,
+              false,
+            )
+          : "—";
+
+        const cafeTableRows =
+          cafeRows
+            .map((c) => {
+              const balanceClass =
+                c.netStamps >= 0 ? "delta-positive" : "delta-negative";
+              const nameCell =
+                c.cafeId != null
+                  ? `<a href="#" class="cafeDetailLink" data-cafe-id="${c.cafeId}">${escapeHtml(
+                      c.name,
+                    )}</a>`
+                  : escapeHtml(c.name);
+              return `
+              <tr>
+                <td>${nameCell}</td>
+                <td>${formatNumber(c.stampsAwarded)}</td>
+                <td>${formatNumber(c.stampsRedeemed)}</td>
+                <td class="${balanceClass}">${formatNumber(c.netStamps)}</td>
+                <td>${formatDate(c.lastActivityTs)}</td>
+              </tr>`;
+            })
+            .join("") ||
+          `
+            <tr>
+              <td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                Keine Café-Aktivität gefunden.
+              </td>
+            </tr>`;
+
+        return `
+          <div class="card">
+            <div class="cafe-header">
+              <div>
+                <span class="cafe-name">${nameDisplay}</span>
+              </div>
+              <div style="font-size: 13px; color: var(--text-muted);">
+                Wallet: ${addrDisplay} • E-Mail: ${emailDisplay}
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">Wallet-Pass Apple</div>
+                <div class="summary-value" style="font-size: 20px;">${walletApple}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Wallet-Pass Google</div>
+                <div class="summary-value" style="font-size: 20px;">${walletGoogle}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Cafés</div>
+                <div class="summary-value">${formatNumber(cafeRows.length)}</div>
+              </div>
+            </div>
+
+            <div class="section-title">Cafés dieses Kunden</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Café</th>
+                    <th>Erhalten</th>
+                    <th>Eingelöst</th>
+                    <th>Saldo</th>
+                    <th>Zuletzt aktiv</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cafeTableRows}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      function renderCustomerDetail() {
+        if (!refs.customerDetailContainer) return;
+        if (!state.selectedCustomerUser) {
+          refs.customerDetailContainer.innerHTML =
+            '<p class="section-subtitle">Kein Kunde ausgewählt - wähle einen in der Übersicht oder einem Café-Detail.</p>';
+          return;
+        }
+        refs.customerDetailContainer.innerHTML = buildCustomerDetailHtml(
+          state.selectedCustomerUser,
+        );
+        wireDetailLinks(refs.customerDetailContainer);
+      }
+
+      function openCustomerDetail(customerUser) {
+        state.selectedCustomerUser = customerUser;
+        renderCustomerDetail();
+        setActiveSection("kunden-detail");
       }
 
       function handleSubmit(event) {
@@ -1367,6 +1607,21 @@
         setActiveSection(value);
       });
       setActiveSection(refs.sectionSelect.value);
+
+      if (refs.cafeDetailBackLink) {
+        refs.cafeDetailBackLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          refs.sectionSelect.value = "uebersicht";
+          setActiveSection("uebersicht");
+        });
+      }
+      if (refs.customerDetailBackLink) {
+        refs.customerDetailBackLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          refs.sectionSelect.value = "uebersicht";
+          setActiveSection("uebersicht");
+        });
+      }
 
       refs.configForm.addEventListener("submit", handleSubmit);
       refs.advancedToggleBtn.addEventListener("click", function () {
