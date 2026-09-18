@@ -286,20 +286,6 @@
         background: var(--surface);
         color: var(--text);
       }
-      .duplicateGroup {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-      }
-      .duplicateGroup:first-of-type {
-        margin-top: 12px;
-        padding-top: 0;
-        border-top: 0;
-      }
-      .duplicateGroupTitle {
-        font-weight: 700;
-        margin-bottom: 8px;
-      }
       .hidden {
         display: none !important;
       }
@@ -422,7 +408,6 @@
             <optgroup label="Dieses Dashboard">
               <option value="uebersicht">Übersicht</option>
               <option value="cafe-details">Café-Details</option>
-              <option value="aufraeumen">Aufräumen</option>
             </optgroup>
             <optgroup label="Andere Admin-Tools">
               <option value="link:/admin-cafe-design.html">Kartendesign</option>
@@ -453,36 +438,6 @@
           <div id="cafesContainer"></div>
         </div>
 
-        <div class="dashboardSection" data-section="aufraeumen" hidden>
-          <div class="card">
-            <div class="section-title">Test-Cafés aufräumen</div>
-            <div class="section-subtitle">
-              Café-Einträge, deren Name "test"/"debug"/"demo" enthält oder
-              deren hinterlegte E-Mail "dirk.belger" enthält. Löschen ist
-              endgültig und entfernt auch Stempel-Events, Wallet-Pässe und
-              Sitzungen dieses Cafés.
-            </div>
-            <button class="btn btn-secondary" id="loadTestCandidatesBtn" type="button">
-              Kandidaten laden
-            </button>
-            <p class="section-subtitle" id="testCandidatesStatus"></p>
-            <div id="testCandidatesContainer"></div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">Doppelte Café-Namen</div>
-            <div class="section-subtitle">
-              Cafés, die denselben Namen tragen (z. B. zweimal registriert) -
-              unabhängig vom Test-Filter oben. Vergleiche Mailadresse und
-              Anlagedatum, um zu entscheiden, welcher Eintrag der echte ist.
-            </div>
-            <button class="btn btn-secondary" id="loadDuplicatesBtn" type="button">
-              Duplikate laden
-            </button>
-            <p class="section-subtitle" id="duplicatesStatus"></p>
-            <div id="duplicatesContainer"></div>
-          </div>
-        </div>
       </section>
     </div>
 
@@ -519,15 +474,7 @@
         cafesContainer: document.getElementById("cafesContainer"),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
-        loadTestCandidatesBtn: document.getElementById("loadTestCandidatesBtn"),
-        testCandidatesStatus: document.getElementById("testCandidatesStatus"),
-        testCandidatesContainer: document.getElementById(
-          "testCandidatesContainer",
-        ),
         sectionSelect: document.getElementById("sectionSelect"),
-        loadDuplicatesBtn: document.getElementById("loadDuplicatesBtn"),
-        duplicatesStatus: document.getElementById("duplicatesStatus"),
-        duplicatesContainer: document.getElementById("duplicatesContainer"),
       };
 
       const state = {
@@ -1375,216 +1322,9 @@
         return headers;
       }
 
-      function renderTestCandidates(cafes) {
-        if (!cafes.length) {
-          refs.testCandidatesContainer.innerHTML = "";
-          refs.testCandidatesStatus.textContent = "Keine Test-Cafés gefunden.";
-          return;
-        }
-        refs.testCandidatesStatus.textContent = `${cafes.length} gefunden.`;
-        refs.testCandidatesContainer.innerHTML = `
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Café</th>
-                  <th>E-Mail</th>
-                  <th>Angelegt</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${cafes
-                  .map(
-                    (cafe) => `
-                  <tr data-cafe-id="${cafe.id}">
-                    <td>${escapeHtml(cafe.name || "Unbenanntes Café")}</td>
-                    <td>${escapeHtml(cafe.email || "—")}</td>
-                    <td>${formatDate(cafe.createdAt)}</td>
-                    <td>
-                      <button class="btn btn-secondary deleteTestCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>`,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
-
-        refs.testCandidatesContainer
-          .querySelectorAll(".deleteTestCafeBtn")
-          .forEach((btn) => {
-            btn.addEventListener("click", function () {
-              handleDeleteTestCafe(btn.dataset.cafeId, btn.dataset.cafeName);
-            });
-          });
-      }
-
-      async function fetchTestCandidates() {
-        if (!state.config) return;
-        refs.testCandidatesStatus.textContent = "Lade …";
-        refs.loadTestCandidatesBtn.disabled = true;
-        try {
-          const res = await fetch(adminApiUrl("/admin/cafes/test-candidates"), {
-            headers: adminHeaders(),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error((data && data.error) || `HTTP ${res.status}`);
-          }
-          renderTestCandidates(data.cafes || []);
-        } catch (err) {
-          refs.testCandidatesStatus.textContent =
-            stampUI.userSafeErrorMessage(err, "Kandidaten konnten nicht geladen werden.");
-        } finally {
-          refs.loadTestCandidatesBtn.disabled = false;
-        }
-      }
-
-      async function handleDeleteTestCafe(cafeId, cafeName) {
-        if (!state.config) return;
-        const confirmed = window.confirm(
-          `"${cafeName}" (Café #${cafeId}) endgültig löschen? Das entfernt auch alle Stempel-Events und Wallet-Pässe dieses Cafés. Nicht rückgängig zu machen.`,
-        );
-        if (!confirmed) return;
-
-        const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}`);
-        url.searchParams.set("confirm", "DELETE");
-
-        try {
-          const res = await fetch(url.toString(), {
-            method: "DELETE",
-            headers: adminHeaders(),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error((data && data.error) || `HTTP ${res.status}`);
-          }
-          fetchTestCandidates();
-        } catch (err) {
-          window.alert(
-            stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
-          );
-        }
-      }
-
-      function renderDuplicateGroups(groups) {
-        if (!groups.length) {
-          refs.duplicatesContainer.innerHTML = "";
-          refs.duplicatesStatus.textContent = "Keine doppelten Café-Namen gefunden.";
-          return;
-        }
-        const totalDuplicateCafes = groups.reduce((sum, g) => sum + g.length, 0);
-        refs.duplicatesStatus.textContent = `${groups.length} Namen mit insgesamt ${totalDuplicateCafes} Einträgen.`;
-        refs.duplicatesContainer.innerHTML = groups
-          .map(
-            (group) => `
-              <div class="duplicateGroup">
-                <div class="duplicateGroupTitle">${escapeHtml(
-                  group[0].name || "Unbenanntes Café",
-                )} (${group.length})</div>
-                <div class="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>E-Mail</th>
-                        <th>Angelegt</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${group
-                        .map(
-                          (cafe) => `
-                        <tr>
-                          <td>#${cafe.id}</td>
-                          <td>${escapeHtml(cafe.email || "—")}</td>
-                          <td>${formatDate(cafe.createdAt)}</td>
-                          <td>
-                            <button class="btn btn-secondary deleteDuplicateCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(
-                              cafe.name || "Café " + cafe.id,
-                            )}">
-                              Löschen
-                            </button>
-                          </td>
-                        </tr>`,
-                        )
-                        .join("")}
-                    </tbody>
-                  </table>
-                </div>
-              </div>`,
-          )
-          .join("");
-
-        refs.duplicatesContainer
-          .querySelectorAll(".deleteDuplicateCafeBtn")
-          .forEach((btn) => {
-            btn.addEventListener("click", function () {
-              handleDeleteDuplicateCafe(btn.dataset.cafeId, btn.dataset.cafeName);
-            });
-          });
-      }
-
-      async function fetchDuplicates() {
-        if (!state.config) return;
-        refs.duplicatesStatus.textContent = "Lade …";
-        refs.loadDuplicatesBtn.disabled = true;
-        try {
-          const res = await fetch(adminApiUrl("/admin/cafes/duplicates"), {
-            headers: adminHeaders(),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error((data && data.error) || `HTTP ${res.status}`);
-          }
-          renderDuplicateGroups(data.groups || []);
-        } catch (err) {
-          refs.duplicatesStatus.textContent = stampUI.userSafeErrorMessage(
-            err,
-            "Duplikate konnten nicht geladen werden.",
-          );
-        } finally {
-          refs.loadDuplicatesBtn.disabled = false;
-        }
-      }
-
-      async function handleDeleteDuplicateCafe(cafeId, cafeName) {
-        if (!state.config) return;
-        const confirmed = window.confirm(
-          `"${cafeName}" (Café #${cafeId}) endgültig löschen? Das entfernt auch alle Stempel-Events und Wallet-Pässe dieses Cafés. Nicht rückgängig zu machen.`,
-        );
-        if (!confirmed) return;
-
-        const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}`);
-        url.searchParams.set("confirm", "DELETE");
-
-        try {
-          const res = await fetch(url.toString(), {
-            method: "DELETE",
-            headers: adminHeaders(),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error((data && data.error) || `HTTP ${res.status}`);
-          }
-          fetchDuplicates();
-        } catch (err) {
-          window.alert(
-            stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
-          );
-        }
-      }
-
-      // Same delete endpoint as the curated Aufräumen lists, but reachable
-      // from the full Café-Übersicht - name/email pattern-matching (test
-      // candidates) and exact-name grouping (duplicates) both miss real
-      // cases like typos or a café that just wants to be removed, so any
-      // café needs to be deletable here too, not just flagged ones.
+      // Deletes any café directly from the overview - deliberately not
+      // limited to name/email pattern-matches, since real cases (a typo in
+      // the café name, an inactive email) wouldn't match any pattern anyway.
       async function handleDeleteAnyCafe(cafeId, cafeName) {
         if (!state.config) return;
         const confirmed = window.confirm(
@@ -1618,8 +1358,6 @@
         });
       }
 
-      refs.loadTestCandidatesBtn.addEventListener("click", fetchTestCandidates);
-      refs.loadDuplicatesBtn.addEventListener("click", fetchDuplicates);
       refs.sectionSelect.addEventListener("change", function () {
         const value = refs.sectionSelect.value;
         if (value.startsWith("link:")) {
