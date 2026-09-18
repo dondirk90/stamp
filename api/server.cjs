@@ -4373,35 +4373,6 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   );
 });
 
-// Lists cafés that look like internal test/demo accounts (see
-// isInternalTestCafe, defined with /cafes/public below) so they can be
-// reviewed before cleanup - a query, not a destructive action.
-app.get("/admin/cafes/test-candidates", requireAdminKey, async (req, res) => {
-  try {
-    const rows = await db
-      .prepare(
-        "SELECT id, name, email, address, location_address, created_at FROM cafes ORDER BY id DESC",
-      )
-      .all();
-    const candidates = rows
-      .filter((row) => isInternalTestCafe(row))
-      .map((row) => ({
-        id: row.id,
-        name: row.name || null,
-        email: row.email || null,
-        cafeAddress: row.address || null,
-        locationAddress: row.location_address || null,
-        createdAt: row.created_at != null ? Number(row.created_at) : null,
-      }));
-    res.json({ ok: true, cafes: candidates });
-  } catch (err) {
-    console.error("Error in /admin/cafes/test-candidates:", err);
-    res
-      .status(500)
-      .json({ ok: false, error: String(err && err.message ? err.message : err) });
-  }
-});
-
 // Permanently deletes one café and everything tied to it (sessions, stamp
 // events, redeem tokens, QR nonces - wallet_passes/wallet_registrations/
 // google_wallet_objects cascade via their own FK on cafe_id). Same cleanup

@@ -266,6 +266,26 @@
         color: var(--text-muted);
         margin-bottom: 8px;
       }
+      .sectionNav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .sectionNav label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .sectionNav select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 600;
+        background: var(--surface);
+        color: var(--text);
+      }
       .hidden {
         display: none !important;
       }
@@ -381,37 +401,43 @@
 
       <section id="dashboard" class="hidden">
         <div id="metaInfo" class="meta-info"></div>
-        <div class="summary-grid" id="summaryGrid"></div>
-        <div class="card">
-          <div class="section-title">Café-Übersicht</div>
-          <div class="section-subtitle">
-            Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick.
-          </div>
-          <div id="overviewContainer"></div>
-        </div>
-        <div class="card">
-          <div class="section-title">Kunden-Ãœbersicht</div>
-          <div class="section-subtitle">
-            Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus.
-          </div>
-          <div id="customersOverviewContainer"></div>
-        </div>
-        <div class="card">
-          <div class="section-title">Test-Cafés aufräumen</div>
-          <div class="section-subtitle">
-            Café-Einträge, deren Name "test"/"debug"/"demo" enthält oder
-            deren hinterlegte E-Mail "dirk.belger" enthält. Löschen ist
-            endgültig und entfernt auch Stempel-Events, Wallet-Pässe und
-            Sitzungen dieses Cafés.
-          </div>
-          <button class="btn btn-secondary" id="loadTestCandidatesBtn" type="button">
-            Kandidaten laden
-          </button>
-          <p class="section-subtitle" id="testCandidatesStatus"></p>
-          <div id="testCandidatesContainer"></div>
+
+        <div class="sectionNav">
+          <label for="sectionSelect">Ansicht</label>
+          <select id="sectionSelect">
+            <optgroup label="Dieses Dashboard">
+              <option value="uebersicht">Übersicht</option>
+              <option value="cafe-details">Café-Details</option>
+            </optgroup>
+            <optgroup label="Andere Admin-Tools">
+              <option value="link:/admin-cafe-design.html">Kartendesign</option>
+              <option value="link:/admin-logo-preview.html">Logo-Vorschau</option>
+            </optgroup>
+          </select>
         </div>
 
-        <div id="cafesContainer"></div>
+        <div class="dashboardSection" data-section="uebersicht">
+          <div class="summary-grid" id="summaryGrid"></div>
+          <div class="card">
+            <div class="section-title">Café-Übersicht</div>
+            <div class="section-subtitle">
+              Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick.
+            </div>
+            <div id="overviewContainer"></div>
+          </div>
+          <div class="card">
+            <div class="section-title">Kunden-Ãœbersicht</div>
+            <div class="section-subtitle">
+              Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus.
+            </div>
+            <div id="customersOverviewContainer"></div>
+          </div>
+        </div>
+
+        <div class="dashboardSection" data-section="cafe-details" hidden>
+          <div id="cafesContainer"></div>
+        </div>
+
       </section>
     </div>
 
@@ -448,11 +474,7 @@
         cafesContainer: document.getElementById("cafesContainer"),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
-        loadTestCandidatesBtn: document.getElementById("loadTestCandidatesBtn"),
-        testCandidatesStatus: document.getElementById("testCandidatesStatus"),
-        testCandidatesContainer: document.getElementById(
-          "testCandidatesContainer",
-        ),
+        sectionSelect: document.getElementById("sectionSelect"),
       };
 
       const state = {
@@ -813,13 +835,18 @@
                   )} / ${formatNumber(stats.walletAppleDownloaded)}</td>
                   <td>${formatNumber(stats.walletGoogleAdded)}</td>
                   <td>${formatDate(stats.lastActivityTs)}</td>
+                  <td>${
+                    cafe.id != null
+                      ? `<button class="btn btn-secondary deleteAnyCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">Löschen</button>`
+                      : "—"
+                  }</td>
                 </tr>
               `;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="12" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="13" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Cafés gefunden
               </td>
             </tr>
@@ -842,6 +869,7 @@
                   <th title="Aktiv (bestätigt durch Apple) / generierte Pässe">Wallet Apple</th>
                   <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet Google</th>
                   <th>Zuletzt aktiv</th>
+                  <th title="Jedes Café kann hier gelöscht werden, unabhängig davon, ob es als Test-Café oder Duplikat erkannt wurde.">Löschen</th>
                 </tr>
               </thead>
               <tbody>
@@ -850,6 +878,14 @@
             </table>
           </div>
         `;
+
+        refs.overviewContainer
+          .querySelectorAll(".deleteAnyCafeBtn")
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              handleDeleteAnyCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+            });
+          });
 
         const cafesByCustomer = new Map();
         for (const cafe of data.cafes || []) {
@@ -1286,76 +1322,10 @@
         return headers;
       }
 
-      function renderTestCandidates(cafes) {
-        if (!cafes.length) {
-          refs.testCandidatesContainer.innerHTML = "";
-          refs.testCandidatesStatus.textContent = "Keine Test-Cafés gefunden.";
-          return;
-        }
-        refs.testCandidatesStatus.textContent = `${cafes.length} gefunden.`;
-        refs.testCandidatesContainer.innerHTML = `
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Café</th>
-                  <th>E-Mail</th>
-                  <th>Angelegt</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${cafes
-                  .map(
-                    (cafe) => `
-                  <tr data-cafe-id="${cafe.id}">
-                    <td>${escapeHtml(cafe.name || "Unbenanntes Café")}</td>
-                    <td>${escapeHtml(cafe.email || "—")}</td>
-                    <td>${formatDate(cafe.createdAt)}</td>
-                    <td>
-                      <button class="btn btn-secondary deleteTestCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>`,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
-
-        refs.testCandidatesContainer
-          .querySelectorAll(".deleteTestCafeBtn")
-          .forEach((btn) => {
-            btn.addEventListener("click", function () {
-              handleDeleteTestCafe(btn.dataset.cafeId, btn.dataset.cafeName);
-            });
-          });
-      }
-
-      async function fetchTestCandidates() {
-        if (!state.config) return;
-        refs.testCandidatesStatus.textContent = "Lade …";
-        refs.loadTestCandidatesBtn.disabled = true;
-        try {
-          const res = await fetch(adminApiUrl("/admin/cafes/test-candidates"), {
-            headers: adminHeaders(),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error((data && data.error) || `HTTP ${res.status}`);
-          }
-          renderTestCandidates(data.cafes || []);
-        } catch (err) {
-          refs.testCandidatesStatus.textContent =
-            stampUI.userSafeErrorMessage(err, "Kandidaten konnten nicht geladen werden.");
-        } finally {
-          refs.loadTestCandidatesBtn.disabled = false;
-        }
-      }
-
-      async function handleDeleteTestCafe(cafeId, cafeName) {
+      // Deletes any café directly from the overview - deliberately not
+      // limited to name/email pattern-matches, since real cases (a typo in
+      // the café name, an inactive email) wouldn't match any pattern anyway.
+      async function handleDeleteAnyCafe(cafeId, cafeName) {
         if (!state.config) return;
         const confirmed = window.confirm(
           `"${cafeName}" (Café #${cafeId}) endgültig löschen? Das entfernt auch alle Stempel-Events und Wallet-Pässe dieses Cafés. Nicht rückgängig zu machen.`,
@@ -1374,7 +1344,7 @@
           if (!res.ok || !data.ok) {
             throw new Error((data && data.error) || `HTTP ${res.status}`);
           }
-          fetchTestCandidates();
+          fetchActivity();
         } catch (err) {
           window.alert(
             stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
@@ -1382,7 +1352,21 @@
         }
       }
 
-      refs.loadTestCandidatesBtn.addEventListener("click", fetchTestCandidates);
+      function setActiveSection(section) {
+        document.querySelectorAll(".dashboardSection").forEach((el) => {
+          el.hidden = el.dataset.section !== section;
+        });
+      }
+
+      refs.sectionSelect.addEventListener("change", function () {
+        const value = refs.sectionSelect.value;
+        if (value.startsWith("link:")) {
+          window.location.href = value.slice("link:".length);
+          return;
+        }
+        setActiveSection(value);
+      });
+      setActiveSection(refs.sectionSelect.value);
 
       refs.configForm.addEventListener("submit", handleSubmit);
       refs.advancedToggleBtn.addEventListener("click", function () {

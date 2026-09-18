@@ -224,6 +224,15 @@
         möchten – hier direkt für sie übernehmen.
       </p>
 
+      <div class="field" style="margin-bottom: 24px">
+        <label for="adminToolSelect">Admin-Tool</label>
+        <select id="adminToolSelect">
+          <option value="/admin-dashboard.html">Dashboard</option>
+          <option value="/admin-cafe-design.html" selected>Kartendesign</option>
+          <option value="/admin-logo-preview.html">Logo-Vorschau</option>
+        </select>
+      </div>
+
       <p class="statusMsg" id="loadStatus"></p>
 
       <div class="card hidden" id="pickCard">
@@ -536,6 +545,13 @@
               refs.statusMsg.removeAttribute("data-ok");
             });
         });
+
+        var adminToolSelect = document.getElementById("adminToolSelect");
+        if (adminToolSelect) {
+          adminToolSelect.addEventListener("change", function () {
+            window.location.href = adminToolSelect.value;
+          });
+        }
 
         renderThemeGrid();
         renderStampGrid();
