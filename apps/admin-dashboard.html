@@ -888,13 +888,18 @@
                   )} / ${formatNumber(stats.walletAppleDownloaded)}</td>
                   <td>${formatNumber(stats.walletGoogleAdded)}</td>
                   <td>${formatDate(stats.lastActivityTs)}</td>
+                  <td>${
+                    cafe.id != null
+                      ? `<button class="btn btn-secondary deleteAnyCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">Löschen</button>`
+                      : "—"
+                  }</td>
                 </tr>
               `;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="12" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="13" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Cafés gefunden
               </td>
             </tr>
@@ -917,6 +922,7 @@
                   <th title="Aktiv (bestätigt durch Apple) / generierte Pässe">Wallet Apple</th>
                   <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet Google</th>
                   <th>Zuletzt aktiv</th>
+                  <th title="Jedes Café kann hier gelöscht werden, unabhängig davon, ob es als Test-Café oder Duplikat erkannt wurde.">Löschen</th>
                 </tr>
               </thead>
               <tbody>
@@ -925,6 +931,14 @@
             </table>
           </div>
         `;
+
+        refs.overviewContainer
+          .querySelectorAll(".deleteAnyCafeBtn")
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              handleDeleteAnyCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+            });
+          });
 
         const cafesByCustomer = new Map();
         for (const cafe of data.cafes || []) {
@@ -1559,6 +1573,38 @@
             throw new Error((data && data.error) || `HTTP ${res.status}`);
           }
           fetchDuplicates();
+        } catch (err) {
+          window.alert(
+            stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
+          );
+        }
+      }
+
+      // Same delete endpoint as the curated Aufräumen lists, but reachable
+      // from the full Café-Übersicht - name/email pattern-matching (test
+      // candidates) and exact-name grouping (duplicates) both miss real
+      // cases like typos or a café that just wants to be removed, so any
+      // café needs to be deletable here too, not just flagged ones.
+      async function handleDeleteAnyCafe(cafeId, cafeName) {
+        if (!state.config) return;
+        const confirmed = window.confirm(
+          `"${cafeName}" (Café #${cafeId}) endgültig löschen? Das entfernt auch alle Stempel-Events und Wallet-Pässe dieses Cafés. Nicht rückgängig zu machen.`,
+        );
+        if (!confirmed) return;
+
+        const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}`);
+        url.searchParams.set("confirm", "DELETE");
+
+        try {
+          const res = await fetch(url.toString(), {
+            method: "DELETE",
+            headers: adminHeaders(),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          fetchActivity();
         } catch (err) {
           window.alert(
             stampUI.userSafeErrorMessage(err, "Löschen fehlgeschlagen."),
