@@ -148,6 +148,10 @@
         color: var(--text);
       }
 
+      .navToggle {
+        display: none;
+      }
+
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
@@ -545,6 +549,22 @@
         font-weight: 700;
       }
 
+      /* Rechtliche Pflichtlinks bewusst leiser als die echte Navigation
+         darueber - sie muessen auffindbar sein, nicht auffallen. */
+      .legalLinks {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .legalLinks a {
+        color: rgba(59, 42, 31, 0.48);
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
       /* Offizielles Apple-Badge: unveraendert, ungedreht, mit dem von den
          Markenrichtlinien geforderten Mindestabstand (>= 1/4 Badge-Hoehe). */
       .footerAppStore {
@@ -723,12 +743,63 @@
         }
 
         .header {
-          flex-direction: column;
-          align-items: stretch;
+          position: relative;
+          flex-wrap: nowrap;
         }
 
-        .nav {
+        .navToggle {
+          display: inline-flex;
+          align-items: center;
           justify-content: center;
+          width: 44px;
+          height: 44px;
+          flex: none;
+          border-radius: 12px;
+          border: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.6);
+        }
+
+        .navToggle span {
+          width: 18px;
+          height: 2px;
+          border-radius: 999px;
+          background: var(--color-coffee);
+          box-shadow:
+            0 6px 0 var(--color-coffee),
+            0 -6px 0 var(--color-coffee);
+        }
+
+        /* Same destinations already sit as prominent buttons in the hero
+           right below - the header only needs to offer them, not repeat
+           them wrapped across two lines above the fold. */
+        .nav {
+          display: none;
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 2px;
+          min-width: 220px;
+          padding: 10px;
+          border-radius: 16px;
+          border: 1px solid var(--line);
+          background: var(--color-surface-elevated, #fff);
+          box-shadow: 0 18px 40px rgba(68, 41, 22, 0.14);
+          z-index: 20;
+        }
+
+        .nav.isOpen {
+          display: flex;
+        }
+
+        .nav a {
+          padding: 12px 14px;
+          border-radius: 10px;
+        }
+
+        .nav a:active {
+          background: rgba(81, 58, 40, 0.08);
         }
 
         .heroActions {
@@ -741,6 +812,52 @@
 
         .miniCafe {
           font-size: 26px;
+        }
+
+        /* More breathing room specifically on mobile - the clamp()s above
+           collapse to their tight minimums on narrow screens, which reads
+           as cramped/stressful once everything is stacked in one column
+           instead of spread across a wide desktop grid. */
+        .heroCard {
+          gap: 28px;
+        }
+
+        .section {
+          margin-top: 84px;
+        }
+
+        .section--divider {
+          padding-top: 84px;
+        }
+
+        .sectionHead {
+          margin-bottom: 32px;
+        }
+
+        .featureGrid {
+          gap: 40px;
+        }
+
+        .journeyList {
+          gap: 40px;
+        }
+
+        .journeyStep p {
+          margin-top: 4px;
+        }
+
+        /* Full-bleed: the one dark panel on the page breaks out to the true
+           screen edges instead of sitting politely inside the page margin
+           like everything else - the "app moment" instead of "brochure"
+           feel that comes from Spotify/Strava-style full-bleed sections,
+           without touching the quiet color palette itself. */
+        .manifesto {
+          margin-inline: -20px;
+          border-radius: 0;
+        }
+
+        .manifesto h2 {
+          font-size: clamp(44px, 11vw, 66px);
         }
       }
     </style>
@@ -757,7 +874,17 @@
             <span class="brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <nav class="nav" aria-label="Produktnavigation">
+        <button
+          class="navToggle miniBtn"
+          type="button"
+          id="navToggleBtn"
+          aria-expanded="false"
+          aria-controls="mainNav"
+          aria-label="Menü öffnen"
+        >
+          <span aria-hidden="true"></span>
+        </button>
+        <nav class="nav" id="mainNav" aria-label="Produktnavigation">
           <a href="/wallet">Cafés entdecken</a>
           <a href="#ablauf">So funktioniert's</a>
           <a href="/fuer-cafes">Für Cafés</a>
@@ -962,6 +1089,8 @@
       </p>
       <div class="footerLinks" aria-label="Weitere Seiten">
         <a href="/fuer-cafes">Für Cafés</a>
+      </div>
+      <div class="legalLinks" aria-label="Rechtliches">
         <a href="/impressum">Impressum</a>
         <a href="/datenschutz">Datenschutz</a>
         <a href="/agb">AGB</a>
@@ -1020,6 +1149,37 @@
         function setText(node, value) {
           if (!node) return;
           node.innerHTML = escapeHtml(value);
+        }
+
+        // --- Mobile nav (collapses into the toggle below 760px) ---
+        var navToggleBtn = document.getElementById("navToggleBtn");
+        var mainNav = document.getElementById("mainNav");
+
+        function setNavOpen(open) {
+          if (!navToggleBtn || !mainNav) return;
+          mainNav.classList.toggle("isOpen", open);
+          navToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        if (navToggleBtn && mainNav) {
+          navToggleBtn.addEventListener("click", function () {
+            setNavOpen(!mainNav.classList.contains("isOpen"));
+          });
+          mainNav.addEventListener("click", function (event) {
+            if (event.target.closest("a")) setNavOpen(false);
+          });
+          document.addEventListener("click", function (event) {
+            if (
+              mainNav.classList.contains("isOpen") &&
+              !mainNav.contains(event.target) &&
+              !navToggleBtn.contains(event.target)
+            ) {
+              setNavOpen(false);
+            }
+          });
+          document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") setNavOpen(false);
+          });
         }
 
         // --- Café picker ("Karte holen") ---
