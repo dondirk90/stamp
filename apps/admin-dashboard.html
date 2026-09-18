@@ -257,6 +257,62 @@
         color: var(--text-muted);
         margin-bottom: 10px;
       }
+      .chart-wrap {
+        margin-top: 4px;
+      }
+      .chart-wrap svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .chart-bar {
+        fill: var(--brand);
+      }
+      .chart-bar-google {
+        fill: var(--color-coffee-light, #b99174);
+      }
+      .chart-dot {
+        fill: var(--brand);
+        fill-opacity: 0.82;
+      }
+      .chart-axis-line {
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+      .chart-axis-label {
+        font-size: 10px;
+        fill: var(--text-muted);
+      }
+      .chart-empty {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 12px 0;
+      }
+      .chart-legend {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .chart-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .chart-legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .chart-legend-dot-apple {
+        background: var(--brand);
+      }
+      .chart-legend-dot-google {
+        background: var(--color-coffee-light, #b99174);
+      }
       .overview-email {
         font-family: var(--font-mono);
         font-size: 12px;
@@ -286,6 +342,17 @@
         background: var(--surface);
         color: var(--text);
       }
+      .backLink {
+        display: inline-block;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      .backLink:hover {
+        color: var(--text);
+      }
       .hidden {
         display: none !important;
       }
@@ -298,11 +365,66 @@
           align-items: flex-start;
           gap: 12px;
         }
+        .header h1 {
+          font-size: 26px;
+        }
+        .action-buttons {
+          width: 100%;
+        }
+        .action-buttons .btn {
+          flex: 1;
+        }
+        .card {
+          padding: 16px;
+        }
+        .config-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
         .summary-grid {
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .summary-card {
+          padding: 12px;
+        }
+        .summary-value {
+          font-size: 22px;
+        }
+        .sectionNav {
+          flex-wrap: wrap;
+        }
+        .sectionNav select {
+          flex: 1;
+          min-width: 0;
         }
         table {
-          min-width: 600px;
+          min-width: 560px;
+        }
+        th,
+        td {
+          padding: 9px 10px;
+          font-size: 13px;
+        }
+        /* Erste Spalte bleibt beim horizontalen Scrollen sichtbar, damit
+           die Zeile beim Wischen zuordenbar bleibt. */
+        .table-wrapper td:first-child,
+        .table-wrapper th:first-child {
+          position: sticky;
+          left: 0;
+          z-index: 1;
+          box-shadow: 1px 0 0 var(--border);
+        }
+        .table-wrapper th:first-child {
+          background: var(--surface-muted);
+        }
+        .table-wrapper tr:nth-child(odd) td:first-child {
+          background: var(--bg);
+        }
+        .table-wrapper tr:nth-child(even) td:first-child {
+          background: var(--surface-muted);
+        }
+        .deleteAnyCafeBtn {
+          width: 100%;
         }
       }
     </style>
@@ -407,7 +529,6 @@
           <select id="sectionSelect">
             <optgroup label="Dieses Dashboard">
               <option value="uebersicht">Übersicht</option>
-              <option value="cafe-details">Café-Details</option>
             </optgroup>
             <optgroup label="Andere Admin-Tools">
               <option value="link:/admin-cafe-design.html">Kartendesign</option>
@@ -418,24 +539,58 @@
 
         <div class="dashboardSection" data-section="uebersicht">
           <div class="summary-grid" id="summaryGrid"></div>
+
+          <div class="card">
+            <div class="section-title">Stempel pro Tag</div>
+            <div class="section-subtitle">Vergebene Stempel über alle Cafés, letzte 30 Tage.</div>
+            <div class="chart-wrap" id="chartStampsPerDay"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Wallet-Karten pro Tag</div>
+            <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe über alle Cafés, letzte 30 Tage.</div>
+            <div class="chart-legend">
+              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+            </div>
+            <div class="chart-wrap" id="chartWalletPerDay"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Stempel im Tagesverlauf</div>
+            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage (Ortszeit Europe/Berlin).</div>
+            <div class="chart-wrap" id="chartHourly"></div>
+          </div>
+
           <div class="card">
             <div class="section-title">Café-Übersicht</div>
             <div class="section-subtitle">
-              Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick.
+              Alle Cafés mit Mailadresse, Standort, Kunden und Stempelstand auf einen Blick. Klick auf einen Café-Namen für Details.
             </div>
             <div id="overviewContainer"></div>
           </div>
           <div class="card">
-            <div class="section-title">Kunden-Ãœbersicht</div>
+            <div class="section-title">Kunden-Übersicht</div>
             <div class="section-subtitle">
-              Alle registrierten Kunden mit Mailadresse, Anlagedatum und BestÃ¤tigungsstatus.
+              Alle registrierten Kunden mit Mailadresse, Anlagedatum und Bestätigungsstatus. Klick auf einen Namen für Details.
             </div>
             <div id="customersOverviewContainer"></div>
           </div>
         </div>
 
-        <div class="dashboardSection" data-section="cafe-details" hidden>
-          <div id="cafesContainer"></div>
+        <!-- Nur per Klick erreichbar (Café-Name in der Übersicht), nicht über
+             das Dropdown - zeigt immer genau ein Café, nicht mehr alle
+             gestapelt. -->
+        <div class="dashboardSection" data-section="cafe-detail" hidden>
+          <a href="#" class="backLink" id="cafeDetailBackLink">← Zurück zur Übersicht</a>
+          <div id="cafeDetailContainer"></div>
+        </div>
+
+        <!-- Nur per Klick erreichbar (Kunde in der Übersicht oder in einem
+             Café-Detail). -->
+        <div class="dashboardSection" data-section="kunden-detail" hidden>
+          <a href="#" class="backLink" id="customerDetailBackLink">← Zurück zur Übersicht</a>
+          <div id="customerDetailContainer"></div>
         </div>
 
       </section>
@@ -467,11 +622,21 @@
         loading: document.getElementById("loading"),
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
+        chartStampsPerDay: document.getElementById("chartStampsPerDay"),
+        chartWalletPerDay: document.getElementById("chartWalletPerDay"),
+        chartHourly: document.getElementById("chartHourly"),
         overviewContainer: document.getElementById("overviewContainer"),
         customersOverviewContainer: document.getElementById(
           "customersOverviewContainer",
         ),
-        cafesContainer: document.getElementById("cafesContainer"),
+        cafeDetailContainer: document.getElementById("cafeDetailContainer"),
+        cafeDetailBackLink: document.getElementById("cafeDetailBackLink"),
+        customerDetailContainer: document.getElementById(
+          "customerDetailContainer",
+        ),
+        customerDetailBackLink: document.getElementById(
+          "customerDetailBackLink",
+        ),
         metaInfo: document.getElementById("metaInfo"),
         errorBox: document.getElementById("errorBox"),
         sectionSelect: document.getElementById("sectionSelect"),
@@ -480,6 +645,9 @@
       const state = {
         config: null,
         data: null,
+        cafesByCustomer: new Map(),
+        selectedCafeId: null,
+        selectedCustomerUser: null,
       };
 
       function escapeHtml(value) {
@@ -515,22 +683,24 @@
         return value
           ? `<span class="badge badge-neutral" title="${escapeHtml(
               formatDate(value),
-            )}">bestÃ¤tigt</span>`
+            )}">bestätigt</span>`
           : '<span class="badge badge-warning">offen</span>';
       }
 
+      // "geladen" = Pass/Objekt serverseitig erzeugt, aber nicht bestätigt
+      // wirklich im Wallet gelandet zu sein. Bei Apple ist das ein
+      // Zwischenzustand vor "aktiv" (Apples PassKit-Webservice kann die
+      // Übernahme bestätigen); bei Google ist "geladen" der bestmögliche
+      // Zustand überhaupt - Google liefert keinen Bestätigungs-Callback,
+      // "aktiv" ist für Google strukturell nie erreichbar.
       function renderWalletPassBadge(activeCount, totalCount, confirmed) {
         if (!totalCount) return "—";
-        const label = confirmed
-          ? activeCount
-            ? "aktiv"
-            : "nur geladen"
-          : "hinzugefügt";
-        const badgeClass = confirmed && !activeCount ? "badge-warning" : "badge-neutral";
+        const label = confirmed && activeCount ? "aktiv" : "geladen";
+        const badgeClass = confirmed && activeCount ? "badge-neutral" : "badge-warning";
         const suffix = totalCount > 1 ? ` (${totalCount})` : "";
         const title = confirmed
           ? `${activeCount} von ${totalCount} Café(s) bestätigt aktiv`
-          : `${totalCount} Café(s), keine serverseitige Bestätigung möglich`;
+          : `${totalCount} Café(s), keine serverseitige Bestätigung möglich (Google liefert keinen Bestätigungs-Callback)`;
         return `<span class="badge ${badgeClass}" title="${escapeHtml(
           title,
         )}">${label}${suffix}</span>`;
@@ -674,6 +844,237 @@
         }
       }
 
+      function shortDayLabel(dateStr) {
+        const parts = String(dateStr || "").split("-");
+        if (parts.length !== 3) return dateStr || "";
+        return `${parts[2]}.${parts[1]}.`;
+      }
+
+      // Minimal dependency-free bar chart as inline SVG. Scales fluidly via
+      // width:100%/height:auto (viewBox aspect ratio) instead of a resize
+      // listener, and exposes exact values through native <title> tooltips
+      // rather than a JS hover handler.
+      function buildBarChartSvg(items, options) {
+        const opts = Object.assign(
+          { width: 600, height: 100, barClass: "chart-bar", labelEvery: null },
+          options,
+        );
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const h =
+            it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
+          const y = opts.height - h;
+          const title = escapeHtml(
+            it.title != null ? it.title : `${it.label}: ${it.value}`,
+          );
+          bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
+            2,
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      // Same idea as buildBarChartSvg but stacks two series (Apple/Google)
+      // per bar instead of one.
+      function buildStackedBarChartSvg(items, options) {
+        const opts = Object.assign({ width: 600, height: 100, labelEvery: null }, options);
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(
+          1,
+          ...items.map((it) => (it.apple || 0) + (it.google || 0)),
+        );
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const apple = it.apple || 0;
+          const google = it.google || 0;
+          const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
+          const googleH = google > 0 ? (google / maxValue) * opts.height : 0;
+          const title = escapeHtml(
+            it.title != null
+              ? it.title
+              : `${it.label}: ${apple} Apple, ${google} Google`,
+          );
+          if (appleH > 0) {
+            const y = opts.height - appleH;
+            bars += `<rect class="chart-bar" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${appleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (googleH > 0) {
+            const y = opts.height - appleH - googleH;
+            bars += `<rect class="chart-bar-google" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${googleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function formatBinTime(minute) {
+        const h = Math.floor(minute / 60);
+        const m = minute % 60;
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+
+      // Time-of-day distribution as a dot plot (one dot per event, stacked
+      // when several fall in the same 15-minute slot) instead of an hourly
+      // bar histogram - no bucket-size trade-off to pick since every dot is
+      // one real event, and it stays legible even when a single café/kunde
+      // only has a handful of stamps to show.
+      function buildDotPlotSvg(bins, options) {
+        const opts = Object.assign({ width: 600, height: 90 }, options);
+        const totalCount = bins.reduce((sum, b) => sum + (b.count || 0), 0);
+        if (!totalCount) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const maxCount = Math.max(1, ...bins.map((b) => b.count || 0));
+        const spacing = Math.max(3, Math.min(8, opts.height / maxCount));
+        const radius = Math.max(1.5, spacing / 2 - 0.5);
+        const dayMinutes = 24 * 60;
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const binMinutes = bins.length ? dayMinutes / bins.length : 15;
+
+        let dots = "";
+        bins.forEach((b) => {
+          const count = b.count || 0;
+          if (!count) return;
+          const x = ((b.minute + binMinutes / 2) / dayMinutes) * opts.width;
+          const title = escapeHtml(
+            `${formatBinTime(b.minute)}–${formatBinTime(
+              b.minute + binMinutes,
+            )} Uhr: ${formatNumber(count)} Stempel`,
+          );
+          for (let i = 0; i < count; i++) {
+            const y = Math.max(radius, opts.height - radius - i * spacing);
+            dots += `<circle class="chart-dot" cx="${x.toFixed(2)}" cy="${y.toFixed(
+              2,
+            )}" r="${radius.toFixed(2)}"><title>${title}</title></circle>`;
+          }
+        });
+
+        const hourTicks = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+        const labels = hourTicks
+          .map((h) => {
+            const x = ((h * 60) / dayMinutes) * opts.width;
+            const anchor = h === 0 ? "start" : h === 24 ? "end" : "middle";
+            return `<text class="chart-axis-label" x="${x.toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="${anchor}">${String(h).padStart(
+              2,
+              "0",
+            )}h</text>`;
+          })
+          .join("");
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${dots}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function renderCharts(charts) {
+        if (!charts) {
+          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
+          refs.chartStampsPerDay.innerHTML = empty;
+          refs.chartWalletPerDay.innerHTML = empty;
+          refs.chartHourly.innerHTML = empty;
+          return;
+        }
+
+        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.count,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+        }));
+        refs.chartStampsPerDay.innerHTML = buildBarChartSvg(dailyStamps, {});
+
+        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          apple: d.apple,
+          google: d.google,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.apple,
+          )} Apple, ${formatNumber(d.google)} Google`,
+        }));
+        refs.chartWalletPerDay.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
+
+        refs.chartHourly.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
+      }
+
+      // Same three charts as renderCharts(), but scoped to one café and
+      // returned as an HTML string for buildCafeCardHtml() to splice in
+      // rather than targeting a fixed #id (a café card can be rebuilt for
+      // any café, so there's no single static container to bind to).
+      function buildCafeChartsHtml(charts) {
+        if (!charts) return "";
+        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.count,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+        }));
+        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          apple: d.apple,
+          google: d.google,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.apple,
+          )} Apple, ${formatNumber(d.google)} Google`,
+        }));
+        return `
+          <div class="section-title" style="margin-top: 32px;">Stempel pro Tag</div>
+          <div class="section-subtitle">Letzte 30 Tage.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
+
+          <div class="section-title">Wallet-Karten pro Tag</div>
+          <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe, letzte 30 Tage.</div>
+          <div class="chart-legend">
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+          </div>
+          <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
+
+          <div class="section-title">Stempel im Tagesverlauf</div>
+          <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
+          <div class="chart-wrap">${buildDotPlotSvg(charts.stampsByTimeOfDay || [])}</div>
+        `;
+      }
+
       function renderDashboard() {
         const { data } = state;
         if (!data) return;
@@ -762,8 +1163,8 @@
             <div class="summary-label">Wallet-Pass aktiv (Apple)</div>
             <div class="summary-value">${formatNumber(totalWalletAppleActive)}</div>
           </div>
-          <div class="summary-card" title="Google bestätigt nicht serverseitig, ob der Save-Flow abgeschlossen wurde - Zahl zeigt gestartete/abgeschlossene Speicherungen.">
-            <div class="summary-label">Wallet-Pass hinzugefügt (Google)</div>
+          <div class="summary-card" title="Google bestätigt nicht serverseitig, ob der Save-Flow abgeschlossen wurde - Zahl zeigt gestartete/abgeschlossene Speicherungen. 'Aktiv' ist für Google strukturell nie feststellbar.">
+            <div class="summary-label">Wallet-Pass geladen (Google)</div>
             <div class="summary-value">${formatNumber(totalWalletGoogleAdded)}</div>
           </div>
           <div class="summary-card">
@@ -773,13 +1174,13 @@
             )}</div>
           </div>
           <div class="summary-card">
-            <div class="summary-label">CafÃ©-Mails bestÃ¤tigt</div>
+            <div class="summary-label">Café-Mails bestätigt</div>
             <div class="summary-value">${formatNumber(
               verifiedCafeCount,
             )}</div>
           </div>
           <div class="summary-card">
-            <div class="summary-label">Kunden-Mails bestÃ¤tigt</div>
+            <div class="summary-label">Kunden-Mails bestätigt</div>
             <div class="summary-value">${formatNumber(
               verifiedCustomerCount,
             )}</div>
@@ -800,22 +1201,26 @@
           data.cafes
             .map((cafe) => {
               const stats = cafe.stats || {};
-              const cafeName = escapeHtml(cafe.name || "Unbenanntes CafÃ©");
+              const cafeName = escapeHtml(cafe.name || "Unbenanntes Café");
+              const cafeNameCell =
+                cafe.id != null
+                  ? `<a href="#" class="cafeDetailLink" data-cafe-id="${cafe.id}">${cafeName}</a>`
+                  : cafeName;
               const email = cafe.email
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     cafe.email,
                   )}">${escapeHtml(cafe.email)}</a>`
-                : "â€”";
+                : "—";
               const location = cafe.locationAddress
                 ? escapeHtml(cafe.locationAddress)
                 : cafe.address
                   ? `<span class="address" title="${escapeHtml(
                       cafe.address,
                     )}">${escapeHtml(shortenAddress(cafe.address, 6))}</span>`
-                  : "â€”";
+                  : "—";
               return `
                 <tr>
-                  <td>${cafeName}</td>
+                  <td>${cafeNameCell}</td>
                   <td>${email}</td>
                   <td>${renderVerificationStatus(cafe.emailVerifiedAt)}</td>
                   <td>${formatDate(cafe.createdAt)}</td>
@@ -824,29 +1229,24 @@
                   <td>${formatNumber(stats.stampsAwarded)}</td>
                   <td>${formatNumber(stats.stampsRedeemed)}</td>
                   <td>${formatNumber(stats.netStamps)}</td>
-                  <td title="${formatNumber(
+                  <td>${renderWalletPassBadge(
                     stats.walletAppleActive,
-                  )} aktiv von ${formatNumber(
                     stats.walletAppleDownloaded,
-                  )} generierten Pässen, ${formatNumber(
-                    stats.walletApplePushDevices,
-                  )} erreichbare Geräte">${formatNumber(
-                    stats.walletAppleActive,
-                  )} / ${formatNumber(stats.walletAppleDownloaded)}</td>
-                  <td>${formatNumber(stats.walletGoogleAdded)}</td>
+                    true,
+                  )}</td>
+                  <td>${renderWalletPassBadge(
+                    stats.walletGoogleAdded,
+                    stats.walletGoogleAdded,
+                    false,
+                  )}</td>
                   <td>${formatDate(stats.lastActivityTs)}</td>
-                  <td>${
-                    cafe.id != null
-                      ? `<button class="btn btn-secondary deleteAnyCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">Löschen</button>`
-                      : "—"
-                  }</td>
                 </tr>
               `;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="13" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="12" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Cafés gefunden
               </td>
             </tr>
@@ -866,10 +1266,9 @@
                   <th>Vergeben</th>
                   <th>Eingelöst</th>
                   <th>Saldo</th>
-                  <th title="Aktiv (bestätigt durch Apple) / generierte Pässe">Wallet Apple</th>
+                  <th title="Bestätigt durch Apples PassKit-Webservice">Wallet Apple</th>
                   <th title="Google bestätigt nicht serverseitig, ob wirklich gespeichert wurde">Wallet Google</th>
                   <th>Zuletzt aktiv</th>
-                  <th title="Jedes Café kann hier gelöscht werden, unabhängig davon, ob es als Test-Café oder Duplikat erkannt wurde.">Löschen</th>
                 </tr>
               </thead>
               <tbody>
@@ -880,10 +1279,11 @@
         `;
 
         refs.overviewContainer
-          .querySelectorAll(".deleteAnyCafeBtn")
-          .forEach((btn) => {
-            btn.addEventListener("click", function () {
-              handleDeleteAnyCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+          .querySelectorAll(".cafeDetailLink")
+          .forEach((link) => {
+            link.addEventListener("click", function (event) {
+              event.preventDefault();
+              openCafeDetail(Number(link.dataset.cafeId));
             });
           });
 
@@ -894,7 +1294,10 @@
             const key = String(c.user).toLowerCase();
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
+              cafeId: cafe.id,
               name: cafe.name || "Unbenanntes Café",
+              stampsAwarded: c.stampsAwarded || 0,
+              stampsRedeemed: c.stampsRedeemed || 0,
               netStamps: c.netStamps || 0,
               lastActivityTs: c.lastActivityTs,
             });
@@ -907,29 +1310,38 @@
             const key = String(c.user).toLowerCase();
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
+              cafeId: cafe.id,
               name: cafe.name || "Unbenanntes Café",
+              stampsAwarded: 0,
+              stampsRedeemed: 0,
               netStamps: 0,
               lastActivityTs: null,
             });
           }
         }
+        state.cafesByCustomer = cafesByCustomer;
 
         const customersOverviewRows =
           (data.customers || [])
             .map((customer) => {
-              const username = customer.username
+              const usernameText = customer.username
                 ? escapeHtml(customer.username)
-                : "â€”";
+                : "—";
+              const username = customer.address
+                ? `<a href="#" class="customerDetailLink" data-customer-user="${escapeHtml(
+                    customer.address,
+                  )}">${usernameText}</a>`
+                : usernameText;
               const email = customer.email
                 ? `<a class="overview-email" href="mailto:${encodeURIComponent(
                     customer.email,
                   )}">${escapeHtml(customer.email)}</a>`
-                : "â€”";
+                : "—";
               const walletAddress = customer.address
                 ? `<span class="address" title="${escapeHtml(
                     customer.address,
                   )}">${escapeHtml(shortenAddress(customer.address))}</span>`
-                : "â€”";
+                : "—";
               const walletApple = renderWalletPassBadge(
                 customer.walletAppleActiveCafes,
                 customer.walletAppleDownloadedCafes,
@@ -999,8 +1411,17 @@
           </div>
         `;
 
-        refs.cafesContainer.innerHTML = data.cafes
-          .map((cafe) => {
+        wireDetailLinks(refs.customersOverviewContainer);
+
+        renderCharts(data.charts);
+        renderCafeDetail();
+        renderCustomerDetail();
+      }
+
+      // Builds one café's detail card - used only by renderCafeDetail() now
+      // that "show every café stacked" is gone in favour of picking one via
+      // the Übersicht table.
+      function buildCafeCardHtml(cafe) {
             const stats = cafe.stats || {};
             const customers = cafe.customers || [];
             const events = cafe.events || [];
@@ -1071,9 +1492,11 @@
                   const balanceClass =
                     cust.netStamps >= 0 ? "delta-positive" : "delta-negative";
                   const customerAddr = cust.user
-                    ? `<span class="address" title="${escapeHtml(
+                    ? `<a href="#" class="customerDetailLink address" title="${escapeHtml(
                         cust.user,
-                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                      )}" data-customer-user="${escapeHtml(
+                        cust.user,
+                      )}">${escapeHtml(shortenAddress(cust.user))}</a>`
                     : "—";
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
@@ -1103,9 +1526,11 @@
               walletOnlyCustomers
                 .map((cust) => {
                   const customerAddr = cust.user
-                    ? `<span class="address" title="${escapeHtml(
+                    ? `<a href="#" class="customerDetailLink address" title="${escapeHtml(
                         cust.user,
-                      )}">${escapeHtml(shortenAddress(cust.user))}</span>`
+                      )}" data-customer-user="${escapeHtml(
+                        cust.user,
+                      )}">${escapeHtml(shortenAddress(cust.user))}</a>`
                     : "—";
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
@@ -1172,6 +1597,8 @@
                   </div>
                 </div>
 
+                ${buildCafeChartsHtml(cafe.charts)}
+
                 <div class="section-title">Letzte Events</div>
                 <div class="table-wrapper">
                   <table>
@@ -1234,9 +1661,195 @@
                 </div>`
                     : ""
                 }
+
+                <div class="section-title" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">Café löschen</div>
+                <div class="section-subtitle">
+                  Löscht dieses Café endgültig, inklusive aller Stempel-Events, Wallet-Pässe und Sitzungen. Nicht rückgängig zu machen.
+                </div>
+                <button class="btn btn-secondary deleteAnyCafeBtn" type="button" data-cafe-id="${cafe.id}" data-cafe-name="${escapeHtml(cafe.name || "Café " + cafe.id)}">
+                  Café löschen
+                </button>
               </div>`;
-          })
-          .join("");
+      }
+
+      function wireDetailLinks(container) {
+        if (!container) return;
+        container.querySelectorAll(".cafeDetailLink").forEach((link) => {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            openCafeDetail(Number(link.dataset.cafeId));
+          });
+        });
+        container.querySelectorAll(".customerDetailLink").forEach((link) => {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            openCustomerDetail(link.dataset.customerUser);
+          });
+        });
+      }
+
+      function renderCafeDetail() {
+        if (!refs.cafeDetailContainer) return;
+        const cafes = (state.data && state.data.cafes) || [];
+        const cafe = cafes.find((c) => c.id === state.selectedCafeId);
+        if (!cafe) {
+          refs.cafeDetailContainer.innerHTML =
+            '<p class="section-subtitle">Kein Café ausgewählt - wähle eins in der Übersicht.</p>';
+          return;
+        }
+        refs.cafeDetailContainer.innerHTML = buildCafeCardHtml(cafe);
+        wireDetailLinks(refs.cafeDetailContainer);
+        refs.cafeDetailContainer
+          .querySelectorAll(".deleteAnyCafeBtn")
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              handleDeleteAnyCafe(btn.dataset.cafeId, btn.dataset.cafeName);
+            });
+          });
+      }
+
+      function openCafeDetail(cafeId) {
+        state.selectedCafeId = cafeId;
+        renderCafeDetail();
+        setActiveSection("cafe-detail");
+      }
+
+      // Customer-detail is cross-café by nature - every café this address
+      // has any relationship with (stamped or wallet-only), not just the
+      // one it was opened from, since that's the whole point of having a
+      // dedicated customer view instead of just the per-café row.
+      function buildCustomerDetailHtml(customerUser) {
+        const key = String(customerUser || "").toLowerCase();
+        const registered = ((state.data && state.data.customers) || []).find(
+          (c) => c.address && String(c.address).toLowerCase() === key,
+        );
+        const cafeRows = state.cafesByCustomer.get(key) || [];
+
+        const addrDisplay = customerUser
+          ? `<span class="address" title="${escapeHtml(customerUser)}">${escapeHtml(
+              shortenAddress(customerUser),
+            )}</span>`
+          : "—";
+        const nameDisplay = registered && registered.username
+          ? escapeHtml(registered.username)
+          : "—";
+        const emailDisplay =
+          registered && registered.email
+            ? `<a class="overview-email" href="mailto:${encodeURIComponent(
+                registered.email,
+              )}">${escapeHtml(registered.email)}</a>`
+            : "—";
+        const walletApple = registered
+          ? renderWalletPassBadge(
+              registered.walletAppleActiveCafes,
+              registered.walletAppleDownloadedCafes,
+              true,
+            )
+          : "—";
+        const walletGoogle = registered
+          ? renderWalletPassBadge(
+              registered.walletGoogleCafes,
+              registered.walletGoogleCafes,
+              false,
+            )
+          : "—";
+
+        const cafeTableRows =
+          cafeRows
+            .map((c) => {
+              const balanceClass =
+                c.netStamps >= 0 ? "delta-positive" : "delta-negative";
+              const nameCell =
+                c.cafeId != null
+                  ? `<a href="#" class="cafeDetailLink" data-cafe-id="${c.cafeId}">${escapeHtml(
+                      c.name,
+                    )}</a>`
+                  : escapeHtml(c.name);
+              return `
+              <tr>
+                <td>${nameCell}</td>
+                <td>${formatNumber(c.stampsAwarded)}</td>
+                <td>${formatNumber(c.stampsRedeemed)}</td>
+                <td class="${balanceClass}">${formatNumber(c.netStamps)}</td>
+                <td>${formatDate(c.lastActivityTs)}</td>
+              </tr>`;
+            })
+            .join("") ||
+          `
+            <tr>
+              <td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                Keine Café-Aktivität gefunden.
+              </td>
+            </tr>`;
+
+        return `
+          <div class="card">
+            <div class="cafe-header">
+              <div>
+                <span class="cafe-name">${nameDisplay}</span>
+              </div>
+              <div style="font-size: 13px; color: var(--text-muted);">
+                Wallet: ${addrDisplay} • E-Mail: ${emailDisplay}
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">Wallet-Pass Apple</div>
+                <div class="summary-value" style="font-size: 20px;">${walletApple}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Wallet-Pass Google</div>
+                <div class="summary-value" style="font-size: 20px;">${walletGoogle}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Cafés</div>
+                <div class="summary-value">${formatNumber(cafeRows.length)}</div>
+              </div>
+            </div>
+
+            <div class="section-title">Stempel im Tagesverlauf</div>
+            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
+            <div class="chart-wrap">${buildDotPlotSvg(
+              (registered && registered.charts && registered.charts.stampsByTimeOfDay) || [],
+            )}</div>
+
+            <div class="section-title">Cafés dieses Kunden</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Café</th>
+                    <th>Erhalten</th>
+                    <th>Eingelöst</th>
+                    <th>Saldo</th>
+                    <th>Zuletzt aktiv</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cafeTableRows}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      function renderCustomerDetail() {
+        if (!refs.customerDetailContainer) return;
+        if (!state.selectedCustomerUser) {
+          refs.customerDetailContainer.innerHTML =
+            '<p class="section-subtitle">Kein Kunde ausgewählt - wähle einen in der Übersicht oder einem Café-Detail.</p>';
+          return;
+        }
+        refs.customerDetailContainer.innerHTML = buildCustomerDetailHtml(
+          state.selectedCustomerUser,
+        );
+        wireDetailLinks(refs.customerDetailContainer);
+      }
+
+      function openCustomerDetail(customerUser) {
+        state.selectedCustomerUser = customerUser;
+        renderCustomerDetail();
+        setActiveSection("kunden-detail");
       }
 
       function handleSubmit(event) {
@@ -1344,6 +1957,11 @@
           if (!res.ok || !data.ok) {
             throw new Error((data && data.error) || `HTTP ${res.status}`);
           }
+          // Deleted from within its own detail view - nothing left to show
+          // there, so go back to the list instead of an empty "not found".
+          state.selectedCafeId = null;
+          refs.sectionSelect.value = "uebersicht";
+          setActiveSection("uebersicht");
           fetchActivity();
         } catch (err) {
           window.alert(
@@ -1367,6 +1985,21 @@
         setActiveSection(value);
       });
       setActiveSection(refs.sectionSelect.value);
+
+      if (refs.cafeDetailBackLink) {
+        refs.cafeDetailBackLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          refs.sectionSelect.value = "uebersicht";
+          setActiveSection("uebersicht");
+        });
+      }
+      if (refs.customerDetailBackLink) {
+        refs.customerDetailBackLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          refs.sectionSelect.value = "uebersicht";
+          setActiveSection("uebersicht");
+        });
+      }
 
       refs.configForm.addEventListener("submit", handleSubmit);
       refs.advancedToggleBtn.addEventListener("click", function () {

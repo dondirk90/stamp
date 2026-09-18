@@ -35,6 +35,13 @@ const { z } = require("zod");
 
 const EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
+// Fixed cutoff, not "now" computed at request time: anything created before
+// this rolls out grandfathered-out permanently, without needing a backfill
+// UPDATE (which migrate.cjs's every-deploy re-apply would make unsafe - see
+// migrations/016_add_customer_onboarding_reminder.sql). Bump this only if
+// you intentionally want to widen who's eligible; never make it dynamic.
+const ONBOARDING_REMINDER_ROLLOUT_AT_MS = Date.parse("2026-09-18T00:00:00Z");
+
 // Registering from a specific cafe's table-QR flow (cafe-join.html) needs
 // the verification link to route back there (not the generic /wallet app),
 // otherwise there's no way to resume straight into "add this card to
@@ -954,6 +961,113 @@ async function sendCustomerVerificationEmail({
   return emailTransporter.sendMail(mailOptions);
 }
 
+// Combined "finish onboarding" nudge - covers two independent drop-off
+// points (unconfirmed email, Apple Wallet pass downloaded but never
+// confirmed active) in one email whose content adapts to whichever apply.
+// In practice a customer can only be in the wallet-pending bucket after
+// already confirming their email (see buildCustomerVerifyUrl's comment
+// above), so both flags true at once is rare, but the caller still checks
+// them independently rather than assuming that.
+async function sendOnboardingReminderEmail({
+  email,
+  username,
+  needsVerification,
+  verifyUrl,
+  needsWalletConfirm,
+  applePassUrl,
+  profileUrl,
+  cafeName,
+  cafeLogoUrl,
+}) {
+  const displayName = String(username || "").trim() || "Kaffeekarte Gast";
+
+  const headline =
+    needsVerification && needsWalletConfirm
+      ? `Fast fertig, ${displayName}.`
+      : needsWalletConfirm
+        ? `Nur noch ein Schritt, ${displayName}.`
+        : `Fast geschafft, ${displayName}.`;
+
+  const intro =
+    needsVerification && needsWalletConfirm
+      ? "Dein Konto ist fast startklar - zwei kurze Schritte fehlen noch."
+      : needsWalletConfirm
+        ? "Deine Stempelkarte wartet nur noch darauf, wirklich in deinem Wallet zu landen."
+        : "Ein kurzer Klick noch, dann ist dein Konto bereit.";
+
+  const cafeBlockHtml = cafeName
+    ? `<div style="display: flex; align-items: center; gap: 10px; margin: 0 0 18px;">
+        ${
+          cafeLogoUrl
+            ? `<img src="${cafeLogoUrl}" alt="${cafeName}" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; display: block;" />`
+            : ""
+        }
+        <span style="color: #5f544a; font-size: 13px;">Dein Café: <strong style="color: #181311;">${cafeName}</strong></span>
+      </div>`
+    : "";
+
+  const verifyButtonHtml = needsVerification
+    ? `<div style="margin: 0 0 14px;">
+        <a href="${verifyUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">E-Mail bestaetigen</a>
+      </div>`
+    : "";
+
+  const walletButtonHtml = needsWalletConfirm
+    ? applePassUrl
+      ? `<div style="margin: 0 0 14px;">
+          <a href="${applePassUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">Zu Apple Wallet hinzufügen</a>
+        </div>`
+      : `<p style="margin: 0 0 14px; color: #6b625a; font-size: 13px;">Deine Karte findest du in deinem Profil: <a href="${profileUrl}" style="color: #1c1917;">${profileUrl}</a></p>`
+    : "";
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Fast fertig, ${displayName} – dein Kaffeekarte-Konto wartet`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 28px; line-height: 1.1; color: #181311;">${headline}</h1>
+              <p style="margin: 0; color: #5f544a;">${intro}</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              ${cafeBlockHtml}
+              ${verifyButtonHtml}
+              ${walletButtonHtml}
+              <p style="margin: 18px 0 0; color: #8a7d70; font-size: 12px;">Falls das schon erledigt ist oder du dich nicht registriert hast, kannst du diese E-Mail einfach ignorieren.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: [
+      headline,
+      "",
+      intro,
+      "",
+      cafeName ? `Dein Café: ${cafeName}` : "",
+      needsVerification ? `E-Mail bestaetigen: ${verifyUrl}` : "",
+      needsWalletConfirm
+        ? applePassUrl
+          ? `Zu Apple Wallet hinzufuegen: ${applePassUrl}`
+          : `Deine Karte: ${profileUrl}`
+        : "",
+      "",
+      "Falls das schon erledigt ist oder du dich nicht registriert hast, kannst du diese E-Mail einfach ignorieren.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  };
+
+  ensureEmailConfigured();
+
+  return emailTransporter.sendMail(mailOptions);
+}
+
 function adminNotifyAddress() {
   // Kein eigenes Secret noetig: APPS_BASE_URL ist pro Umgebung schon gesetzt
   // (docker-compose.{prod,staging}.yml), staging enthaelt "staging" in der
@@ -1570,6 +1684,19 @@ runSqliteOnlyAlter(
   "Failed to add customers.avatar_data column:",
 );
 
+// One-shot "finish onboarding" reminder tracking + the café whose QR was
+// scanned at registration (needed so the reminder email can name/show it).
+// See migrations/016_add_customer_onboarding_reminder.sql for the Postgres
+// side of this.
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN onboarding_reminder_sent_at INTEGER",
+  "Failed to add customers.onboarding_reminder_sent_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN registered_via_cafe_address TEXT",
+  "Failed to add customers.registered_via_cafe_address column:",
+);
+
 // Ensure legacy databases pick up the additional columns for event tracking
 runSqliteOnlyAlter(
   "ALTER TABLE stamp_events ADD COLUMN event_type TEXT DEFAULT 'stamp'",
@@ -1640,6 +1767,19 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "CREATE UNIQUE INDEX IF NOT EXISTS idx_google_wallet_objects_customer_cafe_card ON google_wallet_objects(customer_address, cafe_id, card_id)",
   "Failed to create google_wallet_objects card-aware unique index:",
+);
+
+// Per-cafe, time-windowed dashboard charts filter on cafe_id + created_at,
+// which the customer-address-first unique index above can't serve as an
+// index seek. See migrations/015_add_wallet_cafe_time_indexes.sql for the
+// Postgres side of this.
+runSqliteOnlyAlter(
+  "CREATE INDEX IF NOT EXISTS idx_wallet_passes_cafe_created ON wallet_passes(cafe_id, created_at)",
+  "Failed to create wallet_passes cafe/created_at index:",
+);
+runSqliteOnlyAlter(
+  "CREATE INDEX IF NOT EXISTS idx_google_wallet_objects_cafe_created ON google_wallet_objects(cafe_id, created_at)",
+  "Failed to create google_wallet_objects cafe/created_at index:",
 );
 
 // Prepare statements
@@ -2517,7 +2657,7 @@ const deleteCafeImageByIdForCafe = db.prepare(
 
 // Customers prepared statements
 const insertCustomer = db.prepare(
-  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, email_verified_at, created_at) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @email_verified_at, @created_at)",
+  "INSERT INTO customers (customer_id, username, email, address, encrypted_key, password_hash, accepted_privacy_at, accepted_terms_at, privacy_version, terms_version, email_verified_at, created_at, registered_via_cafe_address) VALUES (@customer_id, @username, @email, @address, @encrypted_key, @password_hash, @accepted_privacy_at, @accepted_terms_at, @privacy_version, @terms_version, @email_verified_at, @created_at, @registered_via_cafe_address)",
 );
 const listCustomers = db.prepare("SELECT * FROM customers ORDER BY id DESC");
 const getCustomerByEmail = db.prepare(
@@ -2540,6 +2680,9 @@ const setCustomerUsernameById = db.prepare(
 );
 const setCustomerEmailVerifiedAtById = db.prepare(
   "UPDATE customers SET email_verified_at = ? WHERE id = ?",
+);
+const markCustomerOnboardingReminderSentById = db.prepare(
+  "UPDATE customers SET onboarding_reminder_sent_at = ? WHERE id = ? AND onboarding_reminder_sent_at IS NULL",
 );
 const setCustomerAvatarById = db.prepare(
   "UPDATE customers SET avatar_mime = ?, avatar_data = ? WHERE id = ?",
@@ -4421,6 +4564,178 @@ app.delete("/admin/cafes/:cafeId", requireAdminKey, async (req, res) => {
   }
 });
 
+// Daily "finish onboarding" nudge - customers who registered but never
+// confirmed their email, or confirmed but never got their Apple Wallet pass
+// past "downloaded" to "actually in the wallet" (no PassKit registration
+// callback). Meant to be called once a day by a scheduled external caller
+// (see .github/workflows/onboarding-reminders.yml), not from the admin UI.
+app.post(
+  "/admin/customers/onboarding-reminders",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const dryRun = ["1", "true"].includes(
+        String(req.query?.dryRun || "").toLowerCase(),
+      );
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+      const now = Date.now();
+
+      const dueCustomers = await db
+        .prepare(
+          `SELECT c.id, c.customer_id, c.username, c.email, c.address, c.created_at,
+                  c.registered_via_cafe_address,
+                  rc.id AS registered_cafe_id, rc.name AS registered_cafe_name,
+                  CASE WHEN rc.logo_mime IS NOT NULL THEN 1 ELSE 0 END AS registered_cafe_has_logo,
+                  CASE WHEN c.email_verified_at IS NULL THEN 1 ELSE 0 END AS needs_verification,
+                  CASE WHEN c.email_verified_at IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM wallet_passes wp WHERE wp.customer_address = c.address)
+                    AND NOT EXISTS (
+                      SELECT 1 FROM wallet_passes wp2
+                      JOIN wallet_registrations wr2 ON wr2.serial_number = wp2.serial_number
+                      WHERE wp2.customer_address = c.address
+                    ) THEN 1 ELSE 0 END AS needs_wallet_confirm
+           FROM customers c
+           LEFT JOIN cafes rc ON rc.address = c.registered_via_cafe_address
+           WHERE c.password_hash IS NOT NULL
+             AND c.onboarding_reminder_sent_at IS NULL
+             AND c.created_at <= ?
+             AND c.created_at >= ?
+             -- A customer with any real stamp history is clearly using the
+             -- product already, just not (yet, or ever) through the wallet
+             -- channel this reminder nudges toward - e.g. registered via
+             -- the app and collects stamps in-app without touching Wallet
+             -- at all. Awarding a stamp only needs the café's own auth
+             -- (see /stamp-by-cafe), not a verified customer email, so this
+             -- can genuinely happen even for c.email_verified_at IS NULL.
+             -- Nagging an already-engaged customer to "finish onboarding"
+             -- would be wrong regardless of which bucket below they'd
+             -- otherwise match, so this excludes them from both at once.
+             AND NOT EXISTS (
+               SELECT 1 FROM stamp_events se WHERE LOWER(se."user") = LOWER(c.address)
+             )
+           ORDER BY c.created_at ASC`,
+        )
+        .all(now - 24 * 60 * 60 * 1000, ONBOARDING_REMINDER_ROLLOUT_AT_MS);
+
+      const candidates = dueCustomers.filter(
+        (row) => row.needs_verification || row.needs_wallet_confirm,
+      );
+
+      let sent = 0;
+      const failures = [];
+
+      for (const row of candidates) {
+        try {
+          const needsVerification = !!row.needs_verification;
+          const needsWalletConfirm = !!row.needs_wallet_confirm;
+
+          let pendingPass = null;
+          if (needsWalletConfirm) {
+            pendingPass = await db
+              .prepare(
+                `SELECT wp.card_id, cf.id AS cafe_id, cf.address AS cafe_address, cf.name AS cafe_name,
+                        CASE WHEN cf.logo_mime IS NOT NULL THEN 1 ELSE 0 END AS cafe_has_logo
+                 FROM wallet_passes wp
+                 JOIN cafes cf ON cf.id = wp.cafe_id
+                 WHERE wp.customer_address = ?
+                 ORDER BY wp.created_at ASC
+                 LIMIT 1`,
+              )
+              .get(row.address);
+          }
+
+          let verifyUrl = null;
+          if (needsVerification) {
+            const token = crypto.randomBytes(24).toString("hex");
+            const tokenHash = crypto
+              .createHash("sha256")
+              .update(token)
+              .digest("hex");
+            if (!dryRun) {
+              await insertCustomerEmailVerification.run(
+                row.id,
+                tokenHash,
+                now,
+                now + EMAIL_VERIFICATION_TTL_MS,
+              );
+            }
+            verifyUrl = buildCustomerVerifyUrl(
+              appsBaseUrl,
+              token,
+              row.registered_via_cafe_address || null,
+            );
+          }
+
+          let applePassUrl = null;
+          if (needsWalletConfirm && pendingPass && walletPass.isWalletConfigured()) {
+            applePassUrl = `${appsBaseUrl}/api/customers/${encodeURIComponent(
+              row.address,
+            )}/wallet-pass?cafe=${encodeURIComponent(
+              pendingPass.cafe_address,
+            )}&cardId=${encodeURIComponent(pendingPass.card_id || "")}`;
+          }
+
+          // The pending-wallet café (the one the waiting card actually
+          // belongs to) takes precedence over the registration-origin café.
+          let cafeName = null;
+          let cafeLogoUrl = null;
+          if (needsWalletConfirm && pendingPass) {
+            cafeName = pendingPass.cafe_name || null;
+            cafeLogoUrl = pendingPass.cafe_has_logo
+              ? `${appsBaseUrl}/api/cafes/${pendingPass.cafe_id}/logo.png`
+              : null;
+          } else if (row.registered_cafe_id) {
+            cafeName = row.registered_cafe_name || null;
+            cafeLogoUrl = row.registered_cafe_has_logo
+              ? `${appsBaseUrl}/api/cafes/${row.registered_cafe_id}/logo.png`
+              : null;
+          }
+
+          if (!dryRun) {
+            await sendOnboardingReminderEmail({
+              email: row.email,
+              username: row.username,
+              needsVerification,
+              verifyUrl,
+              needsWalletConfirm,
+              applePassUrl,
+              profileUrl: `${appsBaseUrl}/customer-profile`,
+              cafeName,
+              cafeLogoUrl,
+            });
+            await markCustomerOnboardingReminderSentById.run(now, row.id);
+            sent += 1;
+          }
+        } catch (sendErr) {
+          console.warn(
+            "Failed to send onboarding reminder to customer:",
+            row.customer_id,
+            sendErr && sendErr.message ? sendErr.message : sendErr,
+          );
+          failures.push({
+            customerId: row.customer_id,
+            error: String(sendErr && sendErr.message ? sendErr.message : sendErr),
+          });
+        }
+      }
+
+      res.json({
+        ok: true,
+        dryRun,
+        candidates: candidates.length,
+        sent,
+        failed: failures.length,
+        failures,
+      });
+    } catch (err) {
+      console.error("Error in /admin/customers/onboarding-reminders:", err);
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
 // Sales-demo helper: given just a logo (no cafe row exists yet), auto-detect
 // a brand color and render mockup images of the standee, registration
 // screen, and wallet pass, so a prospect can be shown "this is what it'd
@@ -5314,6 +5629,170 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         return String(a.username || "").localeCompare(String(b.username || ""));
       });
 
+    // Day/time-of-day buckets use Europe/Berlin local time (not server TZ,
+    // which in Docker is typically UTC) so the charts match what a café
+    // owner in Cologne actually experiences as "today" / "this time".
+    const berlinDayFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const berlinTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const dayKey = (ts) => berlinDayFormatter.format(new Date(ts));
+
+    // 15-minute bins instead of a 24-bucket hourly histogram - fine enough
+    // to show real intra-hour patterns (e.g. "right after opening" vs
+    // "just before closing") without pretending to per-minute precision.
+    const BIN_MINUTES = 15;
+    const BINS_PER_DAY = (24 * 60) / BIN_MINUTES;
+    const timeOfDayBin = (ts) => {
+      let hour = 0;
+      let minute = 0;
+      for (const part of berlinTimeFormatter.formatToParts(new Date(ts))) {
+        if (part.type === "hour") hour = Number(part.value) % 24;
+        else if (part.type === "minute") minute = Number(part.value);
+      }
+      const minutesSinceMidnight = hour * 60 + minute;
+      return Math.min(
+        BINS_PER_DAY - 1,
+        Math.floor(minutesSinceMidnight / BIN_MINUTES),
+      );
+    };
+
+    const CHART_DAYS = 30;
+    const chartWindowStart = Date.now() - CHART_DAYS * 86400000;
+
+    const chartDayList = [];
+    for (let i = CHART_DAYS - 1; i >= 0; i--) {
+      chartDayList.push(dayKey(Date.now() - i * 86400000));
+    }
+
+    function makeChartAccumulator() {
+      return {
+        byDay: new Map(chartDayList.map((d) => [d, 0])),
+        byTimeOfDay: new Array(BINS_PER_DAY).fill(0),
+        walletByDay: new Map(chartDayList.map((d) => [d, { apple: 0, google: 0 }])),
+      };
+    }
+    function finalizeChartAccumulator(acc) {
+      return {
+        dailyStamps: chartDayList.map((d) => ({
+          date: d,
+          count: acc.byDay.get(d) || 0,
+        })),
+        dailyWalletDownloads: chartDayList.map((d) => {
+          const v = acc.walletByDay.get(d) || { apple: 0, google: 0 };
+          return {
+            date: d,
+            apple: v.apple,
+            google: v.google,
+            total: v.apple + v.google,
+          };
+        }),
+        stampsByTimeOfDay: acc.byTimeOfDay.map((count, bin) => ({
+          bin,
+          minute: bin * BIN_MINUTES,
+          count,
+        })),
+      };
+    }
+
+    const globalChartAcc = makeChartAccumulator();
+    const chartAccByCafeEntry = new Map();
+    const chartAccByCustomerKey = new Map();
+
+    function getCafeChartAcc(entry) {
+      if (!chartAccByCafeEntry.has(entry)) {
+        chartAccByCafeEntry.set(entry, makeChartAccumulator());
+      }
+      return chartAccByCafeEntry.get(entry);
+    }
+    function getCustomerChartAcc(addr) {
+      const key = String(addr || "").toLowerCase();
+      if (!key) return null;
+      if (!chartAccByCustomerKey.has(key)) {
+        chartAccByCustomerKey.set(key, makeChartAccumulator());
+      }
+      return chartAccByCustomerKey.get(key);
+    }
+
+    const stampChartRows = await db
+      .prepare(
+        `SELECT ts, cafe, "user" as user FROM stamp_events WHERE delta > 0 AND ts >= ?`,
+      )
+      .all(chartWindowStart);
+
+    for (const row of stampChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      const bin = timeOfDayBin(ts);
+
+      if (globalChartAcc.byDay.has(d)) globalChartAcc.byDay.set(d, globalChartAcc.byDay.get(d) + 1);
+      globalChartAcc.byTimeOfDay[bin] += 1;
+
+      const cafeEntry = ensureEntry(row.cafe);
+      const cafeAcc = getCafeChartAcc(cafeEntry);
+      if (cafeAcc.byDay.has(d)) cafeAcc.byDay.set(d, cafeAcc.byDay.get(d) + 1);
+      cafeAcc.byTimeOfDay[bin] += 1;
+
+      const customerAcc = getCustomerChartAcc(row.user);
+      if (customerAcc) {
+        if (customerAcc.byDay.has(d)) customerAcc.byDay.set(d, customerAcc.byDay.get(d) + 1);
+        customerAcc.byTimeOfDay[bin] += 1;
+      }
+    }
+
+    const appleWalletChartRows = await db
+      .prepare(
+        `SELECT created_at AS ts, cafe_id AS cafe_id FROM wallet_passes WHERE created_at >= ?`,
+      )
+      .all(chartWindowStart);
+    const googleWalletChartRows = await db
+      .prepare(
+        `SELECT created_at AS ts, cafe_id AS cafe_id FROM google_wallet_objects WHERE created_at >= ?`,
+      )
+      .all(chartWindowStart);
+
+    for (const row of appleWalletChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      if (globalChartAcc.walletByDay.has(d)) globalChartAcc.walletByDay.get(d).apple += 1;
+      const cafeEntry = cafeById.get(Number(row.cafe_id));
+      if (cafeEntry) {
+        const cafeAcc = getCafeChartAcc(cafeEntry);
+        if (cafeAcc.walletByDay.has(d)) cafeAcc.walletByDay.get(d).apple += 1;
+      }
+    }
+    for (const row of googleWalletChartRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = dayKey(ts);
+      if (globalChartAcc.walletByDay.has(d)) globalChartAcc.walletByDay.get(d).google += 1;
+      const cafeEntry = cafeById.get(Number(row.cafe_id));
+      if (cafeEntry) {
+        const cafeAcc = getCafeChartAcc(cafeEntry);
+        if (cafeAcc.walletByDay.has(d)) cafeAcc.walletByDay.get(d).google += 1;
+      }
+    }
+
+    const charts = Object.assign(
+      { days: CHART_DAYS, timezone: "Europe/Berlin", binMinutes: BIN_MINUTES },
+      finalizeChartAccumulator(globalChartAcc),
+    );
+
+    for (const entry of results) {
+      const acc = chartAccByCafeEntry.get(entry);
+      entry.charts = acc ? finalizeChartAccumulator(acc) : null;
+    }
+
     res.json({
       ok: true,
       cafes: results.map((entry) => ({
@@ -5329,8 +5808,17 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         walletOnlyCustomers: entry.walletOnlyCustomers || [],
         events: entry.events,
         isUnknown: entry.isUnknown || false,
+        charts: entry.charts,
       })),
-      customers: registeredCustomers,
+      customers: registeredCustomers.map((customer) => {
+        const acc = customer.address
+          ? chartAccByCustomerKey.get(String(customer.address).toLowerCase())
+          : null;
+        return Object.assign({}, customer, {
+          charts: acc ? { stampsByTimeOfDay: finalizeChartAccumulator(acc).stampsByTimeOfDay } : null,
+        });
+      }),
+      charts,
       meta: {
         eventsPerCafe,
         customerLimit,
@@ -7214,6 +7702,7 @@ app.post("/customers/register", async (req, res) => {
       terms_version: LEGAL_VERSION,
       email_verified_at: null,
       created_at: Date.now(),
+      registered_via_cafe_address: cafeAddress,
     };
     await insertCustomer.run(info);
 
@@ -7451,6 +7940,10 @@ app.get("/auth/google/callback", async (req, res) => {
         terms_version: LEGAL_VERSION,
         email_verified_at: now,
         created_at: now,
+        registered_via_cafe_address:
+          state.returnTo === "cafe-join" && /^0x[0-9a-f]{40}$/i.test(String(state.cafe || ""))
+            ? state.cafe
+            : null,
       };
       await insertCustomer.run(info);
       customer = await getCustomerAuthByEmail.get(email);
@@ -7663,6 +8156,10 @@ app.post("/auth/apple/callback", appleFormBodyParser, async (req, res) => {
         terms_version: LEGAL_VERSION,
         email_verified_at: now,
         created_at: now,
+        registered_via_cafe_address:
+          state.returnTo === "cafe-join" && /^0x[0-9a-f]{40}$/i.test(String(state.cafe || ""))
+            ? state.cafe
+            : null,
       };
       await insertCustomer.run(info);
       customer = await getCustomerAuthByEmail.get(email);

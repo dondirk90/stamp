@@ -1,0 +1,35 @@
+name: Onboarding Reminders
+
+on:
+  schedule:
+    # 08:00 UTC ~ 09-10 Uhr Berlin (drifts an hour across DST changeover,
+    # accepted as fine for a "sometime mid-morning" reminder).
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry run (no emails sent, no rows marked)"
+        type: boolean
+        default: false
+      target:
+        description: "Target environment"
+        type: choice
+        options: [prod, staging]
+        default: prod
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'prod' }}
+    steps:
+      - name: Call onboarding-reminders endpoint
+        env:
+          DOMAIN: ${{ (github.event.inputs.target == 'staging') && secrets.STAGING_DOMAIN || secrets.PROD_DOMAIN }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dryRun }}
+        run: |
+          test -n "$DOMAIN"
+          test -n "$ADMIN_TOKEN"
+          URL="https://${DOMAIN}/api/admin/customers/onboarding-reminders"
+          if [ "$DRY_RUN" = "true" ]; then URL="${URL}?dryRun=1"; fi
+          curl --fail --silent --show-error -X POST -H "x-admin-key: ${ADMIN_TOKEN}" "$URL"

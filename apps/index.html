@@ -148,6 +148,10 @@
         color: var(--text);
       }
 
+      .navToggle {
+        display: none;
+      }
+
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
@@ -178,23 +182,32 @@
       }
 
       .heroActions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 6px;
+        display: grid;
+        gap: 18px;
+        margin-top: 10px;
+      }
+
+      .heroActionGroup {
+        display: grid;
+        gap: 8px;
+      }
+
+      .heroActionGroup .btn {
+        justify-self: start;
+      }
+
+      .heroActionCaption {
+        margin: 0;
+        max-width: 38ch;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.6);
       }
 
       .heroCard .accentRule {
         margin: 4px 0 2px;
       }
 
-      .heroFacts {
-        margin: 4px 0 0;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        color: rgba(59, 42, 31, 0.6);
-      }
 
       .heroVisual {
         display: flex;
@@ -391,6 +404,42 @@
         color: rgba(59, 42, 31, 0.62);
       }
 
+      /* Café-Wegweiser: bewusst gleich nach dem Hero, nicht erst nach dem
+         Gäste-Manifest oder nur als Nav-Link versteckt - die meisten echten
+         Gäste landen ohnehin nie hier (QR-Scan führt direkt zur
+         Registrierung), Cafés sind das eigentliche Konversionsziel dieser
+         Seite. Bewusst leicht/hairline statt ein drittes "echtes" Panel -
+         das dunkle Manifest bleibt der einzige schwere Kontrastanker. */
+      .cafeSignpost {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        padding: clamp(24px, 4vw, 32px) clamp(24px, 4vw, 36px);
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 252, 248, 0.72), rgba(247, 239, 229, 0.5));
+      }
+
+      .cafeSignpostText h2 {
+        margin: 6px 0 6px;
+        font-family: var(--font-serif);
+        font-size: clamp(24px, 3vw, 30px);
+        letter-spacing: -0.03em;
+      }
+
+      .cafeSignpostText p {
+        margin: 0;
+        max-width: 46ch;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .cafeSignpost .btn {
+        flex: none;
+      }
+
       /* Manifest bleibt der zweite bewusste "echte" Rahmen der Seite - ein
          dunkler Kontrastanker, kein UI-Kaestchen wie die restigen Sektionen. */
       .manifesto {
@@ -460,38 +509,6 @@
         line-height: 1.55;
       }
 
-      .featureGrid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: clamp(28px, 4vw, 48px);
-      }
-
-      .featureIcon {
-        width: 30px;
-        height: 30px;
-        color: var(--brand);
-        margin-bottom: 10px;
-      }
-
-      .featureIcon svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
-
-      .feature h2 {
-        margin: 12px 0 8px;
-        font-size: 24px;
-        line-height: 1.05;
-        letter-spacing: -0.03em;
-      }
-
-      .feature p {
-        margin: 0;
-        color: rgba(59, 42, 31, 0.76);
-        line-height: 1.55;
-      }
-
       .journeyList {
         display: grid;
         gap: clamp(24px, 3vw, 36px);
@@ -543,6 +560,22 @@
         text-decoration: none;
         font-size: 13px;
         font-weight: 700;
+      }
+
+      /* Rechtliche Pflichtlinks bewusst leiser als die echte Navigation
+         darueber - sie muessen auffindbar sein, nicht auffallen. */
+      .legalLinks {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .legalLinks a {
+        color: rgba(59, 42, 31, 0.48);
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 600;
       }
 
       /* Offizielles Apple-Badge: unveraendert, ungedreht, mit dem von den
@@ -711,10 +744,6 @@
         .heroVisual {
           order: -1;
         }
-
-        .featureGrid {
-          grid-template-columns: 1fr;
-        }
       }
 
       @media (max-width: 760px) {
@@ -723,24 +752,118 @@
         }
 
         .header {
+          position: relative;
+          flex-wrap: nowrap;
+        }
+
+        .navToggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          flex: none;
+          border-radius: 12px;
+          border: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.6);
+        }
+
+        .navToggle span {
+          width: 18px;
+          height: 2px;
+          border-radius: 999px;
+          background: var(--color-coffee);
+          box-shadow:
+            0 6px 0 var(--color-coffee),
+            0 -6px 0 var(--color-coffee);
+        }
+
+        /* Same destinations already sit as prominent buttons in the hero
+           right below - the header only needs to offer them, not repeat
+           them wrapped across two lines above the fold. */
+        .nav {
+          display: none;
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
           flex-direction: column;
           align-items: stretch;
+          gap: 2px;
+          min-width: 220px;
+          padding: 10px;
+          border-radius: 16px;
+          border: 1px solid var(--line);
+          background: var(--color-surface-elevated, #fff);
+          box-shadow: 0 18px 40px rgba(68, 41, 22, 0.14);
+          z-index: 20;
         }
 
-        .nav {
-          justify-content: center;
+        .nav.isOpen {
+          display: flex;
         }
 
-        .heroActions {
-          flex-direction: column;
+        .nav a {
+          padding: 12px 14px;
+          border-radius: 10px;
         }
 
-        .heroActions .btn {
+        .nav a:active {
+          background: rgba(81, 58, 40, 0.08);
+        }
+
+        .heroActionGroup .btn {
+          width: 100%;
+          justify-self: stretch;
+        }
+
+        .cafeSignpost .btn {
           width: 100%;
         }
 
         .miniCafe {
           font-size: 26px;
+        }
+
+        /* More breathing room specifically on mobile - the clamp()s above
+           collapse to their tight minimums on narrow screens, which reads
+           as cramped/stressful once everything is stacked in one column
+           instead of spread across a wide desktop grid. */
+        .heroCard {
+          gap: 28px;
+        }
+
+        .section {
+          margin-top: 84px;
+        }
+
+        .section--divider {
+          padding-top: 84px;
+        }
+
+        .sectionHead {
+          margin-bottom: 32px;
+        }
+
+        .journeyList {
+          gap: 40px;
+        }
+
+        .journeyStep p {
+          margin-top: 4px;
+        }
+
+        /* Full-bleed: the one dark panel on the page breaks out to the true
+           screen edges instead of sitting politely inside the page margin
+           like everything else - the "app moment" instead of "brochure"
+           feel that comes from Spotify/Strava-style full-bleed sections,
+           without touching the quiet color palette itself. */
+        .manifesto {
+          margin-inline: -20px;
+          border-radius: 0;
+        }
+
+        .manifesto h2 {
+          font-size: clamp(44px, 11vw, 66px);
         }
       }
     </style>
@@ -757,7 +880,17 @@
             <span class="brandWord">Kaffeekarte</span>
           </span>
         </a>
-        <nav class="nav" aria-label="Produktnavigation">
+        <button
+          class="navToggle miniBtn"
+          type="button"
+          id="navToggleBtn"
+          aria-expanded="false"
+          aria-controls="mainNav"
+          aria-label="Menü öffnen"
+        >
+          <span aria-hidden="true"></span>
+        </button>
+        <nav class="nav" id="mainNav" aria-label="Produktnavigation">
           <a href="/wallet">Cafés entdecken</a>
           <a href="#ablauf">So funktioniert's</a>
           <a href="/fuer-cafes">Für Cafés</a>
@@ -773,10 +906,21 @@
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
           <div class="heroActions" id="cta">
-            <button class="btn primary" type="button" id="cafePickerOpenBtn">Karte holen</button>
-            <a class="btn secondary" href="/wallet">Cafés entdecken</a>
+            <div class="heroActionGroup">
+              <button class="btn primary" type="button" id="cafePickerOpenBtn">Stempelkarte holen</button>
+              <p class="heroActionCaption">
+                Keine App nötig, kostenlos – kurz registrieren, die Karte
+                landet direkt in Apple oder Google Wallet.
+              </p>
+            </div>
+            <div class="heroActionGroup">
+              <a class="btn secondary" href="/wallet">Cafés entdecken</a>
+              <p class="heroActionCaption">
+                Für das volle App-Gefühl: neue Cafés finden, alle Karten an
+                einem Ort.
+              </p>
+            </div>
           </div>
-          <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
         </div>
 
         <div class="heroVisual" aria-hidden="true">
@@ -861,6 +1005,21 @@
       </section>
 
       <section class="section">
+        <div class="cafeSignpost">
+          <div class="cafeSignpostText">
+            <div class="sectionKicker">Für Cafés</div>
+            <h2>Du hast ein Café?</h2>
+            <p>
+              Digitale Stempelkarte in wenigen Minuten eingerichtet – direkt
+              in Apple und Google Wallet deiner Gäste, mit deinem Logo und
+              deiner Farbe.
+            </p>
+          </div>
+          <a class="btn primary" href="/fuer-cafes">Für Cafés ansehen</a>
+        </div>
+      </section>
+
+      <section class="section">
         <div class="editorialGrid">
           <div class="editorialIndex">01</div>
           <div class="manifesto">
@@ -879,50 +1038,9 @@
         </div>
       </section>
 
-      <section class="section section--divider">
-        <div class="editorialGrid">
-          <div class="editorialIndex">02</div>
-          <div class="featureGrid">
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.2h18"/>
-                  <circle cx="16.6" cy="14.3" r="1" fill="currentColor" stroke="none"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Karten</div>
-              <h2>Alle Karten an einem Ort</h2>
-              <p>Deine Lieblingscafés leben gesammelt auf dem Handy statt lose im Portemonnaie. Papierlos, unkompliziert – eher Ritual als Pflichtprogramm.</p>
-            </article>
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9"/><path d="M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9"/>
-                  <path d="M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15"/>
-                  <line x1="4" y1="12" x2="20" y2="12"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Karte zeigen</div>
-              <h2>Karte zeigen, Stempel sammeln</h2>
-              <p>Karte im Café zeigen, und der nächste Stempel landet direkt drauf.</p>
-            </article>
-            <article class="feature">
-              <div class="featureIcon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"/><path d="M15.3 8.7l-2.1 4.9-4.9 2.1 2.1-4.9z"/>
-                </svg>
-              </div>
-              <div class="sectionKicker">Cafés entdecken</div>
-              <h2>Lieblingscafés entdecken</h2>
-              <p>Neue Orte finden, Stammkarten holen und die besten Cafés deiner Stadt im Blick behalten.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
       <section class="section section--divider" id="ablauf">
         <div class="editorialGrid">
-          <div class="editorialIndex">03</div>
+          <div class="editorialIndex">02</div>
           <div class="journey">
             <div class="sectionHead">
               <div class="sectionKicker">So funktioniert's</div>
@@ -962,6 +1080,8 @@
       </p>
       <div class="footerLinks" aria-label="Weitere Seiten">
         <a href="/fuer-cafes">Für Cafés</a>
+      </div>
+      <div class="legalLinks" aria-label="Rechtliches">
         <a href="/impressum">Impressum</a>
         <a href="/datenschutz">Datenschutz</a>
         <a href="/agb">AGB</a>
@@ -1020,6 +1140,37 @@
         function setText(node, value) {
           if (!node) return;
           node.innerHTML = escapeHtml(value);
+        }
+
+        // --- Mobile nav (collapses into the toggle below 760px) ---
+        var navToggleBtn = document.getElementById("navToggleBtn");
+        var mainNav = document.getElementById("mainNav");
+
+        function setNavOpen(open) {
+          if (!navToggleBtn || !mainNav) return;
+          mainNav.classList.toggle("isOpen", open);
+          navToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        if (navToggleBtn && mainNav) {
+          navToggleBtn.addEventListener("click", function () {
+            setNavOpen(!mainNav.classList.contains("isOpen"));
+          });
+          mainNav.addEventListener("click", function (event) {
+            if (event.target.closest("a")) setNavOpen(false);
+          });
+          document.addEventListener("click", function (event) {
+            if (
+              mainNav.classList.contains("isOpen") &&
+              !mainNav.contains(event.target) &&
+              !navToggleBtn.contains(event.target)
+            ) {
+              setNavOpen(false);
+            }
+          });
+          document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") setNavOpen(false);
+          });
         }
 
         // --- Café picker ("Karte holen") ---
