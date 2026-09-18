@@ -182,23 +182,32 @@
       }
 
       .heroActions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 6px;
+        display: grid;
+        gap: 18px;
+        margin-top: 10px;
+      }
+
+      .heroActionGroup {
+        display: grid;
+        gap: 8px;
+      }
+
+      .heroActionGroup .btn {
+        justify-self: start;
+      }
+
+      .heroActionCaption {
+        margin: 0;
+        max-width: 38ch;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.6);
       }
 
       .heroCard .accentRule {
         margin: 4px 0 2px;
       }
 
-      .heroFacts {
-        margin: 4px 0 0;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        color: rgba(59, 42, 31, 0.6);
-      }
 
       .heroVisual {
         display: flex;
@@ -393,6 +402,42 @@
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: rgba(59, 42, 31, 0.62);
+      }
+
+      /* Café-Wegweiser: bewusst gleich nach dem Hero, nicht erst nach dem
+         Gäste-Manifest oder nur als Nav-Link versteckt - die meisten echten
+         Gäste landen ohnehin nie hier (QR-Scan führt direkt zur
+         Registrierung), Cafés sind das eigentliche Konversionsziel dieser
+         Seite. Bewusst leicht/hairline statt ein drittes "echtes" Panel -
+         das dunkle Manifest bleibt der einzige schwere Kontrastanker. */
+      .cafeSignpost {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+        padding: clamp(24px, 4vw, 32px) clamp(24px, 4vw, 36px);
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 252, 248, 0.72), rgba(247, 239, 229, 0.5));
+      }
+
+      .cafeSignpostText h2 {
+        margin: 6px 0 6px;
+        font-family: var(--font-serif);
+        font-size: clamp(24px, 3vw, 30px);
+        letter-spacing: -0.03em;
+      }
+
+      .cafeSignpostText p {
+        margin: 0;
+        max-width: 46ch;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .cafeSignpost .btn {
+        flex: none;
       }
 
       /* Manifest bleibt der zweite bewusste "echte" Rahmen der Seite - ein
@@ -766,11 +811,12 @@
           background: rgba(81, 58, 40, 0.08);
         }
 
-        .heroActions {
-          flex-direction: column;
+        .heroActionGroup .btn {
+          width: 100%;
+          justify-self: stretch;
         }
 
-        .heroActions .btn {
+        .cafeSignpost .btn {
           width: 100%;
         }
 
@@ -860,10 +906,21 @@
             Digitale Stammkarten für unabhängige Cafés und Menschen, die guten Kaffee lieben.
           </p>
           <div class="heroActions" id="cta">
-            <button class="btn primary" type="button" id="cafePickerOpenBtn">Karte holen</button>
-            <a class="btn secondary" href="/wallet">Cafés entdecken</a>
+            <div class="heroActionGroup">
+              <button class="btn primary" type="button" id="cafePickerOpenBtn">Stempelkarte holen</button>
+              <p class="heroActionCaption">
+                Keine App nötig, kostenlos – kurz registrieren, die Karte
+                landet direkt in Apple oder Google Wallet.
+              </p>
+            </div>
+            <div class="heroActionGroup">
+              <a class="btn secondary" href="/wallet">Cafés entdecken</a>
+              <p class="heroActionCaption">
+                Für das volle App-Gefühl: neue Cafés finden, alle Karten an
+                einem Ort.
+              </p>
+            </div>
           </div>
-          <p class="heroFacts">Keine App nötig · kostenlos · für unabhängige Cafés</p>
         </div>
 
         <div class="heroVisual" aria-hidden="true">
@@ -944,6 +1001,21 @@
             </div>
           </div>
         </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="cafeSignpost">
+          <div class="cafeSignpostText">
+            <div class="sectionKicker">Für Cafés</div>
+            <h2>Du hast ein Café?</h2>
+            <p>
+              Digitale Stempelkarte in wenigen Minuten eingerichtet – direkt
+              in Apple und Google Wallet deiner Gäste, mit deinem Logo und
+              deiner Farbe.
+            </p>
+          </div>
+          <a class="btn primary" href="/fuer-cafes">Für Cafés ansehen</a>
         </div>
       </section>
 
