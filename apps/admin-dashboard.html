@@ -272,6 +272,10 @@
       .chart-bar-google {
         fill: var(--color-coffee-light, #b99174);
       }
+      .chart-dot {
+        fill: var(--brand);
+        fill-opacity: 0.82;
+      }
       .chart-axis-line {
         stroke: var(--border);
         stroke-width: 1;
@@ -554,7 +558,7 @@
 
           <div class="card">
             <div class="section-title">Stempel im Tagesverlauf</div>
-            <div class="section-subtitle">Zu welcher Uhrzeit Stempel vergeben werden (letzte 30 Tage, Ortszeit Europe/Berlin).</div>
+            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage (Ortszeit Europe/Berlin).</div>
             <div class="chart-wrap" id="chartHourly"></div>
           </div>
 
@@ -940,6 +944,68 @@
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
 
+      function formatBinTime(minute) {
+        const h = Math.floor(minute / 60);
+        const m = minute % 60;
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+
+      // Time-of-day distribution as a dot plot (one dot per event, stacked
+      // when several fall in the same 15-minute slot) instead of an hourly
+      // bar histogram - no bucket-size trade-off to pick since every dot is
+      // one real event, and it stays legible even when a single café/kunde
+      // only has a handful of stamps to show.
+      function buildDotPlotSvg(bins, options) {
+        const opts = Object.assign({ width: 600, height: 90 }, options);
+        const totalCount = bins.reduce((sum, b) => sum + (b.count || 0), 0);
+        if (!totalCount) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const maxCount = Math.max(1, ...bins.map((b) => b.count || 0));
+        const spacing = Math.max(3, Math.min(8, opts.height / maxCount));
+        const radius = Math.max(1.5, spacing / 2 - 0.5);
+        const dayMinutes = 24 * 60;
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const binMinutes = bins.length ? dayMinutes / bins.length : 15;
+
+        let dots = "";
+        bins.forEach((b) => {
+          const count = b.count || 0;
+          if (!count) return;
+          const x = ((b.minute + binMinutes / 2) / dayMinutes) * opts.width;
+          const title = escapeHtml(
+            `${formatBinTime(b.minute)}–${formatBinTime(
+              b.minute + binMinutes,
+            )} Uhr: ${formatNumber(count)} Stempel`,
+          );
+          for (let i = 0; i < count; i++) {
+            const y = Math.max(radius, opts.height - radius - i * spacing);
+            dots += `<circle class="chart-dot" cx="${x.toFixed(2)}" cy="${y.toFixed(
+              2,
+            )}" r="${radius.toFixed(2)}"><title>${title}</title></circle>`;
+          }
+        });
+
+        const hourTicks = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+        const labels = hourTicks
+          .map((h) => {
+            const x = ((h * 60) / dayMinutes) * opts.width;
+            const anchor = h === 0 ? "start" : h === 24 ? "end" : "middle";
+            return `<text class="chart-axis-label" x="${x.toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="${anchor}">${String(h).padStart(
+              2,
+              "0",
+            )}h</text>`;
+          })
+          .join("");
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${dots}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
       function renderCharts(charts) {
         if (!charts) {
           const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
@@ -966,14 +1032,45 @@
         }));
         refs.chartWalletPerDay.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
 
-        const hourly = (charts.hourlyStamps || []).map((h) => ({
-          label: `${String(h.hour).padStart(2, "0")}h`,
-          value: h.count,
-          title: `${String(h.hour).padStart(2, "0")}:00 Uhr: ${formatNumber(
-            h.count,
-          )} Stempel`,
+        refs.chartHourly.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
+      }
+
+      // Same three charts as renderCharts(), but scoped to one café and
+      // returned as an HTML string for buildCafeCardHtml() to splice in
+      // rather than targeting a fixed #id (a café card can be rebuilt for
+      // any café, so there's no single static container to bind to).
+      function buildCafeChartsHtml(charts) {
+        if (!charts) return "";
+        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.count,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
         }));
-        refs.chartHourly.innerHTML = buildBarChartSvg(hourly, { labelEvery: 4 });
+        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          apple: d.apple,
+          google: d.google,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.apple,
+          )} Apple, ${formatNumber(d.google)} Google`,
+        }));
+        return `
+          <div class="section-title" style="margin-top: 32px;">Stempel pro Tag</div>
+          <div class="section-subtitle">Letzte 30 Tage.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
+
+          <div class="section-title">Wallet-Karten pro Tag</div>
+          <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe, letzte 30 Tage.</div>
+          <div class="chart-legend">
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+          </div>
+          <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
+
+          <div class="section-title">Stempel im Tagesverlauf</div>
+          <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
+          <div class="chart-wrap">${buildDotPlotSvg(charts.stampsByTimeOfDay || [])}</div>
+        `;
       }
 
       function renderDashboard() {
@@ -1498,6 +1595,8 @@
                   </div>
                 </div>
 
+                ${buildCafeChartsHtml(cafe.charts)}
+
                 <div class="section-title">Letzte Events</div>
                 <div class="table-wrapper">
                   <table>
@@ -1705,6 +1804,12 @@
                 <div class="summary-value">${formatNumber(cafeRows.length)}</div>
               </div>
             </div>
+
+            <div class="section-title">Stempel im Tagesverlauf</div>
+            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
+            <div class="chart-wrap">${buildDotPlotSvg(
+              (registered && registered.charts && registered.charts.stampsByTimeOfDay) || [],
+            )}</div>
 
             <div class="section-title">Cafés dieses Kunden</div>
             <div class="table-wrapper">

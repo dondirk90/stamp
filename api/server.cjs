@@ -1642,6 +1642,19 @@ runSqliteOnlyAlter(
   "Failed to create google_wallet_objects card-aware unique index:",
 );
 
+// Per-cafe, time-windowed dashboard charts filter on cafe_id + created_at,
+// which the customer-address-first unique index above can't serve as an
+// index seek. See migrations/015_add_wallet_cafe_time_indexes.sql for the
+// Postgres side of this.
+runSqliteOnlyAlter(
+  "CREATE INDEX IF NOT EXISTS idx_wallet_passes_cafe_created ON wallet_passes(cafe_id, created_at)",
+  "Failed to create wallet_passes cafe/created_at index:",
+);
+runSqliteOnlyAlter(
+  "CREATE INDEX IF NOT EXISTS idx_google_wallet_objects_cafe_created ON google_wallet_objects(cafe_id, created_at)",
+  "Failed to create google_wallet_objects cafe/created_at index:",
+);
+
 // Prepare statements
 const insertEvent = db.prepare(
   'INSERT INTO stamp_events (ts, cafe, "user", customer_name, txhash, status, event_type, delta, card_id) VALUES (@ts, @cafe, @user, @customer_name, @txhash, @status, @event_type, @delta, @card_id)',
@@ -5314,22 +5327,41 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         return String(a.username || "").localeCompare(String(b.username || ""));
       });
 
-    // Day/hour buckets use Europe/Berlin local time (not server TZ, which
-    // in Docker is typically UTC) so the charts match what a café owner in
-    // Cologne actually experiences as "today" / "this hour".
+    // Day/time-of-day buckets use Europe/Berlin local time (not server TZ,
+    // which in Docker is typically UTC) so the charts match what a café
+    // owner in Cologne actually experiences as "today" / "this time".
     const berlinDayFormatter = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Europe/Berlin",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     });
-    const berlinHourFormatter = new Intl.DateTimeFormat("en-GB", {
+    const berlinTimeFormatter = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/Berlin",
       hour: "2-digit",
+      minute: "2-digit",
       hour12: false,
     });
     const dayKey = (ts) => berlinDayFormatter.format(new Date(ts));
-    const hourKey = (ts) => Number(berlinHourFormatter.format(new Date(ts))) % 24;
+
+    // 15-minute bins instead of a 24-bucket hourly histogram - fine enough
+    // to show real intra-hour patterns (e.g. "right after opening" vs
+    // "just before closing") without pretending to per-minute precision.
+    const BIN_MINUTES = 15;
+    const BINS_PER_DAY = (24 * 60) / BIN_MINUTES;
+    const timeOfDayBin = (ts) => {
+      let hour = 0;
+      let minute = 0;
+      for (const part of berlinTimeFormatter.formatToParts(new Date(ts))) {
+        if (part.type === "hour") hour = Number(part.value) % 24;
+        else if (part.type === "minute") minute = Number(part.value);
+      }
+      const minutesSinceMidnight = hour * 60 + minute;
+      return Math.min(
+        BINS_PER_DAY - 1,
+        Math.floor(minutesSinceMidnight / BIN_MINUTES),
+      );
+    };
 
     const CHART_DAYS = 30;
     const chartWindowStart = Date.now() - CHART_DAYS * 86400000;
@@ -5339,60 +5371,125 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       chartDayList.push(dayKey(Date.now() - i * 86400000));
     }
 
+    function makeChartAccumulator() {
+      return {
+        byDay: new Map(chartDayList.map((d) => [d, 0])),
+        byTimeOfDay: new Array(BINS_PER_DAY).fill(0),
+        walletByDay: new Map(chartDayList.map((d) => [d, { apple: 0, google: 0 }])),
+      };
+    }
+    function finalizeChartAccumulator(acc) {
+      return {
+        dailyStamps: chartDayList.map((d) => ({
+          date: d,
+          count: acc.byDay.get(d) || 0,
+        })),
+        dailyWalletDownloads: chartDayList.map((d) => {
+          const v = acc.walletByDay.get(d) || { apple: 0, google: 0 };
+          return {
+            date: d,
+            apple: v.apple,
+            google: v.google,
+            total: v.apple + v.google,
+          };
+        }),
+        stampsByTimeOfDay: acc.byTimeOfDay.map((count, bin) => ({
+          bin,
+          minute: bin * BIN_MINUTES,
+          count,
+        })),
+      };
+    }
+
+    const globalChartAcc = makeChartAccumulator();
+    const chartAccByCafeEntry = new Map();
+    const chartAccByCustomerKey = new Map();
+
+    function getCafeChartAcc(entry) {
+      if (!chartAccByCafeEntry.has(entry)) {
+        chartAccByCafeEntry.set(entry, makeChartAccumulator());
+      }
+      return chartAccByCafeEntry.get(entry);
+    }
+    function getCustomerChartAcc(addr) {
+      const key = String(addr || "").toLowerCase();
+      if (!key) return null;
+      if (!chartAccByCustomerKey.has(key)) {
+        chartAccByCustomerKey.set(key, makeChartAccumulator());
+      }
+      return chartAccByCustomerKey.get(key);
+    }
+
     const stampChartRows = await db
       .prepare(
-        `SELECT ts FROM stamp_events WHERE delta > 0 AND ts >= ?`,
+        `SELECT ts, cafe, "user" as user FROM stamp_events WHERE delta > 0 AND ts >= ?`,
       )
       .all(chartWindowStart);
 
-    const stampsByDay = new Map(chartDayList.map((d) => [d, 0]));
-    const stampsByHour = new Array(24).fill(0);
     for (const row of stampChartRows) {
       const ts = Number(row.ts);
       if (!ts) continue;
       const d = dayKey(ts);
-      if (stampsByDay.has(d)) stampsByDay.set(d, stampsByDay.get(d) + 1);
-      stampsByHour[hourKey(ts)] += 1;
+      const bin = timeOfDayBin(ts);
+
+      if (globalChartAcc.byDay.has(d)) globalChartAcc.byDay.set(d, globalChartAcc.byDay.get(d) + 1);
+      globalChartAcc.byTimeOfDay[bin] += 1;
+
+      const cafeEntry = ensureEntry(row.cafe);
+      const cafeAcc = getCafeChartAcc(cafeEntry);
+      if (cafeAcc.byDay.has(d)) cafeAcc.byDay.set(d, cafeAcc.byDay.get(d) + 1);
+      cafeAcc.byTimeOfDay[bin] += 1;
+
+      const customerAcc = getCustomerChartAcc(row.user);
+      if (customerAcc) {
+        if (customerAcc.byDay.has(d)) customerAcc.byDay.set(d, customerAcc.byDay.get(d) + 1);
+        customerAcc.byTimeOfDay[bin] += 1;
+      }
     }
 
     const appleWalletChartRows = await db
-      .prepare(`SELECT created_at AS ts FROM wallet_passes WHERE created_at >= ?`)
+      .prepare(
+        `SELECT created_at AS ts, cafe_id AS cafe_id FROM wallet_passes WHERE created_at >= ?`,
+      )
       .all(chartWindowStart);
     const googleWalletChartRows = await db
       .prepare(
-        `SELECT created_at AS ts FROM google_wallet_objects WHERE created_at >= ?`,
+        `SELECT created_at AS ts, cafe_id AS cafe_id FROM google_wallet_objects WHERE created_at >= ?`,
       )
       .all(chartWindowStart);
 
-    const walletDownloadsByDay = new Map(
-      chartDayList.map((d) => [d, { apple: 0, google: 0 }]),
-    );
     for (const row of appleWalletChartRows) {
       const ts = Number(row.ts);
       if (!ts) continue;
       const d = dayKey(ts);
-      if (walletDownloadsByDay.has(d)) walletDownloadsByDay.get(d).apple += 1;
+      if (globalChartAcc.walletByDay.has(d)) globalChartAcc.walletByDay.get(d).apple += 1;
+      const cafeEntry = cafeById.get(Number(row.cafe_id));
+      if (cafeEntry) {
+        const cafeAcc = getCafeChartAcc(cafeEntry);
+        if (cafeAcc.walletByDay.has(d)) cafeAcc.walletByDay.get(d).apple += 1;
+      }
     }
     for (const row of googleWalletChartRows) {
       const ts = Number(row.ts);
       if (!ts) continue;
       const d = dayKey(ts);
-      if (walletDownloadsByDay.has(d)) walletDownloadsByDay.get(d).google += 1;
+      if (globalChartAcc.walletByDay.has(d)) globalChartAcc.walletByDay.get(d).google += 1;
+      const cafeEntry = cafeById.get(Number(row.cafe_id));
+      if (cafeEntry) {
+        const cafeAcc = getCafeChartAcc(cafeEntry);
+        if (cafeAcc.walletByDay.has(d)) cafeAcc.walletByDay.get(d).google += 1;
+      }
     }
 
-    const charts = {
-      days: CHART_DAYS,
-      timezone: "Europe/Berlin",
-      dailyStamps: chartDayList.map((d) => ({
-        date: d,
-        count: stampsByDay.get(d) || 0,
-      })),
-      dailyWalletDownloads: chartDayList.map((d) => {
-        const v = walletDownloadsByDay.get(d) || { apple: 0, google: 0 };
-        return { date: d, apple: v.apple, google: v.google, total: v.apple + v.google };
-      }),
-      hourlyStamps: stampsByHour.map((count, hour) => ({ hour, count })),
-    };
+    const charts = Object.assign(
+      { days: CHART_DAYS, timezone: "Europe/Berlin", binMinutes: BIN_MINUTES },
+      finalizeChartAccumulator(globalChartAcc),
+    );
+
+    for (const entry of results) {
+      const acc = chartAccByCafeEntry.get(entry);
+      entry.charts = acc ? finalizeChartAccumulator(acc) : null;
+    }
 
     res.json({
       ok: true,
@@ -5409,8 +5506,16 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         walletOnlyCustomers: entry.walletOnlyCustomers || [],
         events: entry.events,
         isUnknown: entry.isUnknown || false,
+        charts: entry.charts,
       })),
-      customers: registeredCustomers,
+      customers: registeredCustomers.map((customer) => {
+        const acc = customer.address
+          ? chartAccByCustomerKey.get(String(customer.address).toLowerCase())
+          : null;
+        return Object.assign({}, customer, {
+          charts: acc ? { stampsByTimeOfDay: finalizeChartAccumulator(acc).stampsByTimeOfDay } : null,
+        });
+      }),
       charts,
       meta: {
         eventsPerCafe,
