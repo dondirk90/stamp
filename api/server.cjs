@@ -40,7 +40,13 @@ const EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 // UPDATE (which migrate.cjs's every-deploy re-apply would make unsafe - see
 // migrations/016_add_customer_onboarding_reminder.sql). Bump this only if
 // you intentionally want to widen who's eligible; never make it dynamic.
-const ONBOARDING_REMINDER_ROLLOUT_AT_MS = Date.parse("2026-09-18T00:00:00Z");
+//
+// Set comfortably before the actual prod rollout date on purpose: picking
+// "today" exactly makes same-day staging testing structurally impossible
+// (created_at >= cutoff and created_at <= now-24h can't both hold until a
+// full 24h have passed since the cutoff - confirmed live while testing
+// this). Move this to the real go-live date right before the prod deploy.
+const ONBOARDING_REMINDER_ROLLOUT_AT_MS = Date.parse("2026-09-01T00:00:00Z");
 
 // Registering from a specific cafe's table-QR flow (cafe-join.html) needs
 // the verification link to route back there (not the generic /wallet app),
