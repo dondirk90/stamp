@@ -6880,21 +6880,32 @@ app.get("/cafes/public", async (req, res) => {
   }
 });
 
-// Public café profile (full about + logo) for customer-facing apps
+// Public café profile (full about + logo) for customer-facing apps. Accepts
+// either the numeric id or the café's 0x wallet address - callers who
+// already have a specific café's address (a printed QR code, a standee
+// generator, a saved link) are doing a direct lookup, not browsing, so
+// isInternalTestCafe() does NOT apply here: that filter exists to keep junk
+// test/demo rows out of the *discovery list* (/cafes/public above), not to
+// block a café's own real data from a link it already handed out. Applying
+// it here used to 404 (or silently return nothing) for the account owner's
+// own real production cafés whenever their email happened to match the
+// test-café heuristic - confirmed live via the "Aufsteller" standee page.
 app.get("/cafes/public/:id", async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
+    const idParam = String(req.params.id || "").trim();
+    const isAddress = /^0x[0-9a-fA-F]{40}$/.test(idParam);
+    const numericId = Number(idParam);
+    if (!isAddress && !Number.isFinite(numericId)) {
       return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
     }
 
     const row = await db
       .prepare(
-        "SELECT id, name, email, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE id = ?",
+        `SELECT id, name, email, address, location_address, lat, lng, website_url, instagram_url, about_text, short_description, redeem_message, logo_mime, logo_data, card_bg_mime, card_bg_data, card_back_text, card_theme, card_bg_color, card_fg_color, stamps_for_reward, reward_description, created_at, updated_at FROM cafes WHERE ${isAddress ? "LOWER(address) = LOWER(?)" : "id = ?"}`,
       )
-      .get(id);
+      .get(isAddress ? idParam : numericId);
 
-    if (!row || isInternalTestCafe(row)) {
+    if (!row) {
       return res.status(404).json({ ok: false, error: "cafe_not_found" });
     }
 

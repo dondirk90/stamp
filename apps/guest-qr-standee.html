@@ -481,18 +481,17 @@
         // why this doesn't defer to any pre-existing cafe/reward/url params).
         var cafeAddressParam = (params.get("cafeAddress") || "").trim();
         if (cafeAddressParam) {
-          fetch("/api/cafes/public")
+          // Direct lookup by address, not the /cafes/public discovery list -
+          // that list filters out internal/test-looking cafés (by design,
+          // it's a customer-facing browse list), which used to make this
+          // page silently fall back to the generic QR/color for any café
+          // caught by that filter, including real production cafés.
+          fetch("/api/cafes/public/" + encodeURIComponent(cafeAddressParam))
             .then(function (res) {
               return res.json();
             })
             .then(function (data) {
-              var cafes = (data && data.cafes) || [];
-              var found = cafes.find(function (c) {
-                return (
-                  String(c.cafeAddress || "").toLowerCase() ===
-                  cafeAddressParam.toLowerCase()
-                );
-              });
+              var found = data && data.cafe;
               if (!found) return;
 
               if (found.cardBgColor && found.cardFgColor) {
