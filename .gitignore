@@ -38,6 +38,25 @@ apps/.apps-server.*.log
 .env.staging
 .env.prod
 
+# Local scratch/planning notes - dev-only reference, not meant to ship
+# with the repo. README.md and package-level READMEs stay tracked.
+TODO_FUTURE_TOPICS.md
+/BRAND.md
+/CAFE_OS_MIGRATION_PLAN.md
+/CAFE_OS_REPO_SPLIT_PLAN.md
+/CI_CD_SETUP.md
+/COFFEE_GUIDE_MIGRATION_PLAN.md
+/NATIVE_APP_PLAN.md
+/PRODUCT_FILE_INVENTORY.md
+/PRODUCT_SPLIT_PLAN.md
+/PROD_RELEASE_PLAN.md
+/PROJECT_DOCUMENTATION.md
+/PWA_ROADMAP.md
+/QUICK_START.md
+/SERVER_MONITORING_CHECKLIST.md
+/SOCIAL_MEDIA_PLAN.md
+/STAGING_RUNBOOK.md
+
 # Capacitor native projects (apps/*-native) - committed except dependency-
 # manager output and machine-specific IDE/build-cache state.
 apps/*-native/ios/**/Pods/

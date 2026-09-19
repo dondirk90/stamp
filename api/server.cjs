@@ -5249,7 +5249,15 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
       const resolvedAddress = row.address || null;
 
       const entry = {
-        id: row.id,
+        // Postgres returns BIGINT/BIGSERIAL columns as strings by default
+        // (node-postgres avoids silently losing precision beyond
+        // Number.MAX_SAFE_INTEGER) - SQLite doesn't have this quirk, which
+        // is why the admin dashboard's café-detail drill-down only broke in
+        // prod/staging (real Postgres), never in local SQLite dev: the
+        // frontend's strict `cafe.id === selectedCafeId` comparison failed
+        // silently against a string id. Coercing here keeps every
+        // downstream consumer of entry.id on a plain JS number.
+        id: row.id != null ? Number(row.id) : null,
         email: row.email || null,
         emailVerifiedAt: row.email_verified_at || null,
         name: row.name || `Café ${row.id}`,
@@ -6837,7 +6845,10 @@ app.get("/cafes/public", async (req, res) => {
       .map((row) => {
         const address = row.location_address || null;
         return {
-          id: row.id,
+          // Postgres returns BIGINT ids as strings by default - coerce so
+          // every consumer gets a plain JS number (see the admin-dashboard
+          // café-detail drill-down bug this same pattern caused).
+          id: row.id != null ? Number(row.id) : null,
           name: row.name || null,
           address,
           cafeAddress: row.address || null,
@@ -6923,7 +6934,8 @@ app.get("/cafes/public/:id", async (req, res) => {
     res.json({
       ok: true,
       cafe: {
-        id: row.id,
+        // See /cafes/public above - Postgres BIGINT ids come back as strings.
+        id: row.id != null ? Number(row.id) : null,
         name: row.name || null,
         cafeAddress: row.address || null,
         address: row.location_address || null,
