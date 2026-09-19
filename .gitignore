@@ -38,6 +38,9 @@ apps/.apps-server.*.log
 .env.staging
 .env.prod
 
+# Local scratch/planning notes - not meant to ship with the repo
+TODO_FUTURE_TOPICS.md
+
 # Capacitor native projects (apps/*-native) - committed except dependency-
 # manager output and machine-specific IDE/build-cache state.
 apps/*-native/ios/**/Pods/
