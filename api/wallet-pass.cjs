@@ -124,6 +124,29 @@ async function buildLogoBuffers(logoBuffer) {
   return out;
 }
 
+// Fits a cafe's logo into Apple's square icon.png slot (29x29pt @1x).
+// icon.png - not logo.png, the wider in-pass header image built above - is
+// what Wallet actually shows in the lock-screen "you're near this cafe"
+// relevance notification (locations/maxDistance below), on Apple Watch, and
+// in the pass list, so leaving it as the generic bean meant every cafe's
+// proximity alert looked the same regardless of which cafe it was for.
+// Falls back to STATIC_ICON_BUFFERS (the bean) for cafes with no logo yet.
+async function buildIconBuffers(logoBuffer) {
+  const out = {};
+  for (const scale of [1, 2, 3]) {
+    const size = 29 * scale;
+    const name = scale === 1 ? "icon.png" : `icon@${scale}x.png`;
+    out[name] = await sharp(logoBuffer)
+      .resize(size, size, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  }
+  return out;
+}
+
 // Same 100x100-viewBox star path as buildStampSvg() in
 // apps/customer-qr-modern.js, so the wallet card's filled symbol matches
 // whatever the cafe picked in cafe-scanner-new.html's "Stempel-Symbol"
@@ -534,6 +557,7 @@ async function generateSignedPass({
   if (cafeRow && cafeRow.logo_data && cafeRow.logo_mime) {
     const logoBuffer = Buffer.from(cafeRow.logo_data, "base64");
     Object.assign(buffers, await buildLogoBuffers(logoBuffer));
+    Object.assign(buffers, await buildIconBuffers(logoBuffer));
   }
 
   const pass = new PKPass(buffers, certificates);
