@@ -1998,6 +1998,94 @@
       .chart-legend-dot-google {
         background: var(--color-coffee-light, #b99174);
       }
+      .chart-bar-customers {
+        fill: var(--color-coffee-light, #b99174);
+      }
+
+      .range-toggle {
+        display: inline-flex;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      /* .miniBtn opts these out of theme.css's global legacy-button rule
+         (button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain){
+         background:var(--brand) !important}), same escape hatch used for
+         the stamp-preset buttons above. */
+      .range-toggle button.rangeToggleBtn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .range-toggle button.rangeToggleBtn.active {
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        border-color: transparent;
+      }
+
+      .heatmap-table {
+        min-width: 560px;
+      }
+      .heatmap-table th,
+      .heatmap-table td {
+        padding: 6px 8px;
+        text-align: center;
+        font-size: 11px;
+      }
+      .heatmap-rowlabel {
+        text-align: left !important;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .heatmap-collabel {
+        color: var(--text-muted);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .heatmap-cell {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Generic horizontal-bar list, shared by the loyalty funnel, visit
+         distribution and time-between-visits sections. */
+      .funnel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .funnelStage {
+        display: grid;
+        grid-template-columns: minmax(110px, 170px) 1fr 50px;
+        align-items: center;
+        gap: 12px;
+      }
+      .funnelLabel {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .funnelBarWrap {
+        height: 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+      .funnelBar {
+        height: 100%;
+        background: var(--brand);
+        border-radius: 999px;
+      }
+      .funnelValue {
+        text-align: right;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
 
       /* Scoped to #dashboardScreen - .badge is also used unstyled
          (theme.css's normal pill badge) elsewhere, e.g. #profileScreen's
@@ -2881,21 +2969,15 @@
               </div>
 
               <div class="card" style="padding: var(--space-5); margin-bottom: var(--space-4)">
-                <h2 class="sectionTitle">Stempel pro Tag</h2>
-                <div class="sectionSubtitle">Letzte 30 Tage.</div>
-                <div class="chart-wrap" id="chartCafeStampsPerDay"></div>
-
-                <h2 class="sectionTitle" style="margin-top: 28px">Wallet-Karten pro Tag</h2>
-                <div class="sectionSubtitle">Neu gespeicherte Wallet-Pässe.</div>
-                <div class="chart-legend">
-                  <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
-                  <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+                <div id="cafeDashAnalyticsBlock">
+                  <div class="muted">Lade Analytics …</div>
                 </div>
-                <div class="chart-wrap" id="chartCafeWalletPerDay"></div>
+              </div>
 
-                <h2 class="sectionTitle" style="margin-top: 28px">Tageszeit-Verteilung</h2>
-                <div class="sectionSubtitle">Wann deine Kunden am häufigsten stempeln.</div>
-                <div class="chart-wrap" id="chartCafeHourly"></div>
+              <div class="card" style="padding: var(--space-5); margin-bottom: var(--space-4)">
+                <div id="cafeDashLifecycleBlock">
+                  <div class="muted">Lade Lifecycle-Analytics …</div>
+                </div>
               </div>
 
               <div class="split">
@@ -3096,6 +3178,38 @@
                     </div>
                   </div>
                   <textarea id="profilePopupAlmostRewardMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text für Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+
+                  <div id="programAdvancedReminderIntro" class="advancedOnly">
+                    <div class="muted" style="margin: 16px 0 14px">
+                      Zusätzlich zum Popup in der Kundenkarte kannst du eine echte
+                      Push-Erinnerung senden - sie erreicht Kunden auch, ohne dass sie
+                      die Karte selbst öffnen.
+                    </div>
+                  </div>
+                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
+                    <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                      <input id="profileReminderPushEnabled" type="checkbox" />
+                      <span>Push-Erinnerung aktiv</span>
+                    </label>
+                  </div>
+                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
+                    <div style="flex: 1">
+                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                        Ab wie vielen Stempeln
+                      </div>
+                      <input id="profileReminderMinStamps" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
+                    </div>
+                    <div style="flex: 1">
+                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                        Tage ohne neuen Stempel
+                      </div>
+                      <input id="profileReminderInactiveDays" class="input" type="number" min="1" max="365" step="1" style="width: 100%" />
+                    </div>
+                  </div>
+                  <div class="muted advancedOnly" style="margin-top: -6px; margin-bottom: 12px">
+                    Beide Bedingungen müssen gleichzeitig zutreffen: mindestens so
+                    viele Stempel UND so lange kein neuer Stempel mehr.
+                  </div>
                 </div>
 
                 <div id="sectionLatLng" class="logoRow viewSection" style="align-items: flex-end">
@@ -4402,9 +4516,14 @@
           const title = escapeHtml(
             it.title != null ? it.title : `${it.label}: ${it.value}`,
           );
+          // Weekend bars fade the actual series color via fill-opacity
+          // rather than a separate class, since this same builder is used
+          // for series with different base colors (stamps vs. eindeutige
+          // Kunden).
+          const weekendAttr = it.weekend ? ' fill-opacity="0.5"' : "";
           bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
             2,
-          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"${weekendAttr}><title>${title}</title></rect>`;
           if (i === 0 || i === n - 1 || i % labelEvery === 0) {
             labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
               2,
@@ -4539,28 +4658,90 @@
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
 
-      function renderCafeCharts(charts) {
-        const stampsEl = document.getElementById("chartCafeStampsPerDay");
-        const walletEl = document.getElementById("chartCafeWalletPerDay");
-        const hourlyEl = document.getElementById("chartCafeHourly");
-        if (!stampsEl || !walletEl || !hourlyEl) return;
+      // Weekday x time-of-day heatmap (Monday-first, 2h buckets) - same
+      // builder as admin-dashboard.html's café-detail view, ported so this
+      // café's own dashboard shows the identical breakdown for its own data.
+      function buildHeatmapHtml(heatmap) {
+        if (!heatmap || !heatmap.grid || !heatmap.grid.length) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const grid = heatmap.grid;
+        const bucketHours = heatmap.bucketHours || 2;
+        const bucketsPerDay = heatmap.bucketsPerDay || (grid[0] || []).length;
+        const weekdayLabels = heatmap.weekdayLabels || [
+          "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
+        ];
+        const maxValue = Math.max(1, ...grid.map((row) => Math.max(0, ...row)));
+        const hourLabel = (b) =>
+          `${String(b * bucketHours).padStart(2, "0")}–${String(
+            (b + 1) * bucketHours,
+          ).padStart(2, "0")}`;
 
-        if (!charts) {
-          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
-          stampsEl.innerHTML = empty;
-          walletEl.innerHTML = empty;
-          hourlyEl.innerHTML = empty;
-          return;
+        let headerCells = "";
+        for (let b = 0; b < bucketsPerDay; b++) {
+          headerCells += `<th class="heatmap-collabel">${hourLabel(b)}</th>`;
         }
 
-        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+        let rows = "";
+        for (let w = 0; w < weekdayLabels.length; w++) {
+          let cells = "";
+          const row = grid[w] || [];
+          for (let b = 0; b < bucketsPerDay; b++) {
+            const value = row[b] || 0;
+            const intensity = value / maxValue;
+            const bg =
+              value > 0
+                ? `color-mix(in srgb, var(--brand) ${Math.round(
+                    12 + intensity * 78,
+                  )}%, transparent)`
+                : "transparent";
+            const title = escapeHtml(
+              `${weekdayLabels[w]} ${hourLabel(b)} Uhr: ${formatNumber(value)} Stempel`,
+            );
+            cells += `<td class="heatmap-cell" style="background:${bg}" title="${title}">${
+              value > 0 ? formatNumber(value) : ""
+            }</td>`;
+          }
+          rows += `<tr><th class="heatmap-rowlabel">${weekdayLabels[w]}</th>${cells}</tr>`;
+        }
+
+        return `<div style="overflow-x: auto"><table class="heatmap-table"><thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+
+      function buildRangeToggleHtml(activeDays) {
+        return [7, 30, 90]
+          .map(
+            (d) =>
+              `<button type="button" class="miniBtn rangeToggleBtn${
+                d === activeDays ? " active" : ""
+              }" data-days="${d}">${d} Tage</button>`,
+          )
+          .join("");
+      }
+
+      function buildCafeDashAnalyticsHtml(analytics, days) {
+        if (!analytics) {
+          return '<div class="muted">Analytics konnten nicht geladen werden.</div>';
+        }
+        const dailyStamps = (analytics.dailyStamps || []).map((d) => ({
           label: shortDayLabel(d.date),
           value: d.count,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.count,
+          )} Stempel, ${formatNumber(d.uniqueCustomers)} Kunden${
+            d.redemptions ? `, ${formatNumber(d.redemptions)} Einlösungen` : ""
+          }`,
         }));
-        stampsEl.innerHTML = buildBarChartSvg(dailyStamps, {});
-
-        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+        const dailyCustomers = (analytics.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.uniqueCustomers,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.uniqueCustomers,
+          )} eindeutige Kunden`,
+        }));
+        const dailyWallet = (analytics.dailyWalletDownloads || []).map((d) => ({
           label: shortDayLabel(d.date),
           apple: d.apple,
           google: d.google,
@@ -4568,9 +4749,239 @@
             d.apple,
           )} Apple, ${formatNumber(d.google)} Google`,
         }));
-        walletEl.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
 
-        hourlyEl.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
+        const activity = analytics.customerActivity || {};
+        const cards = analytics.cards || {};
+
+        return `
+          <div class="range-toggle">${buildRangeToggleHtml(days)}</div>
+
+          <div class="stats-grid">
+            <div class="card stat-card">
+              <div class="stat-label">Neue Kunden</div>
+              <div class="stat-value">${formatNumber(activity.newCustomers)}</div>
+              <div class="stat-subtitle">Erster Stempel in ${days} Tagen</div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-label">Wiederkehrende Kunden</div>
+              <div class="stat-value">${formatNumber(activity.returningCustomers)}</div>
+              <div class="stat-subtitle">Schon vorher Kunde, wieder aktiv</div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-label">Aktive Kunden</div>
+              <div class="stat-value">${formatNumber(activity.activeCustomers)}</div>
+              <div class="stat-subtitle">Mind. 1 Stempel in ${days} Tagen</div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-label">Kaffeekarten insgesamt</div>
+              <div class="stat-value">${formatNumber(cards.total)}</div>
+              <div class="stat-subtitle">+${formatNumber(
+                cards.newInWindow,
+              )} in ${days} Tagen</div>
+            </div>
+          </div>
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Stempel pro Tag</h2>
+          <div class="sectionSubtitle">Letzte ${days} Tage. Wochenenden sind heller markiert.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Eindeutige Kunden pro Tag</h2>
+          <div class="sectionSubtitle">Gleiche Stempelzahl kann von vielen Einmalgästen oder wenigen Stammgästen kommen - dieser Chart trennt das.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyCustomers, {
+            barClass: "chart-bar-customers",
+          })}</div>
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Neue Kaffeekarten</h2>
+          <div class="sectionSubtitle">Neue Wallet-Karten pro Tag · letzte ${days} Tage.</div>
+          <div class="chart-legend">
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+            <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+          </div>
+          <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Stempel nach Wochentag &amp; Uhrzeit</h2>
+          <div class="sectionSubtitle">Letzte ${days} Tage, in ${
+            analytics.heatmap ? analytics.heatmap.bucketHours : 2
+          }-Stunden-Fenstern.</div>
+          ${buildHeatmapHtml(analytics.heatmap)}
+        `;
+      }
+
+      let dashAnalyticsDays = 30;
+
+      async function loadCafeDashAnalytics(days) {
+        const container = document.getElementById("cafeDashAnalyticsBlock");
+        if (!container || !cafe || !cafe.token) return;
+        dashAnalyticsDays = days;
+        try {
+          const res = await fetch(
+            `${apiBase}/cafes/me/analytics?days=${encodeURIComponent(days)}`,
+            { headers: { Authorization: `Bearer ${cafe.token}` } },
+          );
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildCafeDashAnalyticsHtml(data.analytics, days);
+          wireCafeDashAnalyticsBlock(container);
+        } catch (err) {
+          container.innerHTML = `<div class="muted">Analytics konnten nicht geladen werden.</div>`;
+          dwarn("loadCafeDashAnalytics failed", err);
+        }
+      }
+
+      function wireCafeDashAnalyticsBlock(container) {
+        container.querySelectorAll(".rangeToggleBtn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const days = Number(btn.dataset.days) || 30;
+            container.innerHTML = '<div class="muted">Lade Analytics …</div>';
+            loadCafeDashAnalytics(days);
+          });
+        });
+      }
+
+      // Shared by the loyalty funnel (percent relative to the first stage)
+      // and the visit-distribution / time-between-visits sections (percent
+      // relative to the largest bucket) - same builder as admin-dashboard.html.
+      function buildHorizontalBarsHtml(rows, options) {
+        const opts = Object.assign({ relativeToFirst: false }, options);
+        if (!rows || !rows.length) {
+          return '<p class="chart-empty">Keine Daten verfügbar.</p>';
+        }
+        const basis = opts.relativeToFirst
+          ? Math.max(1, rows[0].value || 0)
+          : Math.max(1, ...rows.map((r) => r.value || 0));
+        return `<div class="funnel">${rows
+          .map((r) => {
+            const pct = Math.max(
+              0,
+              Math.min(100, ((r.value || 0) / basis) * 100),
+            );
+            return `<div class="funnelStage">
+              <div class="funnelLabel">${escapeHtml(r.label)}</div>
+              <div class="funnelBarWrap"><div class="funnelBar" style="width:${pct.toFixed(
+                1,
+              )}%"></div></div>
+              <div class="funnelValue">${formatNumber(r.value || 0)}</div>
+            </div>`;
+          })
+          .join("")}</div>`;
+      }
+
+      function formatPercent(value) {
+        if (value == null) return "–";
+        return `${Math.round(value * 100)}%`;
+      }
+
+      function buildCohortTableHtml(cohorts) {
+        if (!cohorts || !cohorts.rows || !cohorts.rows.length) {
+          return '<p class="chart-empty">Noch keine Kohorten verfügbar.</p>';
+        }
+        const offsets = cohorts.offsets || [1, 2, 4, 8];
+        const headerCells = offsets.map((o) => `<th>${o}. Woche</th>`).join("");
+        const rows = cohorts.rows
+          .map((row) => {
+            const cells = offsets
+              .map(
+                (o) =>
+                  `<td>${formatPercent((row.retention || {})[`w${o}`])}</td>`,
+              )
+              .join("");
+            return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(
+              row.size,
+            )}</td>${cells}</tr>`;
+          })
+          .join("");
+        return `<div style="overflow-x: auto"><table class="heatmap-table"><thead><tr><th>Kohorte</th><th>Größe</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+
+      function buildCafeDashLifecycleHtml(lifecycle) {
+        if (!lifecycle) {
+          return '<div class="muted">Lifecycle-Analytics konnten nicht geladen werden.</div>';
+        }
+        const funnel = lifecycle.funnel || {};
+        const rewards = lifecycle.rewards || {};
+        const funnelRows = [
+          { label: "Wallet-Karten", value: funnel.wallet },
+          { label: "Erster Stempel", value: funnel.firstStamp },
+          { label: "2+ Stempel", value: funnel.twoPlus },
+          { label: "5+ Stempel", value: funnel.fivePlus },
+          { label: "Reward erreicht (≈)", value: funnel.rewardReached },
+          { label: "Reward eingelöst", value: funnel.rewardRedeemed },
+        ];
+        const visitRows = (lifecycle.visitDistribution || []).map((v) => ({
+          label: `${v.visits} Besuch${v.visits === "1" ? "" : "e"}`,
+          value: v.customers,
+        }));
+        const gapRows = ((lifecycle.timeBetweenVisits || {}).buckets || []).map(
+          (b) => ({ label: b.label, value: b.count }),
+        );
+        const medianDays = lifecycle.timeBetweenVisits
+          ? lifecycle.timeBetweenVisits.medianDays
+          : null;
+
+        return `
+          <h2 class="sectionTitle">Loyalty-Funnel</h2>
+          <div class="sectionSubtitle">Alle Zeit. Jede Stufe zeigt Kundenbeziehungen mit deiner Karte.</div>
+          ${buildHorizontalBarsHtml(funnelRows, { relativeToFirst: true })}
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Rewards</h2>
+          <div class="sectionSubtitle">Alle Zeit. "Verdient" ist eine Näherung aus Gesamtstempeln ÷ Prämien-Schwelle, keine exakte Einlöse-Historie.</div>
+          <div class="stats-grid">
+            <div class="card stat-card">
+              <div class="stat-label">Rewards verdient (≈)</div>
+              <div class="stat-value">${formatNumber(rewards.earnedApprox)}</div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-label">Rewards eingelöst</div>
+              <div class="stat-value">${formatNumber(rewards.redeemed)}</div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-label">Einlösungsrate</div>
+              <div class="stat-value">${formatPercent(rewards.redemptionRate)}</div>
+            </div>
+            ${
+              rewards.threshold != null
+                ? `<div class="card stat-card">
+                     <div class="stat-label">Aktuelle Prämien-Schwelle</div>
+                     <div class="stat-value">${formatNumber(rewards.threshold)} Stempel</div>
+                   </div>`
+                : ""
+            }
+          </div>
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Besuche pro Kunde</h2>
+          <div class="sectionSubtitle">Alle Zeit. Zeigt, ob vor allem Einmalgäste oder Stammgäste kommen.</div>
+          ${buildHorizontalBarsHtml(visitRows)}
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Zeit zwischen Besuchen</h2>
+          <div class="sectionSubtitle">Alle Zeit${
+            medianDays != null ? ` · Median: ${medianDays.toFixed(1)} Tage` : ""
+          }.</div>
+          ${buildHorizontalBarsHtml(gapRows)}
+
+          <h2 class="sectionTitle" style="margin-top: 28px">Kundenkohorten</h2>
+          <div class="sectionSubtitle">Wöchentliche Kohorten nach erstem Besuch. "–" heißt, der Zeitraum ist noch nicht vergangen.</div>
+          ${buildCohortTableHtml(lifecycle.cohorts)}
+        `;
+      }
+
+      async function loadCafeDashLifecycle() {
+        const container = document.getElementById("cafeDashLifecycleBlock");
+        if (!container || !cafe || !cafe.token) return;
+        try {
+          const res = await fetch(`${apiBase}/cafes/me/lifecycle`, {
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildCafeDashLifecycleHtml(data.lifecycle);
+        } catch (err) {
+          container.innerHTML = `<div class="muted">Lifecycle-Analytics konnten nicht geladen werden.</div>`;
+          dwarn("loadCafeDashLifecycle failed", err);
+        }
       }
 
       function dashboardRenderTopCustomers(customers) {
@@ -4683,7 +5094,8 @@
 
         dashboardRenderTopCustomers(overview.customers || []);
         dashboardRenderRecentEvents(overview.recentEvents || []);
-        renderCafeCharts(overview.charts || null);
+        loadCafeDashAnalytics(dashAnalyticsDays);
+        loadCafeDashLifecycle();
 
         setBadge("sourceBadge", "Quelle: DB", "ok");
         setBadge(
@@ -4926,6 +5338,9 @@
         const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
         const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
         const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
+        const reminderPushEnabledEl = document.getElementById("profileReminderPushEnabled");
+        const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
+        const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -4998,6 +5413,9 @@
         if (popupAlmostRewardEnabledEl) popupAlmostRewardEnabledEl.checked = Number(program.popupAlmostRewardEnabled != null ? program.popupAlmostRewardEnabled : 1) !== 0;
         if (popupAlmostRewardRemainingEl) popupAlmostRewardRemainingEl.value = String(program.popupAlmostRewardRemaining != null ? program.popupAlmostRewardRemaining : 2);
         if (popupAlmostRewardMessageEl) popupAlmostRewardMessageEl.value = program.popupAlmostRewardMessage ? String(program.popupAlmostRewardMessage) : "";
+        if (reminderPushEnabledEl) reminderPushEnabledEl.checked = Number(program.reminderPushEnabled != null ? program.reminderPushEnabled : 0) !== 0;
+        if (reminderMinStampsEl) reminderMinStampsEl.value = String(program.reminderMinStamps != null ? program.reminderMinStamps : 1);
+        if (reminderInactiveDaysEl) reminderInactiveDaysEl.value = String(program.reminderInactiveDays != null ? program.reminderInactiveDays : 14);
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -5324,6 +5742,9 @@
         const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
         const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
         const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
+        const reminderPushEnabledEl = document.getElementById("profileReminderPushEnabled");
+        const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
+        const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -5370,6 +5791,9 @@
           const popupAlmostRewardEnabled = popupAlmostRewardEnabledEl ? !!popupAlmostRewardEnabledEl.checked : true;
           const popupAlmostRewardRemaining = popupAlmostRewardRemainingEl ? String(popupAlmostRewardRemainingEl.value || "").trim() : "2";
           const popupAlmostRewardMessage = popupAlmostRewardMessageEl ? String(popupAlmostRewardMessageEl.value || "").trim() : "";
+          const reminderPushEnabled = reminderPushEnabledEl ? !!reminderPushEnabledEl.checked : false;
+          const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "1";
+          const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
                 .trim()
@@ -5415,6 +5839,9 @@
               popupAlmostRewardEnabled,
               popupAlmostRewardRemaining: popupAlmostRewardRemaining || null,
               popupAlmostRewardMessage: popupAlmostRewardMessage || null,
+              reminderPushEnabled,
+              reminderMinStamps: reminderMinStamps || null,
+              reminderInactiveDays: reminderInactiveDays || null,
             }),
           });
 

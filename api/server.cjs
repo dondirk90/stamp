@@ -1306,6 +1306,9 @@ CREATE TABLE IF NOT EXISTS cafes (
   popup_almost_reward_enabled INTEGER DEFAULT 1,
   popup_almost_reward_remaining INTEGER DEFAULT 2,
   popup_almost_reward_message TEXT,
+  reminder_push_enabled INTEGER DEFAULT 0,
+  reminder_min_stamps INTEGER DEFAULT 1,
+  reminder_inactive_days INTEGER DEFAULT 14,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1610,6 +1613,26 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN popup_almost_reward_message TEXT",
   "Failed to add cafes.popup_almost_reward_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_push_enabled INTEGER DEFAULT 0",
+  "Failed to add cafes.reminder_push_enabled column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 1",
+  "Failed to add cafes.reminder_min_stamps column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_inactive_days INTEGER DEFAULT 14",
+  "Failed to add cafes.reminder_inactive_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE wallet_passes ADD COLUMN last_reminder_sent_at INTEGER",
+  "Failed to add wallet_passes.last_reminder_sent_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE google_wallet_objects ADD COLUMN last_reminder_sent_at INTEGER",
+  "Failed to add google_wallet_objects.last_reminder_sent_at column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_bg_mime TEXT",
@@ -2643,7 +2666,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -3072,6 +3095,9 @@ function getCafeProgramSettings(row) {
       src.popup_almost_reward_message,
       280,
     ),
+    reminderPushEnabled: toBoundBoolInt(src.reminder_push_enabled, 0),
+    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 1, 1, 50),
+    reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
   };
 }
 
@@ -4580,6 +4606,68 @@ app.get("/admin/lifecycle", requireAdminKey, async (req, res) => {
   }
 });
 
+// Same richer analytics/lifecycle shape the admin café-detail view uses
+// (computeCafeAnalytics / computeCafeLifecycle above), just café-authenticated
+// instead of admin-key-gated, and hard-scoped to the calling café's own
+// address - the "me"-vs-numeric-id ownership check mirrors /overview below.
+app.get("/cafes/:cafeId/analytics", requireCafeAuth, async (req, res) => {
+  try {
+    const { cafeId } = req.params;
+    const cafeRow = req.cafe;
+    if (!cafeRow) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    if (cafeId && cafeId !== "me" && String(cafeRow.id) !== String(cafeId)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const cafeAddress = ensureCafeAddress(cafeRow) || String(cafeRow?.id || "");
+    if (!cafeAddress) {
+      return res.status(404).json({ error: "cafe_address_missing" });
+    }
+    const days = Number(req.query?.days) || 30;
+    const analytics = await computeCafeAnalytics(
+      cafeAddress.toLowerCase(),
+      Number(cafeRow.id),
+      days,
+    );
+    res.json({ ok: true, analytics });
+  } catch (err) {
+    console.error("Error in /cafes/:cafeId/analytics:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+app.get("/cafes/:cafeId/lifecycle", requireCafeAuth, async (req, res) => {
+  try {
+    const { cafeId } = req.params;
+    const cafeRow = req.cafe;
+    if (!cafeRow) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    if (cafeId && cafeId !== "me" && String(cafeRow.id) !== String(cafeId)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const cafeAddress = ensureCafeAddress(cafeRow) || String(cafeRow?.id || "");
+    if (!cafeAddress) {
+      return res.status(404).json({ error: "cafe_address_missing" });
+    }
+    const program = getCafeProgramSettings(cafeRow);
+    const lifecycle = await computeCafeLifecycle(
+      cafeAddress.toLowerCase(),
+      program.stampsForReward,
+      Number(cafeRow.id),
+    );
+    res.json({ ok: true, lifecycle });
+  } catch (err) {
+    console.error("Error in /cafes/:cafeId/lifecycle:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
     const { cafeId } = req.params;
@@ -5026,6 +5114,34 @@ async function applyCafeProfileUpdate(current, body) {
       );
     }
 
+    let reminderPushEnabled = currentProgram.reminderPushEnabled;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderPushEnabled")) {
+      reminderPushEnabled = toBoundBoolInt(
+        body.reminderPushEnabled,
+        reminderPushEnabled,
+      );
+    }
+
+    let reminderMinStamps = currentProgram.reminderMinStamps;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderMinStamps")) {
+      reminderMinStamps = toBoundInt(
+        body.reminderMinStamps,
+        reminderMinStamps,
+        1,
+        50,
+      );
+    }
+
+    let reminderInactiveDays = currentProgram.reminderInactiveDays;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderInactiveDays")) {
+      reminderInactiveDays = toBoundInt(
+        body.reminderInactiveDays,
+        reminderInactiveDays,
+        1,
+        365,
+      );
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -5053,6 +5169,9 @@ async function applyCafeProfileUpdate(current, body) {
       popupAlmostRewardEnabled,
       popupAlmostRewardRemaining,
       popupAlmostRewardMessage,
+      reminderPushEnabled,
+      reminderMinStamps,
+      reminderInactiveDays,
       now,
       current.id,
     );
