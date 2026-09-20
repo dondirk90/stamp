@@ -362,26 +362,27 @@ function buildPassJson({
   // "Eingelöst ✓") confirming the redemption actually went through on the
   // exact pass they're looking at.
   const isFull = remaining <= 0;
-  // Apple only shows a custom notification when exactly one field in the
-  // update carries a changeMessage *key* - not one whose value actually
-  // changed, one whose JSON has the key present at all (confirmed live: the
-  // "earned" field below carries one on nearly every update regardless, so
-  // it collided with a freshly-added "reminder" field into a generic "pass
-  // was changed" the first time this shipped). reminderBackfield is only
-  // ever passed in during its short delivery window (see
-  // getReminderBackfieldFor in server.cjs - it's null outside that window,
-  // and the field is dropped from the pass entirely, not just its
-  // changeMessage - nobody wants a permanent "last reminded on" line on
-  // their card), so its mere presence here means "this update's one
-  // changeMessage slot belongs to the reminder" - the routine stamp/redeem
-  // messages below step aside for it, then behave exactly as before once
-  // it's gone.
+  // "reminder" below is now a *structurally permanent* field (always in
+  // backFields, value "–" and no changeMessage when nothing's active - see
+  // getReminderBackfieldFor in server.cjs) rather than one that appears and
+  // disappears. That's a deliberate trade for reliability: Apple's
+  // changeMessage notification appears to require an *existing* field's
+  // value to change between pass versions - a field appearing/disappearing
+  // between versions silently never notified across three live tests, only
+  // switched to working once the field's presence became stable and just
+  // its value toggled. While a reminder is actually active (reminderBackfield
+  // .changeMessage truthy), the routine "earned"/"untilReward" messages
+  // below step aside so Apple's "only one field per update may carry a
+  // changeMessage" rule doesn't collide the two - then behave exactly as
+  // before once the reminder is inactive again.
+  const reminderBF = reminderBackfield || { value: "–", changeMessage: null };
+  const reminderActive = !!reminderBF.changeMessage;
   backFields.push(
     {
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
-      ...(!reminderBackfield && !isFull
+      ...(!reminderActive && !isFull
         ? { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }
         : {}),
     },
@@ -389,7 +390,7 @@ function buildPassJson({
       key: "untilReward",
       label: "Bis zur nächsten Prämie",
       value: remainingLine,
-      ...(reminderBackfield
+      ...(reminderActive
         ? {}
         : isRedeemed
           ? {
@@ -403,18 +404,14 @@ function buildPassJson({
               }
             : {}),
     },
-    // Present only while reminderBackfield is active (see its own comment
-    // above) - never sits on the card as stale leftover info.
-    ...(reminderBackfield
-      ? [
-          {
-            key: "reminder",
-            label: "Erinnerung",
-            value: String(reminderBackfield.value),
-            changeMessage: reminderBackfield.changeMessage,
-          },
-        ]
-      : []),
+    {
+      key: "reminder",
+      label: "Erinnerung",
+      value: String(reminderBF.value),
+      ...(reminderBF.changeMessage
+        ? { changeMessage: reminderBF.changeMessage }
+        : {}),
+    },
     // Account info - lets a customer confirm which email/card a support
     // conversation is about, and lets them self-check the recovery email on
     // file (see /customers/register's verification flow) without having to

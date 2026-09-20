@@ -4648,28 +4648,30 @@ const upsertReminderNotification = db.prepare(
 );
 
 // Apple's pass.json backfield for a café's push reminder (see
-// findReminderCandidates/sendReminderPush) - null once this (café,
-// customer) either never had one, or had one but it's past its short
-// delivery window (see REMINDER_BACKFIELD_PRIORITY_WINDOW_MS below) - the
-// field only exists transiently, purely to give Apple a value change to
-// notify on, not as a permanent "last reminded on" line on the back of the
-// card (confirmed live: nobody wants that sitting there forever). While
-// present, buildPassJson also suppresses "earned"/"untilReward"'s own
-// changeMessage (see their own comment there) - Apple's "only one field per
-// update may carry a changeMessage" rule triggers off whether a field's
-// JSON has the key present at all, not whether its value actually changed,
-// and "earned" carries one on almost every update - so an always-on
-// reminder field collided with it into a generic "pass was changed"
-// notification on the very first live test.
+// findReminderCandidates/sendReminderPush) - ALWAYS returned (never null),
+// with a neutral "–" and no changeMessage when there's nothing active. This
+// looks backwards (a version of this that hid the field entirely when
+// inactive seems like it should be less cluttered), but three live tests
+// all silently failed to notify with that version, and the pattern that
+// *did* work from day one ("earned"'s "Frischer Stempel!") is a field
+// that's structurally present on every single pass, always - only its
+// value changes. Apple's changeMessage appears to require an *existing*
+// field's value to change, not a field appearing/disappearing between pass
+// versions - so keeping this field's structure stable and only toggling
+// its value is what actually makes the notification reliable, at the cost
+// of a permanent (if minimal) "Erinnerung: –" line when inactive.
 const REMINDER_BACKFIELD_PRIORITY_WINDOW_MS = 15 * 60 * 1000;
 async function getReminderBackfieldFor(cafeId, customerAddress) {
   const row = await getReminderNotificationState.get(
     cafeId,
     String(customerAddress || "").toLowerCase(),
   );
-  if (!row || !row.message) return null;
-  const sentAt = Number(row.sent_at);
-  if (Date.now() - sentAt >= REMINDER_BACKFIELD_PRIORITY_WINDOW_MS) return null;
+  const sentAt = row && row.message ? Number(row.sent_at) : null;
+  const active =
+    sentAt != null && Date.now() - sentAt < REMINDER_BACKFIELD_PRIORITY_WINDOW_MS;
+  if (!active) {
+    return { value: "–", changeMessage: null };
+  }
   return {
     // Apple only notifies when a field's *value* actually differs from what
     // the device has cached - a date-only string ("20.09.2026") was
