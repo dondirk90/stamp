@@ -4648,13 +4648,20 @@ const upsertReminderNotification = db.prepare(
 );
 
 // Apple's pass.json backfield for a café's push reminder (see
-// findReminderCandidates/sendReminderPush) - null when this (café,
-// customer) has never had one. value is a short, human-readable "last
-// reminded" date (not the raw timestamp - that'd be an odd thing to show on
-// the actual card), changeMessage is the already-composed text from
-// reminder_notifications.message. Shared by both places that render a pass
-// (initial download and the webservice update-fetch route) so a reminder
-// shows up regardless of which path serves it.
+// findReminderCandidates/sendReminderPush) - null once this (café,
+// customer) either never had one, or had one but it's past its short
+// delivery window (see REMINDER_BACKFIELD_PRIORITY_WINDOW_MS below) - the
+// field only exists transiently, purely to give Apple a value change to
+// notify on, not as a permanent "last reminded on" line on the back of the
+// card (confirmed live: nobody wants that sitting there forever). While
+// present, buildPassJson also suppresses "earned"/"untilReward"'s own
+// changeMessage (see their own comment there) - Apple's "only one field per
+// update may carry a changeMessage" rule triggers off whether a field's
+// JSON has the key present at all, not whether its value actually changed,
+// and "earned" carries one on almost every update - so an always-on
+// reminder field collided with it into a generic "pass was changed"
+// notification on the very first live test.
+const REMINDER_BACKFIELD_PRIORITY_WINDOW_MS = 15 * 60 * 1000;
 async function getReminderBackfieldFor(cafeId, customerAddress) {
   const row = await getReminderNotificationState.get(
     cafeId,
@@ -4662,6 +4669,7 @@ async function getReminderBackfieldFor(cafeId, customerAddress) {
   );
   if (!row || !row.message) return null;
   const sentAt = Number(row.sent_at);
+  if (Date.now() - sentAt >= REMINDER_BACKFIELD_PRIORITY_WINDOW_MS) return null;
   return {
     value: new Date(sentAt).toLocaleDateString("de-DE"),
     changeMessage: String(row.message),

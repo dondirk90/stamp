@@ -362,34 +362,49 @@ function buildPassJson({
   // "Eingelöst ✓") confirming the redemption actually went through on the
   // exact pass they're looking at.
   const isFull = remaining <= 0;
+  // Apple only shows a custom notification when exactly one field in the
+  // update carries a changeMessage *key* - not one whose value actually
+  // changed, one whose JSON has the key present at all (confirmed live: the
+  // "earned" field below carries one on nearly every update regardless, so
+  // it collided with a freshly-added "reminder" field into a generic "pass
+  // was changed" the first time this shipped). reminderBackfield is only
+  // ever passed in during its short delivery window (see
+  // getReminderBackfieldFor in server.cjs - it's null outside that window,
+  // and the field is dropped from the pass entirely, not just its
+  // changeMessage - nobody wants a permanent "last reminded on" line on
+  // their card), so its mere presence here means "this update's one
+  // changeMessage slot belongs to the reminder" - the routine stamp/redeem
+  // messages below step aside for it, then behave exactly as before once
+  // it's gone.
   backFields.push(
     {
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
-      ...(isFull
-        ? {}
-        : { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }),
+      ...(!reminderBackfield && !isFull
+        ? { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }
+        : {}),
     },
     {
       key: "untilReward",
       label: "Bis zur nächsten Prämie",
       value: remainingLine,
-      ...(isRedeemed
-        ? {
-            changeMessage:
-              "✓ Eingelöst! Öffne die Kaffeekarte-App für deine nächste Stempelkarte.",
-          }
-        : isFull
+      ...(reminderBackfield
+        ? {}
+        : isRedeemed
           ? {
               changeMessage:
-                "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+                "✓ Eingelöst! Öffne die Kaffeekarte-App für deine nächste Stempelkarte.",
             }
-          : {}),
+          : isFull
+            ? {
+                changeMessage:
+                  "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+              }
+            : {}),
     },
-    // Only present once this (café, customer) relationship has ever had a
-    // reminder sent - absent otherwise, so a card that's never triggered
-    // one doesn't show an empty "Erinnerung" row.
+    // Present only while reminderBackfield is active (see its own comment
+    // above) - never sits on the card as stale leftover info.
     ...(reminderBackfield
       ? [
           {
