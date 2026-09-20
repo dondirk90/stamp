@@ -809,17 +809,15 @@
         font-weight: 900;
       }
 
-      /* !important + ID-scoped selector needed: theme.css's global
-         legacy-button override (button:not(.secondary):not(.ghost):
-         not(.miniBtn):not(.passMain){background:var(--brand) !important})
-         has specificity (0,4,1) from its four :not() classes - higher than
-         a plain .stamp-presets button (0,1,1) even with matching
-         !important, so it kept winning. #stampPresets (an ID) beats it
-         regardless of class count. Without this, near-white preset text
-         renders on the near-white --brand background that rule forces -
-         invisible/washed-out preset numbers. */
-      #stampPresets button {
-        background: transparent !important;
+      /* Preset buttons opt out of theme.css's global legacy-button
+         background (button:not(.secondary):not(.ghost):not(.miniBtn):
+         not(.passMain){background:var(--brand) !important}) via the
+         .miniBtn marker class on each button (theme.css:497) - a class
+         it's built to exclude, rather than fighting its !important with a
+         higher-specificity ID selector. .miniBtn carries no styling of its
+         own, so this only removes the forced background, nothing else. */
+      .stamp-presets button {
+        background: transparent;
       }
 
       #stampPresets button:hover {
@@ -2782,13 +2780,13 @@
               <div class="stamp-controls">
                 <div id="stampAmountUi" style="flex: 1">
                   <div class="stamp-presets" id="stampPresets">
-                    <button type="button" data-amount="1" class="active">
+                    <button type="button" data-amount="1" class="miniBtn active">
                       1
                     </button>
-                    <button type="button" data-amount="2">2</button>
-                    <button type="button" data-amount="3">3</button>
-                    <button type="button" data-amount="4">4</button>
-                    <button type="button" data-amount="5">5</button>
+                    <button type="button" data-amount="2" class="miniBtn">2</button>
+                    <button type="button" data-amount="3" class="miniBtn">3</button>
+                    <button type="button" data-amount="4" class="miniBtn">4</button>
+                    <button type="button" data-amount="5" class="miniBtn">5</button>
                   </div>
 
                   <input type="hidden" id="stampAmount" value="1" />

@@ -39,6 +39,16 @@
     return btn ? btn.parentElement : null;
   }
 
+  // Wraps the "Schon ein Konto?" intro + email/password fields (see
+  // cafe-onboarding.html) - previously only the submit button was hidden in
+  // reset mode, leaving live-looking login fields with no working button
+  // sitting right above the actual reset panel. Optional lookup: older
+  // cached HTML without this wrapper still works, just without this extra
+  // hide.
+  function loginCredentialsGroup() {
+    return byId("loginCredentialsGroup");
+  }
+
   function resendButton() {
     return qs('button[onclick="resendCafeVerification()"]');
   }
@@ -62,9 +72,11 @@
     var primary = loginPrimaryActions();
     var forgot = forgotActionWrap();
     var resend = resendActionWrap();
+    var credentials = loginCredentialsGroup();
     if (primary) primary.style.display = isActive ? "none" : "";
     if (forgot) forgot.style.display = isActive ? "none" : "";
     if (resend) resend.style.display = isActive ? "none" : "";
+    if (credentials) credentials.style.display = isActive ? "none" : "";
   }
 
   function ensureBackButton() {
