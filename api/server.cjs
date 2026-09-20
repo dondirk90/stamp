@@ -4671,7 +4671,16 @@ async function getReminderBackfieldFor(cafeId, customerAddress) {
   const sentAt = Number(row.sent_at);
   if (Date.now() - sentAt >= REMINDER_BACKFIELD_PRIORITY_WINDOW_MS) return null;
   return {
-    value: new Date(sentAt).toLocaleDateString("de-DE"),
+    // Apple only notifies when a field's *value* actually differs from what
+    // the device has cached - a date-only string ("20.09.2026") was
+    // identical across same-day sends during testing, so two real reminders
+    // sent hours apart on the same day looked like "no change" and silently
+    // never notified. Minute-level time makes any two real sends distinct
+    // in practice without needing a raw, unreadable timestamp on the card.
+    value: new Date(sentAt).toLocaleString("de-DE", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }),
     changeMessage: String(row.message),
   };
 }
