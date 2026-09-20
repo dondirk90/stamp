@@ -370,6 +370,41 @@
         color: var(--text);
         font-variant-numeric: tabular-nums;
       }
+      /* Generic horizontal-bar list, shared by the loyalty funnel, visit
+         distribution and time-between-visits sections - each just picks a
+         different basis for the bar percentage (first row vs. max row). */
+      .funnel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .funnelStage {
+        display: grid;
+        grid-template-columns: minmax(120px, 180px) 1fr 56px;
+        align-items: center;
+        gap: 12px;
+      }
+      .funnelLabel {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .funnelBarWrap {
+        height: 14px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        overflow: hidden;
+      }
+      .funnelBar {
+        height: 100%;
+        background: var(--brand);
+        border-radius: 999px;
+      }
+      .funnelValue {
+        text-align: right;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
       .overview-email {
         font-family: var(--font-mono);
         font-size: 12px;
@@ -600,6 +635,9 @@
           <div class="card">
             <div id="globalAnalyticsBlock">
               <p class="section-subtitle">Lade Analytics …</p>
+            </div>
+            <div id="globalLifecycleBlock">
+              <p class="section-subtitle">Lade Lifecycle-Analytics …</p>
             </div>
           </div>
 
@@ -1124,6 +1162,176 @@
         return `<div class="table-wrapper"><table class="heatmap-table"><thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
       }
 
+      // Shared by the loyalty funnel (percent relative to the first stage -
+      // classic funnel drop-off) and the visit-distribution / time-between-
+      // visits sections (percent relative to the largest bucket - a plain
+      // bar chart, no "stage" semantics).
+      function buildHorizontalBarsHtml(rows, options) {
+        const opts = Object.assign({ relativeToFirst: false }, options);
+        if (!rows || !rows.length) {
+          return '<p class="chart-empty">Keine Daten verfügbar.</p>';
+        }
+        const basis = opts.relativeToFirst
+          ? Math.max(1, rows[0].value || 0)
+          : Math.max(1, ...rows.map((r) => r.value || 0));
+        return `<div class="funnel">${rows
+          .map((r) => {
+            const pct = Math.max(
+              0,
+              Math.min(100, ((r.value || 0) / basis) * 100),
+            );
+            return `<div class="funnelStage">
+              <div class="funnelLabel">${escapeHtml(r.label)}</div>
+              <div class="funnelBarWrap"><div class="funnelBar" style="width:${pct.toFixed(
+                1,
+              )}%"></div></div>
+              <div class="funnelValue">${formatNumber(r.value || 0)}</div>
+            </div>`;
+          })
+          .join("")}</div>`;
+      }
+
+      function formatPercent(value) {
+        if (value == null) return "–";
+        return `${Math.round(value * 100)}%`;
+      }
+
+      function buildCohortTableHtml(cohorts) {
+        if (!cohorts || !cohorts.rows || !cohorts.rows.length) {
+          return '<p class="chart-empty">Noch keine Kohorten verfügbar.</p>';
+        }
+        const offsets = cohorts.offsets || [1, 2, 4, 8];
+        const headerCells = offsets.map((o) => `<th>${o}. Woche</th>`).join("");
+        const rows = cohorts.rows
+          .map((row) => {
+            const cells = offsets
+              .map(
+                (o) =>
+                  `<td>${formatPercent((row.retention || {})[`w${o}`])}</td>`,
+              )
+              .join("");
+            return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(
+              row.size,
+            )}</td>${cells}</tr>`;
+          })
+          .join("");
+        return `<div class="table-wrapper"><table><thead><tr><th>Kohorte</th><th>Größe</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+
+      // Shared by the per-café detail view and the "Gesamt" overview, same
+      // as buildAnalyticsHtml() - only scopeLabel differs.
+      function buildLifecycleHtml(lifecycle, scope) {
+        if (!lifecycle) {
+          return '<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden.</p>';
+        }
+        const scopeLabel = scope === "global" ? " über alle Cafés" : "";
+        const funnel = lifecycle.funnel || {};
+        const rewards = lifecycle.rewards || {};
+        const funnelRows = [
+          { label: "Wallet-Karten", value: funnel.wallet },
+          { label: "Erster Stempel", value: funnel.firstStamp },
+          { label: "2+ Stempel", value: funnel.twoPlus },
+          { label: "5+ Stempel", value: funnel.fivePlus },
+          { label: "Reward erreicht (≈)", value: funnel.rewardReached },
+          { label: "Reward eingelöst", value: funnel.rewardRedeemed },
+        ];
+        const visitRows = (lifecycle.visitDistribution || []).map((v) => ({
+          label: `${v.visits} Besuch${v.visits === "1" ? "" : "e"}`,
+          value: v.customers,
+        }));
+        const gapRows = ((lifecycle.timeBetweenVisits || {}).buckets || []).map(
+          (b) => ({ label: b.label, value: b.count }),
+        );
+        const medianDays = lifecycle.timeBetweenVisits
+          ? lifecycle.timeBetweenVisits.medianDays
+          : null;
+
+        return `
+          <div class="section-title" style="margin-top: 32px;">Loyalty-Funnel</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. Jede Stufe zeigt (Café-)Kundenbeziehungen, nicht Rohkunden - jemand mit Karten an 2 Cafés zählt 2x.</div>
+          ${buildHorizontalBarsHtml(funnelRows, { relativeToFirst: true })}
+
+          <div class="section-title" style="margin-top: 32px;">Rewards</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. "Verdient" ist eine Näherung aus Gesamtstempeln ÷ Prämien-Schwelle, keine exakte Einlöse-Historie.</div>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-label">Rewards verdient (≈)</div>
+              <div class="summary-value">${formatNumber(rewards.earnedApprox)}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Rewards eingelöst</div>
+              <div class="summary-value">${formatNumber(rewards.redeemed)}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Einlösungsrate</div>
+              <div class="summary-value">${formatPercent(rewards.redemptionRate)}</div>
+            </div>
+            ${
+              rewards.threshold != null
+                ? `<div class="summary-card">
+                     <div class="summary-label">Aktuelle Prämien-Schwelle</div>
+                     <div class="summary-value">${formatNumber(rewards.threshold)} Stempel</div>
+                   </div>`
+                : ""
+            }
+          </div>
+
+          <div class="section-title" style="margin-top: 32px;">Besuche pro Kunde</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. Zeigt, ob vor allem Einmalgäste oder Stammgäste kommen.</div>
+          ${buildHorizontalBarsHtml(visitRows)}
+
+          <div class="section-title" style="margin-top: 32px;">Zeit zwischen Besuchen</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}${
+            medianDays != null ? ` · Median: ${medianDays.toFixed(1)} Tage` : ""
+          }.</div>
+          ${buildHorizontalBarsHtml(gapRows)}
+
+          <div class="section-title" style="margin-top: 32px;">Kundenkohorten</div>
+          <div class="section-subtitle">Wöchentliche Kohorten nach erstem Besuch${scopeLabel}. "–" heißt, der Zeitraum ist noch nicht vergangen.</div>
+          ${buildCohortTableHtml(lifecycle.cohorts)}
+        `;
+      }
+
+      async function loadCafeLifecycle(cafeId) {
+        const container = document.getElementById("cafeLifecycleBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl(
+            `/admin/cafes/${encodeURIComponent(cafeId)}/lifecycle`,
+          );
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildLifecycleHtml(data.lifecycle, "cafe");
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      async function loadGlobalLifecycle() {
+        const container = document.getElementById("globalLifecycleBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl("/admin/lifecycle");
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildLifecycleHtml(data.lifecycle, "global");
+        } catch (err) {
+          container.innerHTML = `<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
       function buildRangeToggleHtml(scope, cafeId, activeDays) {
         return [7, 30, 90]
           .map(
@@ -1628,6 +1836,7 @@
         wireDetailLinks(refs.customersOverviewContainer);
 
         loadGlobalAnalytics(state.globalAnalyticsDays || 30);
+        loadGlobalLifecycle();
         renderCafeDetail();
         renderCustomerDetail();
       }
@@ -1814,6 +2023,9 @@
                 <div id="cafeAnalyticsBlock" data-cafe-id="${cafe.id}">
                   <p class="section-subtitle">Lade Analytics …</p>
                 </div>
+                <div id="cafeLifecycleBlock" data-cafe-id="${cafe.id}">
+                  <p class="section-subtitle">Lade Lifecycle-Analytics …</p>
+                </div>
 
                 <div class="section-title">Letzte Events</div>
                 <div class="table-wrapper">
@@ -1916,6 +2128,7 @@
         refs.cafeDetailContainer.innerHTML = buildCafeCardHtml(cafe);
         wireDetailLinks(refs.cafeDetailContainer);
         loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
+        loadCafeLifecycle(cafe.id);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")
           .forEach((btn) => {

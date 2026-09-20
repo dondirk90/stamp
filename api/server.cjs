@@ -4312,6 +4312,274 @@ app.get("/admin/analytics", requireAdminKey, async (req, res) => {
   }
 });
 
+// All-time lifecycle analytics (funnel, rewards, visit distribution, time
+// between visits, weekly cohort retention) - deliberately NOT window-scoped
+// like computeCafeAnalytics() above, since "where do customers fall off"
+// and "how many visits until someone's a regular" are lifetime questions,
+// not "last 30 days" ones. One raw per-event query drives all five
+// sections in a single JS pass instead of five separate aggregate queries.
+function cohortWeekStart(ts) {
+  const dayKeyStr = cafeChartDayKey(ts);
+  const noonUtc = new Date(`${dayKeyStr}T12:00:00Z`).getTime();
+  const weekdayIdx = cafeWeekdayIndex(noonUtc); // 0=Mon..6=Sun
+  return noonUtc - weekdayIdx * 86400000;
+}
+function cohortWeekLabel(weekStartTs) {
+  const parts = cafeChartDayKey(weekStartTs).split("-");
+  return parts.length === 3 ? `ab ${parts[2]}.${parts[1]}.` : "?";
+}
+
+async function computeCafeLifecycle(cafeAddressLower, singleThreshold, cafeNumericId) {
+  const isGlobal = cafeAddressLower == null;
+
+  const eventRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT LOWER(cafe) AS cafe_addr, "user" AS user, ts, delta, event_type FROM stamp_events`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT LOWER(cafe) AS cafe_addr, "user" AS user, ts, delta, event_type FROM stamp_events WHERE LOWER(cafe) = ?`,
+        )
+        .all(cafeAddressLower);
+
+  // One group per (café, customer) relationship - a customer's stamp
+  // balance is tracked per café, so that's the natural funnel/cohort unit;
+  // for a single café's own view this degenerates to one group per
+  // customer, same as before.
+  const groups = new Map();
+  for (const row of eventRows) {
+    const cafeAddr = row.cafe_addr;
+    const user = String(row.user || "").toLowerCase();
+    if (!user) continue;
+    const key = `${cafeAddr}::${user}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { cafeAddr, visits: [], totalStamps: 0, redemptions: 0 };
+      groups.set(key, g);
+    }
+    const ts = Number(row.ts);
+    if (Number(row.delta) > 0 && ts) {
+      g.totalStamps += Number(row.delta);
+      g.visits.push(ts);
+    }
+    if (String(row.event_type || "").toLowerCase() === "redeem") {
+      g.redemptions += 1;
+    }
+  }
+  for (const g of groups.values()) g.visits.sort((a, b) => a - b);
+
+  let thresholdByCafe = null;
+  if (isGlobal) {
+    const cafeRows = await db
+      .prepare(`SELECT address, COALESCE(stamps_for_reward, 10) AS threshold FROM cafes`)
+      .all();
+    thresholdByCafe = new Map();
+    for (const r of cafeRows) {
+      if (r.address) {
+        thresholdByCafe.set(String(r.address).toLowerCase(), Number(r.threshold) || 10);
+      }
+    }
+  }
+  function thresholdFor(cafeAddr) {
+    if (isGlobal) return thresholdByCafe.get(cafeAddr) || 10;
+    return Number(singleThreshold) || 10;
+  }
+
+  // Wallet-Karten funnel stage counts (café, customer) relationships, not
+  // raw customers - consistent with every later funnel stage, so a
+  // customer with cards at 3 cafés contributes 3 funnel entries at stage 1,
+  // not 1 (matching how they contribute 3 independent entries at every
+  // later stage too).
+  const walletRelRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM (
+             SELECT DISTINCT cafe_id, customer_address FROM (
+               SELECT cafe_id, customer_address FROM wallet_passes
+               UNION ALL
+               SELECT cafe_id, customer_address FROM google_wallet_objects
+             ) AS u
+           ) AS d`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM (
+             SELECT DISTINCT cafe_id, customer_address FROM (
+               SELECT cafe_id, customer_address FROM wallet_passes WHERE cafe_id = ?
+               UNION ALL
+               SELECT cafe_id, customer_address FROM google_wallet_objects WHERE cafe_id = ?
+             ) AS u
+           ) AS d`,
+        )
+        .all(cafeNumericId, cafeNumericId);
+
+  let funnel = {
+    wallet: (walletRelRows && walletRelRows[0] && Number(walletRelRows[0].n)) || 0,
+    firstStamp: 0,
+    twoPlus: 0,
+    fivePlus: 0,
+    rewardReached: 0,
+    rewardRedeemed: 0,
+  };
+  let rewardsEarnedApprox = 0;
+  let rewardsRedeemed = 0;
+
+  for (const g of groups.values()) {
+    if (g.totalStamps >= 1) funnel.firstStamp += 1;
+    if (g.totalStamps >= 2) funnel.twoPlus += 1;
+    if (g.totalStamps >= 5) funnel.fivePlus += 1;
+    const th = thresholdFor(g.cafeAddr);
+    if (g.totalStamps >= th) funnel.rewardReached += 1;
+    if (g.redemptions >= 1) {
+      funnel.rewardRedeemed += 1;
+      rewardsRedeemed += g.redemptions;
+    }
+    rewardsEarnedApprox += Math.floor(g.totalStamps / th);
+  }
+
+  const visitBuckets = [
+    { visits: "1", customers: 0 },
+    { visits: "2", customers: 0 },
+    { visits: "3", customers: 0 },
+    { visits: "4", customers: 0 },
+    { visits: "5+", customers: 0 },
+  ];
+  for (const g of groups.values()) {
+    const n = g.visits.length;
+    if (n <= 0) continue;
+    if (n >= 5) visitBuckets[4].customers += 1;
+    else visitBuckets[n - 1].customers += 1;
+  }
+
+  const gapBucketDefs = [
+    { label: "< 3 Tage", min: 0, max: 3 },
+    { label: "3–7 Tage", min: 3, max: 7 },
+    { label: "8–14 Tage", min: 8, max: 14 },
+    { label: "15–30 Tage", min: 15, max: 30 },
+    { label: "> 30 Tage", min: 30, max: Infinity },
+  ];
+  const gapBuckets = gapBucketDefs.map((b) => ({ ...b, count: 0 }));
+  const allGapDays = [];
+  for (const g of groups.values()) {
+    for (let i = 1; i < g.visits.length; i++) {
+      const gapDays = (g.visits[i] - g.visits[i - 1]) / 86400000;
+      allGapDays.push(gapDays);
+      const bucket =
+        gapBuckets.find((b) => gapDays >= b.min && gapDays <= b.max) ||
+        gapBuckets[gapBuckets.length - 1];
+      bucket.count += 1;
+    }
+  }
+  allGapDays.sort((a, b) => a - b);
+  const medianDays = allGapDays.length
+    ? allGapDays[Math.floor(allGapDays.length / 2)]
+    : null;
+
+  // Weekly cohorts: group (café, customer) relationships by the week of
+  // their first-ever visit, then check whether each one has any visit in
+  // week +1/+2/+4/+8 relative to that cohort's start - "–" (null) instead
+  // of 0% when that offset hasn't happened yet for a recent cohort.
+  const cohortGroups = new Map();
+  const now = Date.now();
+  for (const g of groups.values()) {
+    if (!g.visits.length) continue;
+    const weekStart = cohortWeekStart(g.visits[0]);
+    if (!cohortGroups.has(weekStart)) cohortGroups.set(weekStart, []);
+    cohortGroups.get(weekStart).push(g);
+  }
+  const cohortWeekStarts = [...cohortGroups.keys()].sort((a, b) => b - a).slice(0, 8).reverse();
+  const cohortOffsets = [1, 2, 4, 8];
+  const cohorts = cohortWeekStarts.map((weekStart) => {
+    const members = cohortGroups.get(weekStart) || [];
+    const retention = {};
+    for (const offset of cohortOffsets) {
+      const rangeStart = weekStart + offset * 7 * 86400000;
+      const rangeEnd = rangeStart + 7 * 86400000;
+      if (rangeStart > now) {
+        retention[`w${offset}`] = null;
+        continue;
+      }
+      const activeCount = members.filter((m) =>
+        m.visits.some((v) => v >= rangeStart && v < rangeEnd),
+      ).length;
+      retention[`w${offset}`] = members.length
+        ? activeCount / members.length
+        : null;
+    }
+    return {
+      label: cohortWeekLabel(weekStart),
+      size: members.length,
+      retention,
+    };
+  });
+
+  return {
+    visitDistribution: visitBuckets,
+    timeBetweenVisits: {
+      medianDays,
+      buckets: gapBuckets.map((b) => ({ label: b.label, count: b.count })),
+    },
+    funnel,
+    rewards: {
+      earnedApprox: rewardsEarnedApprox,
+      redeemed: rewardsRedeemed,
+      redemptionRate: rewardsEarnedApprox
+        ? Math.min(1, rewardsRedeemed / rewardsEarnedApprox)
+        : null,
+      threshold: isGlobal ? null : Number(singleThreshold) || 10,
+    },
+    cohorts: {
+      offsets: cohortOffsets,
+      rows: cohorts,
+    },
+  };
+}
+
+app.get(
+  "/admin/cafes/:cafeId/lifecycle",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const cafeAddress = ensureCafeAddress(current) || String(current.id || "");
+      const program = getCafeProgramSettings(current);
+      const lifecycle = await computeCafeLifecycle(
+        cafeAddress.toLowerCase(),
+        program.stampsForReward,
+        Number(current.id),
+      );
+      res.json({ ok: true, cafe: { id: current.id, name: current.name || null }, lifecycle });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/lifecycle:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+app.get("/admin/lifecycle", requireAdminKey, async (req, res) => {
+  try {
+    const lifecycle = await computeCafeLifecycle(null, null, null);
+    res.json({ ok: true, lifecycle });
+  } catch (err) {
+    console.error("Error in /admin/lifecycle:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
     const { cafeId } = req.params;
