@@ -4628,14 +4628,19 @@ const getReminderNotificationState = db.prepare(
 
 // Matching logic for the café-configurable push reminder (see cafes.
 // reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
-// migration 017): finds customers currently eligible for a nudge -
-// mirrors the *existing* in-app "Reaktivierungs-Popup" logic's own
-// definitions (netStamps = SUM(delta) for this café+customer, lastStampTs =
-// their most recent delta>0 event, see the /customers/:address/cards
-// aggregate query above) rather than the more elaborate per-card-group
-// getOpenStampTotal() used for actually awarding/redeeming stamps - the
-// popup already proved this simpler definition is good enough for "should
-// we nudge this person", no need for a second, more complex one here.
+// migration 017): finds customers currently eligible for a nudge.
+//
+// Stamp count uses getOpenStampTotal() (the same "does this customer have
+// enough right now" function the actual stamp-awarding UI relies on), NOT a
+// raw SUM(delta) across every event ever - a redeemed card is frozen at
+// delta:0 rather than decremented (see getOpenStampTotal's own comment), so
+// a naive all-time SUM(delta) stays stuck at a customer's pre-redemption
+// total forever and never reflects a fresh card's real progress. Caught via
+// a live staging check against a customer who'd already redeemed: raw
+// SUM(delta) said 10 stamps, actual open-card total was 0.
+// getOpenStampTotal() is per-customer and non-trivial (walks card groups),
+// so it's only called for customers who already pass the cheap
+// inactive-days check below, not for every customer at the café.
 //
 // "One push per state" (a explicit requirement, not just a nice-to-have):
 // reminder_notifications holds at most one row per (cafe, customer), tagged
@@ -4658,7 +4663,6 @@ async function findReminderCandidates(cafeRow) {
   const rows = await db
     .prepare(
       `SELECT "user" AS user,
-              SUM(delta) AS net_stamps,
               MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts
        FROM stamp_events
        WHERE LOWER(cafe) = ?
@@ -4673,12 +4677,16 @@ async function findReminderCandidates(cafeRow) {
   for (const row of rows) {
     const lastStampTs = row.last_stamp_ts != null ? Number(row.last_stamp_ts) : null;
     if (!lastStampTs) continue;
-    const netStamps = Number(row.net_stamps || 0);
-    if (netStamps < program.reminderMinStamps) continue;
     if (now - lastStampTs < inactiveThresholdMs) continue;
 
     const customerAddress = String(row.user || "").toLowerCase();
     if (!customerAddress) continue;
+
+    const openStampTotal = await getOpenStampTotal(
+      cafeAddressLower,
+      customerAddress,
+    );
+    if (openStampTotal < program.reminderMinStamps) continue;
 
     const already = await getReminderNotificationState.get(
       cafeRow.id,
@@ -4688,7 +4696,7 @@ async function findReminderCandidates(cafeRow) {
 
     candidates.push({
       customerAddress,
-      netStamps,
+      netStamps: openStampTotal,
       lastStampTs,
       daysInactive: Math.floor((now - lastStampTs) / 86400000),
       previouslyNotifiedAt:
