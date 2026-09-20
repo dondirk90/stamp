@@ -4380,8 +4380,14 @@
         const n = items.length;
         if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
         const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        // Left gutter reserves room for the y-axis scale (just top/bottom
+        // values, not a full tick ladder) - without it a mostly-empty chart
+        // (a handful of days with data, the rest at 0) shows one or two bars
+        // with no way to tell whether they mean "1" or "50".
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -4389,7 +4395,7 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const h =
             it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
           const y = opts.height - h;
@@ -4406,7 +4412,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
@@ -4419,8 +4431,10 @@
           1,
           ...items.map((it) => (it.apple || 0) + (it.google || 0)),
         );
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -4428,7 +4442,7 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const apple = it.apple || 0;
           const google = it.google || 0;
           const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
@@ -4457,7 +4471,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }

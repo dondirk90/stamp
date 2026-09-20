@@ -598,25 +598,9 @@
           <div class="summary-grid" id="summaryGrid"></div>
 
           <div class="card">
-            <div class="section-title">Stempel pro Tag</div>
-            <div class="section-subtitle">Vergebene Stempel über alle Cafés, letzte 30 Tage.</div>
-            <div class="chart-wrap" id="chartStampsPerDay"></div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">Wallet-Karten pro Tag</div>
-            <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe über alle Cafés, letzte 30 Tage.</div>
-            <div class="chart-legend">
-              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
-              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+            <div id="globalAnalyticsBlock">
+              <p class="section-subtitle">Lade Analytics …</p>
             </div>
-            <div class="chart-wrap" id="chartWalletPerDay"></div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">Stempel im Tagesverlauf</div>
-            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage (Ortszeit Europe/Berlin).</div>
-            <div class="chart-wrap" id="chartHourly"></div>
           </div>
 
           <div class="card">
@@ -679,9 +663,6 @@
         loading: document.getElementById("loading"),
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
-        chartStampsPerDay: document.getElementById("chartStampsPerDay"),
-        chartWalletPerDay: document.getElementById("chartWalletPerDay"),
-        chartHourly: document.getElementById("chartHourly"),
         overviewContainer: document.getElementById("overviewContainer"),
         customersOverviewContainer: document.getElementById(
           "customersOverviewContainer",
@@ -706,6 +687,7 @@
         selectedCafeId: null,
         selectedCustomerUser: null,
         analyticsDays: 30,
+        globalAnalyticsDays: 30,
       };
 
       function escapeHtml(value) {
@@ -920,8 +902,14 @@
         const n = items.length;
         if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
         const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        // Left gutter reserves room for the y-axis scale (just top/bottom
+        // values, not a full tick ladder) - without it a mostly-empty chart
+        // (a handful of days with data, the rest at 0) shows one or two bars
+        // with no way to tell whether they mean "1" or "50".
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -929,7 +917,7 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const h =
             it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
           const y = opts.height - h;
@@ -951,7 +939,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
@@ -966,8 +960,10 @@
           1,
           ...items.map((it) => (it.apple || 0) + (it.google || 0)),
         );
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -975,7 +971,7 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const apple = it.apple || 0;
           const google = it.google || 0;
           const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
@@ -1004,7 +1000,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
@@ -1071,35 +1073,6 @@
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
 
-      function renderCharts(charts) {
-        if (!charts) {
-          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
-          refs.chartStampsPerDay.innerHTML = empty;
-          refs.chartWalletPerDay.innerHTML = empty;
-          refs.chartHourly.innerHTML = empty;
-          return;
-        }
-
-        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
-          label: shortDayLabel(d.date),
-          value: d.count,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
-        }));
-        refs.chartStampsPerDay.innerHTML = buildBarChartSvg(dailyStamps, {});
-
-        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
-          label: shortDayLabel(d.date),
-          apple: d.apple,
-          google: d.google,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(
-            d.apple,
-          )} Apple, ${formatNumber(d.google)} Google`,
-        }));
-        refs.chartWalletPerDay.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
-
-        refs.chartHourly.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
-      }
-
       // Weekday x time-of-day grid (Monday-first, 2h buckets) instead of the
       // old dot-plot - "Samstag 10-12 Uhr ist unsere stärkste Zeit" reads
       // directly off a heatmap, where the dot-plot only showed a same-shape
@@ -1151,21 +1124,28 @@
         return `<div class="table-wrapper"><table class="heatmap-table"><thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
       }
 
-      function buildRangeToggleHtml(cafeId, activeDays) {
+      function buildRangeToggleHtml(scope, cafeId, activeDays) {
         return [7, 30, 90]
           .map(
             (d) =>
               `<button type="button" class="miniBtn rangeToggleBtn${
                 d === activeDays ? " active" : ""
-              }" data-cafe-id="${cafeId}" data-days="${d}">${d} Tage</button>`,
+              }" data-scope="${scope}" data-cafe-id="${
+                cafeId ?? ""
+              }" data-days="${d}">${d} Tage</button>`,
           )
           .join("");
       }
 
-      function buildCafeAnalyticsHtml(analytics, cafeId, days) {
+      // Shared by the per-café detail view and the cross-café "Gesamt"
+      // overview - scope only changes the range-toggle wiring (which
+      // endpoint to reload from) and a couple of labels, the KPIs/charts/
+      // heatmap themselves are identical either way.
+      function buildAnalyticsHtml(analytics, scope, cafeId, days) {
         if (!analytics) {
           return '<p class="section-subtitle">Analytics konnten nicht geladen werden.</p>';
         }
+        const scopeLabel = scope === "global" ? " über alle Cafés" : "";
         const dailyStamps = (analytics.dailyStamps || []).map((d) => ({
           label: shortDayLabel(d.date),
           value: d.count,
@@ -1197,7 +1177,7 @@
         const cards = analytics.cards || {};
 
         return `
-          <div class="range-toggle">${buildRangeToggleHtml(cafeId, days)}</div>
+          <div class="range-toggle">${buildRangeToggleHtml(scope, cafeId, days)}</div>
 
           <div class="summary-grid">
             <div class="summary-card">
@@ -1225,7 +1205,7 @@
           </div>
 
           <div class="section-title" style="margin-top: 32px;">Stempel pro Tag</div>
-          <div class="section-subtitle">Letzte ${days} Tage. Wochenenden sind heller markiert.</div>
+          <div class="section-subtitle">Letzte ${days} Tage${scopeLabel}. Wochenenden sind heller markiert.</div>
           <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
 
           <div class="section-title">Eindeutige Kunden pro Tag</div>
@@ -1235,7 +1215,7 @@
           })}</div>
 
           <div class="section-title">Neue Kaffeekarten</div>
-          <div class="section-subtitle">Neue Wallet-Karten pro Tag · letzte ${days} Tage.</div>
+          <div class="section-subtitle">Neue Wallet-Karten pro Tag${scopeLabel} · letzte ${days} Tage.</div>
           <div class="chart-legend">
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
@@ -1243,7 +1223,7 @@
           <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
 
           <div class="section-title">Stempel nach Wochentag &amp; Uhrzeit</div>
-          <div class="section-subtitle">Letzte ${days} Tage, in ${
+          <div class="section-subtitle">Letzte ${days} Tage${scopeLabel}, in ${
             analytics.heatmap ? analytics.heatmap.bucketHours : 2
           }-Stunden-Fenstern.</div>
           ${buildHeatmapHtml(analytics.heatmap)}
@@ -1266,8 +1246,8 @@
           // away) while this was in flight - only paint if we're still
           // looking at the café this response is for.
           if (String(state.selectedCafeId) !== String(cafeId)) return;
-          container.innerHTML = buildCafeAnalyticsHtml(data.analytics, cafeId, days);
-          wireCafeAnalyticsBlock(container);
+          container.innerHTML = buildAnalyticsHtml(data.analytics, "cafe", cafeId, days);
+          wireAnalyticsBlock(container);
         } catch (err) {
           if (String(state.selectedCafeId) !== String(cafeId)) return;
           container.innerHTML = `<p class="section-subtitle">Analytics konnten nicht geladen werden: ${escapeHtml(
@@ -1276,13 +1256,35 @@
         }
       }
 
-      function wireCafeAnalyticsBlock(container) {
+      async function loadGlobalAnalytics(days) {
+        const container = document.getElementById("globalAnalyticsBlock");
+        if (!container || !state.config) return;
+        state.globalAnalyticsDays = days;
+        try {
+          const url = adminApiUrl("/admin/analytics");
+          url.searchParams.set("days", String(days));
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildAnalyticsHtml(data.analytics, "global", null, days);
+          wireAnalyticsBlock(container);
+        } catch (err) {
+          container.innerHTML = `<p class="section-subtitle">Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      function wireAnalyticsBlock(container) {
         container.querySelectorAll(".rangeToggleBtn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const cafeId = btn.dataset.cafeId;
+            const scope = btn.dataset.scope;
             const days = Number(btn.dataset.days) || 30;
             container.innerHTML = '<p class="section-subtitle">Lade Analytics …</p>';
-            loadCafeAnalytics(cafeId, days);
+            if (scope === "global") loadGlobalAnalytics(days);
+            else loadCafeAnalytics(btn.dataset.cafeId, days);
           });
         });
       }
@@ -1625,7 +1627,7 @@
 
         wireDetailLinks(refs.customersOverviewContainer);
 
-        renderCharts(data.charts);
+        loadGlobalAnalytics(state.globalAnalyticsDays || 30);
         renderCafeDetail();
         renderCustomerDetail();
       }

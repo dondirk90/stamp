@@ -4096,14 +4096,25 @@ async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
     new Array(CAFE_HEATMAP_BUCKETS_PER_DAY).fill(0),
   );
 
+  // cafeAddressLower === null means "across all cafés" (the admin
+  // overview's "Gesamt" analytics) - same queries, just without the
+  // per-café WHERE filter.
+  const isGlobal = cafeAddressLower == null;
+
   // Every event in the window (not just delta>0 stamps) so redemptions and
   // "did this customer show up at all today" are both derivable from one
   // pass instead of three separate queries.
-  const windowRows = await db
-    .prepare(
-      `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE LOWER(cafe) = ? AND ts >= ?`,
-    )
-    .all(cafeAddressLower, windowStart);
+  const windowRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE ts >= ?`,
+        )
+        .all(windowStart)
+    : await db
+        .prepare(
+          `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE LOWER(cafe) = ? AND ts >= ?`,
+        )
+        .all(cafeAddressLower, windowStart);
 
   for (const row of windowRows) {
     const ts = Number(row.ts);
@@ -4122,15 +4133,22 @@ async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
     }
   }
 
-  // All-time (not window-limited) first/last activity per customer for this
-  // café - the only way to tell "brand new this window" apart from "already
-  // a customer, just came back", since both look identical if you only look
-  // inside the window itself.
-  const firstSeenRows = await db
-    .prepare(
-      `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events WHERE LOWER(cafe) = ? GROUP BY "user"`,
-    )
-    .all(cafeAddressLower);
+  // All-time (not window-limited) first/last activity per customer - the
+  // only way to tell "brand new this window" apart from "already a
+  // customer, just came back", since both look identical if you only look
+  // inside the window itself. Globally this is per customer across every
+  // café instead of just this one.
+  const firstSeenRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events GROUP BY "user"`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events WHERE LOWER(cafe) = ? GROUP BY "user"`,
+        )
+        .all(cafeAddressLower);
 
   let newCustomers = 0;
   let returningCustomers = 0;
@@ -4142,25 +4160,39 @@ async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
     else returningCustomers += 1;
   }
 
+  // Runs for both scopes - global just drops the cafe_id filter. A café
+  // that has never issued a single wallet card (cafeNumericId null in the
+  // per-café case only) skips this entirely, since there's nothing to
+  // count.
   let cardsTotal = 0;
   let cardsNewInWindow = 0;
-  if (cafeNumericId != null) {
-    const appleRows = await db
-      .prepare(
-        `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
-      )
-      .all(cafeNumericId, windowStart);
+  if (isGlobal || cafeNumericId != null) {
+    const appleRows = isGlobal
+      ? await db
+          .prepare(`SELECT created_at AS ts FROM wallet_passes WHERE created_at >= ?`)
+          .all(windowStart)
+      : await db
+          .prepare(
+            `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
+          )
+          .all(cafeNumericId, windowStart);
     for (const row of appleRows) {
       const ts = Number(row.ts);
       if (!ts) continue;
       const d = cafeChartDayKey(ts);
       if (walletByDay.has(d)) walletByDay.get(d).apple += 1;
     }
-    const googleRows = await db
-      .prepare(
-        `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
-      )
-      .all(cafeNumericId, windowStart);
+    const googleRows = isGlobal
+      ? await db
+          .prepare(
+            `SELECT created_at AS ts FROM google_wallet_objects WHERE created_at >= ?`,
+          )
+          .all(windowStart)
+      : await db
+          .prepare(
+            `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
+          )
+          .all(cafeNumericId, windowStart);
     for (const row of googleRows) {
       const ts = Number(row.ts);
       if (!ts) continue;
@@ -4171,16 +4203,27 @@ async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
     // Distinct customers with any wallet card, deduped across Apple/Google
     // (a customer with both shouldn't count as two cards) - drives the
     // "Karten insgesamt" KPI and its "+N in the last <days> days" delta.
-    const cardRows = await db
-      .prepare(
-        `SELECT customer_address, MIN(created_at) AS first_ts FROM (
-           SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
-           UNION ALL
-           SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
-         ) AS t
-         GROUP BY customer_address`,
-      )
-      .all(cafeNumericId, cafeNumericId);
+    const cardRows = isGlobal
+      ? await db
+          .prepare(
+            `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+               SELECT customer_address, created_at FROM wallet_passes
+               UNION ALL
+               SELECT customer_address, created_at FROM google_wallet_objects
+             ) AS t
+             GROUP BY customer_address`,
+          )
+          .all()
+      : await db
+          .prepare(
+            `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+               SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
+               UNION ALL
+               SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
+             ) AS t
+             GROUP BY customer_address`,
+          )
+          .all(cafeNumericId, cafeNumericId);
     cardsTotal = cardRows.length;
     cardsNewInWindow = cardRows.filter(
       (r) => Number(r.first_ts) >= windowStart,
@@ -4253,6 +4296,21 @@ app.get(
     }
   },
 );
+
+// Same analytics shape as above, aggregated across every café - the admin
+// overview's "Gesamt" view.
+app.get("/admin/analytics", requireAdminKey, async (req, res) => {
+  try {
+    const days = Number(req.query?.days) || 30;
+    const analytics = await computeCafeAnalytics(null, null, days);
+    res.json({ ok: true, analytics });
+  } catch (err) {
+    console.error("Error in /admin/analytics:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
 
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
