@@ -3942,6 +3942,113 @@ app.get("/stamps/history/:addr", async (req, res) => {
   }
 });
 
+// Per-café chart data for a café's own dashboard - same day/time bucketing
+// idea as /admin/cafes/activity's charts, but scoped to a single café's own
+// rows via a couple of cheap, filtered queries instead of the admin route's
+// all-cafés-at-once accumulator pass (that one has to look at everything
+// anyway to build every café's card; a single café's dashboard doesn't).
+const CAFE_CHART_DAYS = 30;
+const CAFE_CHART_BIN_MINUTES = 15;
+const CAFE_CHART_BINS_PER_DAY = (24 * 60) / CAFE_CHART_BIN_MINUTES;
+const cafeChartDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Berlin",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const cafeChartTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+function cafeChartDayKey(ts) {
+  return cafeChartDayFormatter.format(new Date(ts));
+}
+function cafeChartTimeBin(ts) {
+  let hour = 0;
+  let minute = 0;
+  for (const part of cafeChartTimeFormatter.formatToParts(new Date(ts))) {
+    if (part.type === "hour") hour = Number(part.value) % 24;
+    else if (part.type === "minute") minute = Number(part.value);
+  }
+  const minutesSinceMidnight = hour * 60 + minute;
+  return Math.min(
+    CAFE_CHART_BINS_PER_DAY - 1,
+    Math.floor(minutesSinceMidnight / CAFE_CHART_BIN_MINUTES),
+  );
+}
+
+async function computeCafeCharts(cafeAddressLower, cafeNumericId) {
+  const windowStart = Date.now() - CAFE_CHART_DAYS * 86400000;
+  const dayList = [];
+  for (let i = CAFE_CHART_DAYS - 1; i >= 0; i--) {
+    dayList.push(cafeChartDayKey(Date.now() - i * 86400000));
+  }
+  const byDay = new Map(dayList.map((d) => [d, 0]));
+  const byTimeOfDay = new Array(CAFE_CHART_BINS_PER_DAY).fill(0);
+  const walletByDay = new Map(dayList.map((d) => [d, { apple: 0, google: 0 }]));
+
+  const stampRows = await db
+    .prepare(
+      `SELECT ts FROM stamp_events WHERE delta > 0 AND LOWER(cafe) = ? AND ts >= ?`,
+    )
+    .all(cafeAddressLower, windowStart);
+  for (const row of stampRows) {
+    const ts = Number(row.ts);
+    if (!ts) continue;
+    const d = cafeChartDayKey(ts);
+    if (byDay.has(d)) byDay.set(d, byDay.get(d) + 1);
+    byTimeOfDay[cafeChartTimeBin(ts)] += 1;
+  }
+
+  if (cafeNumericId != null) {
+    const appleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of appleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).apple += 1;
+    }
+    const googleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of googleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).google += 1;
+    }
+  }
+
+  return {
+    days: CAFE_CHART_DAYS,
+    timezone: "Europe/Berlin",
+    binMinutes: CAFE_CHART_BIN_MINUTES,
+    dailyStamps: dayList.map((d) => ({ date: d, count: byDay.get(d) || 0 })),
+    dailyWalletDownloads: dayList.map((d) => {
+      const v = walletByDay.get(d) || { apple: 0, google: 0 };
+      return {
+        date: d,
+        apple: v.apple,
+        google: v.google,
+        total: v.apple + v.google,
+      };
+    }),
+    stampsByTimeOfDay: byTimeOfDay.map((count, bin) => ({
+      bin,
+      minute: bin * CAFE_CHART_BIN_MINUTES,
+      count,
+    })),
+  };
+}
+
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
     const { cafeId } = req.params;
@@ -4080,6 +4187,11 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
       });
     }
 
+    const charts = await computeCafeCharts(
+      cafeAddressLower,
+      cafeRow.id != null ? Number(cafeRow.id) : null,
+    );
+
     res.json({
       ok: true,
       cafe: {
@@ -4111,6 +4223,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
       stats,
       recentEvents: recentEvents.filter(Boolean),
       customers,
+      charts,
       meta: {
         eventsLimit,
         customerLimit,

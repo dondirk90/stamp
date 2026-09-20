@@ -601,9 +601,119 @@
       .ghostLink:hover {
         background: rgba(107, 69, 44, 0.08);
       }
-      #loginScreen > .featureGrid + h2,
-      #loginScreen > .featureGrid + h2 + p.subtitle {
-        display: none;
+      /* Forgot-password block (see #forgotPwBox markup below) - ID-scoped
+         so each rule's specificity naturally beats the generic
+         button/label defaults above without needing !important, matching
+         how the inline styles it replaces used to win. */
+      #forgotToggleRow {
+        margin-top: 12px;
+        text-align: center;
+      }
+      #forgotPwBtn {
+        width: auto;
+        margin: 0;
+        padding: 12px 14px;
+        font-size: 14px;
+      }
+      #forgotPwBox {
+        margin-top: 14px;
+        padding: 14px 0 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+      }
+      #forgotHeading {
+        font-weight: 900;
+        margin-bottom: 10px;
+      }
+      #forgotHint {
+        margin-bottom: 12px;
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+      #forgotPwBox label:first-of-type {
+        margin-top: 0;
+      }
+      #forgotScopeFlex {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      #forgotScopeThis {
+        width: 18px;
+        height: 18px;
+        margin-top: 3px;
+      }
+      #forgotScopeText {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.35;
+      }
+      #forgotScopeCafe {
+        color: var(--text);
+        font-weight: 800;
+      }
+      #forgotScopeTip {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      #forgotRequestBtn {
+        margin-top: 12px;
+      }
+      #forgotMsg {
+        margin-top: 10px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      #forgotDevBox {
+        margin-top: 12px;
+        padding: 12px 0 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        font-size: 13px;
+        color: var(--text);
+      }
+      #forgotDevHeading {
+        font-weight: 900;
+        margin-bottom: 6px;
+      }
+      #forgotDevUrl {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        word-break: break-all;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      #forgotDevMore {
+        margin-bottom: 8px;
+      }
+      #forgotDevOpen {
+        display: inline-block;
+        padding: 10px 12px;
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        font-weight: 800;
+      }
+      #noAccountSection {
+        margin-top: 15px;
+        padding: 12px 0 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      #noAccountSection .softSectionTitle {
+        margin-bottom: 6px;
       }
       /* Scoped to #loginCard - all real usages (login/forgot-password
          form fields) live there; an unscoped bare label would also push
@@ -777,6 +887,10 @@
       #awardBtn {
         width: 100%;
         margin: 0;
+      }
+      #customerAddress {
+        font-family: monospace;
+        font-size: 12px;
       }
       .stamp-input {
         flex: 1;
@@ -1048,13 +1162,6 @@
         font-size: 13px;
         line-height: 1.45;
       }
-      #homeScreen > .homeGrid + p.subtitle {
-        display: none;
-      }
-      #homeScreen .hintBox:last-of-type > div[style*="color: var(--text-muted)"] {
-        display: none;
-      }
-
       @media (max-width: 900px) {
         .app-shell {
           margin-top: 0;
@@ -1825,6 +1932,73 @@
         margin: 0 0 var(--space-3) 0;
       }
 
+      .sectionSubtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      /* Dependency-free inline-SVG charts, same building blocks as
+         admin-dashboard.html's café-activity charts - kept visually
+         identical so a café's own dashboard reads like a scoped-down
+         version of what an admin sees for that café. */
+      .chart-wrap {
+        margin-top: 4px;
+      }
+      .chart-wrap svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .chart-bar {
+        fill: var(--brand);
+      }
+      .chart-bar-google {
+        fill: var(--color-coffee-light, #b99174);
+      }
+      .chart-dot {
+        fill: var(--brand);
+        fill-opacity: 0.82;
+      }
+      .chart-axis-line {
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+      .chart-axis-label {
+        font-size: 10px;
+        fill: var(--text-muted);
+      }
+      .chart-empty {
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 12px 0;
+      }
+      .chart-legend {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .chart-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .chart-legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .chart-legend-dot-apple {
+        background: var(--brand);
+      }
+      .chart-legend-dot-google {
+        background: var(--color-coffee-light, #b99174);
+      }
+
       /* Scoped to #dashboardScreen - .badge is also used unstyled
          (theme.css's normal pill badge) elsewhere, e.g. #profileScreen's
          #modeBadge, which should NOT get this flat borderless look. */
@@ -2394,8 +2568,6 @@
               <span>Die Kaffeekarte unterstuetzt Wiederkehr, Stammgaeste und das seltene Gefuehl, dass eine App tatsaechlich hilft.</span>
             </div>
           </div>
-          <h2>Cafe Scanner</h2>
-          <p class="subtitle">Melde dich mit deinem Cafe-Konto an</p>
 
           <!-- Email Login -->
           <div id="apiKeyTab">
@@ -2424,178 +2596,58 @@
               </div>
             </div>
 
-            <div style="margin-top: 12px; text-align: center">
-              <button
-                id="forgotPwBtn"
-                type="button"
-                class="secondary"
-                style="
-                  width: auto;
-                  margin: 0;
-                  padding: 12px 14px;
-                  font-size: 14px;
-                "
-              >
+            <div id="forgotToggleRow">
+              <button id="forgotPwBtn" type="button" class="secondary">
                 Passwort vergessen?
               </button>
             </div>
 
-            <div
-              id="forgotPwBox"
-              style="
-                display: none;
-                margin-top: 14px;
-                padding: 14px 0 0;
-                background: transparent;
-                border: none;
-                border-top: 1px solid var(--border);
-                border-radius: 0;
-              "
-            >
-              <div style="font-weight: 900; margin-bottom: 10px">
-                Reset-Link anfordern
-              </div>
-              <div
-                style="
-                  margin-bottom: 12px;
-                  font-size: 13px;
-                  color: var(--text-muted);
-                  line-height: 1.45;
-                "
-              >
+            <div id="forgotPwBox" style="display: none">
+              <div id="forgotHeading">Reset-Link anfordern</div>
+              <div id="forgotHint">
                 Wenn du dein Passwort gerade nicht zur Hand hast, schicken wir
                 dir einen sicheren Link fuer den Wiedereinstieg. Unaufgeregt und ohne Drama.
               </div>
-              <label style="margin-top: 0">E-Mail</label>
+              <label>E-Mail</label>
               <input
                 id="forgotEmail"
                 type="email"
                 placeholder="cafe@example.com"
               />
 
-              <div id="forgotScopeRow" style="display: none; margin-top: 10px">
-                <label style="margin-top: 0">Konto-Auswahl</label>
-                <div style="display: flex; align-items: flex-start; gap: 10px">
-                  <input
-                    id="forgotScopeThis"
-                    type="checkbox"
-                    checked
-                    style="width: 18px; height: 18px; margin-top: 3px"
-                  />
-                  <div
-                    style="
-                      font-size: 13px;
-                      color: var(--text-muted);
-                      line-height: 1.35;
-                    "
-                  >
+              <div id="forgotScopeRow" style="display: none">
+                <label>Konto-Auswahl</label>
+                <div id="forgotScopeFlex">
+                  <input id="forgotScopeThis" type="checkbox" checked />
+                  <div id="forgotScopeText">
                     Nur dieses Cafe (aus QR):
-                    <span
-                      id="forgotScopeCafe"
-                      style="color: var(--text); font-weight: 800"
-                    ></span>
+                    <span id="forgotScopeCafe"></span>
                   </div>
                 </div>
-                <div
-                  style="
-                    margin-top: 6px;
-                    font-size: 12px;
-                    color: var(--text-muted);
-                  "
-                >
+                <div id="forgotScopeTip">
                   Tipp: Deaktiviere das, wenn dieselbe E-Mail mehreren Cafes
                   zugeordnet ist.
                 </div>
               </div>
-              <button
-                id="forgotRequestBtn"
-                type="button"
-                style="margin-top: 12px"
-              >
+              <button id="forgotRequestBtn" type="button">
                 Reset-Link anfordern
               </button>
-              <div
-                id="forgotMsg"
-                style="
-                  display: none;
-                  margin-top: 10px;
-                  color: var(--text-muted);
-                  font-size: 13px;
-                "
-              ></div>
+              <div id="forgotMsg" style="display: none"></div>
 
-              <div
-                id="forgotDevBox"
-                style="
-                  display: none;
-                  margin-top: 12px;
-                  padding: 12px 0 0;
-                  background: transparent;
-                  border: none;
-                  border-top: 1px solid var(--border);
-                  border-radius: 0;
-                  font-size: 13px;
-                  color: var(--text);
-                "
-              >
-                <div style="font-weight: 900; margin-bottom: 6px">Dev-Link</div>
-                <div
-                  id="forgotDevUrl"
-                  style="
-                    font-family:
-                      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-                      &quot;Liberation Mono&quot;, &quot;Courier New&quot;,
-                      monospace;
-                    word-break: break-all;
-                    color: var(--text-muted);
-                    margin-bottom: 8px;
-                  "
-                >
-                  —
-                </div>
-                <div
-                  id="forgotDevMore"
-                  style="display: none; margin-bottom: 8px"
-                ></div>
-                <a
-                  id="forgotDevOpen"
-                  href="#"
-                  style="
-                    display: inline-block;
-                    padding: 10px 12px;
-                    background: var(--brand);
-                    color: var(--on-brand, #fff);
-                    border-radius: var(--radius-sm);
-                    text-decoration: none;
-                    font-weight: 800;
-                  "
-                  >Öffnen</a
-                >
+              <div id="forgotDevBox" style="display: none">
+                <div id="forgotDevHeading">Dev-Link</div>
+                <div id="forgotDevUrl">—</div>
+                <div id="forgotDevMore" style="display: none"></div>
+                <a id="forgotDevOpen" href="#">Öffnen</a>
               </div>
 
-              <button
-                id="forgotBackBtn"
-                type="button"
-                class="secondary"
-                style="margin-top: 12px"
-              >
+              <button id="forgotBackBtn" type="button" class="secondary">
                 Zurück zum Login
               </button>
             </div>
 
-            <div
-              style="
-                margin-top: 15px;
-                padding: 12px 0 0;
-                background: transparent;
-                border: none;
-                border-top: 1px solid var(--border);
-                border-radius: 0;
-                font-size: 13px;
-                color: var(--text-muted);
-              "
-            >
-              <div class="softSectionTitle" style="margin-bottom: 6px">
+            <div id="noAccountSection">
+              <div class="softSectionTitle">
                 Noch kein Konto?
               </div>
               <div class="softSectionText">
@@ -2644,10 +2696,6 @@
                 <span>Weniger Reibung fuers Team, klarere Reward-Logik und eine staerkere Kundenbindung ohne App-Chaos.</span>
               </div>
             </div>
-            <p class="subtitle" style="text-align: left">
-              Hier beginnt dein Tagesgeschaeft. Scans oeffnen automatisch die
-              passende Kundenansicht.
-            </p>
 
             <div id="homePending" class="hintBox" style="display: none">
               <div style="font-weight: 800; margin-bottom: 6px">
@@ -2685,12 +2733,6 @@
                     Pflege-Seiten springen zu müssen.
                   </div>
                 </div>
-              </div>
-              <div style="color: var(--text-muted)">
-                1) Kunde zeigt QR-Code auf dem Handy.<br />
-                2) Du scannst mit der Kamera-App.<br />
-                3) Der Link öffnet diese Seite mit Parametern – dann kannst du
-                direkt stempeln. So schlicht darf Technik ruhig sein.
               </div>
             </div>
 
@@ -2766,11 +2808,7 @@
               </div>
               <div class="value">
                 <strong>Kunden-ID:</strong>
-                <span
-                  id="customerAddress"
-                  style="font-family: monospace; font-size: 12px"
-                  >-</span
-                >
+                <span id="customerAddress">-</span>
               </div>
               <div class="value">
                 <strong>Aktuelle Stempel:</strong>
@@ -2778,7 +2816,7 @@
               </div>
 
               <div class="stamp-controls">
-                <div id="stampAmountUi" style="flex: 1">
+                <div id="stampAmountUi">
                   <div class="stamp-presets" id="stampPresets">
                     <button type="button" data-amount="1" class="miniBtn active">
                       1
@@ -2794,8 +2832,8 @@
                     <span id="stampAmountValue">1</span> Stempel
                   </div>
                 </div>
-                <div id="awardBtnWrap" style="position: relative; flex: 2">
-                  <button id="awardBtn" style="margin: 0; width: 100%">
+                <div id="awardBtnWrap">
+                  <button id="awardBtn">
                     Stempel vergeben
                   </button>
                 </div>
@@ -2840,6 +2878,24 @@
                   <div class="stat-value" id="uniqueCustomers">0</div>
                   <div class="stat-subtitle">einzigartige Gäste</div>
                 </div>
+              </div>
+
+              <div class="card" style="padding: var(--space-5); margin-bottom: var(--space-4)">
+                <h2 class="sectionTitle">Stempel pro Tag</h2>
+                <div class="sectionSubtitle">Letzte 30 Tage.</div>
+                <div class="chart-wrap" id="chartCafeStampsPerDay"></div>
+
+                <h2 class="sectionTitle" style="margin-top: 28px">Wallet-Karten pro Tag</h2>
+                <div class="sectionSubtitle">Neu gespeicherte Wallet-Pässe.</div>
+                <div class="chart-legend">
+                  <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
+                  <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+                </div>
+                <div class="chart-wrap" id="chartCafeWalletPerDay"></div>
+
+                <h2 class="sectionTitle" style="margin-top: 28px">Tageszeit-Verteilung</h2>
+                <div class="sectionSubtitle">Wann deine Kunden am häufigsten stempeln.</div>
+                <div class="chart-wrap" id="chartCafeHourly"></div>
               </div>
 
               <div class="split">
@@ -4302,6 +4358,201 @@
         node.className = "badge" + (variant ? " " + variant : "");
       }
 
+      function formatNumber(value) {
+        return new Intl.NumberFormat("de-DE").format(Number(value || 0));
+      }
+
+      function shortDayLabel(dateStr) {
+        const parts = String(dateStr || "").split("-");
+        if (parts.length !== 3) return dateStr || "";
+        return `${parts[2]}.${parts[1]}.`;
+      }
+
+      // Same dependency-free inline-SVG chart builders as admin-dashboard.html
+      // (see the comment there) - kept in sync so a café's own dashboard and
+      // the admin's per-café view render the same charts from the same shape
+      // of data.
+      function buildBarChartSvg(items, options) {
+        const opts = Object.assign(
+          { width: 600, height: 100, barClass: "chart-bar", labelEvery: null },
+          options,
+        );
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const h =
+            it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
+          const y = opts.height - h;
+          const title = escapeHtml(
+            it.title != null ? it.title : `${it.label}: ${it.value}`,
+          );
+          bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
+            2,
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function buildStackedBarChartSvg(items, options) {
+        const opts = Object.assign({ width: 600, height: 100, labelEvery: null }, options);
+        const n = items.length;
+        if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        const maxValue = Math.max(
+          1,
+          ...items.map((it) => (it.apple || 0) + (it.google || 0)),
+        );
+        const gap = 2;
+        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
+
+        let bars = "";
+        let labels = "";
+        items.forEach((it, i) => {
+          const x = i * (barWidth + gap);
+          const apple = it.apple || 0;
+          const google = it.google || 0;
+          const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
+          const googleH = google > 0 ? (google / maxValue) * opts.height : 0;
+          const title = escapeHtml(
+            it.title != null
+              ? it.title
+              : `${it.label}: ${apple} Apple, ${google} Google`,
+          );
+          if (appleH > 0) {
+            const y = opts.height - appleH;
+            bars += `<rect class="chart-bar" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${appleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (googleH > 0) {
+            const y = opts.height - appleH - googleH;
+            bars += `<rect class="chart-bar-google" x="${x.toFixed(2)}" y="${y.toFixed(
+              2,
+            )}" width="${barWidth.toFixed(2)}" height="${googleH.toFixed(2)}"><title>${title}</title></rect>`;
+          }
+          if (i === 0 || i === n - 1 || i % labelEvery === 0) {
+            labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="middle">${escapeHtml(it.label)}</text>`;
+          }
+        });
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function formatBinTime(minute) {
+        const h = Math.floor(minute / 60);
+        const m = minute % 60;
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+
+      function buildDotPlotSvg(bins, options) {
+        const opts = Object.assign({ width: 600, height: 90 }, options);
+        const totalCount = bins.reduce((sum, b) => sum + (b.count || 0), 0);
+        if (!totalCount) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const maxCount = Math.max(1, ...bins.map((b) => b.count || 0));
+        const spacing = Math.max(3, Math.min(8, opts.height / maxCount));
+        const radius = Math.max(1.5, spacing / 2 - 0.5);
+        const dayMinutes = 24 * 60;
+        const labelY = opts.height + 14;
+        const totalHeight = opts.height + 20;
+        const binMinutes = bins.length ? dayMinutes / bins.length : 15;
+
+        let dots = "";
+        bins.forEach((b) => {
+          const count = b.count || 0;
+          if (!count) return;
+          const x = ((b.minute + binMinutes / 2) / dayMinutes) * opts.width;
+          const title = escapeHtml(
+            `${formatBinTime(b.minute)}–${formatBinTime(
+              b.minute + binMinutes,
+            )} Uhr: ${formatNumber(count)} Stempel`,
+          );
+          for (let i = 0; i < count; i++) {
+            const y = Math.max(radius, opts.height - radius - i * spacing);
+            dots += `<circle class="chart-dot" cx="${x.toFixed(2)}" cy="${y.toFixed(
+              2,
+            )}" r="${radius.toFixed(2)}"><title>${title}</title></circle>`;
+          }
+        });
+
+        const hourTicks = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+        const labels = hourTicks
+          .map((h) => {
+            const x = ((h * 60) / dayMinutes) * opts.width;
+            const anchor = h === 0 ? "start" : h === 24 ? "end" : "middle";
+            return `<text class="chart-axis-label" x="${x.toFixed(
+              2,
+            )}" y="${labelY}" text-anchor="${anchor}">${String(h).padStart(
+              2,
+              "0",
+            )}h</text>`;
+          })
+          .join("");
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${dots}<line class="chart-axis-line" x1="0" y1="${
+          opts.height + 0.5
+        }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
+      }
+
+      function renderCafeCharts(charts) {
+        const stampsEl = document.getElementById("chartCafeStampsPerDay");
+        const walletEl = document.getElementById("chartCafeWalletPerDay");
+        const hourlyEl = document.getElementById("chartCafeHourly");
+        if (!stampsEl || !walletEl || !hourlyEl) return;
+
+        if (!charts) {
+          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
+          stampsEl.innerHTML = empty;
+          walletEl.innerHTML = empty;
+          hourlyEl.innerHTML = empty;
+          return;
+        }
+
+        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.count,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+        }));
+        stampsEl.innerHTML = buildBarChartSvg(dailyStamps, {});
+
+        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          apple: d.apple,
+          google: d.google,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.apple,
+          )} Apple, ${formatNumber(d.google)} Google`,
+        }));
+        walletEl.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
+
+        hourlyEl.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
+      }
+
       function dashboardRenderTopCustomers(customers) {
         const tbody = document.getElementById("topCustomersBody");
         if (!tbody) return;
@@ -4412,6 +4663,7 @@
 
         dashboardRenderTopCustomers(overview.customers || []);
         dashboardRenderRecentEvents(overview.recentEvents || []);
+        renderCafeCharts(overview.charts || null);
 
         setBadge("sourceBadge", "Quelle: DB", "ok");
         setBadge(
