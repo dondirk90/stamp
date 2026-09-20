@@ -4049,6 +4049,211 @@ async function computeCafeCharts(cafeAddressLower, cafeNumericId) {
   };
 }
 
+// Richer per-café analytics for the admin café-detail view: splits stamps
+// from unique customers per day (30 stamps could be 30 one-off visitors or
+// 10 regulars stopping by three times - very different pictures for a
+// café), a Monday-first weekday x time-of-day heatmap instead of the
+// dot-plot's raw time-of-day distribution, new-vs-returning customer counts
+// for the selected window, and a wallet-cards total/growth KPI. Kept
+// separate from computeCafeCharts() above (café's own dashboard) rather
+// than replacing it, so that route's already-shipped 30-day-fixed shape
+// doesn't shift under it.
+const CAFE_HEATMAP_BUCKET_HOURS = 2;
+const CAFE_HEATMAP_BUCKETS_PER_DAY = 24 / CAFE_HEATMAP_BUCKET_HOURS;
+const cafeWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Berlin",
+  weekday: "short",
+});
+const CAFE_WEEKDAY_ORDER = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+function cafeWeekdayIndex(ts) {
+  const label = cafeWeekdayFormatter.format(new Date(ts));
+  return CAFE_WEEKDAY_ORDER[label] ?? 0;
+}
+function cafeHeatmapBucket(ts) {
+  let hour = 0;
+  for (const part of cafeChartTimeFormatter.formatToParts(new Date(ts))) {
+    if (part.type === "hour") hour = Number(part.value) % 24;
+  }
+  return Math.min(
+    CAFE_HEATMAP_BUCKETS_PER_DAY - 1,
+    Math.floor(hour / CAFE_HEATMAP_BUCKET_HOURS),
+  );
+}
+
+async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
+  const windowDays = Math.max(1, Math.min(90, Number(days) || 30));
+  const windowStart = Date.now() - windowDays * 86400000;
+  const dayList = [];
+  for (let i = windowDays - 1; i >= 0; i--) {
+    dayList.push(cafeChartDayKey(Date.now() - i * 86400000));
+  }
+
+  const byDayStamps = new Map(dayList.map((d) => [d, 0]));
+  const byDayCustomers = new Map(dayList.map((d) => [d, new Set()]));
+  const byDayRedemptions = new Map(dayList.map((d) => [d, 0]));
+  const walletByDay = new Map(dayList.map((d) => [d, { apple: 0, google: 0 }]));
+  const heatmapGrid = Array.from({ length: 7 }, () =>
+    new Array(CAFE_HEATMAP_BUCKETS_PER_DAY).fill(0),
+  );
+
+  // Every event in the window (not just delta>0 stamps) so redemptions and
+  // "did this customer show up at all today" are both derivable from one
+  // pass instead of three separate queries.
+  const windowRows = await db
+    .prepare(
+      `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE LOWER(cafe) = ? AND ts >= ?`,
+    )
+    .all(cafeAddressLower, windowStart);
+
+  for (const row of windowRows) {
+    const ts = Number(row.ts);
+    if (!ts) continue;
+    const d = cafeChartDayKey(ts);
+    const isRedeem = String(row.event_type || "").toLowerCase() === "redeem";
+    if (Number(row.delta) > 0) {
+      if (byDayStamps.has(d)) byDayStamps.set(d, byDayStamps.get(d) + 1);
+      heatmapGrid[cafeWeekdayIndex(ts)][cafeHeatmapBucket(ts)] += 1;
+    }
+    if (isRedeem && byDayRedemptions.has(d)) {
+      byDayRedemptions.set(d, byDayRedemptions.get(d) + 1);
+    }
+    if (byDayCustomers.has(d) && row.user) {
+      byDayCustomers.get(d).add(String(row.user).toLowerCase());
+    }
+  }
+
+  // All-time (not window-limited) first/last activity per customer for this
+  // café - the only way to tell "brand new this window" apart from "already
+  // a customer, just came back", since both look identical if you only look
+  // inside the window itself.
+  const firstSeenRows = await db
+    .prepare(
+      `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events WHERE LOWER(cafe) = ? GROUP BY "user"`,
+    )
+    .all(cafeAddressLower);
+
+  let newCustomers = 0;
+  let returningCustomers = 0;
+  for (const row of firstSeenRows) {
+    const lastTs = Number(row.last_ts);
+    if (!lastTs || lastTs < windowStart) continue;
+    const firstTs = Number(row.first_ts);
+    if (firstTs >= windowStart) newCustomers += 1;
+    else returningCustomers += 1;
+  }
+
+  let cardsTotal = 0;
+  let cardsNewInWindow = 0;
+  if (cafeNumericId != null) {
+    const appleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of appleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).apple += 1;
+    }
+    const googleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of googleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).google += 1;
+    }
+
+    // Distinct customers with any wallet card, deduped across Apple/Google
+    // (a customer with both shouldn't count as two cards) - drives the
+    // "Karten insgesamt" KPI and its "+N in the last <days> days" delta.
+    const cardRows = await db
+      .prepare(
+        `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+           SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
+           UNION ALL
+           SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
+         ) AS t
+         GROUP BY customer_address`,
+      )
+      .all(cafeNumericId, cafeNumericId);
+    cardsTotal = cardRows.length;
+    cardsNewInWindow = cardRows.filter(
+      (r) => Number(r.first_ts) >= windowStart,
+    ).length;
+  }
+
+  return {
+    days: windowDays,
+    timezone: "Europe/Berlin",
+    dailyStamps: dayList.map((d) => ({
+      date: d,
+      count: byDayStamps.get(d) || 0,
+      uniqueCustomers: byDayCustomers.get(d) ? byDayCustomers.get(d).size : 0,
+      redemptions: byDayRedemptions.get(d) || 0,
+      isWeekend: cafeWeekdayIndex(new Date(`${d}T12:00:00Z`).getTime()) >= 5,
+    })),
+    dailyWalletDownloads: dayList.map((d) => {
+      const v = walletByDay.get(d) || { apple: 0, google: 0 };
+      return {
+        date: d,
+        apple: v.apple,
+        google: v.google,
+        total: v.apple + v.google,
+      };
+    }),
+    heatmap: {
+      bucketHours: CAFE_HEATMAP_BUCKET_HOURS,
+      bucketsPerDay: CAFE_HEATMAP_BUCKETS_PER_DAY,
+      weekdayLabels: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+      grid: heatmapGrid,
+    },
+    customerActivity: {
+      newCustomers,
+      returningCustomers,
+      activeCustomers: newCustomers + returningCustomers,
+    },
+    cards: {
+      total: cardsTotal,
+      newInWindow: cardsNewInWindow,
+    },
+  };
+}
+
+app.get(
+  "/admin/cafes/:cafeId/analytics",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const cafeAddress = ensureCafeAddress(current) || String(current.id || "");
+      const days = Number(req.query?.days) || 30;
+      const analytics = await computeCafeAnalytics(
+        cafeAddress.toLowerCase(),
+        Number(current.id),
+        days,
+      );
+      res.json({ ok: true, cafe: { id: current.id, name: current.name || null }, analytics });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/analytics:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
     const { cafeId } = req.params;

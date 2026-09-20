@@ -313,6 +313,63 @@
       .chart-legend-dot-google {
         background: var(--color-coffee-light, #b99174);
       }
+      .chart-bar-customers {
+        fill: var(--color-coffee-light, #b99174);
+      }
+      .summary-delta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .range-toggle {
+        display: inline-flex;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      /* .miniBtn opts these out of theme.css's global legacy-button rule
+         (button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain){
+         background:var(--brand) !important}) - same escape hatch used
+         elsewhere in the app - so the inactive/active look below is fully
+         under this stylesheet's control instead of fighting an !important. */
+      .range-toggle button.rangeToggleBtn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .range-toggle button.rangeToggleBtn.active {
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        border-color: transparent;
+      }
+      .heatmap-table {
+        min-width: 640px;
+      }
+      .heatmap-table th,
+      .heatmap-table td {
+        padding: 6px 8px;
+        text-align: center;
+        font-size: 11px;
+      }
+      .heatmap-rowlabel {
+        text-align: left !important;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--surface-muted);
+      }
+      .heatmap-collabel {
+        color: var(--text-muted);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .heatmap-cell {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
       .overview-email {
         font-family: var(--font-mono);
         font-size: 12px;
@@ -648,6 +705,7 @@
         cafesByCustomer: new Map(),
         selectedCafeId: null,
         selectedCustomerUser: null,
+        analyticsDays: 30,
       };
 
       function escapeHtml(value) {
@@ -878,9 +936,14 @@
           const title = escapeHtml(
             it.title != null ? it.title : `${it.label}: ${it.value}`,
           );
+          // Weekend bars fade the *actual* series color via fill-opacity
+          // rather than swapping to a separate class - the stamps chart and
+          // the eindeutige-Kunden chart use different base colors, and a
+          // fixed weekend class would only be correct for one of them.
+          const weekendAttr = it.weekend ? ' fill-opacity="0.5"' : "";
           bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
             2,
-          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"${weekendAttr}><title>${title}</title></rect>`;
           if (i === 0 || i === n - 1 || i % labelEvery === 0) {
             labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
               2,
@@ -1037,18 +1100,91 @@
         refs.chartHourly.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
       }
 
-      // Same three charts as renderCharts(), but scoped to one café and
-      // returned as an HTML string for buildCafeCardHtml() to splice in
-      // rather than targeting a fixed #id (a café card can be rebuilt for
-      // any café, so there's no single static container to bind to).
-      function buildCafeChartsHtml(charts) {
-        if (!charts) return "";
-        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+      // Weekday x time-of-day grid (Monday-first, 2h buckets) instead of the
+      // old dot-plot - "Samstag 10-12 Uhr ist unsere stärkste Zeit" reads
+      // directly off a heatmap, where the dot-plot only showed a same-shape
+      // curve for every weekday combined.
+      function buildHeatmapHtml(heatmap) {
+        if (!heatmap || !heatmap.grid || !heatmap.grid.length) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const grid = heatmap.grid;
+        const bucketHours = heatmap.bucketHours || 2;
+        const bucketsPerDay = heatmap.bucketsPerDay || (grid[0] || []).length;
+        const weekdayLabels = heatmap.weekdayLabels || [
+          "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
+        ];
+        const maxValue = Math.max(1, ...grid.map((row) => Math.max(0, ...row)));
+        const hourLabel = (b) =>
+          `${String(b * bucketHours).padStart(2, "0")}–${String(
+            (b + 1) * bucketHours,
+          ).padStart(2, "0")}`;
+
+        let headerCells = "";
+        for (let b = 0; b < bucketsPerDay; b++) {
+          headerCells += `<th class="heatmap-collabel">${hourLabel(b)}</th>`;
+        }
+
+        let rows = "";
+        for (let w = 0; w < weekdayLabels.length; w++) {
+          let cells = "";
+          const row = grid[w] || [];
+          for (let b = 0; b < bucketsPerDay; b++) {
+            const value = row[b] || 0;
+            const intensity = value / maxValue;
+            const bg =
+              value > 0
+                ? `color-mix(in srgb, var(--brand) ${Math.round(
+                    12 + intensity * 78,
+                  )}%, transparent)`
+                : "transparent";
+            const title = escapeHtml(
+              `${weekdayLabels[w]} ${hourLabel(b)} Uhr: ${formatNumber(value)} Stempel`,
+            );
+            cells += `<td class="heatmap-cell" style="background:${bg}" title="${title}">${
+              value > 0 ? formatNumber(value) : ""
+            }</td>`;
+          }
+          rows += `<tr><th class="heatmap-rowlabel">${weekdayLabels[w]}</th>${cells}</tr>`;
+        }
+
+        return `<div class="table-wrapper"><table class="heatmap-table"><thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+
+      function buildRangeToggleHtml(cafeId, activeDays) {
+        return [7, 30, 90]
+          .map(
+            (d) =>
+              `<button type="button" class="miniBtn rangeToggleBtn${
+                d === activeDays ? " active" : ""
+              }" data-cafe-id="${cafeId}" data-days="${d}">${d} Tage</button>`,
+          )
+          .join("");
+      }
+
+      function buildCafeAnalyticsHtml(analytics, cafeId, days) {
+        if (!analytics) {
+          return '<p class="section-subtitle">Analytics konnten nicht geladen werden.</p>';
+        }
+        const dailyStamps = (analytics.dailyStamps || []).map((d) => ({
           label: shortDayLabel(d.date),
           value: d.count,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.count,
+          )} Stempel, ${formatNumber(d.uniqueCustomers)} Kunden${
+            d.redemptions ? `, ${formatNumber(d.redemptions)} Einlösungen` : ""
+          }`,
         }));
-        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+        const dailyCustomers = (analytics.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.uniqueCustomers,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.uniqueCustomers,
+          )} eindeutige Kunden`,
+        }));
+        const dailyWallet = (analytics.dailyWalletDownloads || []).map((d) => ({
           label: shortDayLabel(d.date),
           apple: d.apple,
           google: d.google,
@@ -1056,23 +1192,99 @@
             d.apple,
           )} Apple, ${formatNumber(d.google)} Google`,
         }));
+
+        const activity = analytics.customerActivity || {};
+        const cards = analytics.cards || {};
+
         return `
+          <div class="range-toggle">${buildRangeToggleHtml(cafeId, days)}</div>
+
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-label">Neue Kunden</div>
+              <div class="summary-value">${formatNumber(activity.newCustomers)}</div>
+              <div class="summary-delta">Erster Stempel in den letzten ${days} Tagen</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Wiederkehrende Kunden</div>
+              <div class="summary-value">${formatNumber(activity.returningCustomers)}</div>
+              <div class="summary-delta">Schon vorher Kunde, wieder aktiv</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Aktive Kunden</div>
+              <div class="summary-value">${formatNumber(activity.activeCustomers)}</div>
+              <div class="summary-delta">Mind. 1 Stempel in ${days} Tagen</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Kaffeekarten insgesamt</div>
+              <div class="summary-value">${formatNumber(cards.total)}</div>
+              <div class="summary-delta">+${formatNumber(
+                cards.newInWindow,
+              )} in den letzten ${days} Tagen</div>
+            </div>
+          </div>
+
           <div class="section-title" style="margin-top: 32px;">Stempel pro Tag</div>
-          <div class="section-subtitle">Letzte 30 Tage.</div>
+          <div class="section-subtitle">Letzte ${days} Tage. Wochenenden sind heller markiert.</div>
           <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
 
-          <div class="section-title">Wallet-Karten pro Tag</div>
-          <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe, letzte 30 Tage.</div>
+          <div class="section-title">Eindeutige Kunden pro Tag</div>
+          <div class="section-subtitle">Gleiche Stempelzahl kann von vielen Einmalgästen oder wenigen Stammgästen kommen - dieser Chart trennt das.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyCustomers, {
+            barClass: "chart-bar-customers",
+          })}</div>
+
+          <div class="section-title">Neue Kaffeekarten</div>
+          <div class="section-subtitle">Neue Wallet-Karten pro Tag · letzte ${days} Tage.</div>
           <div class="chart-legend">
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
           </div>
           <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
 
-          <div class="section-title">Stempel im Tagesverlauf</div>
-          <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
-          <div class="chart-wrap">${buildDotPlotSvg(charts.stampsByTimeOfDay || [])}</div>
+          <div class="section-title">Stempel nach Wochentag &amp; Uhrzeit</div>
+          <div class="section-subtitle">Letzte ${days} Tage, in ${
+            analytics.heatmap ? analytics.heatmap.bucketHours : 2
+          }-Stunden-Fenstern.</div>
+          ${buildHeatmapHtml(analytics.heatmap)}
         `;
+      }
+
+      async function loadCafeAnalytics(cafeId, days) {
+        const container = document.getElementById("cafeAnalyticsBlock");
+        if (!container || !state.config) return;
+        state.analyticsDays = days;
+        try {
+          const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}/analytics`);
+          url.searchParams.set("days", String(days));
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          // The user may have switched to a different café (or navigated
+          // away) while this was in flight - only paint if we're still
+          // looking at the café this response is for.
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildCafeAnalyticsHtml(data.analytics, cafeId, days);
+          wireCafeAnalyticsBlock(container);
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<p class="section-subtitle">Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      function wireCafeAnalyticsBlock(container) {
+        container.querySelectorAll(".rangeToggleBtn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const cafeId = btn.dataset.cafeId;
+            const days = Number(btn.dataset.days) || 30;
+            container.innerHTML = '<p class="section-subtitle">Lade Analytics …</p>';
+            loadCafeAnalytics(cafeId, days);
+          });
+        });
       }
 
       function renderDashboard() {
@@ -1597,7 +1809,9 @@
                   </div>
                 </div>
 
-                ${buildCafeChartsHtml(cafe.charts)}
+                <div id="cafeAnalyticsBlock" data-cafe-id="${cafe.id}">
+                  <p class="section-subtitle">Lade Analytics …</p>
+                </div>
 
                 <div class="section-title">Letzte Events</div>
                 <div class="table-wrapper">
@@ -1699,6 +1913,7 @@
         }
         refs.cafeDetailContainer.innerHTML = buildCafeCardHtml(cafe);
         wireDetailLinks(refs.cafeDetailContainer);
+        loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")
           .forEach((btn) => {
