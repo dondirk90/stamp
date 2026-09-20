@@ -1307,7 +1307,7 @@ CREATE TABLE IF NOT EXISTS cafes (
   popup_almost_reward_remaining INTEGER DEFAULT 2,
   popup_almost_reward_message TEXT,
   reminder_push_enabled INTEGER DEFAULT 0,
-  reminder_min_stamps INTEGER DEFAULT 1,
+  reminder_min_stamps INTEGER DEFAULT 3,
   reminder_inactive_days INTEGER DEFAULT 14,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
@@ -1471,6 +1471,18 @@ CREATE TABLE IF NOT EXISTS google_wallet_objects (
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
 
+-- One row per (café, customer) tracking the last push reminder sent and the
+-- customer's stamp state (lastStampTs) at that moment - lets the matching
+-- logic give "one push per state": skip while the state is unchanged, only
+-- reconsider once they've stamped again and gone inactive a second time.
+CREATE TABLE IF NOT EXISTS reminder_notifications (
+  cafe_id INTEGER NOT NULL,
+  customer_address TEXT NOT NULL,
+  sent_at INTEGER NOT NULL,
+  stamp_state_ts INTEGER NOT NULL,
+  PRIMARY KEY (cafe_id, customer_address)
+);
+
 `);
 }
 
@@ -1619,20 +1631,24 @@ runSqliteOnlyAlter(
   "Failed to add cafes.reminder_push_enabled column:",
 );
 runSqliteOnlyAlter(
-  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 1",
+  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 3",
   "Failed to add cafes.reminder_min_stamps column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_inactive_days INTEGER DEFAULT 14",
   "Failed to add cafes.reminder_inactive_days column:",
 );
+// Cleans up the per-platform tracking columns an earlier version of this
+// migration added, superseded by the platform-agnostic reminder_notifications
+// table above - harmless no-op (just a log line) on a database that never
+// had them.
 runSqliteOnlyAlter(
-  "ALTER TABLE wallet_passes ADD COLUMN last_reminder_sent_at INTEGER",
-  "Failed to add wallet_passes.last_reminder_sent_at column:",
+  "ALTER TABLE wallet_passes DROP COLUMN last_reminder_sent_at",
+  "Failed to drop wallet_passes.last_reminder_sent_at column:",
 );
 runSqliteOnlyAlter(
-  "ALTER TABLE google_wallet_objects ADD COLUMN last_reminder_sent_at INTEGER",
-  "Failed to add google_wallet_objects.last_reminder_sent_at column:",
+  "ALTER TABLE google_wallet_objects DROP COLUMN last_reminder_sent_at",
+  "Failed to drop google_wallet_objects.last_reminder_sent_at column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_bg_mime TEXT",
@@ -3096,7 +3112,7 @@ function getCafeProgramSettings(row) {
       280,
     ),
     reminderPushEnabled: toBoundBoolInt(src.reminder_push_enabled, 0),
-    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 1, 1, 50),
+    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 3, 3, 9),
     reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
   };
 }
@@ -4606,6 +4622,138 @@ app.get("/admin/lifecycle", requireAdminKey, async (req, res) => {
   }
 });
 
+const getReminderNotificationState = db.prepare(
+  "SELECT sent_at, stamp_state_ts FROM reminder_notifications WHERE cafe_id = ? AND customer_address = ?",
+);
+
+// Matching logic for the café-configurable push reminder (see cafes.
+// reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
+// migration 017): finds customers currently eligible for a nudge -
+// mirrors the *existing* in-app "Reaktivierungs-Popup" logic's own
+// definitions (netStamps = SUM(delta) for this café+customer, lastStampTs =
+// their most recent delta>0 event, see the /customers/:address/cards
+// aggregate query above) rather than the more elaborate per-card-group
+// getOpenStampTotal() used for actually awarding/redeeming stamps - the
+// popup already proved this simpler definition is good enough for "should
+// we nudge this person", no need for a second, more complex one here.
+//
+// "One push per state" (a explicit requirement, not just a nice-to-have):
+// reminder_notifications holds at most one row per (cafe, customer), tagged
+// with the customer's lastStampTs at send time. A customer is skipped here
+// whenever that stored stamp_state_ts still matches their current
+// lastStampTs - i.e. nothing has changed since we already nudged them.
+// They only become eligible again after a NEW stamp moves lastStampTs
+// forward and they then go inactive a second time. This function only
+// *finds* candidates - it does not send anything or write to
+// reminder_notifications; actually sending (and marking sent) is separate,
+// later work.
+async function findReminderCandidates(cafeRow) {
+  if (!cafeRow) return [];
+  const program = getCafeProgramSettings(cafeRow);
+  if (!program.reminderPushEnabled) return [];
+  const cafeAddress = ensureCafeAddress(cafeRow);
+  if (!cafeAddress) return [];
+  const cafeAddressLower = cafeAddress.toLowerCase();
+
+  const rows = await db
+    .prepare(
+      `SELECT "user" AS user,
+              SUM(delta) AS net_stamps,
+              MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts
+       FROM stamp_events
+       WHERE LOWER(cafe) = ?
+       GROUP BY "user"`,
+    )
+    .all(cafeAddressLower);
+
+  const now = Date.now();
+  const inactiveThresholdMs = program.reminderInactiveDays * 86400000;
+
+  const candidates = [];
+  for (const row of rows) {
+    const lastStampTs = row.last_stamp_ts != null ? Number(row.last_stamp_ts) : null;
+    if (!lastStampTs) continue;
+    const netStamps = Number(row.net_stamps || 0);
+    if (netStamps < program.reminderMinStamps) continue;
+    if (now - lastStampTs < inactiveThresholdMs) continue;
+
+    const customerAddress = String(row.user || "").toLowerCase();
+    if (!customerAddress) continue;
+
+    const already = await getReminderNotificationState.get(
+      cafeRow.id,
+      customerAddress,
+    );
+    if (already && Number(already.stamp_state_ts) >= lastStampTs) continue;
+
+    candidates.push({
+      customerAddress,
+      netStamps,
+      lastStampTs,
+      daysInactive: Math.floor((now - lastStampTs) / 86400000),
+      previouslyNotifiedAt:
+        already && already.sent_at != null ? Number(already.sent_at) : null,
+    });
+  }
+  return candidates;
+}
+
+app.get(
+  "/admin/cafes/:cafeId/reminder-candidates",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const candidates = await findReminderCandidates(current);
+      res.json({
+        ok: true,
+        cafe: { id: current.id, name: current.name || null },
+        program: getCafeProgramSettings(current),
+        candidates,
+      });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/reminder-candidates:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// All cafés with the reminder enabled, each with their own candidate list -
+// the shape a future cron job would iterate over to actually send.
+app.get("/admin/reminder-candidates", requireAdminKey, async (req, res) => {
+  try {
+    const cafeRows = await db
+      .prepare("SELECT * FROM cafes WHERE reminder_push_enabled = 1")
+      .all();
+    const results = [];
+    for (const cafeRow of cafeRows) {
+      const candidates = await findReminderCandidates(cafeRow);
+      if (candidates.length) {
+        results.push({
+          cafeId: cafeRow.id,
+          cafeName: cafeRow.name || null,
+          candidates,
+        });
+      }
+    }
+    res.json({ ok: true, cafes: results });
+  } catch (err) {
+    console.error("Error in /admin/reminder-candidates:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
 // Same richer analytics/lifecycle shape the admin café-detail view uses
 // (computeCafeAnalytics / computeCafeLifecycle above), just café-authenticated
 // instead of admin-key-gated, and hard-scoped to the calling café's own
@@ -5127,8 +5275,8 @@ async function applyCafeProfileUpdate(current, body) {
       reminderMinStamps = toBoundInt(
         body.reminderMinStamps,
         reminderMinStamps,
-        1,
-        50,
+        3,
+        9,
       );
     }
 

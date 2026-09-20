@@ -3197,7 +3197,7 @@
                       <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                         Ab wie vielen Stempeln
                       </div>
-                      <input id="profileReminderMinStamps" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
+                      <input id="profileReminderMinStamps" class="input" type="number" min="3" max="9" step="1" style="width: 100%" />
                     </div>
                     <div style="flex: 1">
                       <div class="muted" style="margin-bottom: 6px; font-weight: 700">
@@ -5414,7 +5414,7 @@
         if (popupAlmostRewardRemainingEl) popupAlmostRewardRemainingEl.value = String(program.popupAlmostRewardRemaining != null ? program.popupAlmostRewardRemaining : 2);
         if (popupAlmostRewardMessageEl) popupAlmostRewardMessageEl.value = program.popupAlmostRewardMessage ? String(program.popupAlmostRewardMessage) : "";
         if (reminderPushEnabledEl) reminderPushEnabledEl.checked = Number(program.reminderPushEnabled != null ? program.reminderPushEnabled : 0) !== 0;
-        if (reminderMinStampsEl) reminderMinStampsEl.value = String(program.reminderMinStamps != null ? program.reminderMinStamps : 1);
+        if (reminderMinStampsEl) reminderMinStampsEl.value = String(program.reminderMinStamps != null ? program.reminderMinStamps : 3);
         if (reminderInactiveDaysEl) reminderInactiveDaysEl.value = String(program.reminderInactiveDays != null ? program.reminderInactiveDays : 14);
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
@@ -5792,7 +5792,7 @@
           const popupAlmostRewardRemaining = popupAlmostRewardRemainingEl ? String(popupAlmostRewardRemainingEl.value || "").trim() : "2";
           const popupAlmostRewardMessage = popupAlmostRewardMessageEl ? String(popupAlmostRewardMessageEl.value || "").trim() : "";
           const reminderPushEnabled = reminderPushEnabledEl ? !!reminderPushEnabledEl.checked : false;
-          const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "1";
+          const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "3";
           const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
