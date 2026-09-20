@@ -1309,6 +1309,7 @@ CREATE TABLE IF NOT EXISTS cafes (
   reminder_push_enabled INTEGER DEFAULT 0,
   reminder_min_stamps INTEGER DEFAULT 3,
   reminder_inactive_days INTEGER DEFAULT 14,
+  reminder_message TEXT,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1480,6 +1481,7 @@ CREATE TABLE IF NOT EXISTS reminder_notifications (
   customer_address TEXT NOT NULL,
   sent_at INTEGER NOT NULL,
   stamp_state_ts INTEGER NOT NULL,
+  message TEXT,
   PRIMARY KEY (cafe_id, customer_address)
 );
 
@@ -1637,6 +1639,14 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_inactive_days INTEGER DEFAULT 14",
   "Failed to add cafes.reminder_inactive_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_message TEXT",
+  "Failed to add cafes.reminder_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE reminder_notifications ADD COLUMN message TEXT",
+  "Failed to add reminder_notifications.message column:",
 );
 // Cleans up the per-platform tracking columns an earlier version of this
 // migration added, superseded by the platform-agnostic reminder_notifications
@@ -2682,7 +2692,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -3114,6 +3124,7 @@ function getCafeProgramSettings(row) {
     reminderPushEnabled: toBoundBoolInt(src.reminder_push_enabled, 0),
     reminderMinStamps: toBoundInt(src.reminder_min_stamps, 3, 3, 9),
     reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
+    reminderMessage: toOptionalTrimmedText(src.reminder_message, 280),
   };
 }
 
@@ -4623,10 +4634,50 @@ app.get("/admin/lifecycle", requireAdminKey, async (req, res) => {
 });
 
 const getReminderNotificationState = db.prepare(
-  "SELECT sent_at, stamp_state_ts FROM reminder_notifications WHERE cafe_id = ? AND customer_address = ?",
+  "SELECT sent_at, stamp_state_ts, message FROM reminder_notifications WHERE cafe_id = ? AND customer_address = ?",
+);
+const upsertReminderNotification = db.prepare(
+  "INSERT INTO reminder_notifications (cafe_id, customer_address, sent_at, stamp_state_ts, message) VALUES (?, ?, ?, ?, ?) " +
+    "ON CONFLICT (cafe_id, customer_address) DO UPDATE SET sent_at = excluded.sent_at, stamp_state_ts = excluded.stamp_state_ts, message = excluded.message",
 );
 
+// Apple's pass.json backfield for a café's push reminder (see
+// findReminderCandidates/sendReminderPush) - null when this (café,
+// customer) has never had one. value is a short, human-readable "last
+// reminded" date (not the raw timestamp - that'd be an odd thing to show on
+// the actual card), changeMessage is the already-composed text from
+// reminder_notifications.message. Shared by both places that render a pass
+// (initial download and the webservice update-fetch route) so a reminder
+// shows up regardless of which path serves it.
+async function getReminderBackfieldFor(cafeId, customerAddress) {
+  const row = await getReminderNotificationState.get(
+    cafeId,
+    String(customerAddress || "").toLowerCase(),
+  );
+  if (!row || !row.message) return null;
+  const sentAt = Number(row.sent_at);
+  return {
+    value: new Date(sentAt).toLocaleDateString("de-DE"),
+    changeMessage: String(row.message),
+  };
+}
+
 // Matching logic for the café-configurable push reminder (see cafes.
+// Server-side mirror of formatCampaignText() in customer-qr-modern.js - same
+// {token} convention, so a café that's seen the in-app popup message fields
+// already knows how this one works too.
+function formatReminderText(template, vars, fallback) {
+  const text = String(template || "").trim() || String(fallback || "").trim();
+  const data = vars || {};
+  return text.replace(/\{(\w+)\}/g, (_, key) => {
+    const value = data[key];
+    return value == null ? "" : String(value);
+  });
+}
+
+const REMINDER_DEFAULT_TEMPLATE =
+  "Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen!";
+
 // reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
 // migration 017): finds customers currently eligible for a nudge.
 //
@@ -4694,16 +4745,146 @@ async function findReminderCandidates(cafeRow) {
     );
     if (already && Number(already.stamp_state_ts) >= lastStampTs) continue;
 
+    const daysInactive = Math.floor((now - lastStampTs) / 86400000);
+    const remaining = Math.max(0, program.stampsForReward - openStampTotal);
+    const message = formatReminderText(
+      program.reminderMessage,
+      {
+        cafe: cafeRow.name || "deinem Café",
+        days: daysInactive,
+        remaining,
+        stamps: openStampTotal,
+        goal: program.stampsForReward,
+        reward: program.rewardDescription || "deine Belohnung",
+      },
+      REMINDER_DEFAULT_TEMPLATE,
+    );
+
     candidates.push({
       customerAddress,
       netStamps: openStampTotal,
+      remaining,
       lastStampTs,
-      daysInactive: Math.floor((now - lastStampTs) / 86400000),
+      daysInactive,
+      message,
       previouslyNotifiedAt:
         already && already.sent_at != null ? Number(already.sent_at) : null,
     });
   }
   return candidates;
+}
+
+// Actually sends one candidate's reminder on every wallet platform they
+// have an *open* (not-yet-redeemed) card on, then records it in
+// reminder_notifications so findReminderCandidates() skips them next run
+// unless their state changes (see that function's own comment). Touches
+// wallet_passes.updated_at + sends the silent APNs wake-up the same way an
+// ordinary stamp event does (notifyWalletPassUpdated above) - the actual
+// notification text only appears once the device re-fetches the pass and
+// sees the "reminder" backfield's value differ from what it cached (see
+// getReminderBackfieldFor / buildPassJson's reminderBackfield param).
+// Google has no such two-step fetch - addMessage delivers immediately.
+//
+// Only marks reminder_notifications (i.e. only counts as "sent") if the
+// customer actually has an open card on at least one platform - a customer
+// with no wallet pass at all has no channel to reach right now, so leaving
+// them unmarked means a future run reconsiders them once they do add one,
+// rather than silently writing them off forever.
+async function sendReminderPush(cafeRow, candidate) {
+  const cafeAddress = ensureCafeAddress(cafeRow);
+  const cafeAddressLower = cafeAddress.toLowerCase();
+  const customerAddress = candidate.customerAddress;
+  const now = Date.now();
+  let appleTouched = false;
+  let applePushed = 0;
+  let googleSent = 0;
+
+  if (walletPass.isWalletConfigured()) {
+    try {
+      const passRows = await getWalletPassesByCustomerCafe.all(
+        customerAddress,
+        cafeRow.id,
+      );
+      const tokens = [];
+      for (const passRow of Array.isArray(passRows) ? passRows : []) {
+        const isRedeemed = !!(await hasCardBeenRedeemed.get(
+          cafeAddressLower,
+          customerAddress,
+          passRow.card_id,
+        ));
+        if (isRedeemed) continue;
+        appleTouched = true;
+        await touchWalletPassUpdatedAt.run(now, passRow.serial_number);
+        const tokenRows = await listWalletPushTokensBySerial.all(
+          passRow.serial_number,
+        );
+        for (const r of Array.isArray(tokenRows) ? tokenRows : []) {
+          if (r.push_token) tokens.push(r.push_token);
+        }
+      }
+      if (tokens.length) {
+        const results = await walletPass.sendPassUpdatePush(tokens);
+        // APNs status comes back as a string off the HTTP/2 headers (e.g.
+        // "200"), not a number - matching loosely here so this stays
+        // correct either way.
+        applePushed = Array.isArray(results)
+          ? results.filter((r) => r && !r.error && String(r.status) === "200").length
+          : 0;
+      }
+    } catch (err) {
+      console.warn(
+        "Reminder: Apple push failed:",
+        err && err.message ? err.message : err,
+      );
+    }
+  }
+
+  if (googleWalletPass.isGoogleWalletConfigured()) {
+    try {
+      const objectRows = await getGoogleWalletObjectsByCustomerCafe.all(
+        customerAddress,
+        cafeRow.id,
+      );
+      for (const objRow of Array.isArray(objectRows) ? objectRows : []) {
+        const isRedeemed = !!(await hasCardBeenRedeemed.get(
+          cafeAddressLower,
+          customerAddress,
+          objRow.card_id,
+        ));
+        if (isRedeemed) continue;
+        const result = await googleWalletPass.addLoyaltyObjectMessage(
+          objRow.object_id,
+          cafeRow.name || "Kaffeekarte",
+          candidate.message,
+        );
+        if (result && result.ok) googleSent += 1;
+      }
+    } catch (err) {
+      console.warn(
+        "Reminder: Google addMessage failed:",
+        err && err.message ? err.message : err,
+      );
+    }
+  }
+
+  const hasChannel = appleTouched || googleSent > 0;
+  if (hasChannel) {
+    await upsertReminderNotification.run(
+      cafeRow.id,
+      customerAddress,
+      now,
+      candidate.lastStampTs,
+      candidate.message,
+    );
+  }
+
+  return {
+    customerAddress,
+    hasChannel,
+    appleTouched,
+    applePushed,
+    googleSent,
+  };
 }
 
 app.get(
@@ -4759,6 +4940,82 @@ app.get("/admin/reminder-candidates", requireAdminKey, async (req, res) => {
     res
       .status(500)
       .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Actually sends the push reminder to every current candidate across every
+// café with reminder_push_enabled=1. Meant to be called once a day by a
+// scheduled external caller (see .github/workflows/reminders.yml), same
+// dryRun/response-shape convention as
+// /admin/customers/onboarding-reminders - dryRun computes and returns the
+// candidate list without sending anything or writing to
+// reminder_notifications.
+app.post("/admin/reminders/run", requireAdminKey, async (req, res) => {
+  try {
+    const dryRun = ["1", "true"].includes(
+      String(req.query?.dryRun || "").toLowerCase(),
+    );
+    const cafeRows = await db
+      .prepare("SELECT * FROM cafes WHERE reminder_push_enabled = 1")
+      .all();
+
+    let candidateCount = 0;
+    let sent = 0;
+    const failures = [];
+    const perCafe = [];
+
+    for (const cafeRow of cafeRows) {
+      const candidates = await findReminderCandidates(cafeRow);
+      candidateCount += candidates.length;
+      let cafeSent = 0;
+      for (const candidate of candidates) {
+        try {
+          if (!dryRun) {
+            const result = await sendReminderPush(cafeRow, candidate);
+            if (result.hasChannel) {
+              sent += 1;
+              cafeSent += 1;
+            }
+          }
+        } catch (sendErr) {
+          console.warn(
+            "Failed to send reminder push:",
+            cafeRow.id,
+            candidate.customerAddress,
+            sendErr && sendErr.message ? sendErr.message : sendErr,
+          );
+          failures.push({
+            cafeId: cafeRow.id,
+            customerAddress: candidate.customerAddress,
+            error: String(sendErr && sendErr.message ? sendErr.message : sendErr),
+          });
+        }
+      }
+      if (candidates.length) {
+        perCafe.push({
+          cafeId: cafeRow.id,
+          cafeName: cafeRow.name || null,
+          candidates: candidates.length,
+          sent: cafeSent,
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      dryRun,
+      cafesChecked: cafeRows.length,
+      candidates: candidateCount,
+      sent,
+      failed: failures.length,
+      failures,
+      perCafe,
+    });
+  } catch (err) {
+    console.error("Error in /admin/reminders/run:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
   }
 });
 
@@ -5298,6 +5555,11 @@ async function applyCafeProfileUpdate(current, body) {
       );
     }
 
+    let reminderMessage = currentProgram.reminderMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderMessage")) {
+      reminderMessage = toOptionalTrimmedText(body.reminderMessage, 280);
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -5328,6 +5590,7 @@ async function applyCafeProfileUpdate(current, body) {
       reminderPushEnabled,
       reminderMinStamps,
       reminderInactiveDays,
+      reminderMessage,
       now,
       current.id,
     );
@@ -8227,6 +8490,7 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
       authenticationToken: passRow.authentication_token,
       webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
       barcodeMessage,
+      reminderBackfield: await getReminderBackfieldFor(cafeRow.id, rawAddress),
       customerName: customerRow?.username || null,
       customerEmail: customerRow?.email || null,
       customerId: customerRow?.customer_id || null,
@@ -8548,6 +8812,10 @@ walletApiRouter.get(
         authenticationToken: passRow.authentication_token,
         webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
         barcodeMessage,
+        reminderBackfield: await getReminderBackfieldFor(
+          cafeRow.id,
+          passRow.customer_address,
+        ),
         customerName: customerRow?.username || null,
         customerEmail: customerRow?.email || null,
         customerId: customerRow?.customer_id || null,

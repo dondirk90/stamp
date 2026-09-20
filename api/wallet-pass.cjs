@@ -296,6 +296,17 @@ function buildPassJson({
   customerId,
   cardNumber,
   cardId,
+  // { value, changeMessage } | null - the café's push reminder (see
+  // server.cjs's reminder_notifications/findReminderCandidates). value is
+  // the reminder's send timestamp, changeMessage the already-composed text
+  // (days-inactive/stamps-remaining already substituted in, not a %@
+  // template - the whole message differs per café/customer). PassKit only
+  // fires the lock-screen notification when a field's *value* differs from
+  // what the device has cached, so this naturally shows once per reminder
+  // (same value on every later re-fetch, e.g. triggered by an unrelated
+  // stamp event, doesn't re-fire) without server-side "already delivered"
+  // bookkeeping beyond what reminder_notifications already tracks for dedup.
+  reminderBackfield,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
@@ -376,6 +387,19 @@ function buildPassJson({
             }
           : {}),
     },
+    // Only present once this (café, customer) relationship has ever had a
+    // reminder sent - absent otherwise, so a card that's never triggered
+    // one doesn't show an empty "Erinnerung" row.
+    ...(reminderBackfield
+      ? [
+          {
+            key: "reminder",
+            label: "Erinnerung",
+            value: String(reminderBackfield.value),
+            changeMessage: reminderBackfield.changeMessage,
+          },
+        ]
+      : []),
     // Account info - lets a customer confirm which email/card a support
     // conversation is about, and lets them self-check the recovery email on
     // file (see /customers/register's verification flow) without having to
@@ -507,6 +531,7 @@ async function generateSignedPass({
   customerId,
   cardNumber,
   cardId,
+  reminderBackfield,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -539,6 +564,7 @@ async function generateSignedPass({
     customerId,
     cardNumber,
     cardId,
+    reminderBackfield,
   });
 
   const buffers = {

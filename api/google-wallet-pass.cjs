@@ -507,11 +507,48 @@ async function patchLoyaltyObjectStamps({
   }
 }
 
+// Google's dedicated notification API (distinct from the plain PATCH above,
+// which only supports a generic "your card was updated" via
+// notifyPreference) - this is the only way to push a *custom-text* message
+// to a Google Wallet loyalty object. TEXT_AND_NOTIFY both adds the message
+// to the card's message list and fires a real push notification; Google
+// caps this at 3 messages per object per 24h (own rate limit, not
+// configurable) - not enforced here since the café-side "one push per
+// state" dedup (reminder_notifications) already sends far less often than
+// that in practice. 404 (object was never actually saved on Google's side,
+// e.g. a customer who only ever used Apple Wallet) is an expected no-op,
+// same as patchWalletResource above.
+async function addLoyaltyObjectMessage(objectId, header, body) {
+  const token = await getAccessToken();
+  const res = await fetch(
+    `${WALLET_API_BASE}/loyaltyObject/${objectId}/addMessage`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: { header, body, messageType: "TEXT_AND_NOTIFY" },
+      }),
+    },
+  );
+  if (res.status === 404) return { ok: false, status: 404 };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      `google_wallet_add_message_failed: ${objectId} ${res.status} ${JSON.stringify(data)}`,
+    );
+  }
+  return { ok: true, status: res.status, data };
+}
+
 module.exports = {
   isGoogleWalletConfigured,
   buildSaveLink,
   patchLoyaltyClassForCafe,
   patchLoyaltyObjectStamps,
+  addLoyaltyObjectMessage,
   // Needed by server.cjs to get-or-create the tracking row *before* calling
   // buildSaveLink, so the redeem-token resolver has something to read/write.
   loyaltyObjectId,
