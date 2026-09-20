@@ -3210,7 +3210,14 @@
                     Beide Bedingungen müssen gleichzeitig zutreffen: mindestens so
                     viele Stempel UND so lange kein neuer Stempel mehr.
                   </div>
+                  <div class="muted advancedOnly" style="margin-bottom: 6px; font-weight: 700">
+                    Text, solange noch Stempel fehlen
+                  </div>
                   <textarea id="profileReminderMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen! Leer = Standardtext. Platzhalter: {days}, {remaining}, {cafe}, {stamps}, {goal}, {reward}."></textarea>
+                  <div class="muted advancedOnly" style="margin: 10px 0 6px; font-weight: 700">
+                    Text, wenn die Karte schon voll ist
+                  </div>
+                  <textarea id="profileReminderFullMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}! Leer = Standardtext."></textarea>
                 </div>
 
                 <div id="sectionLatLng" class="logoRow viewSection" style="align-items: flex-end">
@@ -5343,6 +5350,7 @@
         const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         const reminderMessageEl = document.getElementById("profileReminderMessage");
+        const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -5419,6 +5427,7 @@
         if (reminderMinStampsEl) reminderMinStampsEl.value = String(program.reminderMinStamps != null ? program.reminderMinStamps : 3);
         if (reminderInactiveDaysEl) reminderInactiveDaysEl.value = String(program.reminderInactiveDays != null ? program.reminderInactiveDays : 14);
         if (reminderMessageEl) reminderMessageEl.value = program.reminderMessage ? String(program.reminderMessage) : "";
+        if (reminderFullMessageEl) reminderFullMessageEl.value = program.reminderFullMessage ? String(program.reminderFullMessage) : "";
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -5749,6 +5758,7 @@
         const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         const reminderMessageEl = document.getElementById("profileReminderMessage");
+        const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -5799,6 +5809,7 @@
           const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "3";
           const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
           const reminderMessage = reminderMessageEl ? String(reminderMessageEl.value || "").trim() : "";
+          const reminderFullMessage = reminderFullMessageEl ? String(reminderFullMessageEl.value || "").trim() : "";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
                 .trim()
@@ -5848,6 +5859,7 @@
               reminderMinStamps: reminderMinStamps || null,
               reminderInactiveDays: reminderInactiveDays || null,
               reminderMessage: reminderMessage || null,
+              reminderFullMessage: reminderFullMessage || null,
             }),
           });
 

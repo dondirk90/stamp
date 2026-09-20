@@ -1310,6 +1310,7 @@ CREATE TABLE IF NOT EXISTS cafes (
   reminder_min_stamps INTEGER DEFAULT 3,
   reminder_inactive_days INTEGER DEFAULT 14,
   reminder_message TEXT,
+  reminder_full_message TEXT,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1643,6 +1644,10 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_message TEXT",
   "Failed to add cafes.reminder_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_full_message TEXT",
+  "Failed to add cafes.reminder_full_message column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE reminder_notifications ADD COLUMN message TEXT",
@@ -2692,7 +2697,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -3125,6 +3130,7 @@ function getCafeProgramSettings(row) {
     reminderMinStamps: toBoundInt(src.reminder_min_stamps, 3, 3, 9),
     reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
     reminderMessage: toOptionalTrimmedText(src.reminder_message, 280),
+    reminderFullMessage: toOptionalTrimmedText(src.reminder_full_message, 280),
   };
 }
 
@@ -4677,6 +4683,12 @@ function formatReminderText(template, vars, fallback) {
 
 const REMINDER_DEFAULT_TEMPLATE =
   "Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen!";
+// Used instead of the above once a customer's open card is already at or
+// past the reward threshold (remaining <= 0) - "nur noch 0 Stempel fehlen"
+// reads oddly for a card that's actually full, caught live on staging with
+// a real customer in exactly this state.
+const REMINDER_FULL_DEFAULT_TEMPLATE =
+  "Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}!";
 
 // reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
 // migration 017): finds customers currently eligible for a nudge.
@@ -4747,23 +4759,32 @@ async function findReminderCandidates(cafeRow) {
 
     const daysInactive = Math.floor((now - lastStampTs) / 86400000);
     const remaining = Math.max(0, program.stampsForReward - openStampTotal);
-    const message = formatReminderText(
-      program.reminderMessage,
-      {
-        cafe: cafeRow.name || "deinem Café",
-        days: daysInactive,
-        remaining,
-        stamps: openStampTotal,
-        goal: program.stampsForReward,
-        reward: program.rewardDescription || "deine Belohnung",
-      },
-      REMINDER_DEFAULT_TEMPLATE,
-    );
+    const isFull = openStampTotal >= program.stampsForReward;
+    const messageVars = {
+      cafe: cafeRow.name || "deinem Café",
+      days: daysInactive,
+      remaining,
+      stamps: openStampTotal,
+      goal: program.stampsForReward,
+      reward: program.rewardDescription || "deine Belohnung",
+    };
+    const message = isFull
+      ? formatReminderText(
+          program.reminderFullMessage,
+          messageVars,
+          REMINDER_FULL_DEFAULT_TEMPLATE,
+        )
+      : formatReminderText(
+          program.reminderMessage,
+          messageVars,
+          REMINDER_DEFAULT_TEMPLATE,
+        );
 
     candidates.push({
       customerAddress,
       netStamps: openStampTotal,
       remaining,
+      isFull,
       lastStampTs,
       daysInactive,
       message,
@@ -5560,6 +5581,11 @@ async function applyCafeProfileUpdate(current, body) {
       reminderMessage = toOptionalTrimmedText(body.reminderMessage, 280);
     }
 
+    let reminderFullMessage = currentProgram.reminderFullMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderFullMessage")) {
+      reminderFullMessage = toOptionalTrimmedText(body.reminderFullMessage, 280);
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -5591,6 +5617,7 @@ async function applyCafeProfileUpdate(current, body) {
       reminderMinStamps,
       reminderInactiveDays,
       reminderMessage,
+      reminderFullMessage,
       now,
       current.id,
     );
