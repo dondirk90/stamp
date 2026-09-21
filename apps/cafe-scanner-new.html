@@ -733,7 +733,11 @@
          field style (already fixed for .theme-invert pages) instead of
          diverging from cafe-dashboard.html/cafe-profile.html, which never
          had their own override and didn't have this problem. */
-      input {
+      /* :not([type=checkbox]):not([type=radio]) - chat 2026-09-21: this
+         bare rule stretched every checkbox on the page (e.g. "Push-
+         Erinnerung aktiv") to width:100%, shoving its label way off to
+         the right/clipped instead of sitting right next to the box. */
+      input:not([type="checkbox"]):not([type="radio"]) {
         width: 100%;
         font-size: 16px;
       }
@@ -3201,6 +3205,13 @@
                   </div>
                 </div>
 
+                <!-- Kartendesign (Theme-Vorlage + freie Farbwahl)
+                     auskommentiert statt entfernt (chat 2026-09-21: die
+                     meisten Cafés fassen das eh nicht an) - Vorschau/Pass
+                     fallen dadurch automatisch auf das zuletzt gespeicherte
+                     Design zurueck (renderCardPreview() liest jetzt aus
+                     profileState statt aus diesen Feldern). -->
+                <!--
                 <div style="margin-top: 18px">
                   <span class="effectTag">Vorderseite der Karte</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
@@ -3231,6 +3242,49 @@
                   <div class="muted" style="margin-top: 6px">
                     Freie Farbwahl überschreibt das oben gewählte Design. Design nochmal
                     anklicken setzt die Farben auf die Vorlage zurück.
+                  </div>
+                </div>
+                -->
+
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Café-Info-Popup, wenn Kunde antippt</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Links im Kunden-Popup
+                  </div>
+                  <div class="logoRow" style="align-items: flex-end; gap: 12px">
+                    <div style="flex: 1">
+                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                        Website
+                      </div>
+                      <input
+                        id="profileWebsiteUrl"
+                        class="input"
+                        type="url"
+                        maxlength="240"
+                        placeholder="https://deincafe.de"
+                        style="width: 100%"
+                      />
+                    </div>
+                    <div style="flex: 1">
+                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                        Instagram
+                      </div>
+                      <input
+                        id="profileInstagramUrl"
+                        class="input"
+                        type="url"
+                        maxlength="240"
+                        placeholder="@deincafe"
+                        style="width: 100%"
+                      />
+                    </div>
+                  </div>
+                  <div class="muted" style="margin-top: 8px">
+                    Diese Links erscheinen später im kleinen Café-Fenster auf der
+                    Kundenkarte und helfen beim direkten Sprung zu Website oder Instagram.
+                  </div>
+                  <div class="muted" style="margin-top: 4px">
+                    Bei Instagram reicht dein Handle, also zum Beispiel <strong>@deincafe</strong>.
                   </div>
                 </div>
 
@@ -3581,6 +3635,14 @@
                   Beide Bedingungen müssen gleichzeitig zutreffen: mindestens so
                   viele Stempel UND so lange kein neuer Stempel mehr.
                 </div>
+                <!-- Freie Textbausteine je Szenario auskommentiert statt
+                     entfernt (chat 2026-09-21: die meisten Cafés fassen das
+                     eh nicht an, weniger zum Ausfüllen ist besser) - die
+                     Standardtexte (server.cjs REMINDER_*_DEFAULT_TEMPLATE)
+                     greifen jetzt immer. profileReminderMessage/
+                     profileReminderFullMessage bleiben als Feld-IDs
+                     bestehen, falls das später doch wieder gebraucht wird. -->
+                <!--
                 <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                   Text, solange noch Stempel fehlen
                 </div>
@@ -3589,6 +3651,7 @@
                   Text, wenn die Karte schon voll ist
                 </div>
                 <textarea id="profileReminderFullMessage" class="profileInput small" maxlength="280" placeholder="Karte voll - {reward} wartet. Leer = Standardtext."></textarea>
+                -->
 
                 <div class="muted" style="margin: 20px 0 6px; font-weight: 700">
                   Kaum befüllte Karte (0-1 Stempel)
@@ -3607,10 +3670,13 @@
                   gestartet wurde. Wird nur einmal verschickt, solange sich der
                   Stempelstand nicht ändert.
                 </div>
+                <!-- siehe Kommentar oben - Standardtext greift immer. -->
+                <!--
                 <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                   Text bei 0-1 Stempeln
                 </div>
                 <textarea id="profileReminderNewCustomerMessage" class="profileInput small" maxlength="280" placeholder="Karte geholt - Koffein vergessen? Leer = Standardtext."></textarea>
+                -->
               </div>
 
               <div class="tabSection" data-tab="konto" hidden>
@@ -5555,10 +5621,7 @@
         const reminderPushEnabledEl = document.getElementById("profileReminderPushEnabled");
         const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
-        const reminderMessageEl = document.getElementById("profileReminderMessage");
-        const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
         const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
-        const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
         if (!logoPreview) return;
 
         if (locEl) {
@@ -5636,10 +5699,7 @@
         if (reminderPushEnabledEl) reminderPushEnabledEl.checked = Number(program.reminderPushEnabled != null ? program.reminderPushEnabled : 0) !== 0;
         if (reminderMinStampsEl) reminderMinStampsEl.value = String(program.reminderMinStamps != null ? program.reminderMinStamps : 3);
         if (reminderInactiveDaysEl) reminderInactiveDaysEl.value = String(program.reminderInactiveDays != null ? program.reminderInactiveDays : 14);
-        if (reminderMessageEl) reminderMessageEl.value = program.reminderMessage ? String(program.reminderMessage) : "";
-        if (reminderFullMessageEl) reminderFullMessageEl.value = program.reminderFullMessage ? String(program.reminderFullMessage) : "";
         if (reminderNewCustomerDaysEl) reminderNewCustomerDaysEl.value = String(program.reminderNewCustomerDays != null ? program.reminderNewCustomerDays : 21);
-        if (reminderNewCustomerMessageEl) reminderNewCustomerMessageEl.value = program.reminderNewCustomerMessage ? String(program.reminderNewCustomerMessage) : "";
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -5747,11 +5807,17 @@
         const previewEl = document.getElementById("cardPreview");
         if (!previewEl) return;
 
-        const themeEl = document.getElementById("profileCardTheme");
         const stampStyleEl = document.getElementById("profileStampStyle");
         const rewardThresholdEl = document.getElementById("profileRewardThreshold");
 
-        const theme = themeEl && themeEl.value ? themeEl.value : "paper";
+        // profileCardTheme/profileBgColor/profileFgColor no longer have
+        // input fields (chat 2026-09-21 - most cafés never touched them),
+        // so this falls back to whatever's already stored/loaded instead
+        // of the elements themselves - keeps the preview (and the actual
+        // pass) showing a café's real existing design instead of
+        // silently resetting to "paper" for anyone who'd customized it
+        // before this UI change.
+        const theme = profileState.cardTheme || "paper";
         const stampStyle = stampStyleEl && stampStyleEl.value ? stampStyleEl.value : "bean";
         const threshold = Math.max(
           1,
@@ -5765,10 +5831,8 @@
         // something guests never actually see on the pass itself.
         previewEl.setAttribute("data-pass-theme", theme);
 
-        const bgColorEl = document.getElementById("profileBgColor");
-        const fgColorEl = document.getElementById("profileFgColor");
-        previewEl.style.setProperty("--pass-bg", (bgColorEl && bgColorEl.value) || "");
-        previewEl.style.setProperty("--pass-ink", (fgColorEl && fgColorEl.value) || "");
+        previewEl.style.setProperty("--pass-bg", profileState.cardBgColor || "");
+        previewEl.style.setProperty("--pass-ink", profileState.cardFgColor || "");
 
         const titleEl = document.getElementById("previewCardTitle");
         if (titleEl) titleEl.textContent = (cafe && cafe.name) || "Café";
@@ -5820,8 +5884,8 @@
         const previewBackEl = document.getElementById("cardPreviewBack");
         if (previewBackEl) {
           previewBackEl.setAttribute("data-pass-theme", theme);
-          previewBackEl.style.setProperty("--pass-bg", (bgColorEl && bgColorEl.value) || "");
-          previewBackEl.style.setProperty("--pass-ink", (fgColorEl && fgColorEl.value) || "");
+          previewBackEl.style.setProperty("--pass-bg", profileState.cardBgColor || "");
+          previewBackEl.style.setProperty("--pass-ink", profileState.cardFgColor || "");
         }
         const cardBackTextEl = document.getElementById("profileCardBackText");
         const previewBackTextEl = document.getElementById("previewCardBackText");
@@ -5967,7 +6031,8 @@
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
-        const themeEl = document.getElementById("profileCardTheme");
+        const websiteEl = document.getElementById("profileWebsiteUrl");
+        const instagramEl = document.getElementById("profileInstagramUrl");
         const stampStyleEl = document.getElementById("profileStampStyle");
         const cardBackEl = document.getElementById("profileCardBackText");
         const rewardThresholdEl = document.getElementById("profileRewardThreshold");
@@ -5975,10 +6040,7 @@
         const reminderPushEnabledEl = document.getElementById("profileReminderPushEnabled");
         const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
-        const reminderMessageEl = document.getElementById("profileReminderMessage");
-        const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
         const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
-        const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
         const btn = document.getElementById("profileSaveBtn");
         if (!rewardThresholdEl || !btn || !cafe) return;
 
@@ -6003,35 +6065,29 @@
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
           const lng = lngEl ? String(lngEl.value || "").trim() : "";
+          const websiteUrl = websiteEl ? String(websiteEl.value || "").trim() : "";
+          const instagramUrl = instagramEl ? String(instagramEl.value || "").trim() : "";
           const stampsForReward = rewardThresholdEl ? String(rewardThresholdEl.value || "").trim() : "10";
           const rewardDescription = rewardDescriptionEl ? String(rewardDescriptionEl.value || "").trim() : "";
           const reminderPushEnabled = reminderPushEnabledEl ? !!reminderPushEnabledEl.checked : false;
           const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "3";
           const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
-          const reminderMessage = reminderMessageEl ? String(reminderMessageEl.value || "").trim() : "";
-          const reminderFullMessage = reminderFullMessageEl ? String(reminderFullMessageEl.value || "").trim() : "";
           const reminderNewCustomerDays = reminderNewCustomerDaysEl ? String(reminderNewCustomerDaysEl.value || "").trim() : "21";
-          const reminderNewCustomerMessage = reminderNewCustomerMessageEl ? String(reminderNewCustomerMessageEl.value || "").trim() : "";
-          const cardTheme = themeEl
-            ? String(themeEl.value || "")
-                .trim()
-                .toLowerCase()
-            : "";
           const stampStyle = stampStyleEl
             ? String(stampStyleEl.value || "")
                 .trim()
                 .toLowerCase()
             : "bean";
-          const bgColorEl = document.getElementById("profileBgColor");
-          const fgColorEl = document.getElementById("profileFgColor");
-          const cardBgColor = bgColorEl ? String(bgColorEl.value || "").trim() : "";
-          const cardFgColor = fgColorEl ? String(fgColorEl.value || "").trim() : "";
 
-          // about/shortDescription/redeemMessage/websiteUrl/instagramUrl/
-          // cardBgDataUrl/popupInactive*/popupAlmostReward* are deliberately
-          // NOT sent here anymore - their fields were removed from this
-          // screen (not real Apple/Google Wallet content, see the HTML
-          // comments where they used to sit). Omitting the keys entirely
+          // about/shortDescription/redeemMessage/cardBgDataUrl/
+          // popupInactive*/popupAlmostReward*/cardTheme/cardBgColor/
+          // cardFgColor are deliberately NOT sent here anymore - their
+          // fields were removed from this screen (not real Apple/Google
+          // Wallet content, or - for cardTheme/colors - most cafés never
+          // touched them, see the HTML comments where they used to sit).
+          // reminderMessage/reminderFullMessage/reminderNewCustomerMessage
+          // joined them earlier (chat 2026-09-21 - the default templates
+          // just apply unconditionally now). Omitting the keys entirely
           // (rather than sending them empty) matters: applyCafeProfileUpdate
           // in api/server.cjs only touches a field when its key is present
           // in the body, so leaving them out keeps whatever a café already
@@ -6048,23 +6104,18 @@
               locationAddress: locationAddress || null,
               lat: lat || null,
               lng: lng || null,
-              cardTheme: cardTheme || null,
-              cardBgColor: cardBgColor || null,
-              cardFgColor: cardFgColor || null,
+              websiteUrl: websiteUrl || null,
+              instagramUrl: instagramUrl || null,
               stampStyle: stampStyle || "bean",
               stampsForReward: stampsForReward || null,
               rewardDescription: rewardDescription || null,
               reminderPushEnabled,
               reminderMinStamps: reminderMinStamps || null,
               reminderInactiveDays: reminderInactiveDays || null,
-              reminderMessage: reminderMessage || null,
-              reminderFullMessage: reminderFullMessage || null,
               reminderNewCustomerDays: reminderNewCustomerDays || null,
-              reminderNewCustomerMessage: reminderNewCustomerMessage || null,
             }),
           });
 
-          if (cardTheme) profileState.cardTheme = cardTheme;
           if (stampStyle) profileState.stampStyle = stampStyle;
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
