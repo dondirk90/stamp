@@ -954,6 +954,27 @@
         font-weight: 800;
         text-align: center;
       }
+
+      /* Small, clearly separated from #awardBtn on purpose (chat
+         2026-09-21: a mis-tap here removes a stamp instead of awarding
+         one) - !important overrides this file's own button:not(.ghost)
+         login-form styling further up (width:100%/padding:16px/
+         margin-top:24px), same fix as .subTabBtn above. inline-block
+         (not block) so it shrinks to its text instead of stretching full
+         width like a normal block-level button would - #awardBtnWrap's
+         text-align centers it since margin:auto doesn't apply to an
+         auto-width inline-block. */
+      #awardBtnWrap {
+        text-align: center;
+      }
+      #removeStampBtn {
+        display: inline-block !important;
+        width: auto !important;
+        margin: 28px 0 0 !important;
+        padding: 6px 14px !important;
+        min-height: 0 !important;
+        font-size: 12px !important;
+      }
       .toast {
         position: fixed;
         left: 50%;

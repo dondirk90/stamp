@@ -372,8 +372,13 @@ function buildPassJson({
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
+      // Neutral on purpose (chat 2026-09-21) - this field's value also
+      // changes when a café corrects a mistaken stamp (POST
+      // /remove-stamp, a negative delta), where "Frischer Stempel!"
+      // would be actively wrong. %@ still required for the banner to
+      // render at all (see getReminderBackfieldFor's own comment).
       ...(!reminderActive && !isFull
-        ? { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }
+        ? { changeMessage: "Dein neuer Stempelstand: %@ Stempel." }
         : {}),
     },
     {
