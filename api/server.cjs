@@ -1307,7 +1307,7 @@ CREATE TABLE IF NOT EXISTS cafes (
   popup_almost_reward_remaining INTEGER DEFAULT 2,
   popup_almost_reward_message TEXT,
   reminder_push_enabled INTEGER DEFAULT 0,
-  reminder_min_stamps INTEGER DEFAULT 3,
+  reminder_min_stamps INTEGER DEFAULT 7,
   reminder_inactive_days INTEGER DEFAULT 14,
   reminder_message TEXT,
   reminder_full_message TEXT,
@@ -1636,7 +1636,7 @@ runSqliteOnlyAlter(
   "Failed to add cafes.reminder_push_enabled column:",
 );
 runSqliteOnlyAlter(
-  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 3",
+  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 7",
   "Failed to add cafes.reminder_min_stamps column:",
 );
 runSqliteOnlyAlter(
@@ -3137,7 +3137,7 @@ function getCafeProgramSettings(row) {
       280,
     ),
     reminderPushEnabled: toBoundBoolInt(src.reminder_push_enabled, 0),
-    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 3, 3, 9),
+    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 7, 3, 9),
     reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
     reminderMessage: toOptionalTrimmedText(src.reminder_message, 280),
     reminderFullMessage: toOptionalTrimmedText(src.reminder_full_message, 280),
@@ -4715,19 +4715,25 @@ function formatReminderText(template, vars, fallback) {
   });
 }
 
+// Tone (chat 2026-09-21): trocken/absurdistisch statt Sales-Sprech, fürs
+// 18-34-jährige Specialty-Coffee-Publikum - keine expliziten Ablauf-/
+// Verfalls-Behauptungen, da Stempel/Belohnung hier nie tatsächlich
+// verfallen. Bewusst knapp: nur das Token, das die Zeile tatsächlich
+// braucht, statt jedes verfügbare Token reinzuzwingen (Feedback aus dem
+// Chat - {stamps}/{goal}/{cafe} etc. machen eine kurze, trockene Zeile nur
+// sperriger, wenn sie für die Aussage gar nicht nötig sind).
 const REMINDER_DEFAULT_TEMPLATE =
-  "Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen!";
+  "Noch {remaining} Stempel - wir würden dich gerne wiedersehen :)";
 // Used instead of the above once a customer's open card is already at or
 // past the reward threshold (remaining <= 0) - "nur noch 0 Stempel fehlen"
 // reads oddly for a card that's actually full, caught live on staging with
 // a real customer in exactly this state.
-const REMINDER_FULL_DEFAULT_TEMPLATE =
-  "Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}!";
-// For a wallet card that was saved but never used at all - "days" here is
-// days since the card was created, not days since a last stamp (there is
-// none), and "remaining" is the full threshold (0 collected so far).
-const REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE =
-  "Deine Kaffeekarte bei {cafe} wartet seit {days} Tagen auf deinen ersten Stempel! Bis zur Belohnung fehlen dir nur noch {remaining} Stempel.";
+const REMINDER_FULL_DEFAULT_TEMPLATE = "Karte voll - {reward} wartet.";
+// For a low-engagement open card - 0 stamps (never used at all) or exactly
+// 1 (stamped once, then went quiet) - that's been sitting untouched past
+// reminderNewCustomerDays. No token needed at all here - "wann genau" ist
+// für diese Zeile nicht der Punkt.
+const REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE = "Karte geholt - Koffein vergessen?";
 
 // reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
 // migration 017): finds customers currently eligible for a nudge.
@@ -4774,12 +4780,20 @@ async function findReminderCandidates(cafeRow) {
 
   const now = Date.now();
   const inactiveThresholdMs = program.reminderInactiveDays * 86400000;
+  const newCustomerThresholdMs = program.reminderNewCustomerDays * 86400000;
+  // Cheap pre-filter before the per-customer getOpenStampTotal() call below -
+  // has to use whichever of the two day-thresholds is shorter, since a
+  // low-engagement (0-1 stamp) candidate is checked against
+  // reminderNewCustomerDays, not reminderInactiveDays, and a café could in
+  // principle configure the "new customer" threshold shorter than the
+  // regular inactivity one.
+  const minThresholdMs = Math.min(inactiveThresholdMs, newCustomerThresholdMs);
 
   const candidates = [];
   for (const row of rows) {
     const lastStampTs = row.last_stamp_ts != null ? Number(row.last_stamp_ts) : null;
     if (!lastStampTs) continue;
-    if (now - lastStampTs < inactiveThresholdMs) continue;
+    if (now - lastStampTs < minThresholdMs) continue;
 
     const customerAddress = String(row.user || "").toLowerCase();
     if (!customerAddress) continue;
@@ -4788,7 +4802,20 @@ async function findReminderCandidates(cafeRow) {
       cafeAddressLower,
       customerAddress,
     );
-    if (openStampTotal < program.reminderMinStamps) continue;
+
+    // Two different buckets share this loop: a properly-engaged card
+    // (>= reminderMinStamps) that's gone quiet for reminderInactiveDays,
+    // vs. a barely-touched card (0 or 1 stamp - the "0" case with real
+    // stamp history is a customer who redeemed a full card and never
+    // restarted) that's been sitting for the longer reminderNewCustomerDays
+    // instead. Anything in between (2 stamps up to reminderMinStamps-1)
+    // intentionally gets no reminder at all - too little progress to call
+    // it "almost there", too much to call it "barely started".
+    const isEngaged = openStampTotal >= program.reminderMinStamps;
+    const isLowEngagement = !isEngaged && openStampTotal <= 1;
+    if (!isEngaged && !isLowEngagement) continue;
+    if (isEngaged && now - lastStampTs < inactiveThresholdMs) continue;
+    if (isLowEngagement && now - lastStampTs < newCustomerThresholdMs) continue;
 
     const already = await getReminderNotificationState.get(
       cafeRow.id,
@@ -4807,20 +4834,26 @@ async function findReminderCandidates(cafeRow) {
       goal: program.stampsForReward,
       reward: program.rewardDescription || "deine Belohnung",
     };
-    const message = isFull
+    const message = isLowEngagement
       ? formatReminderText(
-          program.reminderFullMessage,
+          program.reminderNewCustomerMessage,
           messageVars,
-          REMINDER_FULL_DEFAULT_TEMPLATE,
+          REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE,
         )
-      : formatReminderText(
-          program.reminderMessage,
-          messageVars,
-          REMINDER_DEFAULT_TEMPLATE,
-        );
+      : isFull
+        ? formatReminderText(
+            program.reminderFullMessage,
+            messageVars,
+            REMINDER_FULL_DEFAULT_TEMPLATE,
+          )
+        : formatReminderText(
+            program.reminderMessage,
+            messageVars,
+            REMINDER_DEFAULT_TEMPLATE,
+          );
 
     candidates.push({
-      kind: "inactive",
+      kind: isLowEngagement ? "lowEngagement" : "inactive",
       customerAddress,
       netStamps: openStampTotal,
       remaining,
@@ -4833,19 +4866,20 @@ async function findReminderCandidates(cafeRow) {
     });
   }
 
-  // Second scenario: a wallet card was saved but never got a single stamp -
-  // these customers never appear in the stamp_events-driven loop above at
-  // all (no rows to group), so they need their own source: every distinct
-  // (café, customer) wallet card, minus whoever's in `rows` with any real
-  // stamp (delta>0). "days" is measured from when the card was created,
-  // there being no stamp to measure inactivity from instead. Same "one push
-  // per state" dedup via reminder_notifications, keyed off the card's own
-  // creation time instead of a stamp timestamp - since that never changes,
-  // a customer who's sent this once and still hasn't stamped won't be
-  // re-nudged on every future run, only once, ever (which is the point:
-  // repeatedly nagging someone who's shown zero engagement isn't useful,
-  // unlike the "inactive" bucket above where a new stamp genuinely resets
-  // the clock).
+  // Second "lowEngagement" scenario, other half: a wallet card was saved but
+  // never got a single stamp - these customers never appear in the
+  // stamp_events-driven loop above at all (no rows to group), so they need
+  // their own source: every distinct (café, customer) wallet card, minus
+  // whoever's in `rows` with any real stamp (delta>0, handled by the 0/1-
+  // stamp branch up in the main loop instead). "days" is measured from when
+  // the card was created, there being no stamp to measure inactivity from
+  // instead. Same "one push per state" dedup via reminder_notifications,
+  // keyed off the card's own creation time instead of a stamp timestamp -
+  // since that never changes, a customer who's sent this once and still
+  // hasn't stamped won't be re-nudged on every future run, only once, ever
+  // (which is the point: repeatedly nagging someone who's shown zero
+  // engagement isn't useful, unlike the "inactive" bucket above where a new
+  // stamp genuinely resets the clock).
   if (cafeRow.id != null) {
     const everStamped = new Set(
       rows
@@ -4863,7 +4897,6 @@ async function findReminderCandidates(cafeRow) {
       )
       .all(cafeRow.id, cafeRow.id);
 
-    const newCustomerThresholdMs = program.reminderNewCustomerDays * 86400000;
     for (const row of cardRows) {
       const customerAddress = String(row.customer_address || "").toLowerCase();
       if (!customerAddress || everStamped.has(customerAddress)) continue;
@@ -4893,7 +4926,7 @@ async function findReminderCandidates(cafeRow) {
       );
 
       candidates.push({
-        kind: "neverStamped",
+        kind: "lowEngagement",
         customerAddress,
         netStamps: 0,
         remaining: program.stampsForReward,

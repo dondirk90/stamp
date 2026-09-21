@@ -2214,11 +2214,12 @@
       }
 
       /* Pill sub-nav for the Wallet-Pass screen (Design/Belohnung/
-         Café-Info/Erinnerungen/Konto) - an in-page switch, not a route
-         change, so each pill stays short and focused instead of one long
-         scroll through every setting at once. Visual language borrowed
-         from ui.js's .kk-tab active state (filled pill = active) for
-         consistency with the bottom nav. */
+         Erinnerungen/Konto - Café-Info existiert als Markup noch,
+         ist aber auskommentiert, siehe dort) - ein In-Page-Switch, keine
+         Routen-Aenderung, damit jeder Pill kurz und fokussiert bleibt statt
+         eines langen Dauer-Scrolls. Visuelle Sprache von ui.js's .kk-tab
+         active-Zustand (gefuellter Pill = aktiv) fuer Konsistenz mit der
+         Bottom-Nav. */
       .subTabBar {
         display: flex;
         gap: 8px;
@@ -2900,8 +2901,8 @@
             <div class="menuInfo">
               <strong>Wo du spaeter was findest</strong>
               <span>
-                Unter <b>Wallet-Pass</b> findest du Design, Belohnung, Café-Info,
-                Erinnerungen und Konto - übersichtlich in Unter-Tabs. Das
+                Unter <b>Wallet-Pass</b> findest du Design, Belohnung, Erinnerungen
+                und Konto - übersichtlich in Unter-Tabs. Das
                 <b>Dashboard</b> bleibt für den Überblick und der Scanner für
                 den Tagesbetrieb da.
               </span>
@@ -3102,11 +3103,15 @@
               <!-- Sub-Tabs statt eines langen Dauer-Scrolls - jeder Tab zeigt
                    nur seine eigenen Felder (siehe applyProfileTab()). Konto
                    war früher eine eigene "Verwaltung"-Seite; ist jetzt nur
-                   noch einer von fünf Tabs auf demselben Screen. -->
+                   noch einer von fünf (aktuell vier, siehe Café-Info unten)
+                   Tabs auf demselben Screen. -->
               <div class="subTabBar" id="profileSubTabBar" role="tablist">
                 <button type="button" class="subTabBtn miniBtn" data-tab="design">Design</button>
                 <button type="button" class="subTabBtn miniBtn" data-tab="belohnung">Belohnung</button>
-                <button type="button" class="subTabBtn miniBtn" data-tab="cafeinfo">Café-Info</button>
+                <!-- Café-Info-Tab ist rein App-eigene Kartenansicht, kein
+                     echtes Wallet-Feld - auskommentiert, siehe die
+                     .tabSection[data-tab="cafeinfo"] weiter unten. -->
+                <!-- <button type="button" class="subTabBtn miniBtn" data-tab="cafeinfo">Café-Info</button> -->
                 <button type="button" class="subTabBtn miniBtn" data-tab="erinnerungen">Erinnerungen</button>
                 <button type="button" class="subTabBtn miniBtn" data-tab="konto">Konto</button>
               </div>
@@ -3126,7 +3131,7 @@
                       1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
                       ist (Tab "Belohnung"). 2. Gestalte die Karte so, dass sie in den
                       Karten deiner Gäste klar und hochwertig wirkt (dieser Tab). 3.
-                      Erinnerungen und Café-Info pflegst du in den anderen Tabs.
+                      Push-Erinnerungen und dein Konto pflegst du in den anderen Tabs.
                     </p>
                   </div>
 
@@ -3205,6 +3210,14 @@
                   </div>
                 </div>
 
+                <!-- Kartenhintergrund (freies Bild) ist nicht Teil des echten
+                     Apple-/Google-Wallet-Passes - weder wallet-pass.cjs noch
+                     google-wallet-pass.cjs lesen card_bg_data/card_bg_mime,
+                     das Feld speist nur die Kartenansicht der eigenen App
+                     (customer-qr-modern.js). Auskommentiert statt entfernt,
+                     falls die App-eigene Kartenansicht spaeter wieder Fokus
+                     bekommt - siehe Chat vom 2026-09-21. -->
+                <!--
                 <div style="margin-top: 18px">
                   <span class="effectTag">Vorder- und Rückseite</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
@@ -3233,6 +3246,7 @@
                     Wird als dezenter Hintergrund auf Vorder- und Rückseite genutzt.
                   </div>
                 </div>
+                -->
 
                 <div style="margin-top: 18px">
                   <span class="effectTag">Vorderseite der Karte</span>
@@ -3278,11 +3292,19 @@
                   <div class="previewCard" id="cardPreviewBack" data-pass-theme="paper">
                     <div class="previewCardBackLabel">Text auf der Karte</div>
                     <div class="previewCardBackText" id="previewCardBackText">–</div>
-                    <div class="previewCardBackLabel">Wenn die Karte voll ist</div>
-                    <div class="previewCardBackText" id="previewCardRedeemText">–</div>
                   </div>
                 </div>
 
+                <!-- Einlöse-Text erscheint aktuell auf keinem der beiden
+                     echten Wallet-Passes (wallet-pass.cjs/google-wallet-
+                     pass.cjs zeigen bei voller Karte nur die feste
+                     "Karte voll"-Meldung, nicht diesen Text) und auch nicht
+                     mehr in der aktiven App-Kartenansicht (customer-qr-
+                     modern.js) - nur die veraltete customer-qr.js las ihn
+                     noch. Auskommentiert statt entfernt, falls ein
+                     Wallet-Feld dafuer spaeter nachgebaut wird - siehe Chat
+                     vom 2026-09-21. -->
+                <!--
                 <div style="margin-top: 18px">
                   <span class="effectTag">Vorderseite, wenn die Karte voll ist</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
@@ -3299,6 +3321,7 @@
                     voll ist.
                   </div>
                 </div>
+                -->
 
                 <div style="margin-top: 18px">
                   <span class="effectTag">Rückseite der Karte</span>
@@ -3317,6 +3340,15 @@
                 </div>
               </div>
 
+              <!-- Café-Info (Kurzbeschreibung/Über/Links/Bilder) speist nur
+                   das Café-Info-Popup der eigenen App-Kartenansicht
+                   (customer-qr-modern.js liest about/shortDescription/
+                   websiteUrl/instagramUrl/images) - keins davon taucht im
+                   echten Apple- oder Google-Wallet-Pass auf. Ganzer Tab
+                   auskommentiert statt entfernt, falls die App-eigene
+                   Kartenansicht spaeter wieder Fokus bekommt - siehe Chat
+                   vom 2026-09-21. Pill-Button dafuer siehe subTabBar oben. -->
+              <!--
               <div class="tabSection" data-tab="cafeinfo" hidden>
                 <span class="effectTag">Café-Info-Popup, wenn Kunde antippt</span>
                 <div>
@@ -3427,8 +3459,20 @@
                   <div id="galleryList" class="galleryList"></div>
                 </div>
               </div>
+              -->
 
               <div class="tabSection" data-tab="erinnerungen" hidden>
+                <!-- Die beiden In-App-Popups (Reaktivierung/Fast-geschafft)
+                     erscheinen nur in der eigenen App-Kartenansicht
+                     (customer-qr-modern.js liest popupInactive*/
+                     popupAlmostReward* aus program), nicht im echten
+                     Apple-/Google-Wallet-Pass - anders als die echte
+                     Push-Erinnerung unten, die direkt ueber wallet-pass.cjs/
+                     google-wallet-pass.cjs an den Pass geht. Auskommentiert
+                     statt entfernt, falls die App-eigene Kartenansicht
+                     spaeter wieder Fokus bekommt - siehe Chat vom
+                     2026-09-21. -->
+                <!--
                 <h3 class="subSectionTitle">Popup in der Karten-App</h3>
                 <span class="effectTag">Popup beim Öffnen der Karte</span>
                 <div class="muted" style="margin: 4px 0 14px">
@@ -3464,18 +3508,21 @@
                   </div>
                 </div>
                 <textarea id="profilePopupAlmostRewardMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text für Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+                -->
 
-                <h3 class="subSectionTitle" style="margin-top: 28px">Echte Push-Erinnerung</h3>
                 <span class="effectTag">Push-Benachrichtigung, auch wenn die Karte nicht offen ist</span>
                 <div class="muted" style="margin: 4px 0 14px">
-                  Zusätzlich zum Popup kannst du eine echte Push-Erinnerung senden -
-                  sie erreicht Kunden auch, ohne dass sie die Karte selbst öffnen.
+                  Eine echte Push-Erinnerung an den Wallet-Pass - sie erreicht Kunden
+                  auch, ohne dass sie die Karte selbst öffnen.
                 </div>
                 <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
                   <label class="row" style="gap: 8px; flex: 1; align-items: center">
                     <input id="profileReminderPushEnabled" type="checkbox" />
                     <span>Push-Erinnerung aktiv</span>
                   </label>
+                </div>
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Gut befüllte Karte
                 </div>
                 <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
                   <div style="flex: 1">
@@ -3498,26 +3545,33 @@
                 <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                   Text, solange noch Stempel fehlen
                 </div>
-                <textarea id="profileReminderMessage" class="profileInput small" maxlength="280" placeholder="Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen! Leer = Standardtext. Platzhalter: {days}, {remaining}, {cafe}, {stamps}, {goal}, {reward}."></textarea>
+                <textarea id="profileReminderMessage" class="profileInput small" maxlength="280" placeholder="Noch {remaining} Stempel - wir würden dich gerne wiedersehen :) Leer = Standardtext. Platzhalter: {days}, {remaining}, {cafe}, {stamps}, {goal}, {reward}."></textarea>
                 <div class="muted" style="margin: 10px 0 6px; font-weight: 700">
                   Text, wenn die Karte schon voll ist
                 </div>
-                <textarea id="profileReminderFullMessage" class="profileInput small" maxlength="280" placeholder="Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}! Leer = Standardtext."></textarea>
-                <div class="logoRow" style="align-items: flex-end; margin: 16px 0 14px">
+                <textarea id="profileReminderFullMessage" class="profileInput small" maxlength="280" placeholder="Karte voll - {reward} wartet. Leer = Standardtext."></textarea>
+
+                <div class="muted" style="margin: 20px 0 6px; font-weight: 700">
+                  Kaum befüllte Karte (0-1 Stempel)
+                </div>
+                <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
                   <div style="flex: 1">
                     <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                      Tage ohne ersten Stempel
+                      Tage ohne Fortschritt
                     </div>
                     <input id="profileReminderNewCustomerDays" class="input" type="number" min="7" max="90" step="1" style="width: 100%" />
                   </div>
                 </div>
                 <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
-                  Gilt für Kunden, die deine Karte gespeichert, aber noch nie gestempelt haben - unabhängig von den Bedingungen oben.
+                  Gilt für Kunden mit 0 oder 1 Stempel auf der aktuellen Karte -
+                  egal ob die Karte gerade neu ist oder nach einer Einlösung neu
+                  gestartet wurde. Wird nur einmal verschickt, solange sich der
+                  Stempelstand nicht ändert.
                 </div>
                 <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                  Text für "noch nie gestempelt"
+                  Text bei 0-1 Stempeln
                 </div>
-                <textarea id="profileReminderNewCustomerMessage" class="profileInput small" maxlength="280" placeholder="Deine Kaffeekarte bei {cafe} wartet seit {days} Tagen auf deinen ersten Stempel! Bis zur Belohnung fehlen dir nur noch {remaining} Stempel. Leer = Standardtext."></textarea>
+                <textarea id="profileReminderNewCustomerMessage" class="profileInput small" maxlength="280" placeholder="Karte geholt - Koffein vergessen? Leer = Standardtext."></textarea>
               </div>
 
               <div class="tabSection" data-tab="konto" hidden>
@@ -5242,15 +5296,16 @@
         },
         belohnung: {
           title: "Belohnung",
-          intro: "Stempel-Schwelle, Einlöse-Text und die Rückseite der Karte.",
+          intro: "Stempel-Schwelle und die Rückseite der Karte.",
         },
-        cafeinfo: {
-          title: "Café-Info",
-          intro: "Erscheint im Café-Info-Popup, wenn ein Kunde auf der Karte antippt - nicht auf der Kartenvorderseite selbst.",
-        },
+        // "cafeinfo" ist bewusst kein Eintrag mehr (Markup weiter oben
+        // auskommentiert - reine App-Kartenansicht, kein echtes Wallet-
+        // Feld) - dadurch faellt ein alter ?tab=cafeinfo-Link automatisch
+        // auf "design" zurueck statt auf einen leeren Screen zu zeigen,
+        // siehe PROFILE_TABS[tab]-Check in getProfileTab() unten.
         erinnerungen: {
           title: "Erinnerungen",
-          intro: "Popup in der Karten-App und echte Push-Erinnerungen an Kunden, die länger nicht da waren.",
+          intro: "Echte Push-Erinnerungen an Kunden, die länger nicht da waren.",
         },
         konto: {
           title: "Konto",
@@ -5464,7 +5519,7 @@
         const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
         const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
         const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
-        if (!aboutEl || !logoPreview) return;
+        if (!logoPreview) return;
 
         if (locEl) {
           locEl.value =
@@ -5485,8 +5540,10 @@
               : "";
         }
 
-        aboutEl.value =
-          cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
+        if (aboutEl) {
+          aboutEl.value =
+            cafeInfo && cafeInfo.about ? String(cafeInfo.about) : "";
+        }
 
         const shortDescriptionInput = document.getElementById(
           "profileShortDescription",
@@ -5502,7 +5559,7 @@
         }
 
         const aboutPreview = document.getElementById("profileAboutPreview");
-        if (aboutPreview) {
+        if (aboutEl && aboutPreview) {
           const txt = String(aboutEl.value || "");
           aboutPreview.innerHTML = formatRichText(txt);
         }
@@ -5661,11 +5718,12 @@
           Math.min(50, parseInt((rewardThresholdEl && rewardThresholdEl.value) || "10", 10) || 10),
         );
 
+        // No --pass-card-bg here (unlike customer-qr-modern.js's card) -
+        // a custom background image isn't part of the real Apple/Google
+        // Wallet pass (neither wallet-pass.cjs nor google-wallet-pass.cjs
+        // read card_bg_data), so this preview would otherwise show
+        // something guests never actually see on the pass itself.
         previewEl.setAttribute("data-pass-theme", theme);
-        previewEl.style.setProperty(
-          "--pass-card-bg",
-          profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
-        );
 
         const bgColorEl = document.getElementById("profileBgColor");
         const fgColorEl = document.getElementById("profileFgColor");
@@ -5722,10 +5780,6 @@
         const previewBackEl = document.getElementById("cardPreviewBack");
         if (previewBackEl) {
           previewBackEl.setAttribute("data-pass-theme", theme);
-          previewBackEl.style.setProperty(
-            "--pass-card-bg",
-            profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
-          );
           previewBackEl.style.setProperty("--pass-bg", (bgColorEl && bgColorEl.value) || "");
           previewBackEl.style.setProperty("--pass-ink", (fgColorEl && fgColorEl.value) || "");
         }
@@ -5734,12 +5788,6 @@
         if (previewBackTextEl) {
           previewBackTextEl.textContent =
             (cardBackTextEl && cardBackTextEl.value.trim()) || "–";
-        }
-        const redeemMessageEl = document.getElementById("profileRedeemMessage");
-        const previewRedeemTextEl = document.getElementById("previewCardRedeemText");
-        if (previewRedeemTextEl) {
-          previewRedeemTextEl.textContent =
-            (redeemMessageEl && redeemMessageEl.value.trim()) || "–";
         }
       }
 
@@ -5875,26 +5923,15 @@
       }
 
       async function saveProfile() {
-        const aboutEl = document.getElementById("profileAbout");
-        const redeemEl = document.getElementById("profileRedeemMessage");
-        const websiteEl = document.getElementById("profileWebsiteUrl");
-        const instagramEl = document.getElementById("profileInstagramUrl");
         const logoInput = document.getElementById("profileLogo");
         const locEl = document.getElementById("profileLocationAddress");
         const latEl = document.getElementById("profileLat");
         const lngEl = document.getElementById("profileLng");
         const themeEl = document.getElementById("profileCardTheme");
         const stampStyleEl = document.getElementById("profileStampStyle");
-        const cardBgInput = document.getElementById("profileCardBg");
         const cardBackEl = document.getElementById("profileCardBackText");
         const rewardThresholdEl = document.getElementById("profileRewardThreshold");
         const rewardDescriptionEl = document.getElementById("profileRewardDescription");
-        const popupInactiveEnabledEl = document.getElementById("profilePopupInactiveEnabled");
-        const popupInactiveDaysEl = document.getElementById("profilePopupInactiveDays");
-        const popupInactiveMessageEl = document.getElementById("profilePopupInactiveMessage");
-        const popupAlmostRewardEnabledEl = document.getElementById("profilePopupAlmostRewardEnabled");
-        const popupAlmostRewardRemainingEl = document.getElementById("profilePopupAlmostRewardRemaining");
-        const popupAlmostRewardMessageEl = document.getElementById("profilePopupAlmostRewardMessage");
         const reminderPushEnabledEl = document.getElementById("profileReminderPushEnabled");
         const reminderMinStampsEl = document.getElementById("profileReminderMinStamps");
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
@@ -5903,51 +5940,31 @@
         const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
         const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
         const btn = document.getElementById("profileSaveBtn");
-        if (!aboutEl || !btn || !cafe) return;
+        if (!rewardThresholdEl || !btn || !cafe) return;
 
         btn.disabled = true;
         setMsg("Speichere…");
 
         try {
-          // profileState.logoDataUrl/cardBgDataUrl are already the resized/
-          // recompressed versions from fitImageToLimit() (set when the file
-          // input's change handler ran) - re-reading logoInput/cardBgInput's
-          // raw File here and re-checking it against the old, much stricter
-          // byte limits defeated that resize entirely: the preview showed
-          // the shrunk image, but saving re-read the original multi-MB file,
-          // failed the size check, and threw "Speichern fehlgeschlagen" even
+          // profileState.logoDataUrl is already the resized/recompressed
+          // version from fitImageToLimit() (set when the file input's
+          // change handler ran) - re-reading logoInput's raw File here and
+          // re-checking it against the old, much stricter byte limits
+          // defeated that resize entirely: the preview showed the shrunk
+          // image, but saving re-read the original multi-MB file, failed
+          // the size check, and threw "Speichern fehlgeschlagen" even
           // though everything looked fine a moment earlier.
           const logoDataUrl = profileState.logoDataUrl;
-          const cardBgDataUrl = profileState.cardBgDataUrl;
 
           const cardBackText = cardBackEl
             ? String(cardBackEl.value || "").trim()
             : "";
-
-          const about = String(aboutEl.value || "").trim();
-          const shortDescriptionEl = document.getElementById(
-            "profileShortDescription",
-          );
-          const shortDescription = shortDescriptionEl
-            ? String(shortDescriptionEl.value || "").trim().slice(0, 100)
-            : "";
-          const redeemMessage = redeemEl
-            ? String(redeemEl.value || "").trim()
-            : "";
-          const websiteUrl = websiteEl ? String(websiteEl.value || "").trim() : "";
-          const instagramUrl = instagramEl ? String(instagramEl.value || "").trim() : "";
 
           const locationAddress = locEl ? String(locEl.value || "").trim() : "";
           const lat = latEl ? String(latEl.value || "").trim() : "";
           const lng = lngEl ? String(lngEl.value || "").trim() : "";
           const stampsForReward = rewardThresholdEl ? String(rewardThresholdEl.value || "").trim() : "10";
           const rewardDescription = rewardDescriptionEl ? String(rewardDescriptionEl.value || "").trim() : "";
-          const popupInactiveEnabled = popupInactiveEnabledEl ? !!popupInactiveEnabledEl.checked : true;
-          const popupInactiveDays = popupInactiveDaysEl ? String(popupInactiveDaysEl.value || "").trim() : "21";
-          const popupInactiveMessage = popupInactiveMessageEl ? String(popupInactiveMessageEl.value || "").trim() : "";
-          const popupAlmostRewardEnabled = popupAlmostRewardEnabledEl ? !!popupAlmostRewardEnabledEl.checked : true;
-          const popupAlmostRewardRemaining = popupAlmostRewardRemainingEl ? String(popupAlmostRewardRemainingEl.value || "").trim() : "2";
-          const popupAlmostRewardMessage = popupAlmostRewardMessageEl ? String(popupAlmostRewardMessageEl.value || "").trim() : "";
           const reminderPushEnabled = reminderPushEnabledEl ? !!reminderPushEnabledEl.checked : false;
           const reminderMinStamps = reminderMinStampsEl ? String(reminderMinStampsEl.value || "").trim() : "3";
           const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
@@ -5970,6 +5987,15 @@
           const cardBgColor = bgColorEl ? String(bgColorEl.value || "").trim() : "";
           const cardFgColor = fgColorEl ? String(fgColorEl.value || "").trim() : "";
 
+          // about/shortDescription/redeemMessage/websiteUrl/instagramUrl/
+          // cardBgDataUrl/popupInactive*/popupAlmostReward* are deliberately
+          // NOT sent here anymore - their fields were removed from this
+          // screen (not real Apple/Google Wallet content, see the HTML
+          // comments where they used to sit). Omitting the keys entirely
+          // (rather than sending them empty) matters: applyCafeProfileUpdate
+          // in api/server.cjs only touches a field when its key is present
+          // in the body, so leaving them out keeps whatever a café already
+          // had stored instead of silently blanking it on every save.
           const updated = await apiFetch("/cafes/me/profile", {
             method: "PUT",
             headers: {
@@ -5977,13 +6003,7 @@
               Authorization: `Bearer ${cafe.token}`,
             },
             body: JSON.stringify({
-              about,
-              shortDescription: shortDescription || null,
-              redeemMessage,
-              websiteUrl: websiteUrl || null,
-              instagramUrl: instagramUrl || null,
               logoDataUrl: logoDataUrl || null,
-              cardBgDataUrl: cardBgDataUrl || null,
               cardBackText: cardBackText || null,
               locationAddress: locationAddress || null,
               lat: lat || null,
@@ -5994,12 +6014,6 @@
               stampStyle: stampStyle || "bean",
               stampsForReward: stampsForReward || null,
               rewardDescription: rewardDescription || null,
-              popupInactiveEnabled,
-              popupInactiveDays: popupInactiveDays || null,
-              popupInactiveMessage: popupInactiveMessage || null,
-              popupAlmostRewardEnabled,
-              popupAlmostRewardRemaining: popupAlmostRewardRemaining || null,
-              popupAlmostRewardMessage: popupAlmostRewardMessage || null,
               reminderPushEnabled,
               reminderMinStamps: reminderMinStamps || null,
               reminderInactiveDays: reminderInactiveDays || null,
@@ -6015,7 +6029,6 @@
 
           renderProfile(updated && updated.cafe ? updated.cafe : null);
           if (logoInput) logoInput.value = "";
-          if (cardBgInput) cardBgInput.value = "";
           setMsg("Gespeichert");
         } catch (e) {
           console.error("Profile save failed", e);
