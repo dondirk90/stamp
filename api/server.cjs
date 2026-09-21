@@ -1639,6 +1639,21 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 7",
   "Failed to add cafes.reminder_min_stamps column:",
 );
+// SQLite has no ALTER COLUMN ... SET DEFAULT, and ADD COLUMN above is a
+// no-op once the column already exists (from when it defaulted to 3) - so
+// a plain default-text change doesn't reach any SQLite database that's
+// already run migration 017 (every local dev DB, plus staging, which is
+// SQLite-backed; see docker-compose.staging.yml's "SQLite mode: omit
+// DATABASE_URL"). This backfills any row still sitting at the old default.
+// Idempotent (matches nothing once every row's been bumped) and safe to
+// re-run every boot - reminder_push_enabled defaults to 0 and nothing has
+// used this feature yet, so there's no café-chosen "3" to accidentally
+// overwrite. Postgres (production) gets the equivalent fix via migration
+// 021 instead.
+runSqliteOnlyAlter(
+  "UPDATE cafes SET reminder_min_stamps = 7 WHERE reminder_min_stamps = 3",
+  "Failed to backfill cafes.reminder_min_stamps default:",
+);
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_inactive_days INTEGER DEFAULT 14",
   "Failed to add cafes.reminder_inactive_days column:",
@@ -4687,18 +4702,31 @@ async function getReminderBackfieldFor(cafeId, customerAddress) {
   if (!active) {
     return { value: "–", changeMessage: null };
   }
+  // Apple's changeMessage is only ever rendered as a lock-screen banner if
+  // it contains the literal %@ placeholder - a fully-prewritten sentence
+  // with no %@ (what this used to send) is silently ignored and iOS falls
+  // back to its generic "pass changed" text, confirmed after several real
+  // sends all showed generic text regardless of field/uniqueness setup
+  // (see https://passkit.com/blog/how-to-engage-your-customers-with-the-apple-wallet-changemsg/).
+  // So the actual message now lives in the field's *value*, and
+  // changeMessage is just the literal "%@" - Apple substitutes it with the
+  // field's own new value, i.e. our message, verbatim.
+  //
+  // Deliberately just the message text now, no trailing date (chat
+  // 2026-09-21 - a visible timestamp next to the message read as clutter).
+  // Trade-off: a handful of the current templates are fully static once
+  // formatted (e.g. "Karte voll - {reward} wartet." has no {tokens} left),
+  // so if the *exact same* message fires twice for one customer (two full
+  // "fill up, go inactive" cycles landing on the same template), the
+  // second send's value would be byte-identical to what the device already
+  // has cached and Apple's own diffing would treat it as "nothing changed"
+  // - no banner that second time (though the field still updates the
+  // *reminder_notifications* dedup bookkeeping correctly either way, so
+  // this only affects the lock-screen banner, not whether a reminder
+  // "counts" as sent).
   return {
-    // Apple only notifies when a field's *value* actually differs from what
-    // the device has cached - a date-only string ("20.09.2026") was
-    // identical across same-day sends during testing, so two real reminders
-    // sent hours apart on the same day looked like "no change" and silently
-    // never notified. Minute-level time makes any two real sends distinct
-    // in practice without needing a raw, unreadable timestamp on the card.
-    value: new Date(sentAt).toLocaleString("de-DE", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }),
-    changeMessage: String(row.message),
+    value: String(row.message),
+    changeMessage: "%@",
   };
 }
 

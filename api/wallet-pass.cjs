@@ -322,31 +322,13 @@ function buildPassJson({
       ? "Prämie verfügbar!"
       : `noch ${remaining}`;
 
-  // Cafe-specific, actually interesting info first (only shown when a cafe
-  // has set it); the always-present boilerplate (stamp counts already
-  // visible on the card front anyway, terms, legal links) reads more like
-  // small print, so it goes last.
+  // Layout (chat 2026-09-21, following a reference loyalty-card app's back-
+  // of-pass ordering): the dynamic, "what's happening with my card right
+  // now" fields lead (message, then progress), the café's own static
+  // content comes next, and the always-present account/legal boilerplate
+  // (IDs, terms, AGB/privacy links, "powered by") reads like small print,
+  // so it's pushed all the way to the bottom instead of sitting up top.
   const backFields = [];
-
-  if (cardBackText) {
-    backFields.push({ key: "info", label: "Info", value: cardBackText });
-  }
-
-  if (cafeWebsiteUrl) {
-    backFields.push({
-      key: "cafeWebsite",
-      label: "Website",
-      value: cafeWebsiteUrl,
-    });
-  }
-
-  if (cafeInstagramUrl) {
-    backFields.push({
-      key: "cafeInstagram",
-      label: "Instagram",
-      value: cafeInstagramUrl,
-    });
-  }
 
   // Most customers only ever look at the Wallet app, never the companion
   // web app - so a Wallet lock-screen notification on the pass they already
@@ -379,6 +361,14 @@ function buildPassJson({
   const reminderActive = !!reminderBF.changeMessage;
   backFields.push(
     {
+      key: "reminder",
+      label: "Erinnerung",
+      value: String(reminderBF.value),
+      ...(reminderBF.changeMessage
+        ? { changeMessage: reminderBF.changeMessage }
+        : {}),
+    },
+    {
       key: "earned",
       label: "Gesammelte Stempel",
       value: String(clampedStamps),
@@ -404,14 +394,29 @@ function buildPassJson({
               }
             : {}),
     },
-    {
-      key: "reminder",
-      label: "Erinnerung",
-      value: String(reminderBF.value),
-      ...(reminderBF.changeMessage
-        ? { changeMessage: reminderBF.changeMessage }
-        : {}),
-    },
+  );
+
+  if (cardBackText) {
+    backFields.push({ key: "info", label: "Info", value: cardBackText });
+  }
+
+  if (cafeWebsiteUrl) {
+    backFields.push({
+      key: "cafeWebsite",
+      label: "Website",
+      value: cafeWebsiteUrl,
+    });
+  }
+
+  if (cafeInstagramUrl) {
+    backFields.push({
+      key: "cafeInstagram",
+      label: "Instagram",
+      value: cafeInstagramUrl,
+    });
+  }
+
+  backFields.push(
     // Account info - lets a customer confirm which email/card a support
     // conversation is about, and lets them self-check the recovery email on
     // file (see /customers/register's verification flow) without having to
