@@ -2998,6 +2998,9 @@
                   <button id="awardBtn">
                     Stempel vergeben
                   </button>
+                  <button id="removeStampBtn" class="btn secondary" type="button">
+                    Stempel entfernen
+                  </button>
                 </div>
               </div>
             </div>
@@ -3982,6 +3985,7 @@
       const stampAmount = document.getElementById("stampAmount");
       const stampAmountValue = document.getElementById("stampAmountValue");
       const awardBtn = document.getElementById("awardBtn");
+      const removeStampBtn = document.getElementById("removeStampBtn");
       const scanTitle = document.getElementById("scanTitle");
       const scanSubtitle = document.getElementById("scanSubtitle");
       const cafeBadge = document.getElementById("cafeBadge");
@@ -6950,6 +6954,7 @@
           }
           const v = updateStampUiFromValue() || 1;
           awardBtn.textContent = `${v} Stempel vergeben`;
+          if (removeStampBtn) removeStampBtn.textContent = `${v} Stempel entfernen`;
         }
 
         if (scanTitle) {
@@ -6965,6 +6970,10 @@
             : isReset
               ? "Diese Ansicht erscheint automatisch, wenn ein QR für eine neue Karte geöffnet wurde."
               : "Diese Ansicht erscheint automatisch, wenn ein Kunden-QR geöffnet wurde.";
+        }
+
+        if (removeStampBtn) {
+          removeStampBtn.style.display = isRedeem || isReset ? "none" : "inline-block";
         }
 
         if (stampAmountUi) {
@@ -7423,6 +7432,19 @@
               dlog("Celebration: stamp (bean)", { prevCount, nextCount, rewardThreshold });
               launchStampBeanPop(amount);
             }
+
+            // Stamp is correctly recorded either way - this just tells the
+            // barista, right when it's actionable, that the customer won't
+            // actually see it (chat 2026-09-21: traced a real support case
+            // to a pass that was downloaded but never finished registering
+            // with Apple Wallet, so it silently never updated). Delayed so
+            // it doesn't fight the success toast above for attention.
+            if (data.walletActive === false) {
+              const hint = data.hasWalletPass
+                ? "Kunde hat die Wallet-Karte noch nicht fertig hinzugefügt - bitte bitten, den „Hinzufügen“-Dialog abzuschließen."
+                : "Kunde hat noch keine Wallet-Karte gespeichert - der Stempel ist vorerst nur in der App sichtbar.";
+              setTimeout(() => showToast(`⚠️ ${hint}`, true), 900);
+            }
           }
 
           // Reset after 2 seconds
@@ -7467,6 +7489,80 @@
           syncCameraButtons();
         }
       };
+
+      // Correct a mistaken stamp - same amount selector as awarding, just
+      // subtracted from the customer's currently open card instead of
+      // added. Only shown in the normal stamp flow (hidden for redeem/
+      // reset, same as the amount presets) - a redeem/reset QR isn't the
+      // right context to be removing stamps in. Server clamps so a card
+      // can never go below 0 and rejects an already-redeemed one, since
+      // that's a closed historical record, not something to correct here.
+      if (removeStampBtn) {
+        removeStampBtn.onclick = async () => {
+          if (!scannedCustomer || !cafe) return;
+          if (pendingAction === "redeem" || pendingAction === "reset") return;
+
+          const amount = Math.max(1, Math.min(5, parseInt(stampAmount.value) || 1));
+          removeStampBtn.disabled = true;
+          const originalLabel = removeStampBtn.textContent;
+          removeStampBtn.textContent = "Wird entfernt…";
+
+          try {
+            const res = await fetch(apiBase + "/remove-stamp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${cafe.token}`,
+              },
+              body: JSON.stringify({
+                customer: scannedCustomer.address,
+                customerName: scannedCustomer.name,
+                count: amount,
+                qrCafe: pendingScan ? pendingScan.cafe : null,
+                cardId: pendingScan ? pendingScan.cardId : null,
+              }),
+            });
+
+            if (!res.ok) {
+              const text = await res.text();
+              let detail;
+              try {
+                detail = JSON.parse(text);
+              } catch {
+                detail = text;
+              }
+              const mapped = mapApiError(detail, res.status);
+              if (mapped) throw new Error(mapped);
+              if (
+                detail &&
+                typeof detail === "object" &&
+                detail.error === "card_already_redeemed"
+              ) {
+                throw new Error(
+                  "Diese Karte ist schon eingelöst - da lässt sich nichts mehr entfernen.",
+                );
+              }
+              throw new Error("Entfernen fehlgeschlagen. Bitte erneut versuchen.");
+            }
+
+            const data = await res.json();
+            hapticSuccess();
+            if (typeof data.newTotal === "number") {
+              currentStamps.textContent = data.newTotal;
+            }
+            showToast(
+              data.removed > 0
+                ? `➖ ${data.removed} Stempel entfernt`
+                : "Karte hatte schon 0 Stempel - nichts entfernt.",
+            );
+          } catch (e) {
+            showToast(userSafeErrorMessage(e), true);
+          } finally {
+            removeStampBtn.disabled = false;
+            removeStampBtn.textContent = originalLabel;
+          }
+        };
+      }
 
       // Auto-login if saved
       wireShellChrome();

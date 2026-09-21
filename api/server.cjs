@@ -1978,6 +1978,52 @@ async function getOpenStampTotal(cafeAddress, customerAddress) {
   return total;
 }
 
+// Whether a customer has a *confirmed* wallet channel at this café - used
+// by /stamp-by-cafe to warn the barista live (see that route's own
+// comment for the real support case this traced back to). Apple "active"
+// means a wallet_registrations row exists for one of their passes here -
+// Apple's own confirmation the pass truly made it into Wallet, not just
+// that we served the file. Google has no such confirmation callback at
+// all (same caveat as admin-dashboard.html's renderWalletPassBadge) - a
+// saved object is the best signal available, so it counts as "active" on
+// its own.
+async function checkWalletActive(cafeId, customerAddress) {
+  let walletActive = false;
+  let hasWalletPass = false;
+  try {
+    if (cafeId != null) {
+      const customerLower = String(customerAddress || "").toLowerCase();
+      const applePassRows = await db
+        .prepare(
+          "SELECT serial_number FROM wallet_passes WHERE customer_address = ? AND cafe_id = ?",
+        )
+        .all(customerLower, cafeId);
+      if (applePassRows.length) {
+        hasWalletPass = true;
+        const serials = applePassRows.map((r) => r.serial_number);
+        const regRows = await db
+          .prepare(
+            `SELECT 1 FROM wallet_registrations WHERE serial_number IN (${serials.map(() => "?").join(",")}) LIMIT 1`,
+          )
+          .all(...serials);
+        if (regRows.length) walletActive = true;
+      }
+      const googleRows = await db
+        .prepare(
+          "SELECT 1 FROM google_wallet_objects WHERE customer_address = ? AND cafe_id = ? LIMIT 1",
+        )
+        .all(customerLower, cafeId);
+      if (googleRows.length) {
+        hasWalletPass = true;
+        walletActive = true;
+      }
+    }
+  } catch (err) {
+    console.warn("Wallet-active check failed:", err && err.message ? err.message : err);
+  }
+  return { walletActive, hasWalletPass };
+}
+
 // Redeeming a full card used to always mint a brand new card_id for
 // whatever comes next - but if the customer already has a different, still-
 // open, not-yet-full card (e.g. from an earlier overflow split that hasn't
@@ -3618,6 +3664,16 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
     notifyWalletPassUpdated(customer, cafeAddress);
     notifyGoogleWalletPassUpdated(customer, cafeAddress);
 
+    // Lets the scanner UI warn the barista right when it matters, instead
+    // of a customer finding out days later that their card never actually
+    // updated (chat 2026-09-21 - traced a real support case to exactly
+    // this: stamps recorded correctly, but the customer's Apple Wallet
+    // pass was never registered for updates, so nothing ever appeared).
+    const walletStatus = await checkWalletActive(
+      cafeRowForProgram && cafeRowForProgram.id,
+      customer,
+    );
+
     res.json({
       success: true,
       status: "confirmed",
@@ -3626,9 +3682,136 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       overflowed,
       newCardId,
       newCardStamps,
+      walletActive: walletStatus.walletActive,
+      hasWalletPass: walletStatus.hasWalletPass,
     });
   } catch (err) {
     console.error("Error in /stamp-by-cafe:", err);
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// Corrects a mistaken stamp award - inserts a negative-delta event on the
+// customer's currently open card instead of mutating/deleting past events
+// (same "history is append-only" convention as redemption/reset already
+// use). Clamped so a card can never go below 0, and rejected outright on
+// an already-redeemed card - that's a closed historical record, not
+// something a café should be able to edit after the fact.
+app.post("/remove-stamp", requireCafeAuth, async (req, res) => {
+  try {
+    const { customer, count, customerName, qrCafe, cardId, cid, card } =
+      req.body || {};
+    const cnt = Math.max(1, Math.min(20, Number(count || 1)));
+
+    if (!customer || !/^0x[0-9a-fA-F]{40}$/.test(customer)) {
+      return res.status(400).json({ error: "invalid customer address" });
+    }
+
+    const cafeAddress =
+      ensureCafeAddress(req.cafe) || String(req.cafe?.id || "");
+    if (!cafeAddress)
+      return res.status(500).json({ error: "missing_cafe_context" });
+
+    if (
+      qrCafe != null &&
+      String(qrCafe).toLowerCase() !== String(cafeAddress).toLowerCase()
+    ) {
+      return res.status(403).json({
+        error: "wrong_cafe",
+        expected: cafeAddress,
+        provided: qrCafe,
+        message:
+          "Dieser QR-Code gehört zu einem anderen Café. Bitte mit dem korrekten Konto anmelden.",
+      });
+    }
+
+    let normalizedCardId = null;
+    const rawCardId =
+      cardId != null ? cardId : cid != null ? cid : card != null ? card : null;
+    const s = rawCardId != null ? String(rawCardId).trim() : "";
+    if (s && s !== "__legacy__") {
+      if (s.length > 128) {
+        return res.status(400).json({ error: "card_id_invalid" });
+      }
+      normalizedCardId = s;
+    }
+
+    // Same target-resolution as splitStampAward's explicit-cardId path
+    // (see its own comment): trust an explicit target only if it's a real,
+    // still-open card in this customer's history; otherwise fall back to
+    // whichever card their latest event actually belongs to.
+    let targetCardId = normalizedCardId;
+    if (targetCardId != null) {
+      const targetTotal = await getStampsByCafeUserCardId(
+        cafeAddress,
+        customer,
+        targetCardId,
+      );
+      const targetRedeemed = await hasCardBeenRedeemed.get(
+        cafeAddress,
+        customer,
+        targetCardId,
+      );
+      if (targetRedeemed || targetTotal <= 0) {
+        const latestRow = await getLatestCardIdForCustomerCafe.get(
+          cafeAddress,
+          customer,
+        );
+        targetCardId = latestRow ? latestRow.card_id : null;
+      }
+    } else {
+      const latestRow = await getLatestCardIdForCustomerCafe.get(
+        cafeAddress,
+        customer,
+      );
+      targetCardId = latestRow ? latestRow.card_id : null;
+    }
+
+    const isRedeemed = !!(await hasCardBeenRedeemed.get(
+      cafeAddress,
+      customer,
+      targetCardId,
+    ));
+    if (isRedeemed) {
+      return res.status(409).json({ error: "card_already_redeemed" });
+    }
+
+    const currentTotal = Math.max(
+      0,
+      await getStampsByCafeUserCardId(cafeAddress, customer, targetCardId),
+    );
+    const removed = Math.min(cnt, currentTotal);
+
+    if (removed > 0) {
+      const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+      const ev = {
+        ts: Date.now(),
+        cafe: cafeAddress,
+        customer_name: customerName || null,
+        user: customer,
+        txhash: localTx,
+        status: "confirmed",
+        event_type: "stamp_removed",
+        delta: -removed,
+        card_id: targetCardId,
+      };
+      await insertEvent.run(ev);
+      try {
+        broadcastEvent(ev);
+      } catch (e) {}
+      notifyWalletPassUpdated(customer, cafeAddress);
+      notifyGoogleWalletPassUpdated(customer, cafeAddress);
+    }
+
+    const newTotal = Math.max(0, currentTotal - removed);
+    res.json({
+      success: true,
+      removed,
+      newTotal,
+      cardId: targetCardId,
+    });
+  } catch (err) {
+    console.error("Error in /remove-stamp:", err);
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -9236,7 +9419,18 @@ walletApiRouter.get(
       });
 
       res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-      res.setHeader("Last-Modified", new Date(passRow.updated_at).toUTCString());
+      // passRow.updated_at is a bigint column - node-postgres returns those
+      // as strings (to avoid precision loss past Number.MAX_SAFE_INTEGER),
+      // while better-sqlite3 (local/staging) returns an actual number.
+      // new Date(numericString) doesn't parse as epoch ms - it's not a
+      // recognized date format - so this produced a literal "Invalid Date"
+      // Last-Modified header on production specifically (confirmed live in
+      // prod logs 2026-09-21, never caught on staging since SQLite doesn't
+      // have this string/number split). Number(...) normalizes either case.
+      res.setHeader(
+        "Last-Modified",
+        new Date(Number(passRow.updated_at)).toUTCString(),
+      );
       res.send(buffer);
     } catch (err) {
       console.error("Error serving updated wallet pass:", err);
