@@ -124,6 +124,29 @@ async function buildLogoBuffers(logoBuffer) {
   return out;
 }
 
+// Fits a cafe's logo into Apple's square icon.png slot (29x29pt @1x).
+// icon.png - not logo.png, the wider in-pass header image built above - is
+// what Wallet actually shows in the lock-screen "you're near this cafe"
+// relevance notification (locations/maxDistance below), on Apple Watch, and
+// in the pass list, so leaving it as the generic bean meant every cafe's
+// proximity alert looked the same regardless of which cafe it was for.
+// Falls back to STATIC_ICON_BUFFERS (the bean) for cafes with no logo yet.
+async function buildIconBuffers(logoBuffer) {
+  const out = {};
+  for (const scale of [1, 2, 3]) {
+    const size = 29 * scale;
+    const name = scale === 1 ? "icon.png" : `icon@${scale}x.png`;
+    out[name] = await sharp(logoBuffer)
+      .resize(size, size, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  }
+  return out;
+}
+
 // Same 100x100-viewBox star path as buildStampSvg() in
 // apps/customer-qr-modern.js, so the wallet card's filled symbol matches
 // whatever the cafe picked in cafe-scanner-new.html's "Stempel-Symbol"
@@ -273,6 +296,17 @@ function buildPassJson({
   customerId,
   cardNumber,
   cardId,
+  // { value, changeMessage } | null - the café's push reminder (see
+  // server.cjs's reminder_notifications/findReminderCandidates). value is
+  // the reminder's send timestamp, changeMessage the already-composed text
+  // (days-inactive/stamps-remaining already substituted in, not a %@
+  // template - the whole message differs per café/customer). PassKit only
+  // fires the lock-screen notification when a field's *value* differs from
+  // what the device has cached, so this naturally shows once per reminder
+  // (same value on every later re-fetch, e.g. triggered by an unrelated
+  // stamp event, doesn't re-fire) without server-side "already delivered"
+  // bookkeeping beyond what reminder_notifications already tracks for dedup.
+  reminderBackfield,
 }) {
   const colors = resolveThemeColors(cardTheme, cardBgColor, cardFgColor);
   const clampedStamps = Math.max(0, Math.min(stampCount, threshold));
@@ -288,11 +322,84 @@ function buildPassJson({
       ? "Prämie verfügbar!"
       : `noch ${remaining}`;
 
-  // Cafe-specific, actually interesting info first (only shown when a cafe
-  // has set it); the always-present boilerplate (stamp counts already
-  // visible on the card front anyway, terms, legal links) reads more like
-  // small print, so it goes last.
+  // Layout (chat 2026-09-21, following a reference loyalty-card app's back-
+  // of-pass ordering): the dynamic, "what's happening with my card right
+  // now" fields lead (message, then progress), the café's own static
+  // content comes next, and the always-present account/legal boilerplate
+  // (IDs, terms, AGB/privacy links, "powered by") reads like small print,
+  // so it's pushed all the way to the bottom instead of sitting up top.
   const backFields = [];
+
+  // Most customers only ever look at the Wallet app, never the companion
+  // web app - so a Wallet lock-screen notification on the pass they already
+  // have is often the only channel that can reach them at all. Apple only
+  // shows one for a field whose value actually changed, and only one field
+  // per update may carry a changeMessage (more than one collapses into a
+  // generic "Pass was changed" instead of custom text) - so which field
+  // carries it has to switch depending on state: "earned" while still
+  // filling (routine "you got a stamp"), "untilReward" on the update that
+  // completes the card (its value changes from "noch X" to "Prämie
+  // verfügbar!") nudging them to open the app for a new card, and again on
+  // the update that redeems it (its value changes a second time, to
+  // "Eingelöst ✓") confirming the redemption actually went through on the
+  // exact pass they're looking at.
+  const isFull = remaining <= 0;
+  // "reminder" below is now a *structurally permanent* field (always in
+  // backFields, value "–" and no changeMessage when nothing's active - see
+  // getReminderBackfieldFor in server.cjs) rather than one that appears and
+  // disappears. That's a deliberate trade for reliability: Apple's
+  // changeMessage notification appears to require an *existing* field's
+  // value to change between pass versions - a field appearing/disappearing
+  // between versions silently never notified across three live tests, only
+  // switched to working once the field's presence became stable and just
+  // its value toggled. While a reminder is actually active (reminderBackfield
+  // .changeMessage truthy), the routine "earned"/"untilReward" messages
+  // below step aside so Apple's "only one field per update may carry a
+  // changeMessage" rule doesn't collide the two - then behave exactly as
+  // before once the reminder is inactive again.
+  const reminderBF = reminderBackfield || { value: "–", changeMessage: null };
+  const reminderActive = !!reminderBF.changeMessage;
+  backFields.push(
+    {
+      key: "reminder",
+      label: "Erinnerung",
+      value: String(reminderBF.value),
+      ...(reminderBF.changeMessage
+        ? { changeMessage: reminderBF.changeMessage }
+        : {}),
+    },
+    {
+      key: "earned",
+      label: "Gesammelte Stempel",
+      value: String(clampedStamps),
+      // Neutral on purpose (chat 2026-09-21) - this field's value also
+      // changes when a café corrects a mistaken stamp (POST
+      // /remove-stamp, a negative delta), where "Frischer Stempel!"
+      // would be actively wrong. %@ still required for the banner to
+      // render at all (see getReminderBackfieldFor's own comment).
+      ...(!reminderActive && !isFull
+        ? { changeMessage: "Dein neuer Stempelstand: %@ Stempel." }
+        : {}),
+    },
+    {
+      key: "untilReward",
+      label: "Bis zur nächsten Prämie",
+      value: remainingLine,
+      ...(reminderActive
+        ? {}
+        : isRedeemed
+          ? {
+              changeMessage:
+                "✓ Eingelöst! Öffne die Kaffeekarte-App für deine nächste Stempelkarte.",
+            }
+          : isFull
+            ? {
+                changeMessage:
+                  "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
+              }
+            : {}),
+    },
+  );
 
   if (cardBackText) {
     backFields.push({ key: "info", label: "Info", value: cardBackText });
@@ -314,45 +421,7 @@ function buildPassJson({
     });
   }
 
-  // Most customers only ever look at the Wallet app, never the companion
-  // web app - so a Wallet lock-screen notification on the pass they already
-  // have is often the only channel that can reach them at all. Apple only
-  // shows one for a field whose value actually changed, and only one field
-  // per update may carry a changeMessage (more than one collapses into a
-  // generic "Pass was changed" instead of custom text) - so which field
-  // carries it has to switch depending on state: "earned" while still
-  // filling (routine "you got a stamp"), "untilReward" on the update that
-  // completes the card (its value changes from "noch X" to "Prämie
-  // verfügbar!") nudging them to open the app for a new card, and again on
-  // the update that redeems it (its value changes a second time, to
-  // "Eingelöst ✓") confirming the redemption actually went through on the
-  // exact pass they're looking at.
-  const isFull = remaining <= 0;
   backFields.push(
-    {
-      key: "earned",
-      label: "Gesammelte Stempel",
-      value: String(clampedStamps),
-      ...(isFull
-        ? {}
-        : { changeMessage: "Frischer Stempel! Du hast jetzt %@ Stempel." }),
-    },
-    {
-      key: "untilReward",
-      label: "Bis zur nächsten Prämie",
-      value: remainingLine,
-      ...(isRedeemed
-        ? {
-            changeMessage:
-              "✓ Eingelöst! Öffne die Kaffeekarte-App für deine nächste Stempelkarte.",
-          }
-        : isFull
-          ? {
-              changeMessage:
-                "🎉 Karte voll! Öffne die Kaffeekarte-App für eine neue Stempelkarte.",
-            }
-          : {}),
-    },
     // Account info - lets a customer confirm which email/card a support
     // conversation is about, and lets them self-check the recovery email on
     // file (see /customers/register's verification flow) without having to
@@ -407,7 +476,13 @@ function buildPassJson({
     passTypeIdentifier: PASS_TYPE_IDENTIFIER,
     serialNumber,
     teamIdentifier: sanitizeEnv("APPLE_TEAM_ID"),
-    organizationName: "Kaffeekarte",
+    // Shows as the sender label above the notification text on the lock
+    // screen - was hardcoded to "Kaffeekarte" for every café, so a push
+    // from any café looked identically generic there (unlike Google
+    // Wallet's issuerName/programName, which already used cafeName).
+    // Falls back the same way cafeName itself does (see generateSignedPass)
+    // when a café somehow has no name set.
+    organizationName: cafeName,
     description: `${cafeName} Stempelkarte`,
     webServiceURL,
     authenticationToken,
@@ -484,6 +559,7 @@ async function generateSignedPass({
   customerId,
   cardNumber,
   cardId,
+  reminderBackfield,
 }) {
   const certificates = loadCertificates();
   const cafeName = (cafeRow && cafeRow.name) || "Kaffeekarte";
@@ -516,6 +592,7 @@ async function generateSignedPass({
     customerId,
     cardNumber,
     cardId,
+    reminderBackfield,
   });
 
   const buffers = {
@@ -534,6 +611,7 @@ async function generateSignedPass({
   if (cafeRow && cafeRow.logo_data && cafeRow.logo_mime) {
     const logoBuffer = Buffer.from(cafeRow.logo_data, "base64");
     Object.assign(buffers, await buildLogoBuffers(logoBuffer));
+    Object.assign(buffers, await buildIconBuffers(logoBuffer));
   }
 
   const pass = new PKPass(buffers, certificates);

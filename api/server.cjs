@@ -1306,6 +1306,14 @@ CREATE TABLE IF NOT EXISTS cafes (
   popup_almost_reward_enabled INTEGER DEFAULT 1,
   popup_almost_reward_remaining INTEGER DEFAULT 2,
   popup_almost_reward_message TEXT,
+  reminder_push_enabled INTEGER DEFAULT 0,
+  reminder_min_stamps INTEGER DEFAULT 7,
+  reminder_inactive_days INTEGER DEFAULT 14,
+  reminder_message TEXT,
+  reminder_full_message TEXT,
+  reminder_new_customer_days INTEGER DEFAULT 21,
+  reminder_new_customer_message TEXT,
+  last_broadcast_at INTEGER,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1468,6 +1476,35 @@ CREATE TABLE IF NOT EXISTS google_wallet_objects (
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
 
+-- One row per (café, customer) tracking the last push reminder sent and the
+-- customer's stamp state (lastStampTs) at that moment - lets the matching
+-- logic give "one push per state": skip while the state is unchanged, only
+-- reconsider once they've stamped again and gone inactive a second time.
+CREATE TABLE IF NOT EXISTS reminder_notifications (
+  cafe_id INTEGER NOT NULL,
+  customer_address TEXT NOT NULL,
+  sent_at INTEGER NOT NULL,
+  stamp_state_ts INTEGER NOT NULL,
+  message TEXT,
+  PRIMARY KEY (cafe_id, customer_address)
+);
+
+-- Append-only send history (reminder_notifications above only ever holds
+-- the latest send per customer, for dedup) - one row per attempt, see
+-- insertReminderLog.
+CREATE TABLE IF NOT EXISTS reminder_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cafe_id INTEGER NOT NULL,
+  customer_address TEXT NOT NULL,
+  kind TEXT,
+  message TEXT,
+  stamp_state_ts INTEGER,
+  apple_touched INTEGER,
+  apple_pushed INTEGER,
+  google_sent INTEGER,
+  sent_at INTEGER NOT NULL
+);
+
 `);
 }
 
@@ -1610,6 +1647,69 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN popup_almost_reward_message TEXT",
   "Failed to add cafes.popup_almost_reward_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_push_enabled INTEGER DEFAULT 0",
+  "Failed to add cafes.reminder_push_enabled column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_min_stamps INTEGER DEFAULT 7",
+  "Failed to add cafes.reminder_min_stamps column:",
+);
+// SQLite has no ALTER COLUMN ... SET DEFAULT, and ADD COLUMN above is a
+// no-op once the column already exists (from when it defaulted to 3) - so
+// a plain default-text change doesn't reach any SQLite database that's
+// already run migration 017 (every local dev DB, plus staging, which is
+// SQLite-backed; see docker-compose.staging.yml's "SQLite mode: omit
+// DATABASE_URL"). This backfills any row still sitting at the old default.
+// Idempotent (matches nothing once every row's been bumped) and safe to
+// re-run every boot - reminder_push_enabled defaults to 0 and nothing has
+// used this feature yet, so there's no café-chosen "3" to accidentally
+// overwrite. Postgres (production) gets the equivalent fix via migration
+// 021 instead.
+runSqliteOnlyAlter(
+  "UPDATE cafes SET reminder_min_stamps = 7 WHERE reminder_min_stamps = 3",
+  "Failed to backfill cafes.reminder_min_stamps default:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_inactive_days INTEGER DEFAULT 14",
+  "Failed to add cafes.reminder_inactive_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_message TEXT",
+  "Failed to add cafes.reminder_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_full_message TEXT",
+  "Failed to add cafes.reminder_full_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_new_customer_days INTEGER DEFAULT 21",
+  "Failed to add cafes.reminder_new_customer_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_new_customer_message TEXT",
+  "Failed to add cafes.reminder_new_customer_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN last_broadcast_at INTEGER",
+  "Failed to add cafes.last_broadcast_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE reminder_notifications ADD COLUMN message TEXT",
+  "Failed to add reminder_notifications.message column:",
+);
+// Cleans up the per-platform tracking columns an earlier version of this
+// migration added, superseded by the platform-agnostic reminder_notifications
+// table above - harmless no-op (just a log line) on a database that never
+// had them.
+runSqliteOnlyAlter(
+  "ALTER TABLE wallet_passes DROP COLUMN last_reminder_sent_at",
+  "Failed to drop wallet_passes.last_reminder_sent_at column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE google_wallet_objects DROP COLUMN last_reminder_sent_at",
+  "Failed to drop google_wallet_objects.last_reminder_sent_at column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN card_bg_mime TEXT",
@@ -1876,6 +1976,52 @@ async function getOpenStampTotal(cafeAddress, customerAddress) {
     total += Number(g.total || 0);
   }
   return total;
+}
+
+// Whether a customer has a *confirmed* wallet channel at this café - used
+// by /stamp-by-cafe to warn the barista live (see that route's own
+// comment for the real support case this traced back to). Apple "active"
+// means a wallet_registrations row exists for one of their passes here -
+// Apple's own confirmation the pass truly made it into Wallet, not just
+// that we served the file. Google has no such confirmation callback at
+// all (same caveat as admin-dashboard.html's renderWalletPassBadge) - a
+// saved object is the best signal available, so it counts as "active" on
+// its own.
+async function checkWalletActive(cafeId, customerAddress) {
+  let walletActive = false;
+  let hasWalletPass = false;
+  try {
+    if (cafeId != null) {
+      const customerLower = String(customerAddress || "").toLowerCase();
+      const applePassRows = await db
+        .prepare(
+          "SELECT serial_number FROM wallet_passes WHERE customer_address = ? AND cafe_id = ?",
+        )
+        .all(customerLower, cafeId);
+      if (applePassRows.length) {
+        hasWalletPass = true;
+        const serials = applePassRows.map((r) => r.serial_number);
+        const regRows = await db
+          .prepare(
+            `SELECT 1 FROM wallet_registrations WHERE serial_number IN (${serials.map(() => "?").join(",")}) LIMIT 1`,
+          )
+          .all(...serials);
+        if (regRows.length) walletActive = true;
+      }
+      const googleRows = await db
+        .prepare(
+          "SELECT 1 FROM google_wallet_objects WHERE customer_address = ? AND cafe_id = ? LIMIT 1",
+        )
+        .all(customerLower, cafeId);
+      if (googleRows.length) {
+        hasWalletPass = true;
+        walletActive = true;
+      }
+    }
+  } catch (err) {
+    console.warn("Wallet-active check failed:", err && err.message ? err.message : err);
+  }
+  return { walletActive, hasWalletPass };
 }
 
 // Redeeming a full card used to always mint a brand new card_id for
@@ -2643,7 +2789,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -3070,6 +3216,16 @@ function getCafeProgramSettings(row) {
     ),
     popupAlmostRewardMessage: toOptionalTrimmedText(
       src.popup_almost_reward_message,
+      280,
+    ),
+    reminderPushEnabled: toBoundBoolInt(src.reminder_push_enabled, 0),
+    reminderMinStamps: toBoundInt(src.reminder_min_stamps, 7, 3, 9),
+    reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
+    reminderMessage: toOptionalTrimmedText(src.reminder_message, 280),
+    reminderFullMessage: toOptionalTrimmedText(src.reminder_full_message, 280),
+    reminderNewCustomerDays: toBoundInt(src.reminder_new_customer_days, 21, 7, 90),
+    reminderNewCustomerMessage: toOptionalTrimmedText(
+      src.reminder_new_customer_message,
       280,
     ),
   };
@@ -3508,6 +3664,16 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
     notifyWalletPassUpdated(customer, cafeAddress);
     notifyGoogleWalletPassUpdated(customer, cafeAddress);
 
+    // Lets the scanner UI warn the barista right when it matters, instead
+    // of a customer finding out days later that their card never actually
+    // updated (chat 2026-09-21 - traced a real support case to exactly
+    // this: stamps recorded correctly, but the customer's Apple Wallet
+    // pass was never registered for updates, so nothing ever appeared).
+    const walletStatus = await checkWalletActive(
+      cafeRowForProgram && cafeRowForProgram.id,
+      customer,
+    );
+
     res.json({
       success: true,
       status: "confirmed",
@@ -3516,9 +3682,136 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
       overflowed,
       newCardId,
       newCardStamps,
+      walletActive: walletStatus.walletActive,
+      hasWalletPass: walletStatus.hasWalletPass,
     });
   } catch (err) {
     console.error("Error in /stamp-by-cafe:", err);
+    res.status(500).json({ error: String(err.message || err) });
+  }
+});
+
+// Corrects a mistaken stamp award - inserts a negative-delta event on the
+// customer's currently open card instead of mutating/deleting past events
+// (same "history is append-only" convention as redemption/reset already
+// use). Clamped so a card can never go below 0, and rejected outright on
+// an already-redeemed card - that's a closed historical record, not
+// something a café should be able to edit after the fact.
+app.post("/remove-stamp", requireCafeAuth, async (req, res) => {
+  try {
+    const { customer, count, customerName, qrCafe, cardId, cid, card } =
+      req.body || {};
+    const cnt = Math.max(1, Math.min(20, Number(count || 1)));
+
+    if (!customer || !/^0x[0-9a-fA-F]{40}$/.test(customer)) {
+      return res.status(400).json({ error: "invalid customer address" });
+    }
+
+    const cafeAddress =
+      ensureCafeAddress(req.cafe) || String(req.cafe?.id || "");
+    if (!cafeAddress)
+      return res.status(500).json({ error: "missing_cafe_context" });
+
+    if (
+      qrCafe != null &&
+      String(qrCafe).toLowerCase() !== String(cafeAddress).toLowerCase()
+    ) {
+      return res.status(403).json({
+        error: "wrong_cafe",
+        expected: cafeAddress,
+        provided: qrCafe,
+        message:
+          "Dieser QR-Code gehört zu einem anderen Café. Bitte mit dem korrekten Konto anmelden.",
+      });
+    }
+
+    let normalizedCardId = null;
+    const rawCardId =
+      cardId != null ? cardId : cid != null ? cid : card != null ? card : null;
+    const s = rawCardId != null ? String(rawCardId).trim() : "";
+    if (s && s !== "__legacy__") {
+      if (s.length > 128) {
+        return res.status(400).json({ error: "card_id_invalid" });
+      }
+      normalizedCardId = s;
+    }
+
+    // Same target-resolution as splitStampAward's explicit-cardId path
+    // (see its own comment): trust an explicit target only if it's a real,
+    // still-open card in this customer's history; otherwise fall back to
+    // whichever card their latest event actually belongs to.
+    let targetCardId = normalizedCardId;
+    if (targetCardId != null) {
+      const targetTotal = await getStampsByCafeUserCardId(
+        cafeAddress,
+        customer,
+        targetCardId,
+      );
+      const targetRedeemed = await hasCardBeenRedeemed.get(
+        cafeAddress,
+        customer,
+        targetCardId,
+      );
+      if (targetRedeemed || targetTotal <= 0) {
+        const latestRow = await getLatestCardIdForCustomerCafe.get(
+          cafeAddress,
+          customer,
+        );
+        targetCardId = latestRow ? latestRow.card_id : null;
+      }
+    } else {
+      const latestRow = await getLatestCardIdForCustomerCafe.get(
+        cafeAddress,
+        customer,
+      );
+      targetCardId = latestRow ? latestRow.card_id : null;
+    }
+
+    const isRedeemed = !!(await hasCardBeenRedeemed.get(
+      cafeAddress,
+      customer,
+      targetCardId,
+    ));
+    if (isRedeemed) {
+      return res.status(409).json({ error: "card_already_redeemed" });
+    }
+
+    const currentTotal = Math.max(
+      0,
+      await getStampsByCafeUserCardId(cafeAddress, customer, targetCardId),
+    );
+    const removed = Math.min(cnt, currentTotal);
+
+    if (removed > 0) {
+      const localTx = `local_${crypto.randomBytes(16).toString("hex")}`;
+      const ev = {
+        ts: Date.now(),
+        cafe: cafeAddress,
+        customer_name: customerName || null,
+        user: customer,
+        txhash: localTx,
+        status: "confirmed",
+        event_type: "stamp_removed",
+        delta: -removed,
+        card_id: targetCardId,
+      };
+      await insertEvent.run(ev);
+      try {
+        broadcastEvent(ev);
+      } catch (e) {}
+      notifyWalletPassUpdated(customer, cafeAddress);
+      notifyGoogleWalletPassUpdated(customer, cafeAddress);
+    }
+
+    const newTotal = Math.max(0, currentTotal - removed);
+    res.json({
+      success: true,
+      removed,
+      newTotal,
+      cardId: targetCardId,
+    });
+  } catch (err) {
+    console.error("Error in /remove-stamp:", err);
     res.status(500).json({ error: String(err.message || err) });
   }
 });
@@ -3942,6 +4235,1319 @@ app.get("/stamps/history/:addr", async (req, res) => {
   }
 });
 
+// Per-café chart data for a café's own dashboard - same day/time bucketing
+// idea as /admin/cafes/activity's charts, but scoped to a single café's own
+// rows via a couple of cheap, filtered queries instead of the admin route's
+// all-cafés-at-once accumulator pass (that one has to look at everything
+// anyway to build every café's card; a single café's dashboard doesn't).
+const CAFE_CHART_DAYS = 30;
+const CAFE_CHART_BIN_MINUTES = 15;
+const CAFE_CHART_BINS_PER_DAY = (24 * 60) / CAFE_CHART_BIN_MINUTES;
+const cafeChartDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Berlin",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const cafeChartTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+function cafeChartDayKey(ts) {
+  return cafeChartDayFormatter.format(new Date(ts));
+}
+function cafeChartTimeBin(ts) {
+  let hour = 0;
+  let minute = 0;
+  for (const part of cafeChartTimeFormatter.formatToParts(new Date(ts))) {
+    if (part.type === "hour") hour = Number(part.value) % 24;
+    else if (part.type === "minute") minute = Number(part.value);
+  }
+  const minutesSinceMidnight = hour * 60 + minute;
+  return Math.min(
+    CAFE_CHART_BINS_PER_DAY - 1,
+    Math.floor(minutesSinceMidnight / CAFE_CHART_BIN_MINUTES),
+  );
+}
+
+async function computeCafeCharts(cafeAddressLower, cafeNumericId) {
+  const windowStart = Date.now() - CAFE_CHART_DAYS * 86400000;
+  const dayList = [];
+  for (let i = CAFE_CHART_DAYS - 1; i >= 0; i--) {
+    dayList.push(cafeChartDayKey(Date.now() - i * 86400000));
+  }
+  const byDay = new Map(dayList.map((d) => [d, 0]));
+  const byTimeOfDay = new Array(CAFE_CHART_BINS_PER_DAY).fill(0);
+  const walletByDay = new Map(dayList.map((d) => [d, { apple: 0, google: 0 }]));
+
+  const stampRows = await db
+    .prepare(
+      `SELECT ts FROM stamp_events WHERE delta > 0 AND LOWER(cafe) = ? AND ts >= ?`,
+    )
+    .all(cafeAddressLower, windowStart);
+  for (const row of stampRows) {
+    const ts = Number(row.ts);
+    if (!ts) continue;
+    const d = cafeChartDayKey(ts);
+    if (byDay.has(d)) byDay.set(d, byDay.get(d) + 1);
+    byTimeOfDay[cafeChartTimeBin(ts)] += 1;
+  }
+
+  if (cafeNumericId != null) {
+    const appleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of appleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).apple += 1;
+    }
+    const googleRows = await db
+      .prepare(
+        `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
+      )
+      .all(cafeNumericId, windowStart);
+    for (const row of googleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).google += 1;
+    }
+  }
+
+  return {
+    days: CAFE_CHART_DAYS,
+    timezone: "Europe/Berlin",
+    binMinutes: CAFE_CHART_BIN_MINUTES,
+    dailyStamps: dayList.map((d) => ({ date: d, count: byDay.get(d) || 0 })),
+    dailyWalletDownloads: dayList.map((d) => {
+      const v = walletByDay.get(d) || { apple: 0, google: 0 };
+      return {
+        date: d,
+        apple: v.apple,
+        google: v.google,
+        total: v.apple + v.google,
+      };
+    }),
+    stampsByTimeOfDay: byTimeOfDay.map((count, bin) => ({
+      bin,
+      minute: bin * CAFE_CHART_BIN_MINUTES,
+      count,
+    })),
+  };
+}
+
+// Richer per-café analytics for the admin café-detail view: splits stamps
+// from unique customers per day (30 stamps could be 30 one-off visitors or
+// 10 regulars stopping by three times - very different pictures for a
+// café), a Monday-first weekday x time-of-day heatmap instead of the
+// dot-plot's raw time-of-day distribution, new-vs-returning customer counts
+// for the selected window, and a wallet-cards total/growth KPI. Kept
+// separate from computeCafeCharts() above (café's own dashboard) rather
+// than replacing it, so that route's already-shipped 30-day-fixed shape
+// doesn't shift under it.
+const CAFE_HEATMAP_BUCKET_HOURS = 2;
+const CAFE_HEATMAP_BUCKETS_PER_DAY = 24 / CAFE_HEATMAP_BUCKET_HOURS;
+const cafeWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Berlin",
+  weekday: "short",
+});
+const CAFE_WEEKDAY_ORDER = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+function cafeWeekdayIndex(ts) {
+  const label = cafeWeekdayFormatter.format(new Date(ts));
+  return CAFE_WEEKDAY_ORDER[label] ?? 0;
+}
+function cafeHeatmapBucket(ts) {
+  let hour = 0;
+  for (const part of cafeChartTimeFormatter.formatToParts(new Date(ts))) {
+    if (part.type === "hour") hour = Number(part.value) % 24;
+  }
+  return Math.min(
+    CAFE_HEATMAP_BUCKETS_PER_DAY - 1,
+    Math.floor(hour / CAFE_HEATMAP_BUCKET_HOURS),
+  );
+}
+
+async function computeCafeAnalytics(cafeAddressLower, cafeNumericId, days) {
+  const windowDays = Math.max(1, Math.min(90, Number(days) || 30));
+  const windowStart = Date.now() - windowDays * 86400000;
+  const dayList = [];
+  for (let i = windowDays - 1; i >= 0; i--) {
+    dayList.push(cafeChartDayKey(Date.now() - i * 86400000));
+  }
+
+  const byDayStamps = new Map(dayList.map((d) => [d, 0]));
+  const byDayCustomers = new Map(dayList.map((d) => [d, new Set()]));
+  const byDayRedemptions = new Map(dayList.map((d) => [d, 0]));
+  const walletByDay = new Map(dayList.map((d) => [d, { apple: 0, google: 0 }]));
+  const heatmapGrid = Array.from({ length: 7 }, () =>
+    new Array(CAFE_HEATMAP_BUCKETS_PER_DAY).fill(0),
+  );
+
+  // cafeAddressLower === null means "across all cafés" (the admin
+  // overview's "Gesamt" analytics) - same queries, just without the
+  // per-café WHERE filter.
+  const isGlobal = cafeAddressLower == null;
+
+  // Every event in the window (not just delta>0 stamps) so redemptions and
+  // "did this customer show up at all today" are both derivable from one
+  // pass instead of three separate queries.
+  const windowRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE ts >= ?`,
+        )
+        .all(windowStart)
+    : await db
+        .prepare(
+          `SELECT ts, "user" AS user, event_type, delta FROM stamp_events WHERE LOWER(cafe) = ? AND ts >= ?`,
+        )
+        .all(cafeAddressLower, windowStart);
+
+  for (const row of windowRows) {
+    const ts = Number(row.ts);
+    if (!ts) continue;
+    const d = cafeChartDayKey(ts);
+    const isRedeem = String(row.event_type || "").toLowerCase() === "redeem";
+    if (Number(row.delta) > 0) {
+      if (byDayStamps.has(d)) byDayStamps.set(d, byDayStamps.get(d) + 1);
+      heatmapGrid[cafeWeekdayIndex(ts)][cafeHeatmapBucket(ts)] += 1;
+    }
+    if (isRedeem && byDayRedemptions.has(d)) {
+      byDayRedemptions.set(d, byDayRedemptions.get(d) + 1);
+    }
+    if (byDayCustomers.has(d) && row.user) {
+      byDayCustomers.get(d).add(String(row.user).toLowerCase());
+    }
+  }
+
+  // All-time (not window-limited) first/last activity per customer - the
+  // only way to tell "brand new this window" apart from "already a
+  // customer, just came back", since both look identical if you only look
+  // inside the window itself. Globally this is per customer across every
+  // café instead of just this one.
+  const firstSeenRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events GROUP BY "user"`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT "user" AS user, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM stamp_events WHERE LOWER(cafe) = ? GROUP BY "user"`,
+        )
+        .all(cafeAddressLower);
+
+  let newCustomers = 0;
+  let returningCustomers = 0;
+  for (const row of firstSeenRows) {
+    const lastTs = Number(row.last_ts);
+    if (!lastTs || lastTs < windowStart) continue;
+    const firstTs = Number(row.first_ts);
+    if (firstTs >= windowStart) newCustomers += 1;
+    else returningCustomers += 1;
+  }
+
+  // Runs for both scopes - global just drops the cafe_id filter. A café
+  // that has never issued a single wallet card (cafeNumericId null in the
+  // per-café case only) skips this entirely, since there's nothing to
+  // count.
+  let cardsTotal = 0;
+  let cardsNewInWindow = 0;
+  if (isGlobal || cafeNumericId != null) {
+    const appleRows = isGlobal
+      ? await db
+          .prepare(`SELECT created_at AS ts FROM wallet_passes WHERE created_at >= ?`)
+          .all(windowStart)
+      : await db
+          .prepare(
+            `SELECT created_at AS ts FROM wallet_passes WHERE cafe_id = ? AND created_at >= ?`,
+          )
+          .all(cafeNumericId, windowStart);
+    for (const row of appleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).apple += 1;
+    }
+    const googleRows = isGlobal
+      ? await db
+          .prepare(
+            `SELECT created_at AS ts FROM google_wallet_objects WHERE created_at >= ?`,
+          )
+          .all(windowStart)
+      : await db
+          .prepare(
+            `SELECT created_at AS ts FROM google_wallet_objects WHERE cafe_id = ? AND created_at >= ?`,
+          )
+          .all(cafeNumericId, windowStart);
+    for (const row of googleRows) {
+      const ts = Number(row.ts);
+      if (!ts) continue;
+      const d = cafeChartDayKey(ts);
+      if (walletByDay.has(d)) walletByDay.get(d).google += 1;
+    }
+
+    // Distinct customers with any wallet card, deduped across Apple/Google
+    // (a customer with both shouldn't count as two cards) - drives the
+    // "Karten insgesamt" KPI and its "+N in the last <days> days" delta.
+    const cardRows = isGlobal
+      ? await db
+          .prepare(
+            `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+               SELECT customer_address, created_at FROM wallet_passes
+               UNION ALL
+               SELECT customer_address, created_at FROM google_wallet_objects
+             ) AS t
+             GROUP BY customer_address`,
+          )
+          .all()
+      : await db
+          .prepare(
+            `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+               SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
+               UNION ALL
+               SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
+             ) AS t
+             GROUP BY customer_address`,
+          )
+          .all(cafeNumericId, cafeNumericId);
+    cardsTotal = cardRows.length;
+    cardsNewInWindow = cardRows.filter(
+      (r) => Number(r.first_ts) >= windowStart,
+    ).length;
+  }
+
+  return {
+    days: windowDays,
+    timezone: "Europe/Berlin",
+    dailyStamps: dayList.map((d) => ({
+      date: d,
+      count: byDayStamps.get(d) || 0,
+      uniqueCustomers: byDayCustomers.get(d) ? byDayCustomers.get(d).size : 0,
+      redemptions: byDayRedemptions.get(d) || 0,
+      isWeekend: cafeWeekdayIndex(new Date(`${d}T12:00:00Z`).getTime()) >= 5,
+    })),
+    dailyWalletDownloads: dayList.map((d) => {
+      const v = walletByDay.get(d) || { apple: 0, google: 0 };
+      return {
+        date: d,
+        apple: v.apple,
+        google: v.google,
+        total: v.apple + v.google,
+      };
+    }),
+    heatmap: {
+      bucketHours: CAFE_HEATMAP_BUCKET_HOURS,
+      bucketsPerDay: CAFE_HEATMAP_BUCKETS_PER_DAY,
+      weekdayLabels: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+      grid: heatmapGrid,
+    },
+    customerActivity: {
+      newCustomers,
+      returningCustomers,
+      activeCustomers: newCustomers + returningCustomers,
+    },
+    cards: {
+      total: cardsTotal,
+      newInWindow: cardsNewInWindow,
+    },
+  };
+}
+
+app.get(
+  "/admin/cafes/:cafeId/analytics",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const cafeAddress = ensureCafeAddress(current) || String(current.id || "");
+      const days = Number(req.query?.days) || 30;
+      const analytics = await computeCafeAnalytics(
+        cafeAddress.toLowerCase(),
+        Number(current.id),
+        days,
+      );
+      res.json({ ok: true, cafe: { id: current.id, name: current.name || null }, analytics });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/analytics:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// Same analytics shape as above, aggregated across every café - the admin
+// overview's "Gesamt" view.
+app.get("/admin/analytics", requireAdminKey, async (req, res) => {
+  try {
+    const days = Number(req.query?.days) || 30;
+    const analytics = await computeCafeAnalytics(null, null, days);
+    res.json({ ok: true, analytics });
+  } catch (err) {
+    console.error("Error in /admin/analytics:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// All-time lifecycle analytics (funnel, rewards, visit distribution, time
+// between visits, weekly cohort retention) - deliberately NOT window-scoped
+// like computeCafeAnalytics() above, since "where do customers fall off"
+// and "how many visits until someone's a regular" are lifetime questions,
+// not "last 30 days" ones. One raw per-event query drives all five
+// sections in a single JS pass instead of five separate aggregate queries.
+function cohortWeekStart(ts) {
+  const dayKeyStr = cafeChartDayKey(ts);
+  const noonUtc = new Date(`${dayKeyStr}T12:00:00Z`).getTime();
+  const weekdayIdx = cafeWeekdayIndex(noonUtc); // 0=Mon..6=Sun
+  return noonUtc - weekdayIdx * 86400000;
+}
+function cohortWeekLabel(weekStartTs) {
+  const parts = cafeChartDayKey(weekStartTs).split("-");
+  return parts.length === 3 ? `ab ${parts[2]}.${parts[1]}.` : "?";
+}
+
+async function computeCafeLifecycle(cafeAddressLower, singleThreshold, cafeNumericId) {
+  const isGlobal = cafeAddressLower == null;
+
+  const eventRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT LOWER(cafe) AS cafe_addr, "user" AS user, ts, delta, event_type FROM stamp_events`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT LOWER(cafe) AS cafe_addr, "user" AS user, ts, delta, event_type FROM stamp_events WHERE LOWER(cafe) = ?`,
+        )
+        .all(cafeAddressLower);
+
+  // One group per (café, customer) relationship - a customer's stamp
+  // balance is tracked per café, so that's the natural funnel/cohort unit;
+  // for a single café's own view this degenerates to one group per
+  // customer, same as before.
+  const groups = new Map();
+  for (const row of eventRows) {
+    const cafeAddr = row.cafe_addr;
+    const user = String(row.user || "").toLowerCase();
+    if (!user) continue;
+    const key = `${cafeAddr}::${user}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { cafeAddr, visits: [], totalStamps: 0, redemptions: 0 };
+      groups.set(key, g);
+    }
+    const ts = Number(row.ts);
+    if (Number(row.delta) > 0 && ts) {
+      g.totalStamps += Number(row.delta);
+      g.visits.push(ts);
+    }
+    if (String(row.event_type || "").toLowerCase() === "redeem") {
+      g.redemptions += 1;
+    }
+  }
+  for (const g of groups.values()) g.visits.sort((a, b) => a - b);
+
+  let thresholdByCafe = null;
+  if (isGlobal) {
+    const cafeRows = await db
+      .prepare(`SELECT address, COALESCE(stamps_for_reward, 10) AS threshold FROM cafes`)
+      .all();
+    thresholdByCafe = new Map();
+    for (const r of cafeRows) {
+      if (r.address) {
+        thresholdByCafe.set(String(r.address).toLowerCase(), Number(r.threshold) || 10);
+      }
+    }
+  }
+  function thresholdFor(cafeAddr) {
+    if (isGlobal) return thresholdByCafe.get(cafeAddr) || 10;
+    return Number(singleThreshold) || 10;
+  }
+
+  // Wallet-Karten funnel stage counts (café, customer) relationships, not
+  // raw customers - consistent with every later funnel stage, so a
+  // customer with cards at 3 cafés contributes 3 funnel entries at stage 1,
+  // not 1 (matching how they contribute 3 independent entries at every
+  // later stage too).
+  const walletRelRows = isGlobal
+    ? await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM (
+             SELECT DISTINCT cafe_id, customer_address FROM (
+               SELECT cafe_id, customer_address FROM wallet_passes
+               UNION ALL
+               SELECT cafe_id, customer_address FROM google_wallet_objects
+             ) AS u
+           ) AS d`,
+        )
+        .all()
+    : await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM (
+             SELECT DISTINCT cafe_id, customer_address FROM (
+               SELECT cafe_id, customer_address FROM wallet_passes WHERE cafe_id = ?
+               UNION ALL
+               SELECT cafe_id, customer_address FROM google_wallet_objects WHERE cafe_id = ?
+             ) AS u
+           ) AS d`,
+        )
+        .all(cafeNumericId, cafeNumericId);
+
+  let funnel = {
+    wallet: (walletRelRows && walletRelRows[0] && Number(walletRelRows[0].n)) || 0,
+    firstStamp: 0,
+    twoPlus: 0,
+    fivePlus: 0,
+    rewardReached: 0,
+    rewardRedeemed: 0,
+  };
+  let rewardsEarnedApprox = 0;
+  let rewardsRedeemed = 0;
+
+  for (const g of groups.values()) {
+    if (g.totalStamps >= 1) funnel.firstStamp += 1;
+    if (g.totalStamps >= 2) funnel.twoPlus += 1;
+    if (g.totalStamps >= 5) funnel.fivePlus += 1;
+    const th = thresholdFor(g.cafeAddr);
+    if (g.totalStamps >= th) funnel.rewardReached += 1;
+    if (g.redemptions >= 1) {
+      funnel.rewardRedeemed += 1;
+      rewardsRedeemed += g.redemptions;
+    }
+    rewardsEarnedApprox += Math.floor(g.totalStamps / th);
+  }
+
+  const visitBuckets = [
+    { visits: "1", customers: 0 },
+    { visits: "2", customers: 0 },
+    { visits: "3", customers: 0 },
+    { visits: "4", customers: 0 },
+    { visits: "5+", customers: 0 },
+  ];
+  for (const g of groups.values()) {
+    const n = g.visits.length;
+    if (n <= 0) continue;
+    if (n >= 5) visitBuckets[4].customers += 1;
+    else visitBuckets[n - 1].customers += 1;
+  }
+
+  const gapBucketDefs = [
+    { label: "< 3 Tage", min: 0, max: 3 },
+    { label: "3–7 Tage", min: 3, max: 7 },
+    { label: "8–14 Tage", min: 8, max: 14 },
+    { label: "15–30 Tage", min: 15, max: 30 },
+    { label: "> 30 Tage", min: 30, max: Infinity },
+  ];
+  const gapBuckets = gapBucketDefs.map((b) => ({ ...b, count: 0 }));
+  const allGapDays = [];
+  for (const g of groups.values()) {
+    for (let i = 1; i < g.visits.length; i++) {
+      const gapDays = (g.visits[i] - g.visits[i - 1]) / 86400000;
+      allGapDays.push(gapDays);
+      const bucket =
+        gapBuckets.find((b) => gapDays >= b.min && gapDays <= b.max) ||
+        gapBuckets[gapBuckets.length - 1];
+      bucket.count += 1;
+    }
+  }
+  allGapDays.sort((a, b) => a - b);
+  const medianDays = allGapDays.length
+    ? allGapDays[Math.floor(allGapDays.length / 2)]
+    : null;
+
+  // Weekly cohorts: group (café, customer) relationships by the week of
+  // their first-ever visit, then check whether each one has any visit in
+  // week +1/+2/+4/+8 relative to that cohort's start - "–" (null) instead
+  // of 0% when that offset hasn't happened yet for a recent cohort.
+  const cohortGroups = new Map();
+  const now = Date.now();
+  for (const g of groups.values()) {
+    if (!g.visits.length) continue;
+    const weekStart = cohortWeekStart(g.visits[0]);
+    if (!cohortGroups.has(weekStart)) cohortGroups.set(weekStart, []);
+    cohortGroups.get(weekStart).push(g);
+  }
+  const cohortWeekStarts = [...cohortGroups.keys()].sort((a, b) => b - a).slice(0, 8).reverse();
+  const cohortOffsets = [1, 2, 4, 8];
+  const cohorts = cohortWeekStarts.map((weekStart) => {
+    const members = cohortGroups.get(weekStart) || [];
+    const retention = {};
+    for (const offset of cohortOffsets) {
+      const rangeStart = weekStart + offset * 7 * 86400000;
+      const rangeEnd = rangeStart + 7 * 86400000;
+      if (rangeStart > now) {
+        retention[`w${offset}`] = null;
+        continue;
+      }
+      const activeCount = members.filter((m) =>
+        m.visits.some((v) => v >= rangeStart && v < rangeEnd),
+      ).length;
+      retention[`w${offset}`] = members.length
+        ? activeCount / members.length
+        : null;
+    }
+    return {
+      label: cohortWeekLabel(weekStart),
+      size: members.length,
+      retention,
+    };
+  });
+
+  return {
+    visitDistribution: visitBuckets,
+    timeBetweenVisits: {
+      medianDays,
+      buckets: gapBuckets.map((b) => ({ label: b.label, count: b.count })),
+    },
+    funnel,
+    rewards: {
+      earnedApprox: rewardsEarnedApprox,
+      redeemed: rewardsRedeemed,
+      redemptionRate: rewardsEarnedApprox
+        ? Math.min(1, rewardsRedeemed / rewardsEarnedApprox)
+        : null,
+      threshold: isGlobal ? null : Number(singleThreshold) || 10,
+    },
+    cohorts: {
+      offsets: cohortOffsets,
+      rows: cohorts,
+    },
+  };
+}
+
+app.get(
+  "/admin/cafes/:cafeId/lifecycle",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const cafeAddress = ensureCafeAddress(current) || String(current.id || "");
+      const program = getCafeProgramSettings(current);
+      const lifecycle = await computeCafeLifecycle(
+        cafeAddress.toLowerCase(),
+        program.stampsForReward,
+        Number(current.id),
+      );
+      res.json({ ok: true, cafe: { id: current.id, name: current.name || null }, lifecycle });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/lifecycle:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+app.get("/admin/lifecycle", requireAdminKey, async (req, res) => {
+  try {
+    const lifecycle = await computeCafeLifecycle(null, null, null);
+    res.json({ ok: true, lifecycle });
+  } catch (err) {
+    console.error("Error in /admin/lifecycle:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+const getReminderNotificationState = db.prepare(
+  "SELECT sent_at, stamp_state_ts, message FROM reminder_notifications WHERE cafe_id = ? AND customer_address = ?",
+);
+const upsertReminderNotification = db.prepare(
+  "INSERT INTO reminder_notifications (cafe_id, customer_address, sent_at, stamp_state_ts, message) VALUES (?, ?, ?, ?, ?) " +
+    "ON CONFLICT (cafe_id, customer_address) DO UPDATE SET sent_at = excluded.sent_at, stamp_state_ts = excluded.stamp_state_ts, message = excluded.message",
+);
+// Append-only history, unlike reminder_notifications above which only ever
+// holds the *latest* send per (cafe, customer) for the "one push per
+// state" dedup check - this is what answers "wann ging an wen welche Push
+// raus" (chat 2026-09-21). Logged for every attempt, not just successful
+// ones, so a delivery that silently didn't reach a device (apple_pushed:0
+// despite apple_touched being true - see the freya-kohnen case earlier
+// this session) is visible here instead of looking indistinguishable from
+// a real send.
+const insertReminderLog = db.prepare(
+  "INSERT INTO reminder_log (cafe_id, customer_address, kind, message, stamp_state_ts, apple_touched, apple_pushed, google_sent, sent_at) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+);
+
+// Apple's pass.json backfield for a café's push reminder (see
+// findReminderCandidates/sendReminderPush) - ALWAYS returned (never null),
+// with a neutral "–" and no changeMessage when there's nothing active. This
+// looks backwards (a version of this that hid the field entirely when
+// inactive seems like it should be less cluttered), but three live tests
+// all silently failed to notify with that version, and the pattern that
+// *did* work from day one ("earned"'s "Frischer Stempel!") is a field
+// that's structurally present on every single pass, always - only its
+// value changes. Apple's changeMessage appears to require an *existing*
+// field's value to change, not a field appearing/disappearing between pass
+// versions - so keeping this field's structure stable and only toggling
+// its value is what actually makes the notification reliable, at the cost
+// of a permanent (if minimal) "Erinnerung: –" line when inactive.
+const REMINDER_BACKFIELD_PRIORITY_WINDOW_MS = 15 * 60 * 1000;
+async function getReminderBackfieldFor(cafeId, customerAddress) {
+  const row = await getReminderNotificationState.get(
+    cafeId,
+    String(customerAddress || "").toLowerCase(),
+  );
+  const sentAt = row && row.message ? Number(row.sent_at) : null;
+  const active =
+    sentAt != null && Date.now() - sentAt < REMINDER_BACKFIELD_PRIORITY_WINDOW_MS;
+  if (!active) {
+    return { value: "–", changeMessage: null };
+  }
+  // Apple's changeMessage is only ever rendered as a lock-screen banner if
+  // it contains the literal %@ placeholder - a fully-prewritten sentence
+  // with no %@ (what this used to send) is silently ignored and iOS falls
+  // back to its generic "pass changed" text, confirmed after several real
+  // sends all showed generic text regardless of field/uniqueness setup
+  // (see https://passkit.com/blog/how-to-engage-your-customers-with-the-apple-wallet-changemsg/).
+  // So the actual message now lives in the field's *value*, and
+  // changeMessage is just the literal "%@" - Apple substitutes it with the
+  // field's own new value, i.e. our message, verbatim.
+  //
+  // Deliberately just the message text now, no trailing date (chat
+  // 2026-09-21 - a visible timestamp next to the message read as clutter).
+  // Trade-off: a handful of the current templates are fully static once
+  // formatted (e.g. "Karte voll - {reward} wartet." has no {tokens} left),
+  // so if the *exact same* message fires twice for one customer (two full
+  // "fill up, go inactive" cycles landing on the same template), the
+  // second send's value would be byte-identical to what the device already
+  // has cached and Apple's own diffing would treat it as "nothing changed"
+  // - no banner that second time (though the field still updates the
+  // *reminder_notifications* dedup bookkeeping correctly either way, so
+  // this only affects the lock-screen banner, not whether a reminder
+  // "counts" as sent).
+  return {
+    value: String(row.message),
+    changeMessage: "%@",
+  };
+}
+
+// Matching logic for the café-configurable push reminder (see cafes.
+// Server-side mirror of formatCampaignText() in customer-qr-modern.js - same
+// {token} convention, so a café that's seen the in-app popup message fields
+// already knows how this one works too.
+function formatReminderText(template, vars, fallback) {
+  const text = String(template || "").trim() || String(fallback || "").trim();
+  const data = vars || {};
+  return text.replace(/\{(\w+)\}/g, (_, key) => {
+    const value = data[key];
+    return value == null ? "" : String(value);
+  });
+}
+
+// Tone (chat 2026-09-21): trocken/absurdistisch statt Sales-Sprech, fürs
+// 18-34-jährige Specialty-Coffee-Publikum - keine expliziten Ablauf-/
+// Verfalls-Behauptungen, da Stempel/Belohnung hier nie tatsächlich
+// verfallen. Bewusst knapp: nur das Token, das die Zeile tatsächlich
+// braucht, statt jedes verfügbare Token reinzuzwingen (Feedback aus dem
+// Chat - {stamps}/{goal}/{cafe} etc. machen eine kurze, trockene Zeile nur
+// sperriger, wenn sie für die Aussage gar nicht nötig sind).
+const REMINDER_DEFAULT_TEMPLATE =
+  "Noch {remaining} Stempel für dein Gratisgetränk - wir würden dich gerne bald wiedersehen :)";
+// Used instead of the above once a customer's open card is already at or
+// past the reward threshold (remaining <= 0) - "nur noch 0 Stempel fehlen"
+// reads oddly for a card that's actually full, caught live on staging with
+// a real customer in exactly this state.
+const REMINDER_FULL_DEFAULT_TEMPLATE = "Karte voll - {reward} wartet.";
+// For a low-engagement open card - 0 stamps (never used at all) or exactly
+// 1 (stamped once, then went quiet) - that's been sitting untouched past
+// reminderNewCustomerDays. No token needed at all here - "wann genau" ist
+// für diese Zeile nicht der Punkt.
+const REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE = "Karte geholt - Koffein vergessen?";
+
+// reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
+// migration 017): finds customers currently eligible for a nudge.
+//
+// Stamp count uses getOpenStampTotal() (the same "does this customer have
+// enough right now" function the actual stamp-awarding UI relies on), NOT a
+// raw SUM(delta) across every event ever - a redeemed card is frozen at
+// delta:0 rather than decremented (see getOpenStampTotal's own comment), so
+// a naive all-time SUM(delta) stays stuck at a customer's pre-redemption
+// total forever and never reflects a fresh card's real progress. Caught via
+// a live staging check against a customer who'd already redeemed: raw
+// SUM(delta) said 10 stamps, actual open-card total was 0.
+// getOpenStampTotal() is per-customer and non-trivial (walks card groups),
+// so it's only called for customers who already pass the cheap
+// inactive-days check below, not for every customer at the café.
+//
+// "One push per state" (a explicit requirement, not just a nice-to-have):
+// reminder_notifications holds at most one row per (cafe, customer), tagged
+// with the customer's lastStampTs at send time. A customer is skipped here
+// whenever that stored stamp_state_ts still matches their current
+// lastStampTs - i.e. nothing has changed since we already nudged them.
+// They only become eligible again after a NEW stamp moves lastStampTs
+// forward and they then go inactive a second time. This function only
+// *finds* candidates - it does not send anything or write to
+// reminder_notifications; actually sending (and marking sent) is separate,
+// later work.
+async function findReminderCandidates(cafeRow) {
+  if (!cafeRow) return [];
+  const program = getCafeProgramSettings(cafeRow);
+  if (!program.reminderPushEnabled) return [];
+  const cafeAddress = ensureCafeAddress(cafeRow);
+  if (!cafeAddress) return [];
+  const cafeAddressLower = cafeAddress.toLowerCase();
+
+  const rows = await db
+    .prepare(
+      `SELECT "user" AS user,
+              MAX(CASE WHEN delta > 0 THEN ts ELSE NULL END) AS last_stamp_ts
+       FROM stamp_events
+       WHERE LOWER(cafe) = ?
+       GROUP BY "user"`,
+    )
+    .all(cafeAddressLower);
+
+  const now = Date.now();
+  const inactiveThresholdMs = program.reminderInactiveDays * 86400000;
+  const newCustomerThresholdMs = program.reminderNewCustomerDays * 86400000;
+  // Cheap pre-filter before the per-customer getOpenStampTotal() call below -
+  // has to use whichever of the two day-thresholds is shorter, since a
+  // low-engagement (0-1 stamp) candidate is checked against
+  // reminderNewCustomerDays, not reminderInactiveDays, and a café could in
+  // principle configure the "new customer" threshold shorter than the
+  // regular inactivity one.
+  const minThresholdMs = Math.min(inactiveThresholdMs, newCustomerThresholdMs);
+
+  const candidates = [];
+  for (const row of rows) {
+    const lastStampTs = row.last_stamp_ts != null ? Number(row.last_stamp_ts) : null;
+    if (!lastStampTs) continue;
+    if (now - lastStampTs < minThresholdMs) continue;
+
+    const customerAddress = String(row.user || "").toLowerCase();
+    if (!customerAddress) continue;
+
+    const openStampTotal = await getOpenStampTotal(
+      cafeAddressLower,
+      customerAddress,
+    );
+
+    // Two different buckets share this loop: a properly-engaged card
+    // (>= reminderMinStamps) that's gone quiet for reminderInactiveDays,
+    // vs. a barely-touched card (0 or 1 stamp - the "0" case with real
+    // stamp history is a customer who redeemed a full card and never
+    // restarted) that's been sitting for the longer reminderNewCustomerDays
+    // instead. Anything in between (2 stamps up to reminderMinStamps-1)
+    // intentionally gets no reminder at all - too little progress to call
+    // it "almost there", too much to call it "barely started".
+    const isEngaged = openStampTotal >= program.reminderMinStamps;
+    const isLowEngagement = !isEngaged && openStampTotal <= 1;
+    if (!isEngaged && !isLowEngagement) continue;
+    if (isEngaged && now - lastStampTs < inactiveThresholdMs) continue;
+    if (isLowEngagement && now - lastStampTs < newCustomerThresholdMs) continue;
+
+    const already = await getReminderNotificationState.get(
+      cafeRow.id,
+      customerAddress,
+    );
+    if (already && Number(already.stamp_state_ts) >= lastStampTs) continue;
+
+    const daysInactive = Math.floor((now - lastStampTs) / 86400000);
+    const remaining = Math.max(0, program.stampsForReward - openStampTotal);
+    const isFull = openStampTotal >= program.stampsForReward;
+    const messageVars = {
+      cafe: cafeRow.name || "deinem Café",
+      days: daysInactive,
+      remaining,
+      stamps: openStampTotal,
+      goal: program.stampsForReward,
+      reward: program.rewardDescription || "deine Belohnung",
+    };
+    const message = isLowEngagement
+      ? formatReminderText(
+          program.reminderNewCustomerMessage,
+          messageVars,
+          REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE,
+        )
+      : isFull
+        ? formatReminderText(
+            program.reminderFullMessage,
+            messageVars,
+            REMINDER_FULL_DEFAULT_TEMPLATE,
+          )
+        : formatReminderText(
+            program.reminderMessage,
+            messageVars,
+            REMINDER_DEFAULT_TEMPLATE,
+          );
+
+    candidates.push({
+      kind: isLowEngagement ? "lowEngagement" : "inactive",
+      customerAddress,
+      netStamps: openStampTotal,
+      remaining,
+      isFull,
+      lastStampTs,
+      daysInactive,
+      message,
+      previouslyNotifiedAt:
+        already && already.sent_at != null ? Number(already.sent_at) : null,
+    });
+  }
+
+  // Second "lowEngagement" scenario, other half: a wallet card was saved but
+  // never got a single stamp - these customers never appear in the
+  // stamp_events-driven loop above at all (no rows to group), so they need
+  // their own source: every distinct (café, customer) wallet card, minus
+  // whoever's in `rows` with any real stamp (delta>0, handled by the 0/1-
+  // stamp branch up in the main loop instead). "days" is measured from when
+  // the card was created, there being no stamp to measure inactivity from
+  // instead. Same "one push per state" dedup via reminder_notifications,
+  // keyed off the card's own creation time instead of a stamp timestamp -
+  // since that never changes, a customer who's sent this once and still
+  // hasn't stamped won't be re-nudged on every future run, only once, ever
+  // (which is the point: repeatedly nagging someone who's shown zero
+  // engagement isn't useful, unlike the "inactive" bucket above where a new
+  // stamp genuinely resets the clock).
+  if (cafeRow.id != null) {
+    const everStamped = new Set(
+      rows
+        .filter((r) => r.last_stamp_ts != null)
+        .map((r) => String(r.user || "").toLowerCase()),
+    );
+    const cardRows = await db
+      .prepare(
+        `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+           SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
+           UNION ALL
+           SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
+         ) AS t
+         GROUP BY customer_address`,
+      )
+      .all(cafeRow.id, cafeRow.id);
+
+    for (const row of cardRows) {
+      const customerAddress = String(row.customer_address || "").toLowerCase();
+      if (!customerAddress || everStamped.has(customerAddress)) continue;
+      const firstTs = row.first_ts != null ? Number(row.first_ts) : null;
+      if (!firstTs) continue;
+      if (now - firstTs < newCustomerThresholdMs) continue;
+
+      const already = await getReminderNotificationState.get(
+        cafeRow.id,
+        customerAddress,
+      );
+      if (already && Number(already.stamp_state_ts) >= firstTs) continue;
+
+      const daysSinceCreated = Math.floor((now - firstTs) / 86400000);
+      const messageVars = {
+        cafe: cafeRow.name || "deinem Café",
+        days: daysSinceCreated,
+        remaining: program.stampsForReward,
+        stamps: 0,
+        goal: program.stampsForReward,
+        reward: program.rewardDescription || "deine Belohnung",
+      };
+      const message = formatReminderText(
+        program.reminderNewCustomerMessage,
+        messageVars,
+        REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE,
+      );
+
+      candidates.push({
+        kind: "lowEngagement",
+        customerAddress,
+        netStamps: 0,
+        remaining: program.stampsForReward,
+        isFull: false,
+        lastStampTs: firstTs,
+        daysInactive: daysSinceCreated,
+        message,
+        previouslyNotifiedAt:
+          already && already.sent_at != null ? Number(already.sent_at) : null,
+      });
+    }
+  }
+
+  return candidates;
+}
+
+// Actually sends one candidate's reminder on every wallet platform they
+// have an *open* (not-yet-redeemed) card on, then records it in
+// reminder_notifications so findReminderCandidates() skips them next run
+// unless their state changes (see that function's own comment). Touches
+// wallet_passes.updated_at + sends the silent APNs wake-up the same way an
+// ordinary stamp event does (notifyWalletPassUpdated above) - the actual
+// notification text only appears once the device re-fetches the pass and
+// sees the "reminder" backfield's value differ from what it cached (see
+// getReminderBackfieldFor / buildPassJson's reminderBackfield param).
+// Google has no such two-step fetch - addMessage delivers immediately.
+//
+// Only marks reminder_notifications (i.e. only counts as "sent") if the
+// customer actually has an open card on at least one platform - a customer
+// with no wallet pass at all has no channel to reach right now, so leaving
+// them unmarked means a future run reconsiders them once they do add one,
+// rather than silently writing them off forever.
+async function sendReminderPush(cafeRow, candidate) {
+  const cafeAddress = ensureCafeAddress(cafeRow);
+  const cafeAddressLower = cafeAddress.toLowerCase();
+  const customerAddress = candidate.customerAddress;
+  const now = Date.now();
+  let appleTouched = false;
+  let applePushed = 0;
+  let googleSent = 0;
+
+  if (walletPass.isWalletConfigured()) {
+    try {
+      const passRows = await getWalletPassesByCustomerCafe.all(
+        customerAddress,
+        cafeRow.id,
+      );
+      const tokens = [];
+      for (const passRow of Array.isArray(passRows) ? passRows : []) {
+        const isRedeemed = !!(await hasCardBeenRedeemed.get(
+          cafeAddressLower,
+          customerAddress,
+          passRow.card_id,
+        ));
+        if (isRedeemed) continue;
+        appleTouched = true;
+        await touchWalletPassUpdatedAt.run(now, passRow.serial_number);
+        const tokenRows = await listWalletPushTokensBySerial.all(
+          passRow.serial_number,
+        );
+        for (const r of Array.isArray(tokenRows) ? tokenRows : []) {
+          if (r.push_token) tokens.push(r.push_token);
+        }
+      }
+      if (tokens.length) {
+        const results = await walletPass.sendPassUpdatePush(tokens);
+        // APNs status comes back as a string off the HTTP/2 headers (e.g.
+        // "200"), not a number - matching loosely here so this stays
+        // correct either way.
+        applePushed = Array.isArray(results)
+          ? results.filter((r) => r && !r.error && String(r.status) === "200").length
+          : 0;
+      }
+    } catch (err) {
+      console.warn(
+        "Reminder: Apple push failed:",
+        err && err.message ? err.message : err,
+      );
+    }
+  }
+
+  if (googleWalletPass.isGoogleWalletConfigured()) {
+    try {
+      const objectRows = await getGoogleWalletObjectsByCustomerCafe.all(
+        customerAddress,
+        cafeRow.id,
+      );
+      for (const objRow of Array.isArray(objectRows) ? objectRows : []) {
+        const isRedeemed = !!(await hasCardBeenRedeemed.get(
+          cafeAddressLower,
+          customerAddress,
+          objRow.card_id,
+        ));
+        if (isRedeemed) continue;
+        const result = await googleWalletPass.addLoyaltyObjectMessage(
+          objRow.object_id,
+          cafeRow.name || "Kaffeekarte",
+          candidate.message,
+        );
+        if (result && result.ok) googleSent += 1;
+      }
+    } catch (err) {
+      console.warn(
+        "Reminder: Google addMessage failed:",
+        err && err.message ? err.message : err,
+      );
+    }
+  }
+
+  const hasChannel = appleTouched || googleSent > 0;
+  if (hasChannel) {
+    await upsertReminderNotification.run(
+      cafeRow.id,
+      customerAddress,
+      now,
+      candidate.lastStampTs,
+      candidate.message,
+    );
+  }
+
+  await insertReminderLog.run(
+    cafeRow.id,
+    customerAddress,
+    candidate.kind,
+    candidate.message,
+    candidate.lastStampTs,
+    appleTouched ? 1 : 0,
+    applePushed,
+    googleSent,
+    now,
+  );
+
+  return {
+    customerAddress,
+    hasChannel,
+    appleTouched,
+    applePushed,
+    googleSent,
+  };
+}
+
+app.get(
+  "/admin/cafes/:cafeId/reminder-candidates",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const candidates = await findReminderCandidates(current);
+      res.json({
+        ok: true,
+        cafe: { id: current.id, name: current.name || null },
+        program: getCafeProgramSettings(current),
+        candidates,
+      });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/reminder-candidates:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// Send history for one café - every reminder_log row, newest first (see
+// insertReminderLog's own comment for why this exists alongside
+// reminder_notifications). ?limit caps how many rows come back, default
+// 100, capped at 500 so an unbounded query param can't return the whole
+// table.
+app.get(
+  "/admin/cafes/:cafeId/reminder-log",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const limit = Math.min(
+        500,
+        Math.max(1, Number(req.query.limit) || 100),
+      );
+      const rows = await db
+        .prepare(
+          "SELECT id, customer_address, kind, message, stamp_state_ts, apple_touched, apple_pushed, google_sent, sent_at " +
+            "FROM reminder_log WHERE cafe_id = ? ORDER BY sent_at DESC LIMIT ?",
+        )
+        .all(cafeId, limit);
+      res.json({
+        ok: true,
+        cafe: { id: current.id, name: current.name || null },
+        log: rows,
+      });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/reminder-log:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// All cafés with the reminder enabled, each with their own candidate list -
+// the shape a future cron job would iterate over to actually send.
+app.get("/admin/reminder-candidates", requireAdminKey, async (req, res) => {
+  try {
+    const cafeRows = await db
+      .prepare("SELECT * FROM cafes WHERE reminder_push_enabled = 1")
+      .all();
+    const results = [];
+    for (const cafeRow of cafeRows) {
+      const candidates = await findReminderCandidates(cafeRow);
+      if (candidates.length) {
+        results.push({
+          cafeId: cafeRow.id,
+          cafeName: cafeRow.name || null,
+          candidates,
+        });
+      }
+    }
+    res.json({ ok: true, cafes: results });
+  } catch (err) {
+    console.error("Error in /admin/reminder-candidates:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Actually sends the push reminder to every current candidate across every
+// café with reminder_push_enabled=1. Meant to be called once a day by a
+// scheduled external caller (see .github/workflows/reminders.yml), same
+// dryRun/response-shape convention as
+// /admin/customers/onboarding-reminders - dryRun computes and returns the
+// candidate list without sending anything or writing to
+// reminder_notifications.
+app.post("/admin/reminders/run", requireAdminKey, async (req, res) => {
+  try {
+    const dryRun = ["1", "true"].includes(
+      String(req.query?.dryRun || "").toLowerCase(),
+    );
+    const cafeRows = await db
+      .prepare("SELECT * FROM cafes WHERE reminder_push_enabled = 1")
+      .all();
+
+    let candidateCount = 0;
+    let sent = 0;
+    const failures = [];
+    const perCafe = [];
+
+    for (const cafeRow of cafeRows) {
+      const candidates = await findReminderCandidates(cafeRow);
+      candidateCount += candidates.length;
+      let cafeSent = 0;
+      for (const candidate of candidates) {
+        try {
+          if (!dryRun) {
+            const result = await sendReminderPush(cafeRow, candidate);
+            if (result.hasChannel) {
+              sent += 1;
+              cafeSent += 1;
+            }
+          }
+        } catch (sendErr) {
+          console.warn(
+            "Failed to send reminder push:",
+            cafeRow.id,
+            candidate.customerAddress,
+            sendErr && sendErr.message ? sendErr.message : sendErr,
+          );
+          failures.push({
+            cafeId: cafeRow.id,
+            customerAddress: candidate.customerAddress,
+            error: String(sendErr && sendErr.message ? sendErr.message : sendErr),
+          });
+        }
+      }
+      if (candidates.length) {
+        perCafe.push({
+          cafeId: cafeRow.id,
+          cafeName: cafeRow.name || null,
+          candidates: candidates.length,
+          sent: cafeSent,
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      dryRun,
+      cafesChecked: cafeRows.length,
+      candidates: candidateCount,
+      sent,
+      failed: failures.length,
+      failures,
+      perCafe,
+    });
+  } catch (err) {
+    console.error("Error in /admin/reminders/run:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Same richer analytics/lifecycle shape the admin café-detail view uses
+// (computeCafeAnalytics / computeCafeLifecycle above), just café-authenticated
+// instead of admin-key-gated, and hard-scoped to the calling café's own
+// address - the "me"-vs-numeric-id ownership check mirrors /overview below.
+app.get("/cafes/:cafeId/analytics", requireCafeAuth, async (req, res) => {
+  try {
+    const { cafeId } = req.params;
+    const cafeRow = req.cafe;
+    if (!cafeRow) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    if (cafeId && cafeId !== "me" && String(cafeRow.id) !== String(cafeId)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const cafeAddress = ensureCafeAddress(cafeRow) || String(cafeRow?.id || "");
+    if (!cafeAddress) {
+      return res.status(404).json({ error: "cafe_address_missing" });
+    }
+    const days = Number(req.query?.days) || 30;
+    const analytics = await computeCafeAnalytics(
+      cafeAddress.toLowerCase(),
+      Number(cafeRow.id),
+      days,
+    );
+    res.json({ ok: true, analytics });
+  } catch (err) {
+    console.error("Error in /cafes/:cafeId/analytics:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
+app.get("/cafes/:cafeId/lifecycle", requireCafeAuth, async (req, res) => {
+  try {
+    const { cafeId } = req.params;
+    const cafeRow = req.cafe;
+    if (!cafeRow) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    if (cafeId && cafeId !== "me" && String(cafeRow.id) !== String(cafeId)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const cafeAddress = ensureCafeAddress(cafeRow) || String(cafeRow?.id || "");
+    if (!cafeAddress) {
+      return res.status(404).json({ error: "cafe_address_missing" });
+    }
+    const program = getCafeProgramSettings(cafeRow);
+    const lifecycle = await computeCafeLifecycle(
+      cafeAddress.toLowerCase(),
+      program.stampsForReward,
+      Number(cafeRow.id),
+    );
+    res.json({ ok: true, lifecycle });
+  } catch (err) {
+    console.error("Error in /cafes/:cafeId/lifecycle:", err);
+    res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
+});
+
 app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
   try {
     const { cafeId } = req.params;
@@ -4080,6 +5686,11 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
       });
     }
 
+    const charts = await computeCafeCharts(
+      cafeAddressLower,
+      cafeRow.id != null ? Number(cafeRow.id) : null,
+    );
+
     res.json({
       ok: true,
       cafe: {
@@ -4111,6 +5722,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
       stats,
       recentEvents: recentEvents.filter(Boolean),
       customers,
+      charts,
       meta: {
         eventsLimit,
         customerLimit,
@@ -4382,6 +5994,64 @@ async function applyCafeProfileUpdate(current, body) {
       );
     }
 
+    let reminderPushEnabled = currentProgram.reminderPushEnabled;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderPushEnabled")) {
+      reminderPushEnabled = toBoundBoolInt(
+        body.reminderPushEnabled,
+        reminderPushEnabled,
+      );
+    }
+
+    let reminderMinStamps = currentProgram.reminderMinStamps;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderMinStamps")) {
+      reminderMinStamps = toBoundInt(
+        body.reminderMinStamps,
+        reminderMinStamps,
+        3,
+        9,
+      );
+    }
+
+    let reminderInactiveDays = currentProgram.reminderInactiveDays;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderInactiveDays")) {
+      reminderInactiveDays = toBoundInt(
+        body.reminderInactiveDays,
+        reminderInactiveDays,
+        1,
+        365,
+      );
+    }
+
+    let reminderMessage = currentProgram.reminderMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderMessage")) {
+      reminderMessage = toOptionalTrimmedText(body.reminderMessage, 280);
+    }
+
+    let reminderFullMessage = currentProgram.reminderFullMessage;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderFullMessage")) {
+      reminderFullMessage = toOptionalTrimmedText(body.reminderFullMessage, 280);
+    }
+
+    let reminderNewCustomerDays = currentProgram.reminderNewCustomerDays;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderNewCustomerDays")) {
+      reminderNewCustomerDays = toBoundInt(
+        body.reminderNewCustomerDays,
+        reminderNewCustomerDays,
+        7,
+        90,
+      );
+    }
+
+    let reminderNewCustomerMessage = currentProgram.reminderNewCustomerMessage;
+    if (
+      Object.prototype.hasOwnProperty.call(body, "reminderNewCustomerMessage")
+    ) {
+      reminderNewCustomerMessage = toOptionalTrimmedText(
+        body.reminderNewCustomerMessage,
+        280,
+      );
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -4409,6 +6079,13 @@ async function applyCafeProfileUpdate(current, body) {
       popupAlmostRewardEnabled,
       popupAlmostRewardRemaining,
       popupAlmostRewardMessage,
+      reminderPushEnabled,
+      reminderMinStamps,
+      reminderInactiveDays,
+      reminderMessage,
+      reminderFullMessage,
+      reminderNewCustomerDays,
+      reminderNewCustomerMessage,
       now,
       current.id,
     );
@@ -4473,6 +6150,106 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
   return res.status(result.status).json(
     result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
   );
+});
+
+const BROADCAST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+// Lets a café send a one-off custom push to every customer with an open
+// (not-yet-redeemed) card right now, instead of waiting for the automatic
+// criteria-based reminder (chat 2026-09-21: "eine funktion damit das cafe
+// selber ein push an alle herausschickt"). Reuses sendReminderPush() for
+// actual delivery - same %@-based Apple mechanism, same Google addMessage
+// call, same reminder_log audit trail - just with a manually-typed message
+// and a candidate list built from every wallet pass/object at this café
+// instead of findReminderCandidates()'s stamp/inactivity criteria.
+// ?dryRun=1 (or {dryRun:true} in the body) only returns how many customers
+// would be reached, without sending or touching the cooldown - the Barista
+// App uses this to show a confirmation ("An 12 Kunden senden?") before the
+// real call.
+app.post("/cafes/me/broadcast", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    const current = await getCafeById.get(cafeRow.id);
+    if (!current) {
+      return res.status(404).json({ error: "cafe_not_found" });
+    }
+
+    const body = req.body || {};
+    const message = toOptionalTrimmedText(body.message, 280);
+    if (!message) {
+      return res.status(400).json({ ok: false, error: "message_required" });
+    }
+    const dryRun = body.dryRun === true || req.query.dryRun === "1";
+
+    if (!dryRun) {
+      const now0 = Date.now();
+      if (
+        current.last_broadcast_at != null &&
+        now0 - Number(current.last_broadcast_at) < BROADCAST_COOLDOWN_MS
+      ) {
+        const retryAfterMs =
+          BROADCAST_COOLDOWN_MS - (now0 - Number(current.last_broadcast_at));
+        return res
+          .status(429)
+          .json({ ok: false, error: "cooldown_active", retryAfterMs });
+      }
+    }
+
+    const cardRows = await db
+      .prepare(
+        `SELECT customer_address FROM (
+           SELECT customer_address FROM wallet_passes WHERE cafe_id = ?
+           UNION
+           SELECT customer_address FROM google_wallet_objects WHERE cafe_id = ?
+         ) AS t
+         GROUP BY customer_address`,
+      )
+      .all(current.id, current.id);
+    const customerCount = cardRows.length;
+
+    if (dryRun) {
+      return res.json({ ok: true, dryRun: true, customerCount });
+    }
+
+    const now = Date.now();
+    let sent = 0;
+    let failed = 0;
+    for (const row of cardRows) {
+      const customerAddress = String(row.customer_address || "").toLowerCase();
+      if (!customerAddress) continue;
+      try {
+        const result = await sendReminderPush(current, {
+          kind: "manual",
+          customerAddress,
+          message,
+          lastStampTs: now,
+        });
+        if (result.hasChannel) sent += 1;
+        else failed += 1;
+      } catch (err) {
+        failed += 1;
+        console.warn(
+          "Broadcast send failed for",
+          customerAddress,
+          err && err.message ? err.message : err,
+        );
+      }
+    }
+
+    await db
+      .prepare("UPDATE cafes SET last_broadcast_at = ? WHERE id = ?")
+      .run(now, current.id);
+
+    return res.json({ ok: true, dryRun: false, customerCount, sent, failed });
+  } catch (err) {
+    console.error("Error in /cafes/me/broadcast:", err);
+    return res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
 });
 
 // Admin override for cafes that don't want to configure their own design -
@@ -7308,6 +9085,7 @@ app.get("/customers/:customerAddress/wallet-pass", async (req, res) => {
       authenticationToken: passRow.authentication_token,
       webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
       barcodeMessage,
+      reminderBackfield: await getReminderBackfieldFor(cafeRow.id, rawAddress),
       customerName: customerRow?.username || null,
       customerEmail: customerRow?.email || null,
       customerId: customerRow?.customer_id || null,
@@ -7629,6 +9407,10 @@ walletApiRouter.get(
         authenticationToken: passRow.authentication_token,
         webServiceURL: `${String(process.env.APPS_BASE_URL || "").replace(/\/$/, "")}/api/wallet`,
         barcodeMessage,
+        reminderBackfield: await getReminderBackfieldFor(
+          cafeRow.id,
+          passRow.customer_address,
+        ),
         customerName: customerRow?.username || null,
         customerEmail: customerRow?.email || null,
         customerId: customerRow?.customer_id || null,
@@ -7637,7 +9419,18 @@ walletApiRouter.get(
       });
 
       res.setHeader("Content-Type", "application/vnd.apple.pkpass");
-      res.setHeader("Last-Modified", new Date(passRow.updated_at).toUTCString());
+      // passRow.updated_at is a bigint column - node-postgres returns those
+      // as strings (to avoid precision loss past Number.MAX_SAFE_INTEGER),
+      // while better-sqlite3 (local/staging) returns an actual number.
+      // new Date(numericString) doesn't parse as epoch ms - it's not a
+      // recognized date format - so this produced a literal "Invalid Date"
+      // Last-Modified header on production specifically (confirmed live in
+      // prod logs 2026-09-21, never caught on staging since SQLite doesn't
+      // have this string/number split). Number(...) normalizes either case.
+      res.setHeader(
+        "Last-Modified",
+        new Date(Number(passRow.updated_at)).toUTCString(),
+      );
       res.send(buffer);
     } catch (err) {
       console.error("Error serving updated wallet pass:", err);

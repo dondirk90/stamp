@@ -559,39 +559,49 @@
 
         <!-- Login UI (existing account) -->
         <div id="loginBox" style="display: none">
-          <div class="warning-box" style="margin-top: 0">
-            <strong>Schon ein Konto?</strong>
-            Dann bitte hier entlang. E-Mail und Passwort reichen völlig.
-          </div>
+          <!-- These four blocks (intro + credentials + submit + resend-
+               verification) are only for the "already have an account, want
+               to log in" path. When loginBox is reused for the password-
+               reset landing (?resetToken=..., see initMode()), they'd sit
+               directly above the actual reset panel and read as "you can
+               also just log in here" - confusing, since resetting a
+               password and logging in are mutually exclusive right now.
+               initMode() hides this whole group in that case. -->
+          <div id="loginCredentialsGroup">
+            <div class="warning-box" style="margin-top: 0">
+              <strong>Schon ein Konto?</strong>
+              Dann bitte hier entlang. E-Mail und Passwort reichen völlig.
+            </div>
 
-          <div class="form-group">
-            <label for="loginEmail">E-Mail *</label>
-            <input
-              type="email"
-              id="loginEmail"
-              placeholder="cafe@example.com"
-              autocomplete="username"
-            />
-          </div>
+            <div class="form-group">
+              <label for="loginEmail">E-Mail *</label>
+              <input
+                type="email"
+                id="loginEmail"
+                placeholder="cafe@example.com"
+                autocomplete="username"
+              />
+            </div>
 
-          <div class="form-group">
-            <label for="loginPassword">Passwort *</label>
-            <input
-              type="password"
-              id="loginPassword"
-              placeholder="Dein Passwort"
-              autocomplete="current-password"
-            />
-          </div>
+            <div class="form-group">
+              <label for="loginPassword">Passwort *</label>
+              <input
+                type="password"
+                id="loginPassword"
+                placeholder="Dein Passwort"
+                autocomplete="current-password"
+              />
+            </div>
 
-          <div class="button-group">
-            <button
-              class="btn btn-primary"
-              type="button"
-              onclick="submitLogin()"
-            >
-              Anmelden →
-            </button>
+            <div class="button-group">
+              <button
+                class="btn btn-primary"
+                type="button"
+                onclick="submitLogin()"
+              >
+                Anmelden →
+              </button>
+            </div>
           </div>
 
           <div style="margin-top: 10px">
@@ -605,7 +615,7 @@
             </button>
           </div>
 
-          <div style="margin-top: 10px">
+          <div id="resendVerificationGroup" style="margin-top: 10px">
             <button
               class="btn btn-secondary"
               type="button"
@@ -1595,6 +1605,13 @@
             if (forgotBox) forgotBox.style.display = "none";
             const forgotBtn = document.querySelector('button[onclick="toggleCafeForgotPassword(true)"]');
             if (forgotBtn) forgotBtn.style.display = "none";
+            // The rest of the reset-token UI state (hiding the plain login
+            // form/resend-verification while active, restoring it if the
+            // token turns out invalid) is owned by setResetMode() in
+            // cafe-onboarding-auth-fixes.js, which runs right after this and
+            // handles both directions consistently - duplicating a one-shot
+            // hide here would only cover the "valid token" case and get
+            // stuck hidden on the "invalid token, fall back to login" path.
             // Prefill email in reset request box for convenience
             try {
               toggleCafeForgotPassword(false);

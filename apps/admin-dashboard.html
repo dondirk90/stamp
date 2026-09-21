@@ -313,6 +313,98 @@
       .chart-legend-dot-google {
         background: var(--color-coffee-light, #b99174);
       }
+      .chart-bar-customers {
+        fill: var(--color-coffee-light, #b99174);
+      }
+      .summary-delta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .range-toggle {
+        display: inline-flex;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      /* .miniBtn opts these out of theme.css's global legacy-button rule
+         (button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain){
+         background:var(--brand) !important}) - same escape hatch used
+         elsewhere in the app - so the inactive/active look below is fully
+         under this stylesheet's control instead of fighting an !important. */
+      .range-toggle button.rangeToggleBtn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .range-toggle button.rangeToggleBtn.active {
+        background: var(--brand);
+        color: var(--on-brand, #fff);
+        border-color: transparent;
+      }
+      .heatmap-table {
+        min-width: 640px;
+      }
+      .heatmap-table th,
+      .heatmap-table td {
+        padding: 6px 8px;
+        text-align: center;
+        font-size: 11px;
+      }
+      .heatmap-rowlabel {
+        text-align: left !important;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--surface-muted);
+      }
+      .heatmap-collabel {
+        color: var(--text-muted);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .heatmap-cell {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      /* Generic horizontal-bar list, shared by the loyalty funnel, visit
+         distribution and time-between-visits sections - each just picks a
+         different basis for the bar percentage (first row vs. max row). */
+      .funnel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .funnelStage {
+        display: grid;
+        grid-template-columns: minmax(120px, 180px) 1fr 56px;
+        align-items: center;
+        gap: 12px;
+      }
+      .funnelLabel {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .funnelBarWrap {
+        height: 14px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        overflow: hidden;
+      }
+      .funnelBar {
+        height: 100%;
+        background: var(--brand);
+        border-radius: 999px;
+      }
+      .funnelValue {
+        text-align: right;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
       .overview-email {
         font-family: var(--font-mono);
         font-size: 12px;
@@ -541,25 +633,12 @@
           <div class="summary-grid" id="summaryGrid"></div>
 
           <div class="card">
-            <div class="section-title">Stempel pro Tag</div>
-            <div class="section-subtitle">Vergebene Stempel über alle Cafés, letzte 30 Tage.</div>
-            <div class="chart-wrap" id="chartStampsPerDay"></div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">Wallet-Karten pro Tag</div>
-            <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe über alle Cafés, letzte 30 Tage.</div>
-            <div class="chart-legend">
-              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
-              <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
+            <div id="globalAnalyticsBlock">
+              <p class="section-subtitle">Lade Analytics …</p>
             </div>
-            <div class="chart-wrap" id="chartWalletPerDay"></div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">Stempel im Tagesverlauf</div>
-            <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage (Ortszeit Europe/Berlin).</div>
-            <div class="chart-wrap" id="chartHourly"></div>
+            <div id="globalLifecycleBlock">
+              <p class="section-subtitle">Lade Lifecycle-Analytics …</p>
+            </div>
           </div>
 
           <div class="card">
@@ -622,9 +701,6 @@
         loading: document.getElementById("loading"),
         dashboard: document.getElementById("dashboard"),
         summaryGrid: document.getElementById("summaryGrid"),
-        chartStampsPerDay: document.getElementById("chartStampsPerDay"),
-        chartWalletPerDay: document.getElementById("chartWalletPerDay"),
-        chartHourly: document.getElementById("chartHourly"),
         overviewContainer: document.getElementById("overviewContainer"),
         customersOverviewContainer: document.getElementById(
           "customersOverviewContainer",
@@ -648,6 +724,8 @@
         cafesByCustomer: new Map(),
         selectedCafeId: null,
         selectedCustomerUser: null,
+        analyticsDays: 30,
+        globalAnalyticsDays: 30,
       };
 
       function escapeHtml(value) {
@@ -862,8 +940,14 @@
         const n = items.length;
         if (!n) return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
         const maxValue = Math.max(1, ...items.map((it) => it.value || 0));
+        // Left gutter reserves room for the y-axis scale (just top/bottom
+        // values, not a full tick ladder) - without it a mostly-empty chart
+        // (a handful of days with data, the rest at 0) shows one or two bars
+        // with no way to tell whether they mean "1" or "50".
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -871,16 +955,21 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const h =
             it.value > 0 ? Math.max(2, (it.value / maxValue) * opts.height) : 0;
           const y = opts.height - h;
           const title = escapeHtml(
             it.title != null ? it.title : `${it.label}: ${it.value}`,
           );
+          // Weekend bars fade the *actual* series color via fill-opacity
+          // rather than swapping to a separate class - the stamps chart and
+          // the eindeutige-Kunden chart use different base colors, and a
+          // fixed weekend class would only be correct for one of them.
+          const weekendAttr = it.weekend ? ' fill-opacity="0.5"' : "";
           bars += `<rect class="${opts.barClass}" x="${x.toFixed(2)}" y="${y.toFixed(
             2,
-          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"><title>${title}</title></rect>`;
+          )}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" rx="1"${weekendAttr}><title>${title}</title></rect>`;
           if (i === 0 || i === n - 1 || i % labelEvery === 0) {
             labels += `<text class="chart-axis-label" x="${(x + barWidth / 2).toFixed(
               2,
@@ -888,7 +977,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
@@ -903,8 +998,10 @@
           1,
           ...items.map((it) => (it.apple || 0) + (it.google || 0)),
         );
+        const leftGutter = 28;
+        const plotWidth = opts.width - leftGutter;
         const gap = 2;
-        const barWidth = Math.max(1, (opts.width - gap * (n - 1)) / n);
+        const barWidth = Math.max(1, (plotWidth - gap * (n - 1)) / n);
         const labelY = opts.height + 14;
         const totalHeight = opts.height + 20;
         const labelEvery = opts.labelEvery || Math.max(1, Math.round(n / 6));
@@ -912,7 +1009,7 @@
         let bars = "";
         let labels = "";
         items.forEach((it, i) => {
-          const x = i * (barWidth + gap);
+          const x = leftGutter + i * (barWidth + gap);
           const apple = it.apple || 0;
           const google = it.google || 0;
           const appleH = apple > 0 ? (apple / maxValue) * opts.height : 0;
@@ -941,7 +1038,13 @@
           }
         });
 
-        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${bars}<line class="chart-axis-line" x1="0" y1="${
+        const yAxisLabels = `<text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="8" text-anchor="end">${formatNumber(maxValue)}</text><text class="chart-axis-label" x="${
+          leftGutter - 6
+        }" y="${opts.height}" text-anchor="end">0</text>`;
+
+        return `<svg viewBox="0 0 ${opts.width} ${totalHeight}">${yAxisLabels}${bars}<line class="chart-axis-line" x1="${leftGutter}" y1="${
           opts.height + 0.5
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
@@ -1008,47 +1111,268 @@
         }" x2="${opts.width}" y2="${opts.height + 0.5}" />${labels}</svg>`;
       }
 
-      function renderCharts(charts) {
-        if (!charts) {
-          const empty = '<p class="chart-empty">Keine Daten verfügbar.</p>';
-          refs.chartStampsPerDay.innerHTML = empty;
-          refs.chartWalletPerDay.innerHTML = empty;
-          refs.chartHourly.innerHTML = empty;
-          return;
+      // Weekday x time-of-day grid (Monday-first, 2h buckets) instead of the
+      // old dot-plot - "Samstag 10-12 Uhr ist unsere stärkste Zeit" reads
+      // directly off a heatmap, where the dot-plot only showed a same-shape
+      // curve for every weekday combined.
+      function buildHeatmapHtml(heatmap) {
+        if (!heatmap || !heatmap.grid || !heatmap.grid.length) {
+          return '<p class="chart-empty">Keine Daten in diesem Zeitraum.</p>';
+        }
+        const grid = heatmap.grid;
+        const bucketHours = heatmap.bucketHours || 2;
+        const bucketsPerDay = heatmap.bucketsPerDay || (grid[0] || []).length;
+        const weekdayLabels = heatmap.weekdayLabels || [
+          "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
+        ];
+        const maxValue = Math.max(1, ...grid.map((row) => Math.max(0, ...row)));
+        const hourLabel = (b) =>
+          `${String(b * bucketHours).padStart(2, "0")}–${String(
+            (b + 1) * bucketHours,
+          ).padStart(2, "0")}`;
+
+        let headerCells = "";
+        for (let b = 0; b < bucketsPerDay; b++) {
+          headerCells += `<th class="heatmap-collabel">${hourLabel(b)}</th>`;
         }
 
-        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
-          label: shortDayLabel(d.date),
-          value: d.count,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
-        }));
-        refs.chartStampsPerDay.innerHTML = buildBarChartSvg(dailyStamps, {});
+        let rows = "";
+        for (let w = 0; w < weekdayLabels.length; w++) {
+          let cells = "";
+          const row = grid[w] || [];
+          for (let b = 0; b < bucketsPerDay; b++) {
+            const value = row[b] || 0;
+            const intensity = value / maxValue;
+            const bg =
+              value > 0
+                ? `color-mix(in srgb, var(--brand) ${Math.round(
+                    12 + intensity * 78,
+                  )}%, transparent)`
+                : "transparent";
+            const title = escapeHtml(
+              `${weekdayLabels[w]} ${hourLabel(b)} Uhr: ${formatNumber(value)} Stempel`,
+            );
+            cells += `<td class="heatmap-cell" style="background:${bg}" title="${title}">${
+              value > 0 ? formatNumber(value) : ""
+            }</td>`;
+          }
+          rows += `<tr><th class="heatmap-rowlabel">${weekdayLabels[w]}</th>${cells}</tr>`;
+        }
 
-        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
-          label: shortDayLabel(d.date),
-          apple: d.apple,
-          google: d.google,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(
-            d.apple,
-          )} Apple, ${formatNumber(d.google)} Google`,
-        }));
-        refs.chartWalletPerDay.innerHTML = buildStackedBarChartSvg(dailyWallet, {});
-
-        refs.chartHourly.innerHTML = buildDotPlotSvg(charts.stampsByTimeOfDay || []);
+        return `<div class="table-wrapper"><table class="heatmap-table"><thead><tr><th></th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
       }
 
-      // Same three charts as renderCharts(), but scoped to one café and
-      // returned as an HTML string for buildCafeCardHtml() to splice in
-      // rather than targeting a fixed #id (a café card can be rebuilt for
-      // any café, so there's no single static container to bind to).
-      function buildCafeChartsHtml(charts) {
-        if (!charts) return "";
-        const dailyStamps = (charts.dailyStamps || []).map((d) => ({
+      // Shared by the loyalty funnel (percent relative to the first stage -
+      // classic funnel drop-off) and the visit-distribution / time-between-
+      // visits sections (percent relative to the largest bucket - a plain
+      // bar chart, no "stage" semantics).
+      function buildHorizontalBarsHtml(rows, options) {
+        const opts = Object.assign({ relativeToFirst: false }, options);
+        if (!rows || !rows.length) {
+          return '<p class="chart-empty">Keine Daten verfügbar.</p>';
+        }
+        const basis = opts.relativeToFirst
+          ? Math.max(1, rows[0].value || 0)
+          : Math.max(1, ...rows.map((r) => r.value || 0));
+        return `<div class="funnel">${rows
+          .map((r) => {
+            const pct = Math.max(
+              0,
+              Math.min(100, ((r.value || 0) / basis) * 100),
+            );
+            return `<div class="funnelStage">
+              <div class="funnelLabel">${escapeHtml(r.label)}</div>
+              <div class="funnelBarWrap"><div class="funnelBar" style="width:${pct.toFixed(
+                1,
+              )}%"></div></div>
+              <div class="funnelValue">${formatNumber(r.value || 0)}</div>
+            </div>`;
+          })
+          .join("")}</div>`;
+      }
+
+      function formatPercent(value) {
+        if (value == null) return "–";
+        return `${Math.round(value * 100)}%`;
+      }
+
+      function buildCohortTableHtml(cohorts) {
+        if (!cohorts || !cohorts.rows || !cohorts.rows.length) {
+          return '<p class="chart-empty">Noch keine Kohorten verfügbar.</p>';
+        }
+        const offsets = cohorts.offsets || [1, 2, 4, 8];
+        const headerCells = offsets.map((o) => `<th>${o}. Woche</th>`).join("");
+        const rows = cohorts.rows
+          .map((row) => {
+            const cells = offsets
+              .map(
+                (o) =>
+                  `<td>${formatPercent((row.retention || {})[`w${o}`])}</td>`,
+              )
+              .join("");
+            return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(
+              row.size,
+            )}</td>${cells}</tr>`;
+          })
+          .join("");
+        return `<div class="table-wrapper"><table><thead><tr><th>Kohorte</th><th>Größe</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+
+      // Shared by the per-café detail view and the "Gesamt" overview, same
+      // as buildAnalyticsHtml() - only scopeLabel differs.
+      function buildLifecycleHtml(lifecycle, scope) {
+        if (!lifecycle) {
+          return '<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden.</p>';
+        }
+        const scopeLabel = scope === "global" ? " über alle Cafés" : "";
+        const funnel = lifecycle.funnel || {};
+        const rewards = lifecycle.rewards || {};
+        const funnelRows = [
+          { label: "Wallet-Karten", value: funnel.wallet },
+          { label: "Erster Stempel", value: funnel.firstStamp },
+          { label: "2+ Stempel", value: funnel.twoPlus },
+          { label: "5+ Stempel", value: funnel.fivePlus },
+          { label: "Reward erreicht (≈)", value: funnel.rewardReached },
+          { label: "Reward eingelöst", value: funnel.rewardRedeemed },
+        ];
+        const visitRows = (lifecycle.visitDistribution || []).map((v) => ({
+          label: `${v.visits} Besuch${v.visits === "1" ? "" : "e"}`,
+          value: v.customers,
+        }));
+        const gapRows = ((lifecycle.timeBetweenVisits || {}).buckets || []).map(
+          (b) => ({ label: b.label, value: b.count }),
+        );
+        const medianDays = lifecycle.timeBetweenVisits
+          ? lifecycle.timeBetweenVisits.medianDays
+          : null;
+
+        return `
+          <div class="section-title" style="margin-top: 32px;">Loyalty-Funnel</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. Jede Stufe zeigt (Café-)Kundenbeziehungen, nicht Rohkunden - jemand mit Karten an 2 Cafés zählt 2x.</div>
+          ${buildHorizontalBarsHtml(funnelRows, { relativeToFirst: true })}
+
+          <div class="section-title" style="margin-top: 32px;">Rewards</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. "Verdient" ist eine Näherung aus Gesamtstempeln ÷ Prämien-Schwelle, keine exakte Einlöse-Historie.</div>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-label">Rewards verdient (≈)</div>
+              <div class="summary-value">${formatNumber(rewards.earnedApprox)}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Rewards eingelöst</div>
+              <div class="summary-value">${formatNumber(rewards.redeemed)}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Einlösungsrate</div>
+              <div class="summary-value">${formatPercent(rewards.redemptionRate)}</div>
+            </div>
+            ${
+              rewards.threshold != null
+                ? `<div class="summary-card">
+                     <div class="summary-label">Aktuelle Prämien-Schwelle</div>
+                     <div class="summary-value">${formatNumber(rewards.threshold)} Stempel</div>
+                   </div>`
+                : ""
+            }
+          </div>
+
+          <div class="section-title" style="margin-top: 32px;">Besuche pro Kunde</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}. Zeigt, ob vor allem Einmalgäste oder Stammgäste kommen.</div>
+          ${buildHorizontalBarsHtml(visitRows)}
+
+          <div class="section-title" style="margin-top: 32px;">Zeit zwischen Besuchen</div>
+          <div class="section-subtitle">Alle Zeit${scopeLabel}${
+            medianDays != null ? ` · Median: ${medianDays.toFixed(1)} Tage` : ""
+          }.</div>
+          ${buildHorizontalBarsHtml(gapRows)}
+
+          <div class="section-title" style="margin-top: 32px;">Kundenkohorten</div>
+          <div class="section-subtitle">Wöchentliche Kohorten nach erstem Besuch${scopeLabel}. "–" heißt, der Zeitraum ist noch nicht vergangen.</div>
+          ${buildCohortTableHtml(lifecycle.cohorts)}
+        `;
+      }
+
+      async function loadCafeLifecycle(cafeId) {
+        const container = document.getElementById("cafeLifecycleBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl(
+            `/admin/cafes/${encodeURIComponent(cafeId)}/lifecycle`,
+          );
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildLifecycleHtml(data.lifecycle, "cafe");
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      async function loadGlobalLifecycle() {
+        const container = document.getElementById("globalLifecycleBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl("/admin/lifecycle");
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildLifecycleHtml(data.lifecycle, "global");
+        } catch (err) {
+          container.innerHTML = `<p class="section-subtitle">Lifecycle-Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      function buildRangeToggleHtml(scope, cafeId, activeDays) {
+        return [7, 30, 90]
+          .map(
+            (d) =>
+              `<button type="button" class="miniBtn rangeToggleBtn${
+                d === activeDays ? " active" : ""
+              }" data-scope="${scope}" data-cafe-id="${
+                cafeId ?? ""
+              }" data-days="${d}">${d} Tage</button>`,
+          )
+          .join("");
+      }
+
+      // Shared by the per-café detail view and the cross-café "Gesamt"
+      // overview - scope only changes the range-toggle wiring (which
+      // endpoint to reload from) and a couple of labels, the KPIs/charts/
+      // heatmap themselves are identical either way.
+      function buildAnalyticsHtml(analytics, scope, cafeId, days) {
+        if (!analytics) {
+          return '<p class="section-subtitle">Analytics konnten nicht geladen werden.</p>';
+        }
+        const scopeLabel = scope === "global" ? " über alle Cafés" : "";
+        const dailyStamps = (analytics.dailyStamps || []).map((d) => ({
           label: shortDayLabel(d.date),
           value: d.count,
-          title: `${shortDayLabel(d.date)}: ${formatNumber(d.count)} Stempel`,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.count,
+          )} Stempel, ${formatNumber(d.uniqueCustomers)} Kunden${
+            d.redemptions ? `, ${formatNumber(d.redemptions)} Einlösungen` : ""
+          }`,
         }));
-        const dailyWallet = (charts.dailyWalletDownloads || []).map((d) => ({
+        const dailyCustomers = (analytics.dailyStamps || []).map((d) => ({
+          label: shortDayLabel(d.date),
+          value: d.uniqueCustomers,
+          weekend: !!d.isWeekend,
+          title: `${shortDayLabel(d.date)}: ${formatNumber(
+            d.uniqueCustomers,
+          )} eindeutige Kunden`,
+        }));
+        const dailyWallet = (analytics.dailyWalletDownloads || []).map((d) => ({
           label: shortDayLabel(d.date),
           apple: d.apple,
           google: d.google,
@@ -1056,23 +1380,121 @@
             d.apple,
           )} Apple, ${formatNumber(d.google)} Google`,
         }));
+
+        const activity = analytics.customerActivity || {};
+        const cards = analytics.cards || {};
+
         return `
+          <div class="range-toggle">${buildRangeToggleHtml(scope, cafeId, days)}</div>
+
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-label">Neue Kunden</div>
+              <div class="summary-value">${formatNumber(activity.newCustomers)}</div>
+              <div class="summary-delta">Erster Stempel in den letzten ${days} Tagen</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Wiederkehrende Kunden</div>
+              <div class="summary-value">${formatNumber(activity.returningCustomers)}</div>
+              <div class="summary-delta">Schon vorher Kunde, wieder aktiv</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Aktive Kunden</div>
+              <div class="summary-value">${formatNumber(activity.activeCustomers)}</div>
+              <div class="summary-delta">Mind. 1 Stempel in ${days} Tagen</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Kaffeekarten insgesamt</div>
+              <div class="summary-value">${formatNumber(cards.total)}</div>
+              <div class="summary-delta">+${formatNumber(
+                cards.newInWindow,
+              )} in den letzten ${days} Tagen</div>
+            </div>
+          </div>
+
           <div class="section-title" style="margin-top: 32px;">Stempel pro Tag</div>
-          <div class="section-subtitle">Letzte 30 Tage.</div>
+          <div class="section-subtitle">Letzte ${days} Tage${scopeLabel}. Wochenenden sind heller markiert.</div>
           <div class="chart-wrap">${buildBarChartSvg(dailyStamps, {})}</div>
 
-          <div class="section-title">Wallet-Karten pro Tag</div>
-          <div class="section-subtitle">Neu heruntergeladene/gespeicherte Wallet-Pässe, letzte 30 Tage.</div>
+          <div class="section-title">Eindeutige Kunden pro Tag</div>
+          <div class="section-subtitle">Gleiche Stempelzahl kann von vielen Einmalgästen oder wenigen Stammgästen kommen - dieser Chart trennt das.</div>
+          <div class="chart-wrap">${buildBarChartSvg(dailyCustomers, {
+            barClass: "chart-bar-customers",
+          })}</div>
+
+          <div class="section-title">Neue Kaffeekarten</div>
+          <div class="section-subtitle">Neue Wallet-Karten pro Tag${scopeLabel} · letzte ${days} Tage.</div>
           <div class="chart-legend">
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-apple"></span>Apple</span>
             <span class="chart-legend-item"><span class="chart-legend-dot chart-legend-dot-google"></span>Google</span>
           </div>
           <div class="chart-wrap">${buildStackedBarChartSvg(dailyWallet, {})}</div>
 
-          <div class="section-title">Stempel im Tagesverlauf</div>
-          <div class="section-subtitle">Jeder Punkt ein Stempel, in 15-Minuten-Fenstern, letzte 30 Tage.</div>
-          <div class="chart-wrap">${buildDotPlotSvg(charts.stampsByTimeOfDay || [])}</div>
+          <div class="section-title">Stempel nach Wochentag &amp; Uhrzeit</div>
+          <div class="section-subtitle">Letzte ${days} Tage${scopeLabel}, in ${
+            analytics.heatmap ? analytics.heatmap.bucketHours : 2
+          }-Stunden-Fenstern.</div>
+          ${buildHeatmapHtml(analytics.heatmap)}
         `;
+      }
+
+      async function loadCafeAnalytics(cafeId, days) {
+        const container = document.getElementById("cafeAnalyticsBlock");
+        if (!container || !state.config) return;
+        state.analyticsDays = days;
+        try {
+          const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}/analytics`);
+          url.searchParams.set("days", String(days));
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          // The user may have switched to a different café (or navigated
+          // away) while this was in flight - only paint if we're still
+          // looking at the café this response is for.
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildAnalyticsHtml(data.analytics, "cafe", cafeId, days);
+          wireAnalyticsBlock(container);
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<p class="section-subtitle">Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      async function loadGlobalAnalytics(days) {
+        const container = document.getElementById("globalAnalyticsBlock");
+        if (!container || !state.config) return;
+        state.globalAnalyticsDays = days;
+        try {
+          const url = adminApiUrl("/admin/analytics");
+          url.searchParams.set("days", String(days));
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          container.innerHTML = buildAnalyticsHtml(data.analytics, "global", null, days);
+          wireAnalyticsBlock(container);
+        } catch (err) {
+          container.innerHTML = `<p class="section-subtitle">Analytics konnten nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
+      function wireAnalyticsBlock(container) {
+        container.querySelectorAll(".rangeToggleBtn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const scope = btn.dataset.scope;
+            const days = Number(btn.dataset.days) || 30;
+            container.innerHTML = '<p class="section-subtitle">Lade Analytics …</p>';
+            if (scope === "global") loadGlobalAnalytics(days);
+            else loadCafeAnalytics(btn.dataset.cafeId, days);
+          });
+        });
       }
 
       function renderDashboard() {
@@ -1413,7 +1835,8 @@
 
         wireDetailLinks(refs.customersOverviewContainer);
 
-        renderCharts(data.charts);
+        loadGlobalAnalytics(state.globalAnalyticsDays || 30);
+        loadGlobalLifecycle();
         renderCafeDetail();
         renderCustomerDetail();
       }
@@ -1597,7 +2020,12 @@
                   </div>
                 </div>
 
-                ${buildCafeChartsHtml(cafe.charts)}
+                <div id="cafeAnalyticsBlock" data-cafe-id="${cafe.id}">
+                  <p class="section-subtitle">Lade Analytics …</p>
+                </div>
+                <div id="cafeLifecycleBlock" data-cafe-id="${cafe.id}">
+                  <p class="section-subtitle">Lade Lifecycle-Analytics …</p>
+                </div>
 
                 <div class="section-title">Letzte Events</div>
                 <div class="table-wrapper">
@@ -1699,6 +2127,8 @@
         }
         refs.cafeDetailContainer.innerHTML = buildCafeCardHtml(cafe);
         wireDetailLinks(refs.cafeDetailContainer);
+        loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
+        loadCafeLifecycle(cafe.id);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")
           .forEach((btn) => {
