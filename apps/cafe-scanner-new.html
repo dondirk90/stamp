@@ -833,9 +833,9 @@
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       }
       /* Sits nested inside #scannerScreen, the one framed panel on this
-         screen (same "no frame within a frame" convention as .viewSection/
-         .cardSection above and #profileCard's card--hairline) - a hairline
-         divider instead of its own border+background. */
+         screen (same "no frame within a frame" convention as .tabSection
+         above and #profileCard's card--hairline) - a hairline divider
+         instead of its own border+background. */
       .customer-info {
         background: transparent;
         padding: 20px 0 0;
@@ -2088,8 +2088,8 @@
       }
 
       /* Scoped to #dashboardScreen - .badge is also used unstyled
-         (theme.css's normal pill badge) elsewhere, e.g. #profileScreen's
-         #modeBadge, which should NOT get this flat borderless look. */
+         (theme.css's normal pill badge) elsewhere, which should NOT get
+         this flat borderless look. */
       #dashboardScreen .badge {
         display: inline-block;
         padding: 0;
@@ -2188,20 +2188,7 @@
         line-height: 1.55;
       }
 
-      .viewSection[hidden] {
-        display: none !important;
-      }
-
-      #setupHero + h2,
-      #setupHero + h2 + .muted {
-        display: none;
-      }
-
-      .cardSection[hidden] {
-        display: none !important;
-      }
-
-      .advancedOnly[hidden] {
+      .tabSection[hidden] {
         display: none !important;
       }
 
@@ -2209,8 +2196,7 @@
          card--hairline treatment as the rest of the app) - giving each
          subsection its own border+background would still stack boxes
          inside a box. A hairline divider separates them instead. */
-      .viewSection,
-      .cardSection,
+      .tabSection,
       .heroCard {
         background: transparent !important;
         border: none !important;
@@ -2218,6 +2204,93 @@
         border-radius: 0 !important;
         box-shadow: none !important;
         padding-top: 18px !important;
+      }
+
+      /* First visible section under the sub-tab pills shouldn't carry the
+         same top hairline the pills themselves already provide. */
+      .tabSection:first-child {
+        border-top: none !important;
+        padding-top: 0 !important;
+      }
+
+      /* Pill sub-nav for the Wallet-Pass screen (Design/Belohnung/
+         Café-Info/Erinnerungen/Konto) - an in-page switch, not a route
+         change, so each pill stays short and focused instead of one long
+         scroll through every setting at once. Visual language borrowed
+         from ui.js's .kk-tab active state (filled pill = active) for
+         consistency with the bottom nav. */
+      .subTabBar {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 0 var(--space-4);
+        padding-bottom: 2px;
+      }
+
+      /* .miniBtn opts these out of theme.css's global legacy-button rule
+         (button:not(.secondary):not(.ghost):not(.miniBtn):not(.passMain)) -
+         that rule's higher specificity would otherwise beat this class's
+         !important background/border/color regardless of source order.
+         width/margin-top !important override this file's own
+         button:not(.ghost) login-form styling further up (same fix as
+         .galleryItem button below), which would otherwise stretch every
+         pill full-width with a 24px top gap. */
+      .subTabBtn {
+        flex: 0 0 auto;
+        width: auto !important;
+        margin-top: 0 !important;
+        padding: 9px 16px !important;
+        border-radius: 999px !important;
+        border: 1px solid var(--border) !important;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .subTabBtn.active {
+        background: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+      }
+
+      /* Short tag under a field group's heading, naming exactly where that
+         input shows up on the Wallet-Pass - the "which effect does this
+         have" clarity the plain descriptive sentences used to leave
+         implicit. */
+      .effectTag {
+        display: inline-block;
+        margin: 0 0 10px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .previewCardBackLabel {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        opacity: 0.62;
+      }
+
+      .previewCardBackText {
+        margin: 0 0 14px;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .previewCardBackText:last-child {
+        margin-bottom: 0;
       }
 
       .heroCard {
@@ -2229,7 +2302,7 @@
 
       /* Exception: the destructive action needs to stay visually contained
          so it doesn't read as just another plain settings row - wins back
-         over .viewSection's !important reset above (higher specificity). */
+         over .tabSection's !important reset above (higher specificity). */
       #sectionDeleteProfile {
         border: 1px solid rgba(180, 35, 24, 0.26) !important;
         border-radius: var(--radius) !important;
@@ -2777,7 +2850,7 @@
               </div>
               <div class="homeCard">
                 <strong>Pflege spaeter im Menue</strong>
-                <span>Stempelkarten, Rewards und Programmdetails pflegst du spaeter unter Stempelkarte, Verwaltung und Dashboard.</span>
+                <span>Stempelkarten, Rewards und Programmdetails pflegst du spaeter unter Wallet-Pass und Dashboard.</span>
               </div>
               <div class="homeCard">
                 <strong>Was die Kaffeekarte liefern soll</strong>
@@ -2827,8 +2900,8 @@
             <div class="menuInfo">
               <strong>Wo du spaeter was findest</strong>
               <span>
-                Unter <b>Stempelkarte</b> pflegst du Programm und Reward. Unter
-                <b>Verwaltung</b> liegen Zusatzpflege und Organisation. Das
+                Unter <b>Wallet-Pass</b> findest du Design, Belohnung, Café-Info,
+                Erinnerungen und Konto - übersichtlich in Unter-Tabs. Das
                 <b>Dashboard</b> bleibt für den Überblick und der Scanner für
                 den Tagesbetrieb da.
               </span>
@@ -3014,7 +3087,7 @@
           <div id="profileScreen" style="display: none">
             <div class="pageMeta">
               <h1 class="pageMetaTitle" id="profileCafeName">Café Profil</h1>
-              <div class="pageMetaSub">Karte, Reward und Auftritt an einem Ort</div>
+              <div class="pageMetaSub">Wallet-Pass, Belohnung und Café-Auftritt an einem Ort</div>
             </div>
 
             <div class="card" id="profileLoadingCard" style="padding: var(--space-5)">
@@ -3026,230 +3099,227 @@
               class="card card--hairline"
               style="padding: var(--space-5); display: none"
             >
-              <div id="setupHero">
-                <h2 id="profileTitle" style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
-                  Stempelkarte
-                </h2>
-                <div class="pageIntro" id="profileIntro">
-                  Richte zuerst die Kundenkarte und die Belohnung ein. Alles Weitere
-                  wie Kampagnen, Standortdaten und Zusatzpflege liegt bewusst getrennt
-                  unter <strong>Verwaltung</strong>.
+              <!-- Sub-Tabs statt eines langen Dauer-Scrolls - jeder Tab zeigt
+                   nur seine eigenen Felder (siehe applyProfileTab()). Konto
+                   war früher eine eigene "Verwaltung"-Seite; ist jetzt nur
+                   noch einer von fünf Tabs auf demselben Screen. -->
+              <div class="subTabBar" id="profileSubTabBar" role="tablist">
+                <button type="button" class="subTabBtn miniBtn" data-tab="design">Design</button>
+                <button type="button" class="subTabBtn miniBtn" data-tab="belohnung">Belohnung</button>
+                <button type="button" class="subTabBtn miniBtn" data-tab="cafeinfo">Café-Info</button>
+                <button type="button" class="subTabBtn miniBtn" data-tab="erinnerungen">Erinnerungen</button>
+                <button type="button" class="subTabBtn miniBtn" data-tab="konto">Konto</button>
+              </div>
+
+              <h2 id="profileTitle" style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
+                Design
+              </h2>
+              <div class="muted" id="profileIntro" style="margin-bottom: var(--space-4)">
+                Logo, Farben und Stempelstil - so sieht die Karte bei deinen Gästen aus.
+              </div>
+
+              <div class="tabSection" data-tab="design">
+                <div id="setupHero">
+                  <div class="heroCard">
+                    <h3>Ein guter Aufbau in 3 Schritten</h3>
+                    <p>
+                      1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
+                      ist (Tab "Belohnung"). 2. Gestalte die Karte so, dass sie in den
+                      Karten deiner Gäste klar und hochwertig wirkt (dieser Tab). 3.
+                      Erinnerungen und Café-Info pflegst du in den anderen Tabs.
+                    </p>
+                  </div>
+
+                  <div class="previewCardWrap">
+                    <div class="previewCardLabel">Vorschau: so sieht die Karte bei deinen Gästen aus</div>
+                    <div class="previewCard" id="cardPreview" data-pass-theme="paper">
+                      <div class="previewCardHead">
+                        <div class="previewCardLogoWrap" id="previewCardLogoWrap">
+                          <span id="previewCardLogoFallback"></span>
+                          <img
+                            class="previewCardLogo"
+                            id="previewCardLogo"
+                            alt=""
+                            style="display: none"
+                          />
+                        </div>
+                        <div class="previewCardTitleBlock">
+                          <div class="previewCardTitle" id="previewCardTitle">Café</div>
+                          <div class="previewCardSub">Digitale Stempelkarte</div>
+                        </div>
+                      </div>
+                      <div class="previewStampGrid" id="previewStampGrid"></div>
+                      <div class="previewCardReward" id="previewCardReward"></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="heroCard">
-                  <h3>Ein guter Aufbau in 3 Schritten</h3>
-                  <p>
-                    1. Lege fest, nach wie vielen Stempeln eine Belohnung erreicht
-                    ist. 2. Gestalte die Karte so, dass sie in den Karten deiner Gäste
-                    klar und hochwertig wirkt. 3. Pflege später in der Verwaltung
-                    Kampagnen, Standort und Zusatzinhalte.
-                  </p>
+
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Vorderseite der Karte</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Logo
+                  </div>
+                  <div class="logoRow">
+                    <input id="profileLogo" type="file" accept="image/*" />
+                    <img
+                      id="profileLogoPreview"
+                      class="logoPreview"
+                      alt="Logo Vorschau"
+                    />
+                  </div>
+                  <div class="muted" style="margin-top: 6px">
+                    Tipp: Quadratische Logos wirken am besten.
+                  </div>
+                </div>
+
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Vorderseite der Karte</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Kartendesign
+                  </div>
+                  <select id="profileCardTheme" class="input" style="width: 100%">
+                    <option value="paper">Printed (Warm White)</option>
+                    <option value="clean">Printed (Bright White)</option>
+                    <option value="ink">Printed (Dark)</option>
+                    <option value="brand">Printed (Espresso Accent)</option>
+                    <option value="latte">Printed (Soft Cream)</option>
+                    <option value="mono">Printed (Mono)</option>
+                  </select>
+                  <div class="muted" style="margin-top: 6px">
+                    Das Design wird in der Kundenkarte automatisch verwendet und
+                    orientiert sich eher an einer echten gedruckten Treuekarte als an einer allzu eifrigen App.
+                  </div>
+                  <div style="display: flex; gap: 20px; margin-top: 10px">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
+                      Hintergrund
+                      <input id="profileBgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
+                      Text/Symbole
+                      <input id="profileFgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
+                    </label>
+                  </div>
+                  <div class="muted" style="margin-top: 6px">
+                    Freie Farbwahl überschreibt das oben gewählte Design. Design nochmal
+                    anklicken setzt die Farben auf die Vorlage zurück.
+                  </div>
+                </div>
+
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Vorder- und Rückseite</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Karten-Hintergrund (optional)
+                  </div>
+                  <div class="logoRow" style="align-items: center">
+                    <input
+                      id="profileCardBg"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                    />
+                    <img
+                      id="profileCardBgPreview"
+                      class="cardBgPreview"
+                      alt="Hintergrund Vorschau"
+                    />
+                    <button
+                      class="btn secondary"
+                      type="button"
+                      id="profileCardBgClear"
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                  <div class="muted" style="margin-top: 6px">
+                    Wird als dezenter Hintergrund auf Vorder- und Rückseite genutzt.
+                  </div>
+                </div>
+
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Vorderseite der Karte</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Stempelstil
+                  </div>
+                  <select id="profileStampStyle" class="input" style="width: 100%">
+                    <option value="bean">Kaffeebohne</option>
+                    <option value="cup">Tasse</option>
+                    <option value="star">Stern</option>
+                    <option value="circle">Kreis</option>
+                  </select>
+                  <div class="muted" style="margin-top: 6px">
+                    Damit legst du fest, welches Zeichen die gestempelten Felder auf
+                    der Kundenkarte füllt.
+                  </div>
+                </div>
+              </div>
+
+              <div class="tabSection" data-tab="belohnung" hidden>
+                <span class="effectTag">Vorderseite der Karte</span>
+                <div id="sectionRewardCore" class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Stempel für Belohnung
+                    </div>
+                    <input id="profileRewardThreshold" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
+                  </div>
+                  <div style="flex: 2">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Belohnungs-Beschreibung
+                    </div>
+                    <input id="profileRewardDescription" class="input" type="text" maxlength="240" placeholder="z.B. 1 Freigetränk oder 1 Cookie aufs Haus" style="width: 100%" />
+                  </div>
+                </div>
+                <div class="muted" style="margin-top: -6px; margin-bottom: 18px">
+                  Kurz halten lohnt sich: Dieser Text sitzt auf der Karte neben dem
+                  letzten Stempelfeld, eher wie ein Druckhinweis als wie ein kleiner Roman.
                 </div>
 
                 <div class="previewCardWrap">
-                  <div class="previewCardLabel">Vorschau: so sieht die Karte bei deinen Gästen aus</div>
-                  <div class="previewCard" id="cardPreview" data-pass-theme="paper">
-                    <div class="previewCardHead">
-                      <div class="previewCardLogoWrap" id="previewCardLogoWrap">
-                        <span id="previewCardLogoFallback"></span>
-                        <img
-                          class="previewCardLogo"
-                          id="previewCardLogo"
-                          alt=""
-                          style="display: none"
-                        />
-                      </div>
-                      <div class="previewCardTitleBlock">
-                        <div class="previewCardTitle" id="previewCardTitle">Café</div>
-                        <div class="previewCardSub">Digitale Stempelkarte</div>
-                      </div>
-                    </div>
-                    <div class="previewStampGrid" id="previewStampGrid"></div>
-                    <div class="previewCardReward" id="previewCardReward"></div>
+                  <div class="previewCardLabel">Vorschau: Rückseite der Karte bei deinen Gästen</div>
+                  <div class="previewCard" id="cardPreviewBack" data-pass-theme="paper">
+                    <div class="previewCardBackLabel">Text auf der Karte</div>
+                    <div class="previewCardBackText" id="previewCardBackText">–</div>
+                    <div class="previewCardBackLabel">Wenn die Karte voll ist</div>
+                    <div class="previewCardBackText" id="previewCardRedeemText">–</div>
                   </div>
                 </div>
-              </div>
-              <div
-                id="modeBadge"
-                class="badge"
-                style="display: inline-flex; margin: 0 0 var(--space-2) 0"
-              >
-                Kartenlogik und Reward
-              </div>
-              <h2 style="margin: 0 0 var(--space-2) 0; color: var(--brand)">
-                Café Profil
-              </h2>
-              <div class="muted" style="margin-bottom: var(--space-4)">
-                Beschreibung und Logo erscheinen auf der Stempelkarte des Kunden. Kurz:
-                Was Gäste sehen, sollte sitzen.
-              </div>
 
-              <div class="stack" style="gap: 12px">
-                <div id="sectionLocation" class="viewSection">
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Vorderseite, wenn die Karte voll ist</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Standort (für Kunden-Karte)
+                    Einlöse-Text (wenn Karte voll ist)
                   </div>
-                  <input
-                    id="profileLocationAddress"
-                    class="input"
-                    type="text"
-                    maxlength="256"
-                    placeholder="z.B. Musterstraße 12, 10115 Berlin"
-                    style="width: 100%"
-                  />
+                  <textarea
+                    id="profileRedeemMessage"
+                    class="profileInput small"
+                    maxlength="600"
+                    placeholder="z.B. Kostenloser Cappuccino — sag einfach an der Kasse Bescheid."
+                  ></textarea>
                   <div class="muted" style="margin-top: 6px">
-                    Diese Adresse kann später für eine Kunden-Map genutzt werden.
+                    Dieser Text wird dem Kunden angezeigt, sobald die Stempelkarte
+                    voll ist.
                   </div>
                 </div>
 
-                <div id="sectionProgramCampaigns" class="viewSection">
-                  <h3 id="programSectionTitle" style="margin: 0 0 var(--space-3) 0; color: var(--brand)">
-                    Stempelprogramm
-                  </h3>
-                  <div class="muted" id="programSectionIntro" style="margin-bottom: var(--space-3)">
-                    Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist
-                    und wie sie auf der Kundenkarte als gedruckter Reward-Hinweis erscheint.
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Rückseite der Karte</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Text auf der Karte
                   </div>
-
-                  <div id="sectionRewardCore" class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
-                    <div style="flex: 1">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Stempel für Belohnung
-                      </div>
-                      <input id="profileRewardThreshold" class="input" type="number" min="1" max="50" step="1" style="width: 100%" />
-                    </div>
-                    <div style="flex: 2">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Belohnungs-Beschreibung
-                      </div>
-                      <input id="profileRewardDescription" class="input" type="text" maxlength="240" placeholder="z.B. 1 Freigetränk oder 1 Cookie aufs Haus" style="width: 100%" />
-                    </div>
-                  </div>
-                  <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
-                    Kurz halten lohnt sich: Dieser Text sitzt auf der Karte neben dem
-                    letzten Stempelfeld, eher wie ein Druckhinweis als wie ein kleiner Roman.
-                  </div>
-                  <div class="cardSection" style="padding: 0; margin-bottom: 14px">
-                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                      Stempelstil
-                    </div>
-                    <select id="profileStampStyle" class="input" style="width: 100%">
-                      <option value="bean">Kaffeebohne</option>
-                      <option value="cup">Tasse</option>
-                      <option value="star">Stern</option>
-                      <option value="circle">Kreis</option>
-                    </select>
-                    <div class="muted" style="margin-top: 6px">
-                      Damit legst du fest, welches Zeichen die gestempelten Felder auf
-                      der Kundenkarte füllt.
-                    </div>
-                  </div>
-
-                  <div id="programAdvancedIntro" class="advancedOnly">
-                    <div class="muted" style="margin: 4px 0 14px">
-                      Diese Hinweise erscheinen in der Kundenkarte, wenn ein Besuch
-                      länger her ist oder nur noch wenige Stempel bis zur Belohnung fehlen.
-                    </div>
-                  </div>
-
-                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
-                    <label class="row" style="gap: 8px; flex: 1; align-items: center">
-                      <input id="profilePopupInactiveEnabled" type="checkbox" checked />
-                      <span>Reaktivierungs-Popup aktiv</span>
-                    </label>
-                    <div style="width: 180px">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Tage seit letztem Besuch
-                      </div>
-                      <input id="profilePopupInactiveDays" class="input" type="number" min="7" max="365" step="1" style="width: 100%" />
-                    </div>
-                  </div>
-                  <textarea id="profilePopupInactiveMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text für Kunden, die länger nicht da waren. Leer = Standardtext."></textarea>
-
-                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin: 16px 0 14px">
-                    <label class="row" style="gap: 8px; flex: 1; align-items: center">
-                      <input id="profilePopupAlmostRewardEnabled" type="checkbox" checked />
-                      <span>"Fast geschafft"-Popup aktiv</span>
-                    </label>
-                    <div style="width: 180px">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Reststempel für Hinweis
-                      </div>
-                      <input id="profilePopupAlmostRewardRemaining" class="input" type="number" min="1" max="10" step="1" style="width: 100%" />
-                    </div>
-                  </div>
-                  <textarea id="profilePopupAlmostRewardMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Optionaler Text für Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
-
-                  <div id="programAdvancedReminderIntro" class="advancedOnly">
-                    <div class="muted" style="margin: 16px 0 14px">
-                      Zusätzlich zum Popup in der Kundenkarte kannst du eine echte
-                      Push-Erinnerung senden - sie erreicht Kunden auch, ohne dass sie
-                      die Karte selbst öffnen.
-                    </div>
-                  </div>
-                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
-                    <label class="row" style="gap: 8px; flex: 1; align-items: center">
-                      <input id="profileReminderPushEnabled" type="checkbox" />
-                      <span>Push-Erinnerung aktiv</span>
-                    </label>
-                  </div>
-                  <div class="logoRow advancedOnly" style="align-items: flex-end; margin-bottom: 14px">
-                    <div style="flex: 1">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Ab wie vielen Stempeln
-                      </div>
-                      <input id="profileReminderMinStamps" class="input" type="number" min="3" max="9" step="1" style="width: 100%" />
-                    </div>
-                    <div style="flex: 1">
-                      <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                        Tage ohne neuen Stempel
-                      </div>
-                      <input id="profileReminderInactiveDays" class="input" type="number" min="1" max="365" step="1" style="width: 100%" />
-                    </div>
-                  </div>
-                  <div class="muted advancedOnly" style="margin-top: -6px; margin-bottom: 12px">
-                    Beide Bedingungen müssen gleichzeitig zutreffen: mindestens so
-                    viele Stempel UND so lange kein neuer Stempel mehr.
-                  </div>
-                  <div class="muted advancedOnly" style="margin-bottom: 6px; font-weight: 700">
-                    Text, solange noch Stempel fehlen
-                  </div>
-                  <textarea id="profileReminderMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen! Leer = Standardtext. Platzhalter: {days}, {remaining}, {cafe}, {stamps}, {goal}, {reward}."></textarea>
-                  <div class="muted advancedOnly" style="margin: 10px 0 6px; font-weight: 700">
-                    Text, wenn die Karte schon voll ist
-                  </div>
-                  <textarea id="profileReminderFullMessage" class="profileInput small advancedOnly" maxlength="280" placeholder="Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}! Leer = Standardtext."></textarea>
-                </div>
-
-                <div id="sectionLatLng" class="logoRow viewSection" style="align-items: flex-end">
-                  <div style="flex: 1">
-                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                      Latitude (optional)
-                    </div>
-                    <input
-                      id="profileLat"
-                      class="input"
-                      type="number"
-                      step="any"
-                      placeholder="52.5200"
-                      style="width: 100%"
-                    />
-                  </div>
-                  <div style="flex: 1">
-                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                      Longitude (optional)
-                    </div>
-                    <input
-                      id="profileLng"
-                      class="input"
-                      type="number"
-                      step="any"
-                      placeholder="13.4050"
-                      style="width: 100%"
-                    />
+                  <textarea
+                    id="profileCardBackText"
+                    class="profileInput small"
+                    maxlength="400"
+                    placeholder="z.B. Oeffnungszeiten, Hinweise oder ein kurzer Gruss"
+                  ></textarea>
+                  <div class="muted" style="margin-top: 6px">
+                    Erscheint direkt auf der Kunden-Karte unter den Stempeln.
                   </div>
                 </div>
+              </div>
 
-                <div id="sectionAbout" class="cardSection">
+              <div class="tabSection" data-tab="cafeinfo" hidden>
+                <span class="effectTag">Café-Info-Popup, wenn Kunde antippt</span>
+                <div>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                     Kurzbeschreibung (max. 100 Zeichen)
                   </div>
@@ -3298,7 +3368,8 @@
                   </div>
                 </div>
 
-                <div id="sectionLinks" class="cardSection">
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Café-Info-Popup, wenn Kunde antippt</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                     Links im Kunden-Popup
                   </div>
@@ -3339,115 +3410,8 @@
                   </div>
                 </div>
 
-                <div id="sectionRedeem" class="cardSection">
-                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Einlöse-Text (wenn Karte voll ist)
-                  </div>
-                  <textarea
-                    id="profileRedeemMessage"
-                    class="profileInput small"
-                    maxlength="600"
-                    placeholder="z.B. Kostenloser Cappuccino — sag einfach an der Kasse Bescheid."
-                  ></textarea>
-                  <div class="muted" style="margin-top: 6px">
-                    Dieser Text wird dem Kunden angezeigt, sobald die Stempelkarte
-                    voll ist.
-                  </div>
-                </div>
-
-                <div id="sectionLogo" class="cardSection">
-                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Logo
-                  </div>
-                  <div class="logoRow">
-                    <input id="profileLogo" type="file" accept="image/*" />
-                    <img
-                      id="profileLogoPreview"
-                      class="logoPreview"
-                      alt="Logo Vorschau"
-                    />
-                  </div>
-                  <div class="muted" style="margin-top: 6px">
-                    Tipp: Quadratische Logos wirken am besten.
-                  </div>
-                </div>
-
-                <div id="sectionCardTheme" class="cardSection">
-                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Kartendesign
-                  </div>
-                  <select id="profileCardTheme" class="input" style="width: 100%">
-                    <option value="paper">Printed (Warm White)</option>
-                    <option value="clean">Printed (Bright White)</option>
-                    <option value="ink">Printed (Dark)</option>
-                    <option value="brand">Printed (Espresso Accent)</option>
-                    <option value="latte">Printed (Soft Cream)</option>
-                    <option value="mono">Printed (Mono)</option>
-                  </select>
-                  <div class="muted" style="margin-top: 6px">
-                    Das Design wird in der Kundenkarte automatisch verwendet und
-                    orientiert sich eher an einer echten gedruckten Treuekarte als an einer allzu eifrigen App.
-                  </div>
-                  <div style="display: flex; gap: 20px; margin-top: 10px">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
-                      Hintergrund
-                      <input id="profileBgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer">
-                      Text/Symbole
-                      <input id="profileFgColor" type="color" style="width: 40px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; cursor: pointer" />
-                    </label>
-                  </div>
-                  <div class="muted" style="margin-top: 6px">
-                    Freie Farbwahl überschreibt das oben gewählte Design. Design nochmal
-                    anklicken setzt die Farben auf die Vorlage zurück.
-                  </div>
-                </div>
-
-                <div id="sectionCardBackground" class="cardSection">
-                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Karten-Hintergrund (optional)
-                  </div>
-                  <div class="logoRow" style="align-items: center">
-                    <input
-                      id="profileCardBg"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                    />
-                    <img
-                      id="profileCardBgPreview"
-                      class="cardBgPreview"
-                      alt="Hintergrund Vorschau"
-                    />
-                    <button
-                      class="btn secondary"
-                      type="button"
-                      id="profileCardBgClear"
-                    >
-                      Entfernen
-                    </button>
-                  </div>
-                  <div class="muted" style="margin-top: 6px">
-                    Wird als dezenter Hintergrund auf Vorder- und Rückseite genutzt.
-                  </div>
-                </div>
-
-                <div id="sectionCardBackText" class="cardSection">
-                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
-                    Text auf der Karte
-                  </div>
-                  <textarea
-                    id="profileCardBackText"
-                    class="profileInput small"
-                    maxlength="400"
-                    placeholder="z.B. Oeffnungszeiten, Hinweise oder ein kurzer Gruss"
-                  ></textarea>
-                  <div class="muted" style="margin-top: 6px">
-                    Erscheint direkt auf der Kunden-Karte unter den Stempeln.
-                  </div>
-                </div>
-
-                <div id="sectionGallery" class="viewSection">
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Café-Info-Popup, wenn Kunde antippt</span>
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                     Bilder (optional)
                   </div>
@@ -3462,8 +3426,149 @@
                   </div>
                   <div id="galleryList" class="galleryList"></div>
                 </div>
+              </div>
 
-                <div id="sectionChangePassword" class="viewSection">
+              <div class="tabSection" data-tab="erinnerungen" hidden>
+                <h3 class="subSectionTitle">Popup in der Karten-App</h3>
+                <span class="effectTag">Popup beim Öffnen der Karte</span>
+                <div class="muted" style="margin: 4px 0 14px">
+                  Erscheint in der Kundenkarte selbst, wenn ein Besuch länger her ist
+                  oder nur noch wenige Stempel bis zur Belohnung fehlen - der Kunde
+                  muss die Karte dafür öffnen.
+                </div>
+
+                <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+                  <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                    <input id="profilePopupInactiveEnabled" type="checkbox" checked />
+                    <span>Reaktivierungs-Popup aktiv</span>
+                  </label>
+                  <div style="width: 180px">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Tage seit letztem Besuch
+                    </div>
+                    <input id="profilePopupInactiveDays" class="input" type="number" min="7" max="365" step="1" style="width: 100%" />
+                  </div>
+                </div>
+                <textarea id="profilePopupInactiveMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text für Kunden, die länger nicht da waren. Leer = Standardtext."></textarea>
+
+                <div class="logoRow" style="align-items: flex-end; margin: 16px 0 14px">
+                  <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                    <input id="profilePopupAlmostRewardEnabled" type="checkbox" checked />
+                    <span>"Fast geschafft"-Popup aktiv</span>
+                  </label>
+                  <div style="width: 180px">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Reststempel für Hinweis
+                    </div>
+                    <input id="profilePopupAlmostRewardRemaining" class="input" type="number" min="1" max="10" step="1" style="width: 100%" />
+                  </div>
+                </div>
+                <textarea id="profilePopupAlmostRewardMessage" class="profileInput small" maxlength="280" placeholder="Optionaler Text für Kunden kurz vor der Belohnung. Leer = Standardtext."></textarea>
+
+                <h3 class="subSectionTitle" style="margin-top: 28px">Echte Push-Erinnerung</h3>
+                <span class="effectTag">Push-Benachrichtigung, auch wenn die Karte nicht offen ist</span>
+                <div class="muted" style="margin: 4px 0 14px">
+                  Zusätzlich zum Popup kannst du eine echte Push-Erinnerung senden -
+                  sie erreicht Kunden auch, ohne dass sie die Karte selbst öffnen.
+                </div>
+                <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+                  <label class="row" style="gap: 8px; flex: 1; align-items: center">
+                    <input id="profileReminderPushEnabled" type="checkbox" />
+                    <span>Push-Erinnerung aktiv</span>
+                  </label>
+                </div>
+                <div class="logoRow" style="align-items: flex-end; margin-bottom: 14px">
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Ab wie vielen Stempeln
+                    </div>
+                    <input id="profileReminderMinStamps" class="input" type="number" min="3" max="9" step="1" style="width: 100%" />
+                  </div>
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Tage ohne neuen Stempel
+                    </div>
+                    <input id="profileReminderInactiveDays" class="input" type="number" min="1" max="365" step="1" style="width: 100%" />
+                  </div>
+                </div>
+                <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
+                  Beide Bedingungen müssen gleichzeitig zutreffen: mindestens so
+                  viele Stempel UND so lange kein neuer Stempel mehr.
+                </div>
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Text, solange noch Stempel fehlen
+                </div>
+                <textarea id="profileReminderMessage" class="profileInput small" maxlength="280" placeholder="Du warst seit {days} Tagen nicht mehr hier, obwohl dir nur noch {remaining} Stempel fehlen! Leer = Standardtext. Platzhalter: {days}, {remaining}, {cafe}, {stamps}, {goal}, {reward}."></textarea>
+                <div class="muted" style="margin: 10px 0 6px; font-weight: 700">
+                  Text, wenn die Karte schon voll ist
+                </div>
+                <textarea id="profileReminderFullMessage" class="profileInput small" maxlength="280" placeholder="Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}! Leer = Standardtext."></textarea>
+                <div class="logoRow" style="align-items: flex-end; margin: 16px 0 14px">
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Tage ohne ersten Stempel
+                    </div>
+                    <input id="profileReminderNewCustomerDays" class="input" type="number" min="7" max="90" step="1" style="width: 100%" />
+                  </div>
+                </div>
+                <div class="muted" style="margin-top: -6px; margin-bottom: 12px">
+                  Gilt für Kunden, die deine Karte gespeichert, aber noch nie gestempelt haben - unabhängig von den Bedingungen oben.
+                </div>
+                <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                  Text für "noch nie gestempelt"
+                </div>
+                <textarea id="profileReminderNewCustomerMessage" class="profileInput small" maxlength="280" placeholder="Deine Kaffeekarte bei {cafe} wartet seit {days} Tagen auf deinen ersten Stempel! Bis zur Belohnung fehlen dir nur noch {remaining} Stempel. Leer = Standardtext."></textarea>
+              </div>
+
+              <div class="tabSection" data-tab="konto" hidden>
+                <span class="effectTag">Nur intern, nicht auf dem Wallet-Pass sichtbar</span>
+                <div style="margin-bottom: 18px">
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Standort (für Kunden-Karte)
+                  </div>
+                  <input
+                    id="profileLocationAddress"
+                    class="input"
+                    type="text"
+                    maxlength="256"
+                    placeholder="z.B. Musterstraße 12, 10115 Berlin"
+                    style="width: 100%"
+                  />
+                  <div class="muted" style="margin-top: 6px">
+                    Diese Adresse kann später für eine Kunden-Map genutzt werden.
+                  </div>
+                </div>
+
+                <div id="sectionLatLng" class="logoRow" style="align-items: flex-end">
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Latitude (optional)
+                    </div>
+                    <input
+                      id="profileLat"
+                      class="input"
+                      type="number"
+                      step="any"
+                      placeholder="52.5200"
+                      style="width: 100%"
+                    />
+                  </div>
+                  <div style="flex: 1">
+                    <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                      Longitude (optional)
+                    </div>
+                    <input
+                      id="profileLng"
+                      class="input"
+                      type="number"
+                      step="any"
+                      placeholder="13.4050"
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
+
+                <div id="sectionChangePassword" style="margin-top: 18px">
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                     Passwort ändern
                   </div>
@@ -3515,8 +3620,7 @@
 
                 <div
                   id="sectionDeleteProfile"
-                  class="viewSection"
-                  style="border-color: rgba(180, 35, 24, 0.26); background: rgba(180, 35, 24, 0.08)"
+                  style="margin-top: 18px; border-color: rgba(180, 35, 24, 0.26); background: rgba(180, 35, 24, 0.08)"
                 >
                   <div
                     class="muted"
@@ -3570,17 +3674,13 @@
                     <div class="msg" id="deleteCafeMsg"></div>
                   </div>
                 </div>
+              </div>
 
-                <div class="logoRow" style="justify-content: space-between">
-                  <button class="btn" id="profileSaveBtn" type="button">
-                    Änderungen speichern
-                  </button>
-                  <div class="msg" id="profileMsg"></div>
-                </div>
-                <div class="helperNote" id="switchHint">
-                  Standort, Popup-Kampagnen und Bilder findest du gesammelt unter
-                  <a href="/cafe-profile?view=advanced">Verwaltung</a>.
-                </div>
+              <div class="logoRow" style="justify-content: space-between; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border)">
+                <button class="btn" id="profileSaveBtn" type="button">
+                  Änderungen speichern
+                </button>
+                <div class="msg" id="profileMsg"></div>
               </div>
             </div>
           </div>
@@ -3628,7 +3728,7 @@
         utilityMenu.id = "utilityMenu";
         utilityMenu.className = "utilityMenu";
         utilityMenu.innerHTML = `
-          <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Verwaltung</button>
+          <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Konto</button>
           <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
         `;
         document.body.appendChild(utilityMenu);
@@ -3655,7 +3755,7 @@
                 label: "Verlauf",
                 icon: stampUI.tabIcons.dashboard,
               },
-              { id: "utilityCardBtn", label: "Karte", icon: stampUI.tabIcons.card },
+              { id: "utilityCardBtn", label: "Wallet-Pass", icon: stampUI.tabIcons.card },
             ],
           });
           nav.id = "bottomTabs";
@@ -4055,6 +4155,7 @@
           scan: "utilityWelcomeBtn",
           dashboard: "utilityDashboardBtn",
           profile: "utilityCardBtn",
+          "profile-advanced": "utilityCardBtn",
         };
         const activeId = idByView[view] || "utilityWelcomeBtn";
         document.querySelectorAll(".kk-tabbar .kk-tab").forEach((el) => {
@@ -4070,7 +4171,7 @@
           // might also carry.
           if (location.pathname === "/cafe-dashboard") return "dashboard";
           if (location.pathname === "/cafe-profile") {
-            return getProfileViewMode() === "advanced" ? "profile-advanced" : "profile";
+            return getProfileTab() === "konto" ? "profile-advanced" : "profile";
           }
           const sp = new URLSearchParams(location.search || "");
           if (sp.get("view") === "scan") return "scan";
@@ -5128,68 +5229,78 @@
         stampStyle: "bean",
       };
 
-      function getProfileViewMode() {
+      // Fünf Unter-Tabs statt der frueheren zwei Modi ("Karte"/"Verwaltung")
+      // - jeder Tab zeigt nur seine eigenen Felder (.tabSection[data-tab]),
+      // kein gemeinsamer Dauer-Scroll mehr. "Konto" ersetzt die alte
+      // eigenstaendige "Verwaltung"-Seite; ?view=advanced (der alte Link,
+      // auch aus dem Utility-Menü/navigateToCafeView("profile-advanced"))
+      // bleibt als Alias fuer tab=konto gueltig.
+      const PROFILE_TABS = {
+        design: {
+          title: "Design",
+          intro: "Logo, Farben und Stempelstil - so sieht die Karte bei deinen Gästen aus.",
+        },
+        belohnung: {
+          title: "Belohnung",
+          intro: "Stempel-Schwelle, Einlöse-Text und die Rückseite der Karte.",
+        },
+        cafeinfo: {
+          title: "Café-Info",
+          intro: "Erscheint im Café-Info-Popup, wenn ein Kunde auf der Karte antippt - nicht auf der Kartenvorderseite selbst.",
+        },
+        erinnerungen: {
+          title: "Erinnerungen",
+          intro: "Popup in der Karten-App und echte Push-Erinnerungen an Kunden, die länger nicht da waren.",
+        },
+        konto: {
+          title: "Konto",
+          intro: "Standort, Passwort und Café-Löschung - rein intern, nichts davon sehen deine Kunden.",
+        },
+      };
+
+      function getProfileTab() {
         try {
           const sp = new URLSearchParams(location.search || "");
-          return sp.get("view") === "advanced" ? "advanced" : "card";
+          const tab = sp.get("tab");
+          if (tab && PROFILE_TABS[tab]) return tab;
+          // Alt-Link "Verwaltung" (?view=advanced) landet weiterhin auf Konto.
+          if (sp.get("view") === "advanced") return "konto";
+          return "design";
         } catch (e) {
-          return "card";
+          return "design";
         }
       }
 
-      function applyProfileViewMode(mode) {
-        const isAdvanced = mode === "advanced";
+      function applyProfileTab(tab) {
+        const active = PROFILE_TABS[tab] ? tab : "design";
+        const info = PROFILE_TABS[active];
         const titleEl = document.getElementById("profileTitle");
         const introEl = document.getElementById("profileIntro");
-        const heroEl = document.getElementById("setupHero");
-        const modeBadgeEl = document.getElementById("modeBadge");
-        const switchHintEl = document.getElementById("switchHint");
-        const saveBtn = document.getElementById("profileSaveBtn");
-        const programSectionTitle = document.getElementById("programSectionTitle");
-        const programSectionIntro = document.getElementById("programSectionIntro");
-        const cardSections = document.querySelectorAll(".cardSection");
-        const advancedSections = document.querySelectorAll(".viewSection");
-        const advancedOnlySections = document.querySelectorAll(".advancedOnly");
 
-        if (titleEl) {
-          titleEl.textContent = isAdvanced ? "Verwaltung" : "Stempelkarte";
-        }
-        if (modeBadgeEl) {
-          modeBadgeEl.textContent = isAdvanced
-            ? "Standort, Links und Zusatzpflege"
-            : "Kartenlogik und Reward";
-        }
-        if (introEl) {
-          introEl.innerHTML = isAdvanced
-            ? "Hier liegen die erweiterten Einstellungen wie Standort, Popup-Kampagnen und Bilder. Die eigentliche Kundenkarte bleibt bewusst in einem eigenen, klaren Bereich."
-            : "Richte zuerst die Kundenkarte und die Belohnung ein. Alles Weitere wie Kampagnen, Standortdaten und Zusatzpflege liegt getrennt unter <strong>Verwaltung</strong>.";
-        }
-        if (heroEl) heroEl.hidden = isAdvanced;
-        if (switchHintEl) switchHintEl.hidden = isAdvanced;
-        if (saveBtn) {
-          saveBtn.textContent = isAdvanced
-            ? "Verwaltung speichern"
-            : "Stempelkarte speichern";
-        }
-        if (programSectionTitle) {
-          programSectionTitle.textContent = isAdvanced
-            ? "Stempelprogramm und Kampagnen"
-            : "Stempelprogramm";
-        }
-        if (programSectionIntro) {
-          programSectionIntro.textContent = isAdvanced
-            ? "Hier pflegst du die Grundlogik der Karte und optional die Hinweise fuer Rueckkehr und Fast-geschafft-Momente."
-            : "Lege fest, nach wie vielen Stempeln eine Belohnung erreicht ist und wie sie auf der Kundenkarte benannt wird.";
-        }
-        cardSections.forEach((el) => {
-          el.hidden = isAdvanced;
+        if (titleEl) titleEl.textContent = info.title;
+        if (introEl) introEl.textContent = info.intro;
+
+        document.querySelectorAll(".tabSection").forEach((el) => {
+          el.hidden = el.getAttribute("data-tab") !== active;
         });
-        advancedSections.forEach((el) => {
-          el.hidden = !isAdvanced;
+        document.querySelectorAll(".subTabBtn").forEach((el) => {
+          el.classList.toggle("active", el.getAttribute("data-tab") === active);
         });
-        advancedOnlySections.forEach((el) => {
-          el.hidden = !isAdvanced;
-        });
+      }
+
+      // Wechselt den Tab, ohne die volle navigateToCafeView()-Historie zu
+      // bemühen (bleibt auf demselben "profile"-View) - nur die URL wird
+      // per replaceState synchron gehalten, damit ein Tab direkt verlinkt
+      // werden kann.
+      function setProfileTab(tab) {
+        const active = PROFILE_TABS[tab] ? tab : "design";
+        try {
+          const url = new URL(location.href);
+          url.searchParams.set("tab", active);
+          url.searchParams.delete("view");
+          history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+        } catch (e) {}
+        applyProfileTab(active);
       }
 
       function setMsg(text) {
@@ -5351,6 +5462,8 @@
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         const reminderMessageEl = document.getElementById("profileReminderMessage");
         const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
+        const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
+        const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
         if (!aboutEl || !logoPreview) return;
 
         if (locEl) {
@@ -5428,6 +5541,8 @@
         if (reminderInactiveDaysEl) reminderInactiveDaysEl.value = String(program.reminderInactiveDays != null ? program.reminderInactiveDays : 14);
         if (reminderMessageEl) reminderMessageEl.value = program.reminderMessage ? String(program.reminderMessage) : "";
         if (reminderFullMessageEl) reminderFullMessageEl.value = program.reminderFullMessage ? String(program.reminderFullMessage) : "";
+        if (reminderNewCustomerDaysEl) reminderNewCustomerDaysEl.value = String(program.reminderNewCustomerDays != null ? program.reminderNewCustomerDays : 21);
+        if (reminderNewCustomerMessageEl) reminderNewCustomerMessageEl.value = program.reminderNewCustomerMessage ? String(program.reminderNewCustomerMessage) : "";
         profileState.logoDataUrl =
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
@@ -5600,6 +5715,32 @@
             : "Belohnung";
           rewardEl.textContent = `Bei ${threshold} Stempeln: ${label}`;
         }
+
+        // Rückseiten-Vorschau (Belohnung-Tab) - eigenes, einfacheres
+        // Preview-Element, teilt sich nur die .previewCard-Optik/Theme-
+        // Farben mit der Vorderseite oben, sonst kein Bezug zueinander.
+        const previewBackEl = document.getElementById("cardPreviewBack");
+        if (previewBackEl) {
+          previewBackEl.setAttribute("data-pass-theme", theme);
+          previewBackEl.style.setProperty(
+            "--pass-card-bg",
+            profileState.cardBgDataUrl ? `url("${profileState.cardBgDataUrl.replace(/"/g, "%22")}")` : "none",
+          );
+          previewBackEl.style.setProperty("--pass-bg", (bgColorEl && bgColorEl.value) || "");
+          previewBackEl.style.setProperty("--pass-ink", (fgColorEl && fgColorEl.value) || "");
+        }
+        const cardBackTextEl = document.getElementById("profileCardBackText");
+        const previewBackTextEl = document.getElementById("previewCardBackText");
+        if (previewBackTextEl) {
+          previewBackTextEl.textContent =
+            (cardBackTextEl && cardBackTextEl.value.trim()) || "–";
+        }
+        const redeemMessageEl = document.getElementById("profileRedeemMessage");
+        const previewRedeemTextEl = document.getElementById("previewCardRedeemText");
+        if (previewRedeemTextEl) {
+          previewRedeemTextEl.textContent =
+            (redeemMessageEl && redeemMessageEl.value.trim()) || "–";
+        }
       }
 
       function renderGallery(images) {
@@ -5759,6 +5900,8 @@
         const reminderInactiveDaysEl = document.getElementById("profileReminderInactiveDays");
         const reminderMessageEl = document.getElementById("profileReminderMessage");
         const reminderFullMessageEl = document.getElementById("profileReminderFullMessage");
+        const reminderNewCustomerDaysEl = document.getElementById("profileReminderNewCustomerDays");
+        const reminderNewCustomerMessageEl = document.getElementById("profileReminderNewCustomerMessage");
         const btn = document.getElementById("profileSaveBtn");
         if (!aboutEl || !btn || !cafe) return;
 
@@ -5810,6 +5953,8 @@
           const reminderInactiveDays = reminderInactiveDaysEl ? String(reminderInactiveDaysEl.value || "").trim() : "14";
           const reminderMessage = reminderMessageEl ? String(reminderMessageEl.value || "").trim() : "";
           const reminderFullMessage = reminderFullMessageEl ? String(reminderFullMessageEl.value || "").trim() : "";
+          const reminderNewCustomerDays = reminderNewCustomerDaysEl ? String(reminderNewCustomerDaysEl.value || "").trim() : "21";
+          const reminderNewCustomerMessage = reminderNewCustomerMessageEl ? String(reminderNewCustomerMessageEl.value || "").trim() : "";
           const cardTheme = themeEl
             ? String(themeEl.value || "")
                 .trim()
@@ -5860,6 +6005,8 @@
               reminderInactiveDays: reminderInactiveDays || null,
               reminderMessage: reminderMessage || null,
               reminderFullMessage: reminderFullMessage || null,
+              reminderNewCustomerDays: reminderNewCustomerDays || null,
+              reminderNewCustomerMessage: reminderNewCustomerMessage || null,
             }),
           });
 
@@ -6030,6 +6177,10 @@
         const changePwBtn = document.getElementById("changePwBtn");
         if (changePwBtn) changePwBtn.addEventListener("click", changeCafePassword);
 
+        document.querySelectorAll(".subTabBtn").forEach((el) => {
+          el.addEventListener("click", () => setProfileTab(el.getAttribute("data-tab")));
+        });
+
         const aboutEl = document.getElementById("profileAbout");
         const aboutPreview = document.getElementById("profileAboutPreview");
         if (aboutEl && aboutPreview) {
@@ -6164,6 +6315,8 @@
           "profileRewardDescription",
           "profileBgColor",
           "profileFgColor",
+          "profileCardBackText",
+          "profileRedeemMessage",
         ].forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.addEventListener("input", renderCardPreview);
@@ -6250,10 +6403,9 @@
         }
 
         if (targetView === "profile") {
-          // Section visibility (simple vs. advanced) doesn't need cafe
-          // data, so it applies immediately instead of waiting on the
-          // async fetch below.
-          applyProfileViewMode(getProfileViewMode());
+          // Tab visibility doesn't need cafe data, so it applies
+          // immediately instead of waiting on the async fetch below.
+          applyProfileTab(getProfileTab());
           profileRefreshAll().catch((e) => dwarn("Profile refresh failed", e));
         }
 

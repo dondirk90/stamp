@@ -466,7 +466,13 @@ function buildPassJson({
     passTypeIdentifier: PASS_TYPE_IDENTIFIER,
     serialNumber,
     teamIdentifier: sanitizeEnv("APPLE_TEAM_ID"),
-    organizationName: "Kaffeekarte",
+    // Shows as the sender label above the notification text on the lock
+    // screen - was hardcoded to "Kaffeekarte" for every café, so a push
+    // from any café looked identically generic there (unlike Google
+    // Wallet's issuerName/programName, which already used cafeName).
+    // Falls back the same way cafeName itself does (see generateSignedPass)
+    // when a café somehow has no name set.
+    organizationName: cafeName,
     description: `${cafeName} Stempelkarte`,
     webServiceURL,
     authenticationToken,

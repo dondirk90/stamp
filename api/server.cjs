@@ -1311,6 +1311,8 @@ CREATE TABLE IF NOT EXISTS cafes (
   reminder_inactive_days INTEGER DEFAULT 14,
   reminder_message TEXT,
   reminder_full_message TEXT,
+  reminder_new_customer_days INTEGER DEFAULT 21,
+  reminder_new_customer_message TEXT,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1648,6 +1650,14 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_full_message TEXT",
   "Failed to add cafes.reminder_full_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_new_customer_days INTEGER DEFAULT 21",
+  "Failed to add cafes.reminder_new_customer_days column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN reminder_new_customer_message TEXT",
+  "Failed to add cafes.reminder_new_customer_message column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE reminder_notifications ADD COLUMN message TEXT",
@@ -2697,7 +2707,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -3131,6 +3141,11 @@ function getCafeProgramSettings(row) {
     reminderInactiveDays: toBoundInt(src.reminder_inactive_days, 14, 1, 365),
     reminderMessage: toOptionalTrimmedText(src.reminder_message, 280),
     reminderFullMessage: toOptionalTrimmedText(src.reminder_full_message, 280),
+    reminderNewCustomerDays: toBoundInt(src.reminder_new_customer_days, 21, 7, 90),
+    reminderNewCustomerMessage: toOptionalTrimmedText(
+      src.reminder_new_customer_message,
+      280,
+    ),
   };
 }
 
@@ -4708,6 +4723,11 @@ const REMINDER_DEFAULT_TEMPLATE =
 // a real customer in exactly this state.
 const REMINDER_FULL_DEFAULT_TEMPLATE =
   "Deine Stempelkarte bei {cafe} ist schon voll und wartet auf dich – hol dir {reward}!";
+// For a wallet card that was saved but never used at all - "days" here is
+// days since the card was created, not days since a last stamp (there is
+// none), and "remaining" is the full threshold (0 collected so far).
+const REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE =
+  "Deine Kaffeekarte bei {cafe} wartet seit {days} Tagen auf deinen ersten Stempel! Bis zur Belohnung fehlen dir nur noch {remaining} Stempel.";
 
 // reminder_push_enabled/reminder_min_stamps/reminder_inactive_days,
 // migration 017): finds customers currently eligible for a nudge.
@@ -4800,6 +4820,7 @@ async function findReminderCandidates(cafeRow) {
         );
 
     candidates.push({
+      kind: "inactive",
       customerAddress,
       netStamps: openStampTotal,
       remaining,
@@ -4811,6 +4832,81 @@ async function findReminderCandidates(cafeRow) {
         already && already.sent_at != null ? Number(already.sent_at) : null,
     });
   }
+
+  // Second scenario: a wallet card was saved but never got a single stamp -
+  // these customers never appear in the stamp_events-driven loop above at
+  // all (no rows to group), so they need their own source: every distinct
+  // (café, customer) wallet card, minus whoever's in `rows` with any real
+  // stamp (delta>0). "days" is measured from when the card was created,
+  // there being no stamp to measure inactivity from instead. Same "one push
+  // per state" dedup via reminder_notifications, keyed off the card's own
+  // creation time instead of a stamp timestamp - since that never changes,
+  // a customer who's sent this once and still hasn't stamped won't be
+  // re-nudged on every future run, only once, ever (which is the point:
+  // repeatedly nagging someone who's shown zero engagement isn't useful,
+  // unlike the "inactive" bucket above where a new stamp genuinely resets
+  // the clock).
+  if (cafeRow.id != null) {
+    const everStamped = new Set(
+      rows
+        .filter((r) => r.last_stamp_ts != null)
+        .map((r) => String(r.user || "").toLowerCase()),
+    );
+    const cardRows = await db
+      .prepare(
+        `SELECT customer_address, MIN(created_at) AS first_ts FROM (
+           SELECT customer_address, created_at FROM wallet_passes WHERE cafe_id = ?
+           UNION ALL
+           SELECT customer_address, created_at FROM google_wallet_objects WHERE cafe_id = ?
+         ) AS t
+         GROUP BY customer_address`,
+      )
+      .all(cafeRow.id, cafeRow.id);
+
+    const newCustomerThresholdMs = program.reminderNewCustomerDays * 86400000;
+    for (const row of cardRows) {
+      const customerAddress = String(row.customer_address || "").toLowerCase();
+      if (!customerAddress || everStamped.has(customerAddress)) continue;
+      const firstTs = row.first_ts != null ? Number(row.first_ts) : null;
+      if (!firstTs) continue;
+      if (now - firstTs < newCustomerThresholdMs) continue;
+
+      const already = await getReminderNotificationState.get(
+        cafeRow.id,
+        customerAddress,
+      );
+      if (already && Number(already.stamp_state_ts) >= firstTs) continue;
+
+      const daysSinceCreated = Math.floor((now - firstTs) / 86400000);
+      const messageVars = {
+        cafe: cafeRow.name || "deinem Café",
+        days: daysSinceCreated,
+        remaining: program.stampsForReward,
+        stamps: 0,
+        goal: program.stampsForReward,
+        reward: program.rewardDescription || "deine Belohnung",
+      };
+      const message = formatReminderText(
+        program.reminderNewCustomerMessage,
+        messageVars,
+        REMINDER_NEW_CUSTOMER_DEFAULT_TEMPLATE,
+      );
+
+      candidates.push({
+        kind: "neverStamped",
+        customerAddress,
+        netStamps: 0,
+        remaining: program.stampsForReward,
+        isFull: false,
+        lastStampTs: firstTs,
+        daysInactive: daysSinceCreated,
+        message,
+        previouslyNotifiedAt:
+          already && already.sent_at != null ? Number(already.sent_at) : null,
+      });
+    }
+  }
+
   return candidates;
 }
 
@@ -5605,6 +5701,26 @@ async function applyCafeProfileUpdate(current, body) {
       reminderFullMessage = toOptionalTrimmedText(body.reminderFullMessage, 280);
     }
 
+    let reminderNewCustomerDays = currentProgram.reminderNewCustomerDays;
+    if (Object.prototype.hasOwnProperty.call(body, "reminderNewCustomerDays")) {
+      reminderNewCustomerDays = toBoundInt(
+        body.reminderNewCustomerDays,
+        reminderNewCustomerDays,
+        7,
+        90,
+      );
+    }
+
+    let reminderNewCustomerMessage = currentProgram.reminderNewCustomerMessage;
+    if (
+      Object.prototype.hasOwnProperty.call(body, "reminderNewCustomerMessage")
+    ) {
+      reminderNewCustomerMessage = toOptionalTrimmedText(
+        body.reminderNewCustomerMessage,
+        280,
+      );
+    }
+
     const now = Date.now();
     await updateCafeProfileById.run(
       aboutText,
@@ -5637,6 +5753,8 @@ async function applyCafeProfileUpdate(current, body) {
       reminderInactiveDays,
       reminderMessage,
       reminderFullMessage,
+      reminderNewCustomerDays,
+      reminderNewCustomerMessage,
       now,
       current.id,
     );
