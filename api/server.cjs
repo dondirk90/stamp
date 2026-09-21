@@ -1488,6 +1488,22 @@ CREATE TABLE IF NOT EXISTS reminder_notifications (
   PRIMARY KEY (cafe_id, customer_address)
 );
 
+-- Append-only send history (reminder_notifications above only ever holds
+-- the latest send per customer, for dedup) - one row per attempt, see
+-- insertReminderLog.
+CREATE TABLE IF NOT EXISTS reminder_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cafe_id INTEGER NOT NULL,
+  customer_address TEXT NOT NULL,
+  kind TEXT,
+  message TEXT,
+  stamp_state_ts INTEGER,
+  apple_touched INTEGER,
+  apple_pushed INTEGER,
+  google_sent INTEGER,
+  sent_at INTEGER NOT NULL
+);
+
 `);
 }
 
@@ -4676,6 +4692,18 @@ const upsertReminderNotification = db.prepare(
   "INSERT INTO reminder_notifications (cafe_id, customer_address, sent_at, stamp_state_ts, message) VALUES (?, ?, ?, ?, ?) " +
     "ON CONFLICT (cafe_id, customer_address) DO UPDATE SET sent_at = excluded.sent_at, stamp_state_ts = excluded.stamp_state_ts, message = excluded.message",
 );
+// Append-only history, unlike reminder_notifications above which only ever
+// holds the *latest* send per (cafe, customer) for the "one push per
+// state" dedup check - this is what answers "wann ging an wen welche Push
+// raus" (chat 2026-09-21). Logged for every attempt, not just successful
+// ones, so a delivery that silently didn't reach a device (apple_pushed:0
+// despite apple_touched being true - see the freya-kohnen case earlier
+// this session) is visible here instead of looking indistinguishable from
+// a real send.
+const insertReminderLog = db.prepare(
+  "INSERT INTO reminder_log (cafe_id, customer_address, kind, message, stamp_state_ts, apple_touched, apple_pushed, google_sent, sent_at) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+);
 
 // Apple's pass.json backfield for a café's push reminder (see
 // findReminderCandidates/sendReminderPush) - ALWAYS returned (never null),
@@ -4751,7 +4779,7 @@ function formatReminderText(template, vars, fallback) {
 // Chat - {stamps}/{goal}/{cafe} etc. machen eine kurze, trockene Zeile nur
 // sperriger, wenn sie für die Aussage gar nicht nötig sind).
 const REMINDER_DEFAULT_TEMPLATE =
-  "Noch {remaining} Stempel - wir würden dich gerne wiedersehen :)";
+  "Noch {remaining} Stempel für dein Gratisgetränk - wir würden dich gerne bald wiedersehen :)";
 // Used instead of the above once a customer's open card is already at or
 // past the reward threshold (remaining <= 0) - "nur noch 0 Stempel fehlen"
 // reads oddly for a card that's actually full, caught live on staging with
@@ -5075,6 +5103,18 @@ async function sendReminderPush(cafeRow, candidate) {
     );
   }
 
+  await insertReminderLog.run(
+    cafeRow.id,
+    customerAddress,
+    candidate.kind,
+    candidate.message,
+    candidate.lastStampTs,
+    appleTouched ? 1 : 0,
+    applePushed,
+    googleSent,
+    now,
+  );
+
   return {
     customerAddress,
     hasChannel,
@@ -5106,6 +5146,48 @@ app.get(
       });
     } catch (err) {
       console.error("Error in /admin/cafes/:cafeId/reminder-candidates:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// Send history for one café - every reminder_log row, newest first (see
+// insertReminderLog's own comment for why this exists alongside
+// reminder_notifications). ?limit caps how many rows come back, default
+// 100, capped at 500 so an unbounded query param can't return the whole
+// table.
+app.get(
+  "/admin/cafes/:cafeId/reminder-log",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const limit = Math.min(
+        500,
+        Math.max(1, Number(req.query.limit) || 100),
+      );
+      const rows = await db
+        .prepare(
+          "SELECT id, customer_address, kind, message, stamp_state_ts, apple_touched, apple_pushed, google_sent, sent_at " +
+            "FROM reminder_log WHERE cafe_id = ? ORDER BY sent_at DESC LIMIT ?",
+        )
+        .all(cafeId, limit);
+      res.json({
+        ok: true,
+        cafe: { id: current.id, name: current.name || null },
+        log: rows,
+      });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/reminder-log:", err);
       res
         .status(500)
         .json({ error: String(err && err.message ? err.message : err) });
