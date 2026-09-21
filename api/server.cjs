@@ -1313,6 +1313,7 @@ CREATE TABLE IF NOT EXISTS cafes (
   reminder_full_message TEXT,
   reminder_new_customer_days INTEGER DEFAULT 21,
   reminder_new_customer_message TEXT,
+  last_broadcast_at INTEGER,
   accepted_privacy_at INTEGER,
   accepted_terms_at INTEGER,
   privacy_version TEXT,
@@ -1689,6 +1690,10 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN reminder_new_customer_message TEXT",
   "Failed to add cafes.reminder_new_customer_message column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN last_broadcast_at INTEGER",
+  "Failed to add cafes.last_broadcast_at column:",
 );
 runSqliteOnlyAlter(
   "ALTER TABLE reminder_notifications ADD COLUMN message TEXT",
@@ -5962,6 +5967,106 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
   return res.status(result.status).json(
     result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
   );
+});
+
+const BROADCAST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+// Lets a café send a one-off custom push to every customer with an open
+// (not-yet-redeemed) card right now, instead of waiting for the automatic
+// criteria-based reminder (chat 2026-09-21: "eine funktion damit das cafe
+// selber ein push an alle herausschickt"). Reuses sendReminderPush() for
+// actual delivery - same %@-based Apple mechanism, same Google addMessage
+// call, same reminder_log audit trail - just with a manually-typed message
+// and a candidate list built from every wallet pass/object at this café
+// instead of findReminderCandidates()'s stamp/inactivity criteria.
+// ?dryRun=1 (or {dryRun:true} in the body) only returns how many customers
+// would be reached, without sending or touching the cooldown - the Barista
+// App uses this to show a confirmation ("An 12 Kunden senden?") before the
+// real call.
+app.post("/cafes/me/broadcast", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ error: "missing_cafe_context" });
+    }
+    const current = await getCafeById.get(cafeRow.id);
+    if (!current) {
+      return res.status(404).json({ error: "cafe_not_found" });
+    }
+
+    const body = req.body || {};
+    const message = toOptionalTrimmedText(body.message, 280);
+    if (!message) {
+      return res.status(400).json({ ok: false, error: "message_required" });
+    }
+    const dryRun = body.dryRun === true || req.query.dryRun === "1";
+
+    if (!dryRun) {
+      const now0 = Date.now();
+      if (
+        current.last_broadcast_at != null &&
+        now0 - Number(current.last_broadcast_at) < BROADCAST_COOLDOWN_MS
+      ) {
+        const retryAfterMs =
+          BROADCAST_COOLDOWN_MS - (now0 - Number(current.last_broadcast_at));
+        return res
+          .status(429)
+          .json({ ok: false, error: "cooldown_active", retryAfterMs });
+      }
+    }
+
+    const cardRows = await db
+      .prepare(
+        `SELECT customer_address FROM (
+           SELECT customer_address FROM wallet_passes WHERE cafe_id = ?
+           UNION
+           SELECT customer_address FROM google_wallet_objects WHERE cafe_id = ?
+         ) AS t
+         GROUP BY customer_address`,
+      )
+      .all(current.id, current.id);
+    const customerCount = cardRows.length;
+
+    if (dryRun) {
+      return res.json({ ok: true, dryRun: true, customerCount });
+    }
+
+    const now = Date.now();
+    let sent = 0;
+    let failed = 0;
+    for (const row of cardRows) {
+      const customerAddress = String(row.customer_address || "").toLowerCase();
+      if (!customerAddress) continue;
+      try {
+        const result = await sendReminderPush(current, {
+          kind: "manual",
+          customerAddress,
+          message,
+          lastStampTs: now,
+        });
+        if (result.hasChannel) sent += 1;
+        else failed += 1;
+      } catch (err) {
+        failed += 1;
+        console.warn(
+          "Broadcast send failed for",
+          customerAddress,
+          err && err.message ? err.message : err,
+        );
+      }
+    }
+
+    await db
+      .prepare("UPDATE cafes SET last_broadcast_at = ? WHERE id = ?")
+      .run(now, current.id);
+
+    return res.json({ ok: true, dryRun: false, customerCount, sent, failed });
+  } catch (err) {
+    console.error("Error in /cafes/me/broadcast:", err);
+    return res
+      .status(500)
+      .json({ error: String(err && err.message ? err.message : err) });
+  }
 });
 
 // Admin override for cafes that don't want to configure their own design -

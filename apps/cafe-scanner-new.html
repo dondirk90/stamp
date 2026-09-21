@@ -3462,6 +3462,21 @@
               -->
 
               <div class="tabSection" data-tab="erinnerungen" hidden>
+                <h3 class="subSectionTitle">Jetzt an alle senden</h3>
+                <span class="effectTag">Push-Benachrichtigung an alle Kunden mit offener Karte</span>
+                <div class="muted" style="margin: 4px 0 14px">
+                  Schickt sofort eine eigene Nachricht an jeden Kunden mit einer
+                  noch nicht eingelösten Karte - unabhängig von Stempelstand
+                  oder Inaktivität. Höchstens 1x pro Tag.
+                </div>
+                <textarea id="profileBroadcastMessage" class="profileInput small" maxlength="280" placeholder="z.B. Heute Doppelstempel-Aktion - komm vorbei!"></textarea>
+                <div class="logoRow" style="justify-content: flex-start; margin-top: 12px">
+                  <button class="btn" id="profileBroadcastBtn" type="button">
+                    Jetzt senden
+                  </button>
+                  <div class="msg" id="profileBroadcastMsg"></div>
+                </div>
+
                 <!-- Die beiden In-App-Popups (Reaktivierung/Fast-geschafft)
                      erscheinen nur in der eigenen App-Kartenansicht
                      (customer-qr-modern.js liest popupInactive*/
@@ -6101,6 +6116,92 @@
         }
       }
 
+      function setBroadcastMsg(text) {
+        const msg = document.getElementById("profileBroadcastMsg");
+        if (msg) msg.textContent = text || "";
+      }
+
+      // Manual "send to everyone with an open card" push (chat 2026-09-21) -
+      // dryRun first to show the recipient count in a confirm() before the
+      // real, irreversible send. /cafes/me/broadcast itself enforces the
+      // once-per-24h cooldown (429 cooldown_active); this just surfaces that
+      // as a friendly message instead of a raw error.
+      async function sendBroadcast() {
+        if (!cafe || !cafe.token) {
+          setBroadcastMsg("Session fehlt. Bitte neu anmelden.");
+          return;
+        }
+        const msgEl = document.getElementById("profileBroadcastMessage");
+        const btn = document.getElementById("profileBroadcastBtn");
+        const message = msgEl ? String(msgEl.value || "").trim() : "";
+        if (!message) {
+          setBroadcastMsg("Bitte eine Nachricht eingeben.");
+          return;
+        }
+
+        if (btn) btn.disabled = true;
+        setBroadcastMsg("Prüfe Empfänger…");
+        try {
+          const preview = await apiFetch("/cafes/me/broadcast", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({ message, dryRun: true }),
+          });
+          const count =
+            preview && typeof preview.customerCount === "number"
+              ? preview.customerCount
+              : 0;
+          if (!count) {
+            setBroadcastMsg("Keine Kunden mit offener Karte gefunden.");
+            return;
+          }
+          const confirmed = window.confirm(
+            `Nachricht jetzt an ${count} Kunde${count === 1 ? "" : "n"} senden? Das lässt sich nicht zurücknehmen.`,
+          );
+          if (!confirmed) {
+            setBroadcastMsg("");
+            return;
+          }
+
+          setBroadcastMsg("Sende…");
+          const result = await apiFetch("/cafes/me/broadcast", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cafe.token}`,
+            },
+            body: JSON.stringify({ message }),
+          });
+          setBroadcastMsg(
+            `Gesendet an ${result.sent} von ${result.customerCount} Kunden.` +
+              (result.failed ? ` (${result.failed} nicht erreichbar)` : ""),
+          );
+          if (msgEl) msgEl.value = "";
+        } catch (e) {
+          if (e && e.status === 429) {
+            let retryAfterMs = null;
+            try {
+              retryAfterMs = JSON.parse(e.responseText || "{}").retryAfterMs;
+            } catch (parseErr) {}
+            const hours = retryAfterMs ? Math.ceil(retryAfterMs / 3600000) : null;
+            setBroadcastMsg(
+              hours
+                ? `Schon heute verschickt - nochmal in etwa ${hours} Stunde${hours === 1 ? "" : "n"} möglich.`
+                : "Schon heute verschickt - bitte später erneut versuchen.",
+            );
+          } else {
+            setBroadcastMsg(
+              userSafeErrorMessage(e, "Senden fehlgeschlagen. Bitte erneut versuchen."),
+            );
+          }
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
       async function deleteCafeProfile() {
         if (!cafe || !cafe.token) {
           setDeleteMsg("Session fehlt. Bitte neu anmelden.");
@@ -6189,6 +6290,8 @@
         if (deleteBtn) deleteBtn.addEventListener("click", deleteCafeProfile);
         const changePwBtn = document.getElementById("changePwBtn");
         if (changePwBtn) changePwBtn.addEventListener("click", changeCafePassword);
+        const broadcastBtn = document.getElementById("profileBroadcastBtn");
+        if (broadcastBtn) broadcastBtn.addEventListener("click", sendBroadcast);
 
         document.querySelectorAll(".subTabBtn").forEach((el) => {
           el.addEventListener("click", () => setProfileTab(el.getAttribute("data-tab")));
