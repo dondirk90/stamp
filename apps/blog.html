@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Kaffeekarte Blog - Vier neue Werkzeuge für die Theke</title>
+    <meta
+      name="description"
+      content="Push-Erinnerungen, die tatsächlich ankommen, Stempel-Korrekturen, ein Warnhinweis für noch nicht aktivierte Wallet-Karten und echte Analytics fürs Café - was sich zuletzt bei Kaffeekarte getan hat."
+    />
+    <link rel="canonical" href="https://kaffeekarte.app/blog" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Kaffeekarte" />
+    <meta property="og:title" content="Vier neue Werkzeuge für die Theke" />
+    <meta
+      property="og:description"
+      content="Push-Erinnerungen, die tatsächlich ankommen, Stempel-Korrekturen, ein Warnhinweis für noch nicht aktivierte Wallet-Karten und echte Analytics fürs Café."
+    />
+    <meta property="og:image" content="https://kaffeekarte.app/assets/og-image.png" />
+    <meta property="og:url" content="https://kaffeekarte.app/blog" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vier neue Werkzeuge für die Theke" />
+    <meta
+      name="twitter:description"
+      content="Push-Erinnerungen, die tatsächlich ankommen, Stempel-Korrekturen, ein Warnhinweis für noch nicht aktivierte Wallet-Karten und echte Analytics fürs Café."
+    />
+    <meta name="twitter:image" content="https://kaffeekarte.app/assets/og-image.png" />
+    <link rel="stylesheet" href="/theme.css?v=20260712b" />
+    <style>
+      :root {
+        --page-max: 1180px;
+        --line: rgba(81, 58, 40, 0.12);
+      }
+
+      body {
+        min-height: 100svh;
+        background: var(--color-background);
+        color: var(--text);
+      }
+
+      .page {
+        width: min(var(--page-max), calc(100% - 28px));
+        margin: 0 auto;
+        padding: calc(28px + var(--safe-top, 0px)) 0 56px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-bottom: clamp(48px, 8vw, 88px);
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .brandMark {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(247, 239, 229, 0.9));
+        box-shadow:
+          0 14px 30px rgba(68, 41, 22, 0.08),
+          0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      }
+
+      .brandMark img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+
+      .brandText {
+        display: grid;
+        gap: 3px;
+      }
+
+      .brandKicker {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .brandWord {
+        font-family: var(--font-serif);
+        font-size: 34px;
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(16px, 3vw, 28px);
+        flex-wrap: wrap;
+      }
+
+      .nav a {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .nav a:hover {
+        color: var(--text);
+      }
+
+      .navToggle {
+        display: none;
+      }
+
+      .postHero {
+        display: grid;
+        align-content: start;
+        gap: 16px;
+        max-width: 62ch;
+      }
+
+      .sectionKicker {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.62);
+      }
+
+      .postMeta {
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.56);
+      }
+
+      .postTitle {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(38px, 5.6vw, 60px);
+        line-height: 0.98;
+        letter-spacing: -0.05em;
+      }
+
+      .postLead {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.6;
+        color: rgba(59, 42, 31, 0.8);
+      }
+
+      .postHero .accentRule {
+        margin: 4px 0 2px;
+      }
+
+      /* Wächst mit jeder neuen Veröffentlichung um einen weiteren
+         .archiveList__item - kein Archiv-System, nur eine handgepflegte
+         Liste, solange es eine Handvoll Beiträge sind. */
+      .postArchive {
+        margin-top: clamp(40px, 6vw, 64px);
+      }
+
+      .archiveList {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .archiveList__item {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .archiveList__date {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+        color: rgba(59, 42, 31, 0.5);
+        flex: none;
+      }
+
+      .archiveList__title {
+        flex: 1;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .archiveList__item--current .archiveList__title {
+        color: rgba(59, 42, 31, 0.86);
+      }
+
+      .archiveList__tag {
+        flex: none;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(59, 42, 31, 0.42);
+      }
+
+      .postShot {
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 22px 0;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+      }
+
+      .postShot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .postShotCaption {
+        margin: -14px 0 20px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(59, 42, 31, 0.56);
+        max-width: 300px;
+      }
+
+      /* Breitere Variante für Dashboard-Screenshots (Charts, Tabellen) -
+         die schmale .postShot-Handybreite macht Achsenbeschriftungen und
+         Tabellenzahlen unleserlich. */
+      .postShotWide.postShot,
+      .postShotWide + .postShotCaption {
+        max-width: 640px;
+      }
+
+      .section {
+        margin-top: clamp(56px, 9vw, 104px);
+      }
+
+      .section--divider {
+        padding-top: clamp(56px, 9vw, 104px);
+        border-top: 1px solid var(--line);
+      }
+
+      .postBody {
+        max-width: 62ch;
+      }
+
+      .postBody h2 {
+        margin: 0 0 14px;
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 3.6vw, 38px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .postBody p {
+        margin: 0 0 16px;
+        font-size: 16px;
+        line-height: 1.7;
+        color: rgba(59, 42, 31, 0.82);
+      }
+
+      .postBody p:last-child {
+        margin-bottom: 0;
+      }
+
+      .postBody code {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        background: rgba(81, 58, 40, 0.08);
+        padding: 0.1em 0.4em;
+        border-radius: 5px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(20px, 3vw, 32px);
+        margin: 28px 0 32px;
+      }
+
+      .panel h2 {
+        margin: 0 0 6px;
+        font-size: 18px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+
+      .panel p {
+        margin: 0;
+        font-size: 14px;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.55;
+      }
+
+      .panelNo {
+        font-family: var(--font-serif);
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--brand);
+        margin-bottom: 8px;
+      }
+
+      .nerdBox {
+        margin-top: 28px;
+        padding: 22px 24px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--color-surface);
+      }
+
+      .nerdBox .sectionKicker {
+        margin-bottom: 8px;
+      }
+
+      .nerdBox p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.65;
+        color: rgba(59, 42, 31, 0.78);
+      }
+
+      .footerNote {
+        margin-bottom: 14px;
+        color: rgba(59, 42, 31, 0.7);
+        line-height: 1.55;
+        max-width: 46ch;
+      }
+
+      .footerLinks {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .footerLinks a {
+        color: rgba(59, 42, 31, 0.72);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .legalLinks {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .legalLinks a {
+        color: rgba(59, 42, 31, 0.48);
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 1080px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          width: min(100% - 40px, var(--page-max));
+        }
+
+        .header {
+          position: relative;
+          flex-wrap: nowrap;
+        }
+
+        .navToggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          flex: none;
+          border-radius: 12px;
+          border: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.6);
+        }
+
+        .navToggle span {
+          width: 18px;
+          height: 2px;
+          border-radius: 999px;
+          background: var(--color-coffee);
+          box-shadow:
+            0 6px 0 var(--color-coffee),
+            0 -6px 0 var(--color-coffee);
+        }
+
+        .nav {
+          display: none;
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 2px;
+          min-width: 220px;
+          padding: 10px;
+          border-radius: 16px;
+          border: 1px solid var(--line);
+          background: var(--color-surface-elevated, #fff);
+          box-shadow: 0 18px 40px rgba(68, 41, 22, 0.14);
+          z-index: 20;
+        }
+
+        .nav.isOpen {
+          display: flex;
+        }
+
+        .nav a {
+          padding: 12px 14px;
+          border-radius: 10px;
+        }
+
+        .nav a:active {
+          background: rgba(81, 58, 40, 0.08);
+        }
+
+        .section {
+          margin-top: 84px;
+        }
+
+        .section--divider {
+          padding-top: 84px;
+        }
+
+        .archiveList__item {
+          flex-wrap: wrap;
+        }
+
+        .archiveList__date {
+          order: 1;
+        }
+
+        .archiveList__tag {
+          order: 2;
+        }
+
+        .archiveList__title {
+          order: 3;
+          flex-basis: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <a class="brand" href="/">
+          <span class="brandMark" aria-hidden="true">
+            <img src="/assets/stamp-bean.png?v=1" alt="" />
+          </span>
+          <span class="brandText">
+            <span class="brandKicker">Kaffee im Veedel</span>
+            <span class="brandWord">Kaffeekarte</span>
+          </span>
+        </a>
+        <button
+          class="navToggle miniBtn"
+          type="button"
+          id="navToggleBtn"
+          aria-expanded="false"
+          aria-controls="mainNav"
+          aria-label="Menü öffnen"
+        >
+          <span aria-hidden="true"></span>
+        </button>
+        <nav class="nav" id="mainNav" aria-label="Produktnavigation">
+          <a href="/">Startseite</a>
+          <a href="/wallet">Cafés entdecken</a>
+          <a href="/fuer-cafes">Für Cafés</a>
+        </nav>
+      </header>
+
+      <article>
+        <section class="postHero">
+          <div class="sectionKicker">Kaffeetech-Journal</div>
+          <h1 class="postTitle">Vier neue Werkzeuge für die Theke</h1>
+          <span class="accentRule" aria-hidden="true"></span>
+          <p class="postMeta">Produkt-Update · 21. September 2026</p>
+          <p class="postLead">
+            Eine Push-Nachricht, die tatsächlich ankommt. Ein Weg, einen
+            Tippfehler an der Kasse wieder geradezurücken. Ein leiser
+            Hinweis an der Theke, bevor ein Stempel ins Leere läuft. Und zum
+            ersten Mal ein echter Blick in die eigenen Zahlen. Was sich
+            zuletzt unter der Haube von Kaffeekarte getan hat.
+          </p>
+        </section>
+
+        <section class="postArchive" aria-label="Alle Veröffentlichungen">
+          <div class="sectionKicker">Bisher erschienen</div>
+          <ul class="archiveList">
+            <li class="archiveList__item archiveList__item--current">
+              <span class="archiveList__date">21. Sep 2026</span>
+              <span class="archiveList__title">Vier neue Werkzeuge für die Theke</span>
+              <span class="archiveList__tag">Aktuell</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="section section--divider">
+          <div class="editorialGrid">
+            <div class="editorialIndex">01</div>
+            <div class="postBody">
+              <h2>Push-Erinnerungen, die ankommen</h2>
+              <p>
+                Eine Wallet-Karte hat einen Vorteil, den keine App und kein
+                Newsletter hat: Sie liegt direkt im Sperrbildschirm deiner
+                besten Kundschaft. Kein Posteingang, kein „ungelesen (312)“
+                dazwischen.
+              </p>
+              <div class="grid" aria-label="Was die Forschung zeigt">
+                <article class="panel">
+                  <div class="panelNo">95 %+</div>
+                  <h2>Sichtbarkeit</h2>
+                  <p>
+                    So zuverlässig erreichen Wallet-Push-Nachrichten den
+                    Sperrbildschirm - kaum ein anderer Kanal wird so
+                    verlässlich überhaupt angeschaut.
+                  </p>
+                </article>
+                <article class="panel">
+                  <div class="panelNo">5×</div>
+                  <h2>Mehr Reaktion</h2>
+                  <p>
+                    Höhere Interaktionsraten als E-Mail oder SMS, je nach
+                    Branchenzahlen etwa von Airship oder jericommerce. Das ist
+                    kein kleines Plus, das ist ein anderer Kanal.
+                  </p>
+                </article>
+                <article class="panel">
+                  <div class="panelNo">3 / 20</div>
+                  <h2>Pro Tag</h2>
+                  <p>
+                    Google erlaubt drei, Apple zwanzig Push-Nachrichten pro
+                    Tag und Karte. Wer diesen Kanal hat, muss ihn sich
+                    einteilen.
+                  </p>
+                </article>
+              </div>
+              <p>
+                Dieses Limit ist eigentlich ein Geschenk: Es zwingt dazu,
+                Push nur dann zu schicken, wenn es wirklich etwas zu sagen
+                gibt. Deshalb funktioniert unsere Logik nicht nach dem
+                Gießkannenprinzip, sondern zeitlich und inhaltlich passend -
+                genau dann, wenn es für die jeweilige Person auch etwas
+                bedeutet: kurz bevor die Karte voll ist („Noch 3 Stempel für
+                dein Gratisgetränk“), oder als sanfte Erinnerung, wenn jemand
+                länger nicht da war.
+              </p>
+              <span class="postShot">
+                <img
+                  src="/assets/blog-push-lockscreen.png"
+                  alt="Echte Push-Erinnerung auf einem echten Sperrbildschirm: „Noch 7 Stempel für dein Gratisgetränk - wir würden dich gerne bald wiedersehen :)“"
+                />
+              </span>
+              <p class="postShotCaption">
+                Kein gestelltes Mockup - ein echter Sperrbildschirm, mit dem
+                echten Text. Das Model hat zugestimmt, der Kaffee war es wert.
+              </p>
+              <p>
+                Neu dazugekommen ist außerdem ein Knopf, mit dem ein Café
+                selbst eine Nachricht an die eigene Kundschaft verschicken
+                kann - für die spontane Ankündigung („Heute frisch geröstet“)
+                statt nur automatischer Erinnerungen. Mit Bestätigungsdialog
+                und einer Abklingzeit von 24 Stunden, damit daraus kein
+                Kanal für tägliches Rauschen wird. Jeder Versand wird dabei
+                serverseitig protokolliert, damit im Zweifel nachvollziehbar
+                bleibt, wann welche Nachricht rausging.
+              </p>
+              <div class="nerdBox">
+                <div class="sectionKicker">Nerd-Ecke</div>
+                <p>
+                  Ein Zeichen war schuld an tagelangem Rätselraten: Apple
+                  Wallet zeigt eine Push-Nachricht auf dem Sperrbildschirm
+                  nur an, wenn ihr Text irgendwo die literale Zeichenfolge
+                  <code>%@</code> enthält - einen Platzhalter, den Apple
+                  selbst mit dem neuen Kartenwert füllt. Ein fertig
+                  ausformulierter Satz ohne dieses Zeichen wird von Apple
+                  Wallet klaglos verschluckt, ganz ohne Fehlermeldung. Google
+                  Wallet wiederum zeigt auf dem Sperrbildschirm ohnehin nur
+                  einen von Google selbst vorgegebenen, generischen Hinweis
+                  - der eigene Text erscheint erst, wenn man die Karte
+                  antippt. Zwei Wallets, zwei völlig unterschiedliche
+                  Philosophien, ein gemeinsames Ziel.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section--divider">
+          <div class="editorialGrid">
+            <div class="editorialIndex">02</div>
+            <div class="postBody">
+              <h2>Stempel korrigieren</h2>
+              <p>
+                Manchmal tippt man an der Kasse einmal zu oft, manchmal
+                meldet sich eine Kundschaft zu Recht, weil ein Stempel zu
+                viel vergeben wurde. Bisher gab es dafür keinen Weg zurück -
+                jetzt schon.
+              </p>
+              <p>
+                Im Barista-Scanner sitzt neben dem großen Stempel-Knopf jetzt
+                ein kleiner, bewusst unauffälliger „Stempel entfernen”-Knopf
+                - klein und etwas abgesetzt, genau damit an der Theke niemand
+                versehentlich draufkommt.
+              </p>
+              <span class="postShot">
+                <img
+                  src="/assets/blog-stempel-entfernen.png"
+                  alt="Barista-Scanner mit dem kleinen „Stempel entfernen“-Knopf unterhalb des großen Stempel-Knopfs"
+                />
+              </span>
+              <p class="postShotCaption">
+                Bewusst kleiner und tiefer platziert als der Haupt-Knopf.
+              </p>
+              <p>
+                Technisch gelöscht wird dabei nichts. Eine Korrektur ist
+                einfach ein neuer Eintrag mit negativem Vorzeichen in der
+                Stempel-Historie - wie in der doppelten Buchführung wird
+                nichts überschrieben, nur ergänzt. Der aktuelle Stand ist am
+                Ende einfach die Summe aller Einträge. Das hält die Historie
+                für jedes Café lückenlos nachvollziehbar, auch wenn mal
+                korrigiert werden musste.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section--divider">
+          <div class="editorialGrid">
+            <div class="editorialIndex">03</div>
+            <div class="postBody">
+              <h2>Der Hinweis, bevor der Stempel ins Leere läuft</h2>
+              <p>
+                Eine Wallet-Karte herunterzuladen und sie tatsächlich zu
+                „Wallet hinzuzufügen“ sind zwei verschiedene Schritte - und
+                nicht jeder schließt den zweiten auch ab. Bis jetzt hat man
+                das erst bemerkt, wenn sich jemand wunderte, warum die
+                Stempel nicht in der eigenen Wallet auftauchen.
+              </p>
+              <p>
+                Ab sofort merkt der Barista-Scanner das sofort beim Scannen:
+                Wurde noch keine Karte gespeichert, oder liegt die Karte zwar
+                im Postfach, wartet aber noch auf den letzten Schritt zum
+                „Hinzufügen”? In beiden Fällen erscheint direkt ein Hinweis
+                an der Theke - der ideale Moment, um kurz nachzufragen und
+                das gemeinsam mit der Kundschaft zu klären, statt dass der
+                Stempel erstmal unsichtbar bleibt.
+              </p>
+              <span class="postShot">
+                <img
+                  src="/assets/blog-wallet-warnhinweis.png"
+                  alt="Barista-Scanner mit dem Warnhinweis „Kunde hat noch keine Wallet-Karte gespeichert“ direkt nach dem Stempeln"
+                />
+              </span>
+              <p class="postShotCaption">
+                Der Stempel wird trotzdem korrekt erfasst - der Hinweis sagt
+                nur, dass er gerade noch nicht in der Wallet ankommt.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section--divider">
+          <div class="editorialGrid">
+            <div class="editorialIndex">04</div>
+            <div class="postBody">
+              <h2>Zahlen, die mehr erzählen als der Kassenbon</h2>
+              <p>
+                Bisher endete der Blick ins eigene Café bei „X Stempel diese
+                Woche“. Das Dashboard im Barista-Scanner hat jetzt einen
+                echten Analytics-Bereich - mit denselben Diagramm-Bausteinen,
+                mit denen auch wir intern auf die Plattform schauen.
+              </p>
+              <span class="postShot postShotWide">
+                <img
+                  src="/assets/blog-analytics-charts.png"
+                  alt="Analytics-Bereich im Café-Dashboard: Stempel pro Tag, eindeutige Kunden pro Tag, neue Wallet-Karten nach Apple/Google und eine Heatmap nach Wochentag und Uhrzeit"
+                />
+              </span>
+              <p class="postShotCaption">
+                Stempel und Kunden pro Tag, Apple vs. Google und die
+                Stoßzeiten-Heatmap - alles live aus den eigenen Daten.
+              </p>
+              <div class="grid" aria-label="Was der neue Analytics-Bereich zeigt">
+                <article class="panel">
+                  <div class="panelNo">Wann</div>
+                  <h2>Stoßzeiten-Heatmap</h2>
+                  <p>
+                    Stempel nach Wochentag und Uhrzeit, in Zwei-Stunden-Fenstern
+                    - zeigt, wann wirklich was los ist, nicht nur, wann es
+                    sich so anfühlt.
+                  </p>
+                </article>
+                <article class="panel">
+                  <div class="panelNo">Wie treu</div>
+                  <h2>Loyalty-Funnel</h2>
+                  <p>
+                    Von der ersten Wallet-Karte über den ersten Stempel bis
+                    zur eingelösten Prämie - jede Stufe zeigt, wo Gäste
+                    tatsächlich abspringen.
+                  </p>
+                </article>
+                <article class="panel">
+                  <div class="panelNo">Wer bleibt</div>
+                  <h2>Kohorten-Retention</h2>
+                  <p>
+                    Wöchentliche Kohorten nach erstem Besuch - wer ist nach
+                    vier, wer nach acht Wochen noch wieder da?
+                  </p>
+                </article>
+              </div>
+              <p>
+                Dazu: neue und wiederkehrende Kunden pro Zeitraum, wie viele
+                Wallet-Karten über Apple oder Google dazukommen, und wie lange
+                typischerweise zwischen zwei Besuchen vergeht. Alles direkt im
+                eigenen Café-Bereich, ohne Excel-Export und ohne Umweg über
+                uns.
+              </p>
+              <span class="postShot postShotWide">
+                <img
+                  src="/assets/blog-lifecycle-funnel.png"
+                  alt="Loyalty-Funnel und Kundenkohorten im Café-Dashboard: von der Wallet-Karte bis zur eingelösten Prämie, Besuche pro Kunde und wöchentliche Retention-Kohorten"
+                />
+              </span>
+              <p class="postShotCaption">
+                Der Loyalty-Funnel zeigt auf einen Blick, wo Gäste
+                abspringen - und die Kohorten-Tabelle, ob sie überhaupt
+                wiederkommen.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section--divider">
+          <div class="editorialGrid">
+            <div class="editorialIndex">—</div>
+            <div class="postBody">
+              <p>
+                Vier kleine Werkzeuge, aber alle mit demselben Ziel: weniger
+                Reibung zwischen Café und Stammgast, und ein klarerer Blick
+                auf das, was zwischen den Besuchen wirklich passiert. Mehr,
+                sobald es wieder etwas zu erzählen gibt.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+
+      <p class="footerNote section section--divider">
+        Kaffeekarte ist für unabhängige Cafés gebaut: weniger Software, mehr
+        Cafégefühl - und Gäste, die ihre Karte nie wieder verlieren.
+      </p>
+      <div class="footerLinks" aria-label="Weitere Seiten">
+        <a href="/">Startseite</a>
+        <a href="/fuer-cafes">Für Cafés</a>
+      </div>
+      <div class="legalLinks" aria-label="Rechtliches">
+        <a href="/impressum">Impressum</a>
+        <a href="/datenschutz">Datenschutz</a>
+        <a href="/agb">AGB</a>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var navToggleBtn = document.getElementById("navToggleBtn");
+        var mainNav = document.getElementById("mainNav");
+        if (!navToggleBtn || !mainNav) return;
+
+        function setNavOpen(open) {
+          mainNav.classList.toggle("isOpen", open);
+          navToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        navToggleBtn.addEventListener("click", function () {
+          setNavOpen(!mainNav.classList.contains("isOpen"));
+        });
+        mainNav.addEventListener("click", function (event) {
+          if (event.target.closest("a")) setNavOpen(false);
+        });
+        document.addEventListener("click", function (event) {
+          if (
+            mainNav.classList.contains("isOpen") &&
+            !mainNav.contains(event.target) &&
+            !navToggleBtn.contains(event.target)
+          ) {
+            setNavOpen(false);
+          }
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") setNavOpen(false);
+        });
+      })();
+    </script>
+  </body>
+</html>
