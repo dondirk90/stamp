@@ -31,13 +31,16 @@
     reverse_proxy apps:8080
   }
 
-  # Called by a scheduled GitHub Actions workflow (no interactive user, so no
-  # basic-auth password available to it) - protected by requireAdminKey on
+  # Called by scheduled GitHub Actions workflows (no interactive user, so no
+  # basic-auth password available to them) - protected by requireAdminKey on
   # the Node side instead, via the x-admin-key header the caller sends
   # itself. Must come before the general @adminApi matcher below, which
-  # would otherwise both demand basic_auth and overwrite x-admin-key.
-  @adminOnboardingReminders path /api/admin/customers/onboarding-reminders
-  handle @adminOnboardingReminders {
+  # would otherwise both demand basic_auth and overwrite x-admin-key (that
+  # exact gap is why /api/admin/reminders/run 401'd for a while before
+  # anyone noticed - it was never added here despite reminders.yml existing
+  # since before onboarding-reminders.yml did).
+  @adminScheduledJobs path /api/admin/customers/onboarding-reminders /api/admin/customers/wallet-activation-reminders /api/admin/reminders/run
+  handle @adminScheduledJobs {
     reverse_proxy apps:8080
   }
 
