@@ -1314,6 +1314,127 @@
         }
       }
 
+      function buildMessageLogHtml(reminderRows, emailRows) {
+        const pushRows =
+          (reminderRows || [])
+            .map((r) => {
+              const addr = r.customer_address
+                ? `<span class="address" title="${escapeHtml(
+                    r.customer_address,
+                  )}">${escapeHtml(shortenAddress(r.customer_address))}</span>`
+                : "—";
+              const delivered =
+                r.apple_pushed || r.google_sent
+                  ? '<span class="badge badge-neutral">gesendet</span>'
+                  : r.apple_touched
+                    ? '<span class="badge badge-warning">kein Gerät</span>'
+                    : '<span class="badge badge-warning">nicht zugestellt</span>';
+              return `
+              <tr>
+                <td class="timestamp">${formatDate(r.sent_at)}</td>
+                <td>${escapeHtml(r.kind || "—")}</td>
+                <td>${addr}</td>
+                <td>${escapeHtml(r.message || "—")}</td>
+                <td>${delivered}</td>
+              </tr>`;
+            })
+            .join("") ||
+          `<tr><td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Push-Nachrichten</td></tr>`;
+
+        const mailRows =
+          (emailRows || [])
+            .map((r) => {
+              const addr = r.customer_address
+                ? `<span class="address" title="${escapeHtml(
+                    r.customer_address,
+                  )}">${escapeHtml(shortenAddress(r.customer_address))}</span>`
+                : "—";
+              const status = r.success
+                ? '<span class="badge badge-neutral">gesendet</span>'
+                : `<span class="badge badge-warning" title="${escapeHtml(
+                    r.error || "",
+                  )}">fehlgeschlagen</span>`;
+              return `
+              <tr>
+                <td class="timestamp">${formatDate(r.sent_at)}</td>
+                <td>${escapeHtml(r.kind || "—")}</td>
+                <td>${addr}</td>
+                <td>${escapeHtml(r.recipient || "—")}</td>
+                <td>${escapeHtml(r.subject || "—")}</td>
+                <td>${status}</td>
+              </tr>`;
+            })
+            .join("") ||
+          `<tr><td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine E-Mails</td></tr>`;
+
+        return `
+          <div class="section-title">Nachrichten-Log</div>
+          <div class="section-subtitle">Push-Erinnerungen</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zeit</th>
+                  <th>Art</th>
+                  <th>Kunde</th>
+                  <th>Nachricht</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>${pushRows}</tbody>
+            </table>
+          </div>
+          <div class="section-subtitle" style="margin-top: 20px;">E-Mails</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zeit</th>
+                  <th>Art</th>
+                  <th>Kunde</th>
+                  <th>Empfänger</th>
+                  <th>Betreff</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>${mailRows}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      async function loadCafeMessageLog(cafeId) {
+        const container = document.getElementById("cafeMessageLogBlock");
+        if (!container || !state.config) return;
+        try {
+          const pushUrl = adminApiUrl(
+            `/admin/cafes/${encodeURIComponent(cafeId)}/reminder-log`,
+          );
+          const mailUrl = adminApiUrl(
+            `/admin/cafes/${encodeURIComponent(cafeId)}/email-log`,
+          );
+          const [pushRes, mailRes] = await Promise.all([
+            fetch(pushUrl.toString(), { headers: adminHeaders() }),
+            fetch(mailUrl.toString(), { headers: adminHeaders() }),
+          ]);
+          const pushData = await pushRes.json();
+          const mailData = await mailRes.json();
+          if (!pushRes.ok || pushData.ok === false) {
+            throw new Error((pushData && pushData.error) || `HTTP ${pushRes.status}`);
+          }
+          if (!mailRes.ok || mailData.ok === false) {
+            throw new Error((mailData && mailData.error) || `HTTP ${mailRes.status}`);
+          }
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildMessageLogHtml(pushData.log, mailData.log);
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<div class="section-title">Nachrichten-Log</div><p class="section-subtitle">Konnte nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
       async function loadGlobalLifecycle() {
         const container = document.getElementById("globalLifecycleBlock");
         if (!container || !state.config) return;
@@ -2090,6 +2211,10 @@
                     : ""
                 }
 
+                <div id="cafeMessageLogBlock" data-cafe-id="${cafe.id}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
+                  <p class="section-subtitle">Lade Nachrichten-Log …</p>
+                </div>
+
                 <div class="section-title" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">Café löschen</div>
                 <div class="section-subtitle">
                   Löscht dieses Café endgültig, inklusive aller Stempel-Events, Wallet-Pässe und Sitzungen. Nicht rückgängig zu machen.
@@ -2129,6 +2254,7 @@
         wireDetailLinks(refs.cafeDetailContainer);
         loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
         loadCafeLifecycle(cafe.id);
+        loadCafeMessageLog(cafe.id);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")
           .forEach((btn) => {
