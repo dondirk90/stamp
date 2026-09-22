@@ -1,0 +1,37 @@
+name: Wallet Activation Reminders
+
+on:
+  schedule:
+    # Staggered 15 min after Onboarding Reminders so the two admin-key
+    # calls don't land in the same instant - 08:15 UTC ~ 09-10:15 Uhr
+    # Berlin (drifts an hour across DST changeover, accepted as fine for a
+    # "sometime mid-morning" reminder).
+    - cron: "15 8 * * *"
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry run (no emails sent, no rows marked)"
+        type: boolean
+        default: false
+      target:
+        description: "Target environment"
+        type: choice
+        options: [prod, staging]
+        default: prod
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'prod' }}
+    steps:
+      - name: Call wallet-activation-reminders endpoint
+        env:
+          DOMAIN: ${{ (github.event.inputs.target == 'staging') && secrets.STAGING_DOMAIN || secrets.PROD_DOMAIN }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dryRun }}
+        run: |
+          test -n "$DOMAIN"
+          test -n "$ADMIN_TOKEN"
+          URL="https://${DOMAIN}/api/admin/customers/wallet-activation-reminders"
+          if [ "$DRY_RUN" = "true" ]; then URL="${URL}?dryRun=1"; fi
+          curl --fail --silent --show-error -X POST -H "x-admin-key: ${ADMIN_TOKEN}" "$URL"

@@ -984,6 +984,7 @@ async function sendOnboardingReminderEmail({
   profileUrl,
   cafeName,
   cafeLogoUrl,
+  logMeta,
 }) {
   const displayName = String(username || "").trim() || "Kaffeekarte Gast";
 
@@ -1068,6 +1069,107 @@ async function sendOnboardingReminderEmail({
       .filter(Boolean)
       .join("\n"),
   };
+  if (logMeta) mailOptions.__logMeta = logMeta;
+
+  ensureEmailConfigured();
+
+  return emailTransporter.sendMail(mailOptions);
+}
+
+// Nudge for "downloaded a wallet pass, never actually confirmed it" (see
+// migrations/024_add_customer_wallet_activation_reminder.sql for why this
+// can happen and why it's a separate flag from the generic onboarding
+// reminder above). Primary CTA is the café's own registration/join page,
+// not a raw re-download link - going through the normal add-flow again is
+// the more reliable path (chat 2026-09-22). Stamp count is mentioned only
+// as a bonus detail when there's something to mention, not the headline -
+// this reminder fires for anyone with an unconfirmed pass, stamps or not.
+async function sendWalletActivationReminderEmail({
+  email,
+  username,
+  stampCount,
+  cafeName,
+  cafeLogoUrl,
+  cafeJoinUrl,
+  applePassUrl,
+  profileUrl,
+  logMeta,
+}) {
+  const displayName = String(username || "").trim() || "Kaffeekarte Gast";
+  const stamps = Number(stampCount) || 0;
+  const cafeLabel = cafeName || "deinem Café";
+
+  const cafeBlockHtml = cafeName
+    ? `<div style="display: flex; align-items: center; gap: 10px; margin: 0 0 18px;">
+        ${
+          cafeLogoUrl
+            ? `<img src="${cafeLogoUrl}" alt="${cafeName}" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; display: block;" />`
+            : ""
+        }
+        <span style="color: #5f544a; font-size: 13px;">Dein Café: <strong style="color: #181311;">${cafeName}</strong></span>
+      </div>`
+    : "";
+
+  const stampsLineHtml =
+    stamps > 0
+      ? `<p style="margin: 0 0 14px; color: #5f544a; font-size: 13px;">Übrigens: ${stamps} Stempel warten dort schon auf dich - die werden sichtbar, sobald die Karte aktiv ist.</p>`
+      : "";
+
+  const joinButtonHtml = cafeJoinUrl
+    ? `<div style="margin: 0 0 14px;">
+        <a href="${cafeJoinUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">Karte jetzt aktivieren</a>
+      </div>`
+    : applePassUrl
+      ? `<div style="margin: 0 0 14px;">
+          <a href="${applePassUrl}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 14px 18px; border-radius: 10px; font-weight: 700;">Jetzt zu Apple Wallet hinzufügen</a>
+        </div>`
+      : `<p style="margin: 0 0 14px; color: #6b625a; font-size: 13px;">Deine Karte findest du in deinem Profil: <a href="${profileUrl}" style="color: #1c1917;">${profileUrl}</a></p>`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `${displayName}, deine Wallet-Karte von ${cafeLabel} ist noch nicht aktiv`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 28px; line-height: 1.1; color: #181311;">Fast geschafft, ${displayName}.</h1>
+              <p style="margin: 0; color: #5f544a;">Du hast dir den Wallet-Pass von ${cafeLabel} geholt, aber nie aktiviert - deshalb bleibt er in Apple Wallet auf dem Stand von damals.</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              ${cafeBlockHtml}
+              ${stampsLineHtml}
+              ${joinButtonHtml}
+              <p style="margin: 18px 0 0; color: #8a7d70; font-size: 12px;">Falls das schon erledigt ist oder du dich nicht registriert hast, kannst du diese E-Mail einfach ignorieren.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: [
+      `Fast geschafft, ${displayName}.`,
+      "",
+      `Du hast dir den Wallet-Pass von ${cafeLabel} geholt, aber nie aktiviert - deshalb bleibt er in Apple Wallet auf dem Stand von damals.`,
+      "",
+      cafeName ? `Dein Café: ${cafeName}` : "",
+      stamps > 0
+        ? `Uebrigens: ${stamps} Stempel warten dort schon auf dich.`
+        : "",
+      cafeJoinUrl
+        ? `Karte jetzt aktivieren: ${cafeJoinUrl}`
+        : applePassUrl
+          ? `Zu Apple Wallet hinzufuegen: ${applePassUrl}`
+          : `Deine Karte: ${profileUrl}`,
+      "",
+      "Falls das schon erledigt ist oder du dich nicht registriert hast, kannst du diese E-Mail einfach ignorieren.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  };
+  if (logMeta) mailOptions.__logMeta = logMeta;
 
   ensureEmailConfigured();
 
@@ -1505,6 +1607,20 @@ CREATE TABLE IF NOT EXISTS reminder_log (
   sent_at INTEGER NOT NULL
 );
 
+-- See migrations/025_add_email_log.sql - the mail counterpart to
+-- reminder_log above, filled by a single sendMail wrapper.
+CREATE TABLE IF NOT EXISTS email_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cafe_id INTEGER,
+  customer_address TEXT,
+  kind TEXT,
+  recipient TEXT NOT NULL,
+  subject TEXT,
+  success INTEGER NOT NULL,
+  error TEXT,
+  sent_at INTEGER NOT NULL
+);
+
 `);
 }
 
@@ -1801,6 +1917,12 @@ runSqliteOnlyAlter(
 runSqliteOnlyAlter(
   "ALTER TABLE customers ADD COLUMN registered_via_cafe_address TEXT",
   "Failed to add customers.registered_via_cafe_address column:",
+);
+// See migrations/024_add_customer_wallet_activation_reminder.sql for why
+// this is a separate flag from onboarding_reminder_sent_at above.
+runSqliteOnlyAlter(
+  "ALTER TABLE customers ADD COLUMN wallet_activation_reminder_sent_at INTEGER",
+  "Failed to add customers.wallet_activation_reminder_sent_at column:",
 );
 
 // Ensure legacy databases pick up the additional columns for event tracking
@@ -2835,6 +2957,9 @@ const setCustomerEmailVerifiedAtById = db.prepare(
 );
 const markCustomerOnboardingReminderSentById = db.prepare(
   "UPDATE customers SET onboarding_reminder_sent_at = ? WHERE id = ? AND onboarding_reminder_sent_at IS NULL",
+);
+const markCustomerWalletActivationReminderSentById = db.prepare(
+  "UPDATE customers SET wallet_activation_reminder_sent_at = ? WHERE id = ? AND wallet_activation_reminder_sent_at IS NULL",
 );
 const setCustomerAvatarById = db.prepare(
   "UPDATE customers SET avatar_mime = ?, avatar_data = ? WHERE id = ?",
@@ -4893,6 +5018,70 @@ const insertReminderLog = db.prepare(
     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 );
 
+// Mail counterpart to reminder_log above (see migrations/025_add_email_log.sql).
+const insertEmailLog = db.prepare(
+  "INSERT INTO email_log (cafe_id, customer_address, kind, recipient, subject, success, error, sent_at) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+);
+
+// Wrapping the transporter itself (once, here) instead of adding a logging
+// call to every single send*Email() function - every outgoing email goes
+// through emailTransporter.sendMail no matter which function built it, so
+// this is the one place that's guaranteed to see all of them. A caller can
+// attach mailOptions.__logMeta = {kind, cafeId, customerAddress} for
+// attribution (stripped before the real send, nodemailer doesn't know the
+// field); without it the email is still logged, just unattributed - e.g.
+// pure account-level mail like password resets or verification links that
+// have no café to point at.
+{
+  const rawSendMail = emailTransporter.sendMail.bind(emailTransporter);
+  emailTransporter.sendMail = async function (mailOptions) {
+    const meta = mailOptions && mailOptions.__logMeta;
+    const toLog = { ...mailOptions };
+    delete toLog.__logMeta;
+    try {
+      const info = await rawSendMail(toLog);
+      try {
+        await insertEmailLog.run(
+          (meta && meta.cafeId) || null,
+          (meta && meta.customerAddress) || null,
+          (meta && meta.kind) || null,
+          String(toLog.to || ""),
+          toLog.subject || null,
+          1,
+          null,
+          Date.now(),
+        );
+      } catch (logErr) {
+        console.warn(
+          "Failed to write email_log row:",
+          logErr && logErr.message ? logErr.message : logErr,
+        );
+      }
+      return info;
+    } catch (sendErr) {
+      try {
+        await insertEmailLog.run(
+          (meta && meta.cafeId) || null,
+          (meta && meta.customerAddress) || null,
+          (meta && meta.kind) || null,
+          String(toLog.to || ""),
+          toLog.subject || null,
+          0,
+          String(sendErr && sendErr.message ? sendErr.message : sendErr),
+          Date.now(),
+        );
+      } catch (logErr) {
+        console.warn(
+          "Failed to write email_log row:",
+          logErr && logErr.message ? logErr.message : logErr,
+        );
+      }
+      throw sendErr;
+    }
+  };
+}
+
 // Apple's pass.json backfield for a café's push reminder (see
 // findReminderCandidates/sendReminderPush) - ALWAYS returned (never null),
 // with a neutral "–" and no changeMessage when there's nothing active. This
@@ -5376,6 +5565,45 @@ app.get(
       });
     } catch (err) {
       console.error("Error in /admin/cafes/:cafeId/reminder-log:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// Mail counterpart to /admin/cafes/:cafeId/reminder-log above - every
+// email_log row attributed to this café, newest first.
+app.get(
+  "/admin/cafes/:cafeId/email-log",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ error: "cafe_not_found" });
+      }
+      const limit = Math.min(
+        500,
+        Math.max(1, Number(req.query.limit) || 100),
+      );
+      const rows = await db
+        .prepare(
+          "SELECT id, customer_address, kind, recipient, subject, success, error, sent_at " +
+            "FROM email_log WHERE cafe_id = ? ORDER BY sent_at DESC LIMIT ?",
+        )
+        .all(cafeId, limit);
+      res.json({
+        ok: true,
+        cafe: { id: current.id, name: current.name || null },
+        log: rows,
+      });
+    } catch (err) {
+      console.error("Error in /admin/cafes/:cafeId/email-log:", err);
       res
         .status(500)
         .json({ error: String(err && err.message ? err.message : err) });
@@ -6462,16 +6690,19 @@ app.post(
           // belongs to) takes precedence over the registration-origin café.
           let cafeName = null;
           let cafeLogoUrl = null;
+          let logCafeId = null;
           if (needsWalletConfirm && pendingPass) {
             cafeName = pendingPass.cafe_name || null;
             cafeLogoUrl = pendingPass.cafe_has_logo
               ? `${appsBaseUrl}/api/cafes/${pendingPass.cafe_id}/logo.png`
               : null;
+            logCafeId = pendingPass.cafe_id || null;
           } else if (row.registered_cafe_id) {
             cafeName = row.registered_cafe_name || null;
             cafeLogoUrl = row.registered_cafe_has_logo
               ? `${appsBaseUrl}/api/cafes/${row.registered_cafe_id}/logo.png`
               : null;
+            logCafeId = row.registered_cafe_id || null;
           }
 
           if (!dryRun) {
@@ -6485,6 +6716,11 @@ app.post(
               profileUrl: `${appsBaseUrl}/customer-profile`,
               cafeName,
               cafeLogoUrl,
+              logMeta: {
+                kind: "onboarding_reminder",
+                cafeId: logCafeId,
+                customerAddress: row.address,
+              },
             });
             await markCustomerOnboardingReminderSentById.run(now, row.id);
             sent += 1;
@@ -6512,6 +6748,144 @@ app.post(
       });
     } catch (err) {
       console.error("Error in /admin/customers/onboarding-reminders:", err);
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+// Daily-eligible nudge (see .github/workflows/wallet-activation-reminders.yml)
+// for customers who have an active account (verified email) and downloaded
+// a wallet pass at some café, but never actually confirmed it (see
+// migrations/024_add_customer_wallet_activation_reminder.sql). Deliberately
+// separate from /admin/customers/onboarding-reminders above, which
+// excludes anyone with stamp_events on the (here: wrong) assumption that
+// stamping means the wallet channel is fine - a café can award stamps via
+// /stamp-by-cafe regardless of wallet-registration state, so this one does
+// NOT require any stamps to have been awarded yet - "downloaded but never
+// added" is worth a nudge on its own. Sent once per customer (see the
+// sent_at gate below); the barista scanner's own live warning (see
+// /stamp-by-cafe) remains the ongoing in-person safety net on top of this.
+app.post(
+  "/admin/customers/wallet-activation-reminders",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const dryRun = ["1", "true"].includes(
+        String(req.query?.dryRun || "").toLowerCase(),
+      );
+      const appsBaseUrl = getAppsBaseUrlFromRequest(req);
+
+      // Shortlist: passes with no Apple registration and no Google object,
+      // belonging to a customer with a verified email we haven't nudged yet.
+      const shortlist = await db
+        .prepare(
+          `SELECT wp.customer_address, wp.card_id,
+                  cf.id AS cafe_id, cf.address AS cafe_address, cf.name AS cafe_name,
+                  CASE WHEN cf.logo_mime IS NOT NULL THEN 1 ELSE 0 END AS cafe_has_logo,
+                  c.id AS customer_id, c.customer_id AS customer_public_id,
+                  c.email, c.username
+           FROM wallet_passes wp
+           JOIN cafes cf ON cf.id = wp.cafe_id
+           JOIN customers c ON LOWER(c.address) = LOWER(wp.customer_address)
+           WHERE c.email IS NOT NULL
+             AND c.email_verified_at IS NOT NULL
+             AND c.wallet_activation_reminder_sent_at IS NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM wallet_registrations wr WHERE wr.serial_number = wp.serial_number
+             )
+             AND NOT EXISTS (
+               SELECT 1 FROM google_wallet_objects gwo
+               WHERE gwo.customer_address = wp.customer_address AND gwo.cafe_id = wp.cafe_id
+             )
+           ORDER BY c.id ASC`,
+        )
+        .all();
+
+      // One shortlist row per (customer, café, card) - if a customer is
+      // affected at more than one café, only mention whichever one has the
+      // most open stamps (falls back to the first one if all are at zero)
+      // rather than sending multiple emails. Stamps are a bonus detail in
+      // the email, not a requirement to be a candidate at all.
+      const byCustomer = new Map();
+      for (const row of Array.isArray(shortlist) ? shortlist : []) {
+        const stamps = await getOpenStampTotal(row.cafe_address, row.customer_address);
+        const existing = byCustomer.get(row.customer_id);
+        if (!existing || stamps > existing.stamps) {
+          byCustomer.set(row.customer_id, { ...row, stamps });
+        }
+      }
+      const candidates = Array.from(byCustomer.values());
+
+      let sent = 0;
+      const failures = [];
+
+      for (const row of candidates) {
+        try {
+          let applePassUrl = null;
+          if (walletPass.isWalletConfigured()) {
+            applePassUrl = `${appsBaseUrl}/api/customers/${encodeURIComponent(
+              row.customer_address,
+            )}/wallet-pass?cafe=${encodeURIComponent(
+              row.cafe_address,
+            )}&cardId=${encodeURIComponent(row.card_id || "")}`;
+          }
+          const cafeLogoUrl = row.cafe_has_logo
+            ? `${appsBaseUrl}/api/cafes/${row.cafe_id}/logo.png`
+            : null;
+          const cafeJoinUrl = `${appsBaseUrl}/cafe-join?cafe=${encodeURIComponent(
+            row.cafe_address,
+          )}`;
+
+          if (!dryRun) {
+            await sendWalletActivationReminderEmail({
+              email: row.email,
+              username: row.username,
+              stampCount: row.stamps,
+              cafeName: row.cafe_name || null,
+              cafeLogoUrl,
+              cafeJoinUrl,
+              applePassUrl,
+              profileUrl: `${appsBaseUrl}/customer-profile`,
+              logMeta: {
+                kind: "wallet_activation_reminder",
+                cafeId: row.cafe_id,
+                customerAddress: row.customer_address,
+              },
+            });
+            await markCustomerWalletActivationReminderSentById.run(
+              Date.now(),
+              row.customer_id,
+            );
+            sent += 1;
+          }
+        } catch (sendErr) {
+          console.warn(
+            "Failed to send wallet-activation reminder to customer:",
+            row.customer_public_id,
+            sendErr && sendErr.message ? sendErr.message : sendErr,
+          );
+          failures.push({
+            customerId: row.customer_public_id,
+            error: String(sendErr && sendErr.message ? sendErr.message : sendErr),
+          });
+        }
+      }
+
+      res.json({
+        ok: true,
+        dryRun,
+        candidates: candidates.length,
+        sent,
+        failed: failures.length,
+        failures,
+      });
+    } catch (err) {
+      console.error(
+        "Error in /admin/customers/wallet-activation-reminders:",
+        err,
+      );
       res
         .status(500)
         .json({ ok: false, error: String(err && err.message ? err.message : err) });
