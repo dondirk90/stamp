@@ -3224,7 +3224,25 @@
                     werden - als Silhouette, jeder Stempel leicht anders
                     gedreht, wie ein echter Tintenstempel.
                   </div>
-                  <div id="stampIconPreviewRow" class="logoRow" style="gap: 10px"></div>
+                  <div class="muted" style="margin-bottom: 6px; font-size: 13px">
+                    Ein eigenes, einfacheres Symbol statt des Logos verwenden (optional):
+                  </div>
+                  <div class="logoRow">
+                    <input id="stampIconSource" type="file" accept="image/*" />
+                    <img
+                      id="stampIconSourcePreview"
+                      class="logoPreview"
+                      alt="Symbol Vorschau"
+                      style="display: none"
+                    />
+                  </div>
+                  <label
+                    style="display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 13px"
+                  >
+                    <input id="stampIconInvert" type="checkbox" />
+                    Farben umkehren (für helles Logo auf dunklem Hintergrund)
+                  </label>
+                  <div id="stampIconPreviewRow" class="logoRow" style="gap: 10px; margin-top: 12px"></div>
                   <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap">
                     <button
                       id="stampIconGenerateBtn"
@@ -5429,6 +5447,7 @@
         stampStyle: "bean",
         hasCustomStampIcon: false,
         stampIconVersion: 0,
+        stampSourceDataUrl: null,
       };
 
       // Fünf Unter-Tabs statt der frueheren zwei Modi ("Karte"/"Verwaltung")
@@ -5907,15 +5926,19 @@
           row.appendChild(dot);
         }
 
+        const stampSourceAvailable = !!(profileState.stampSourceDataUrl || profileState.logoDataUrl);
         if (resetBtn) {
           resetBtn.style.display = profileState.hasCustomStampIcon ? "inline-flex" : "none";
         }
         if (generateBtn) {
-          generateBtn.disabled = !profileState.logoDataUrl;
+          generateBtn.disabled = !stampSourceAvailable;
+          generateBtn.textContent = profileState.stampSourceDataUrl
+            ? "Stempel-Vorlage aus Symbol erzeugen"
+            : "Stempel-Vorlage aus Logo erzeugen";
         }
         if (statusEl) {
-          statusEl.textContent = !profileState.logoDataUrl
-            ? "Zuerst ein Logo hochladen."
+          statusEl.textContent = !stampSourceAvailable
+            ? "Zuerst ein Logo oder Symbol hochladen."
             : profileState.hasCustomStampIcon
               ? "Eigene Stempel-Vorlage aktiv."
               : "Noch die Standard-Kaffeebohne.";
@@ -5924,7 +5947,10 @@
 
       async function generateStampIconFromLogo() {
         const btn = document.getElementById("stampIconGenerateBtn");
-        if (!cafe || !cafe.token || !profileState.logoDataUrl) return;
+        const invertEl = document.getElementById("stampIconInvert");
+        const source = profileState.stampSourceDataUrl || profileState.logoDataUrl;
+        if (!cafe || !cafe.token || !source) return;
+        const originalLabel = btn ? btn.textContent : "";
         if (btn) {
           btn.disabled = true;
           btn.textContent = "Wird erzeugt…";
@@ -5936,7 +5962,10 @@
               Authorization: `Bearer ${cafe.token}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ logoDataUrl: profileState.logoDataUrl }),
+            body: JSON.stringify({
+              logoDataUrl: source,
+              invert: !!(invertEl && invertEl.checked),
+            }),
           });
           profileState.hasCustomStampIcon = true;
           profileState.stampIconVersion = Date.now();
@@ -5949,8 +5978,8 @@
           );
         } finally {
           if (btn) {
-            btn.disabled = !profileState.logoDataUrl;
-            btn.textContent = "Stempel-Vorlage aus Logo erzeugen";
+            btn.disabled = !(profileState.stampSourceDataUrl || profileState.logoDataUrl);
+            btn.textContent = originalLabel;
           }
         }
       }
@@ -6640,6 +6669,39 @@
           });
         }
 
+        const stampIconSourceInput = document.getElementById("stampIconSource");
+        const stampIconSourcePreview = document.getElementById("stampIconSourcePreview");
+        if (stampIconSourceInput && stampIconSourcePreview) {
+          stampIconSourceInput.addEventListener("change", async () => {
+            try {
+              const file =
+                stampIconSourceInput.files && stampIconSourceInput.files[0]
+                  ? stampIconSourceInput.files[0]
+                  : null;
+              if (!file) return;
+              if (file.size > 20 * 1024 * 1024) {
+                setMsg("Symbol zu groß zum Verkleinern (max 20MB Ausgangsdatei).");
+                stampIconSourceInput.value = "";
+                return;
+              }
+              const dataUrl =
+                file.type === "image/svg+xml"
+                  ? await readFileAsDataUrl(file)
+                  : await fitImageToLimit(file, {
+                      maxDim: 800,
+                      maxBytes: 200 * 1024,
+                      mimeType: file.type === "image/png" ? "image/png" : "image/jpeg",
+                    });
+              profileState.stampSourceDataUrl = dataUrl;
+              stampIconSourcePreview.src = dataUrl;
+              stampIconSourcePreview.style.display = "block";
+              setMsg("Symbol ausgewählt - „Stempel-Vorlage erzeugen” nutzt jetzt dieses Bild.");
+              renderStampIconSection();
+            } catch (e) {
+              setMsg("Symbol konnte nicht geladen werden");
+            }
+          });
+        }
         const cardBgInput = document.getElementById("profileCardBg");
         const cardBgPreview = document.getElementById("profileCardBgPreview");
         if (cardBgInput && cardBgPreview) {

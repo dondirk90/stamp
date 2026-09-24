@@ -36,6 +36,54 @@ function luminance(r, g, b) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+// Whether a pixel counts as "ink" - the one test every other pass in this
+// file builds on. `invert` flips which tone (light or dark) counts as
+// background, for a logo built the opposite way round (light mark on a
+// dark background) - see detectBackgroundIsDark().
+function isInkPixel(r, g, b, a, invert) {
+  if (a < ALPHA_CUTOFF) return false;
+  const lum = luminance(r, g, b);
+  return invert ? lum > 255 - LUMINANCE_THRESHOLD : lum < LUMINANCE_THRESHOLD;
+}
+
+// Samples a ring around the image's outer edge (not the exact corner
+// pixels alone - a full-bleed circular badge logo could legitimately touch
+// those) to guess whether the source logo is drawn light-on-dark rather
+// than the assumed dark-on-light (chat 2026-09-24: cafés with a dark-brand
+// logo - e.g. cream mark on an espresso-brown background - need the
+// opposite of the normal light-background assumption, or the whole
+// background becomes the "stamp" and the actual mark disappears). Runs on
+// the *original* image, before cropToContent would trim this exact border
+// away. A manual override in the UI still exists for whatever this guesses
+// wrong on.
+const INVERT_SAMPLE_SIZE = 120;
+const INVERT_BORDER_FRACTION = 0.06;
+const INVERT_DARK_MAJORITY = 0.6;
+
+async function detectBackgroundIsDark(logoBuffer) {
+  const { data } = await sharp(logoBuffer)
+    .resize(INVERT_SAMPLE_SIZE, INVERT_SAMPLE_SIZE, { fit: "fill" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const margin = Math.round(INVERT_SAMPLE_SIZE * INVERT_BORDER_FRACTION);
+  let darkCount = 0;
+  let sampled = 0;
+  for (let y = 0; y < INVERT_SAMPLE_SIZE; y++) {
+    const onBorderRow = y < margin || y >= INVERT_SAMPLE_SIZE - margin;
+    for (let x = 0; x < INVERT_SAMPLE_SIZE; x++) {
+      if (!onBorderRow && x >= margin && x < INVERT_SAMPLE_SIZE - margin) continue;
+      const i = (y * INVERT_SAMPLE_SIZE + x) * 4;
+      if (data[i + 3] < ALPHA_CUTOFF) continue; // transparent border pixels don't tell us light vs dark
+      sampled += 1;
+      if (luminance(data[i], data[i + 1], data[i + 2]) < 128) darkCount += 1;
+    }
+  }
+  if (sampled === 0) return false; // fully transparent source - default to the normal assumption
+  return darkCount / sampled > INVERT_DARK_MAJORITY;
+}
+
 // Tightly crop to the logo's actual content (plus a little padding) before
 // fitting it into the working square - ported from a reference Python
 // script the café shared (chat 2026-09-24): without this, a source file
@@ -44,7 +92,7 @@ function luminance(r, g, b) {
 const CROP_ANALYZE_MAX = 800; // analysis resolution cap, only need a bounding box
 const CROP_PADDING_FRACTION = 0.08;
 
-async function cropToContent(logoBuffer) {
+async function cropToContent(logoBuffer, invert) {
   const { data, info } = await sharp(logoBuffer)
     .resize(CROP_ANALYZE_MAX, CROP_ANALYZE_MAX, { fit: "inside", withoutEnlargement: true })
     .ensureAlpha()
@@ -58,9 +106,7 @@ async function cropToContent(logoBuffer) {
   for (let y = 0; y < info.height; y++) {
     for (let x = 0; x < info.width; x++) {
       const i = (y * info.width + x) * 4;
-      const isBackground =
-        data[i + 3] < ALPHA_CUTOFF || luminance(data[i], data[i + 1], data[i + 2]) >= LUMINANCE_THRESHOLD;
-      if (isBackground) continue;
+      if (!isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert)) continue;
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;
@@ -172,11 +218,22 @@ function applyInkDistortion(buffer, noise) {
 
 /**
  * @param {Buffer} logoBuffer - the café's uploaded logo (any raster format sharp reads).
+ * @param {object} [options]
+ * @param {boolean} [options.invert] - true forces "light mark on dark
+ *   background" handling, false forces the normal "dark mark on light
+ *   background" assumption. Omit to auto-detect (see
+ *   detectBackgroundIsDark) - the Design-tab UI exposes this as a manual
+ *   override for whatever the auto-detection guesses wrong.
  * @returns {Promise<Buffer>} a 300x300 PNG, transparent background, black ink silhouette
  *   with an ink-stamp-like distressed/uneven texture.
  */
-async function generateStampIcon(logoBuffer) {
-  const cropped = await cropToContent(logoBuffer);
+async function generateStampIcon(logoBuffer, options = {}) {
+  const invert =
+    typeof options.invert === "boolean"
+      ? options.invert
+      : await detectBackgroundIsDark(logoBuffer);
+
+  const cropped = await cropToContent(logoBuffer, invert);
   const { data, info } = await sharp(cropped)
     .resize(ICON_SIZE, ICON_SIZE, {
       fit: "contain",
@@ -190,12 +247,7 @@ async function generateStampIcon(logoBuffer) {
   const pixelCount = info.width * info.height;
   const mask = new Uint8Array(pixelCount);
   for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const a = data[i + 3];
-    const isBackground = a < ALPHA_CUTOFF || luminance(r, g, b) >= LUMINANCE_THRESHOLD;
-    mask[p] = isBackground ? 0 : 1;
+    mask[p] = isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert) ? 1 : 0;
   }
 
   // Pass 1b: crisp cutout - one uniform ink color for every foreground

@@ -9632,8 +9632,12 @@ app.get("/cafes/:cafeId/stamp-icon.png", async (req, res) => {
 // `logoDataUrl` in the body so a café can generate a preview from a
 // just-picked file before clicking the main "Speichern" (logo upload there
 // is otherwise deferred until save, see saveProfile() in
-// cafe-scanner-new.html); falls back to whatever logo is already saved
-// when omitted.
+// cafe-scanner-new.html) - and by the same mechanism, from a dedicated
+// "stamp symbol" upload distinct from the café's main logo, since a busy
+// marketing logo doesn't always silhouette well; falls back to whatever
+// logo is already saved when omitted. Optional boolean `invert` overrides
+// generateStampIcon's own light-vs-dark-background auto-detection, for
+// cafés whose logo is light-on-dark and got auto-detected wrong.
 app.post("/cafes/me/stamp-icon/generate", requireCafeAuth, async (req, res) => {
   try {
     const cafeRow = req.cafe;
@@ -9662,7 +9666,11 @@ app.post("/cafes/me/stamp-icon/generate", requireCafeAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "logo_required" });
     }
 
-    const iconBuffer = await generateStampIcon(logoBuffer);
+    // Auto-detected (light-on-dark vs. the usual dark-on-light) unless the
+    // café explicitly overrides it via the Design-tab toggle.
+    const invertOption =
+      typeof body.invert === "boolean" ? { invert: body.invert } : {};
+    const iconBuffer = await generateStampIcon(logoBuffer, invertOption);
     const iconData = iconBuffer.toString("base64");
 
     await setCafeStampIconById.run("image/png", iconData, current.id);
