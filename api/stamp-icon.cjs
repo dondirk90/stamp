@@ -18,30 +18,39 @@ const sharp = require("sharp");
 const path = require("path");
 
 const ICON_SIZE = 300; // Same working size as the existing bean asset.
-const INK_RGB = { r: 74, g: 55, b: 40 }; // Espresso (#4A3728, BRAND.md primary accent).
+const INK_RGB = { r: 0, g: 0, b: 0 }; // Black ink (chat 2026-09-24: brown read as "colored logo", not "stamped").
 const LUMINANCE_THRESHOLD = 200; // 0-255; pixels darker than this become "ink".
 const ALPHA_CUTOFF = 40; // Source pixels more transparent than this are always background.
+const EDGE_SOFTEN_SIGMA = 1.1; // px - blurs the crisp cutout edge into a soft ink-bleed falloff.
+const ERASE_BELOW = 70; // 0-255 blob-noise value below which ink is fully missing (dry-stamp gaps).
 
 function luminance(r, g, b) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-// Light per-pixel grain on the ink itself (not the edges) - cheap way to
-// avoid a perfectly flat vector-look fill without needing real edge-fraying
-// image compositing. Deterministic-ish (Math.random is fine here, this
-// runs once at generation time, not per render).
-function applyInkGrain(buffer, width, height) {
-  for (let i = 0; i < buffer.length; i += 4) {
-    if (buffer[i + 3] === 0) continue; // skip fully transparent pixels
-    const grain = 1 - Math.random() * 0.22; // 0.78..1.0
-    buffer[i + 3] = Math.round(buffer[i + 3] * grain);
+// Background pixels are set to alpha 0 up front and this function only ever
+// *reduces* alpha (multiplies or zeroes it) - it structurally cannot turn a
+// transparent pixel opaque, so "background always stays transparent" holds
+// regardless of what the noise looks like.
+function applyInkDistortion(buffer, noise) {
+  for (let i = 0, n = 0; i < buffer.length; i += 4, n += 1) {
+    const a = buffer[i + 3];
+    if (a === 0) continue;
+    const v = noise[n]; // 0..255, blurred gaussian - blob-shaped, not salt-and-pepper.
+    if (v < ERASE_BELOW) {
+      buffer[i + 3] = 0; // patch where the ink didn't transfer at all.
+      continue;
+    }
+    const density = 0.55 + (v / 255) * 0.45; // 0.55..1.0 - uneven ink coverage.
+    buffer[i + 3] = Math.round(a * density);
   }
   return buffer;
 }
 
 /**
  * @param {Buffer} logoBuffer - the café's uploaded logo (any raster format sharp reads).
- * @returns {Promise<Buffer>} a 300x300 PNG, transparent background, Espresso-colored ink silhouette.
+ * @returns {Promise<Buffer>} a 300x300 PNG, transparent background, black ink silhouette
+ *   with an ink-stamp-like distressed/uneven texture.
  */
 async function generateStampIcon(logoBuffer) {
   const { data, info } = await sharp(logoBuffer)
@@ -53,7 +62,8 @@ async function generateStampIcon(logoBuffer) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const out = Buffer.alloc(data.length);
+  // Pass 1: crisp black/transparent cutout from the source logo.
+  const cutout = Buffer.alloc(data.length);
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
@@ -62,19 +72,52 @@ async function generateStampIcon(logoBuffer) {
 
     const isBackground = a < ALPHA_CUTOFF || luminance(r, g, b) >= LUMINANCE_THRESHOLD;
     if (isBackground) {
-      out[i + 3] = 0;
+      cutout[i + 3] = 0;
       continue;
     }
 
-    out[i] = INK_RGB.r;
-    out[i + 1] = INK_RGB.g;
-    out[i + 2] = INK_RGB.b;
-    out[i + 3] = a;
+    cutout[i] = INK_RGB.r;
+    cutout[i + 1] = INK_RGB.g;
+    cutout[i + 2] = INK_RGB.b;
+    cutout[i + 3] = a;
   }
 
-  applyInkGrain(out, info.width, info.height);
+  // Pass 2: soften the razor-crisp cutout edge into a slight ink-bleed
+  // falloff. Safe to blur all channels here - the ink is a single flat
+  // color, so blending it against transparent at the border can't smear in
+  // any stray colors, only a soft alpha gradient.
+  const { data: softened } = await sharp(cutout, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .blur(EDGE_SOFTEN_SIGMA)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } })
+  // Pass 3: a blurred noise field (blob-shaped patches, not per-pixel
+  // grain) modulates ink density and occasionally erases it outright -
+  // mimics how a real rubber stamp never lays down perfectly even ink.
+  // sharp's noise synthesis ignores the requested `channels: 1` and always
+  // produces 3 (confirmed live - .raw() came back at width*height*3, not
+  // *1), so .toColourspace("b-w") forces it down to one byte per pixel
+  // before reading raw - skipping that step silently misaligns every
+  // applyInkDistortion() lookup by a growing offset and shows up as
+  // diagonal banding instead of blob-shaped noise.
+  const noise = await sharp({
+    create: {
+      width: info.width,
+      height: info.height,
+      channels: 3,
+      noise: { type: "gaussian", mean: 165, sigma: 70 },
+    },
+  })
+    .blur(2.6)
+    .toColourspace("b-w")
+    .raw()
+    .toBuffer();
+
+  applyInkDistortion(softened, noise);
+
+  return sharp(softened, { raw: { width: info.width, height: info.height, channels: 4 } })
     .png()
     .toBuffer();
 }
