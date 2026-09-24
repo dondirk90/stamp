@@ -3205,6 +3205,37 @@
                   </div>
                 </div>
 
+                <div style="margin-top: 18px">
+                  <span class="effectTag">Stempel bei jedem Besuch</span>
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Stempel-Vorlage
+                  </div>
+                  <div class="muted" style="margin-bottom: 10px">
+                    Statt der Kaffeebohne kann dein eigenes Logo gestempelt
+                    werden - als Silhouette, jeder Stempel leicht anders
+                    gedreht, wie ein echter Tintenstempel.
+                  </div>
+                  <div id="stampIconPreviewRow" class="logoRow" style="gap: 10px"></div>
+                  <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap">
+                    <button
+                      id="stampIconGenerateBtn"
+                      class="btn secondary"
+                      type="button"
+                    >
+                      Stempel-Vorlage aus Logo erzeugen
+                    </button>
+                    <button
+                      id="stampIconResetBtn"
+                      class="btn secondary"
+                      type="button"
+                      style="display: none"
+                    >
+                      Zurücksetzen (Kaffeebohne)
+                    </button>
+                  </div>
+                  <div id="stampIconStatus" class="muted" style="margin-top: 8px"></div>
+                </div>
+
                 <!-- Kartendesign (Theme-Vorlage + freie Farbwahl)
                      auskommentiert statt entfernt (chat 2026-09-21: die
                      meisten Cafés fassen das eh nicht an) - Vorschau/Pass
@@ -5387,6 +5418,8 @@
         images: [],
         cardTheme: "paper",
         stampStyle: "bean",
+        hasCustomStampIcon: false,
+        stampIconVersion: 0,
       };
 
       // Fünf Unter-Tabs statt der frueheren zwei Modi ("Karte"/"Verwaltung")
@@ -5704,6 +5737,10 @@
           cafeInfo && cafeInfo.logoDataUrl
             ? String(cafeInfo.logoDataUrl)
             : null;
+        profileState.hasCustomStampIcon = !!(
+          cafeInfo && cafeInfo.hasCustomStampIcon
+        );
+        renderStampIconSection();
 
         profileState.cardBgDataUrl =
           cafeInfo && cafeInfo.cardBackgroundDataUrl
@@ -5782,9 +5819,28 @@
         renderCardPreview();
       }
 
+      // Deterministic-ish per-slot rotation, same idea as the seeded jitter
+      // in customer-qr-modern.js's renderStampGrid (full 0-360deg range) -
+      // doesn't need to match it bit-for-bit, this preview and the real
+      // card are never compared side by side, it just needs to look
+      // randomly stamped and not jump around on every re-render.
+      function seededPreviewRotationDeg(seed) {
+        let h = 2166136261;
+        const s = String(seed);
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0) % 360;
+      }
+
       // Same stamp icon markup as the customer wallet's buildStampSvg() -
       // "cup" has no dedicated art there either and is aliased to the bean.
-      function buildPreviewStampIcon(filled, style) {
+      // iconUrl defaults to this café's own stamp-icon endpoint (falls back
+      // server-side to the default bean when they haven't generated one -
+      // see GET /cafes/:id/stamp-icon.png), so this automatically reflects
+      // a custom logo-derived stamp once saved.
+      function buildPreviewStampIcon(filled, style, rotationDeg, iconUrl) {
         const kind = String(style || "bean").trim().toLowerCase();
         if (kind === "star") {
           return filled
@@ -5796,7 +5852,106 @@
             ? '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="26" fill="currentColor" opacity="0.92"></circle></svg>'
             : '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="4.2" opacity="0.46"></circle></svg>';
         }
-        return `<img src="/assets/stamp-bean.png" alt="" style="opacity:${filled ? 0.96 : 0.22}" />`;
+        const src = iconUrl || (cafe && cafe.cafeId ? `/api/cafes/${cafe.cafeId}/stamp-icon.png` : "/assets/stamp-bean.png");
+        const rotate = filled && rotationDeg ? ` transform:rotate(${rotationDeg}deg);` : "";
+        return `<img src="${src}" alt="" style="opacity:${filled ? 0.96 : 0.22};${rotate}" />`;
+      }
+
+      // Small live preview strip in the Design tab (a handful of rotated
+      // dots), independent of the big card preview below - this is what
+      // actually answers "how would my logo look as a stamp" at a glance.
+      // ?v= cache-busts the <img> after generate/reset so the browser
+      // doesn't keep showing the previous icon from its HTTP cache.
+      function renderStampIconSection() {
+        const row = document.getElementById("stampIconPreviewRow");
+        const generateBtn = document.getElementById("stampIconGenerateBtn");
+        const resetBtn = document.getElementById("stampIconResetBtn");
+        const statusEl = document.getElementById("stampIconStatus");
+        if (!row) return;
+
+        const cacheBust = profileState.stampIconVersion || 0;
+        const iconUrl =
+          cafe && cafe.cafeId
+            ? `/api/cafes/${cafe.cafeId}/stamp-icon.png?v=${cacheBust}`
+            : "/assets/stamp-bean.png";
+
+        row.innerHTML = "";
+        for (let i = 0; i < 4; i++) {
+          const dot = document.createElement("div");
+          dot.style.cssText =
+            "width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f3ede4;border:1px solid rgba(0,0,0,0.08);";
+          const rotationDeg = seededPreviewRotationDeg(`stampicon|${cacheBust}|${i}`);
+          dot.innerHTML = `<img src="${iconUrl}" alt="" style="width:70%;transform:rotate(${rotationDeg}deg);" />`;
+          row.appendChild(dot);
+        }
+
+        if (resetBtn) {
+          resetBtn.style.display = profileState.hasCustomStampIcon ? "inline-flex" : "none";
+        }
+        if (generateBtn) {
+          generateBtn.disabled = !profileState.logoDataUrl;
+        }
+        if (statusEl) {
+          statusEl.textContent = !profileState.logoDataUrl
+            ? "Zuerst ein Logo hochladen."
+            : profileState.hasCustomStampIcon
+              ? "Eigene Stempel-Vorlage aktiv."
+              : "Noch die Standard-Kaffeebohne.";
+        }
+      }
+
+      async function generateStampIconFromLogo() {
+        const btn = document.getElementById("stampIconGenerateBtn");
+        if (!cafe || !cafe.token || !profileState.logoDataUrl) return;
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Wird erzeugt…";
+        }
+        try {
+          await apiFetch("/cafes/me/stamp-icon/generate", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${cafe.token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ logoDataUrl: profileState.logoDataUrl }),
+          });
+          profileState.hasCustomStampIcon = true;
+          profileState.stampIconVersion = Date.now();
+          renderStampIconSection();
+          renderCardPreview();
+          setMsg("Stempel-Vorlage erzeugt.");
+        } catch (e) {
+          setMsg(
+            userSafeErrorMessage(e, "Stempel-Vorlage konnte nicht erzeugt werden."),
+          );
+        } finally {
+          if (btn) {
+            btn.disabled = !profileState.logoDataUrl;
+            btn.textContent = "Stempel-Vorlage aus Logo erzeugen";
+          }
+        }
+      }
+
+      async function resetStampIcon() {
+        if (!cafe || !cafe.token) return;
+        const btn = document.getElementById("stampIconResetBtn");
+        if (btn) btn.disabled = true;
+        try {
+          await apiFetch("/cafes/me/stamp-icon", {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          profileState.hasCustomStampIcon = false;
+          profileState.stampIconVersion = Date.now();
+          renderStampIconSection();
+          renderCardPreview();
+          setMsg("Zurückgesetzt auf die Kaffeebohne.");
+        } catch (e) {
+          setMsg(userSafeErrorMessage(e, "Zurücksetzen fehlgeschlagen."));
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       }
 
       // Live mirror of the actual guest-facing card (see buildPassCard() in
@@ -5860,11 +6015,13 @@
           // showing an all-empty (or all-full) card that only tells half
           // the story.
           const filledDemo = Math.min(3, threshold);
+          const seedBase = (cafe && cafe.cafeId) || "preview";
           for (let i = 0; i < threshold; i++) {
             const cell = document.createElement("div");
             const filled = i < filledDemo;
             cell.className = "previewStamp" + (filled ? "" : " empty");
-            cell.innerHTML = buildPreviewStampIcon(filled, stampStyle);
+            const rotationDeg = seededPreviewRotationDeg(`${seedBase}|${i}`);
+            cell.innerHTML = buildPreviewStampIcon(filled, stampStyle, rotationDeg);
             grid.appendChild(cell);
           }
         }
@@ -6368,6 +6525,12 @@
         if (changePwBtn) changePwBtn.addEventListener("click", changeCafePassword);
         const broadcastBtn = document.getElementById("profileBroadcastBtn");
         if (broadcastBtn) broadcastBtn.addEventListener("click", sendBroadcast);
+        const stampIconGenerateBtn = document.getElementById("stampIconGenerateBtn");
+        if (stampIconGenerateBtn)
+          stampIconGenerateBtn.addEventListener("click", generateStampIconFromLogo);
+        const stampIconResetBtn = document.getElementById("stampIconResetBtn");
+        if (stampIconResetBtn)
+          stampIconResetBtn.addEventListener("click", resetStampIcon);
 
         document.querySelectorAll(".subTabBtn").forEach((el) => {
           el.addEventListener("click", () => setProfileTab(el.getAttribute("data-tab")));
@@ -6430,6 +6593,7 @@
                 logoPreview.style.display = "block";
                 setMsg("Logo ausgewählt (noch nicht gespeichert)");
                 renderCardPreview();
+                renderStampIconSection();
                 return;
               }
               setMsg("Logo wird verkleinert…");
@@ -6447,6 +6611,7 @@
               logoPreview.style.display = "block";
               setMsg("Logo ausgewählt (noch nicht gespeichert)");
               renderCardPreview();
+              renderStampIconSection();
             } catch (e) {
               setMsg("Logo konnte nicht geladen werden");
             }

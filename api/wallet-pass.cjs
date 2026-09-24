@@ -10,6 +10,7 @@ const path = require("path");
 const http2 = require("http2");
 const sharp = require("sharp");
 const { PKPass } = require("passkit-generator");
+const { getDefaultStampIconBuffer } = require("./stamp-icon.cjs");
 
 const PASS_TYPE_IDENTIFIER = "pass.app.kaffeekarte.customer.stampcard";
 
@@ -32,17 +33,30 @@ const STATIC_ICON_BUFFERS = {
   "icon@3x.png": fs.readFileSync(path.join(ASSETS_DIR, "icon@3x.png")),
 };
 
-// Pre-shrunk once at boot so per-request strip rendering doesn't decode a
-// multi-MB source PNG on every card view.
-let cachedBeanBufferPromise = null;
-function getBeanBuffer() {
-  if (!cachedBeanBufferPromise) {
-    cachedBeanBufferPromise = sharp(path.join(ASSETS_DIR, "stamp-bean.png"))
-      .resize(300, 300, { fit: "contain" })
-      .png()
-      .toBuffer();
+// A café's generated stamp silhouette (see api/stamp-icon.cjs) if they have
+// one, otherwise the same default bean every café used before that feature
+// existed - getDefaultStampIconBuffer() caches the decoded default once at
+// boot so per-request strip rendering doesn't decode it on every card view.
+async function getStampIconBuffer(cafeRow) {
+  if (cafeRow && cafeRow.stamp_icon_data && cafeRow.stamp_icon_mime) {
+    return Buffer.from(cafeRow.stamp_icon_data, "base64");
   }
-  return cachedBeanBufferPromise;
+  return getDefaultStampIconBuffer();
+}
+
+// Deterministic per-slot rotation so a card's stamps look individually
+// hand-stamped rather than a printed grid, but don't "jump" between
+// re-renders of the same slot - same idea (and same 0-360deg full range) as
+// the seeded jitter in apps/customer-qr-modern.js's renderStampGrid, just a
+// standalone FNV-1a-ish hash here since this runs in Node, not a browser.
+function seededRotationDeg(seed) {
+  let h = 2166136261;
+  const s = String(seed);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 360;
 }
 
 function hexToRgbString(hex) {
@@ -154,7 +168,7 @@ async function buildIconBuffers(logoBuffer) {
 const STAR_PATH_100 =
   "M50 13 L60 37 L86 39 L66 56 L72 82 L50 68 L28 82 L34 56 L14 39 L40 37 Z";
 
-function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
+function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex, rotationDeg) {
   if (stampStyle === "star") {
     const scale = d / 100;
     return `<g transform="translate(${cx - d / 2}, ${cy - d / 2}) scale(${scale})"><path d="${STAR_PATH_100}" fill="${fgHex}" opacity="0.92" /></g>`;
@@ -162,8 +176,15 @@ function renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex) {
   if (stampStyle === "circle") {
     return `<circle cx="${cx}" cy="${cy}" r="${d / 2}" fill="${fgHex}" opacity="0.92" />`;
   }
-  // "bean" and "cup" (cup is a legacy alias, same as the in-app card).
-  return `<image href="${beanDataUrl}" x="${cx - d / 2}" y="${cy - d / 2}" width="${d}" height="${d}" />`;
+  // "bean" and "cup" (cup is a legacy alias, same as the in-app card) - also
+  // the slot a café's custom logo-derived stamp icon renders through (see
+  // getStampIconBuffer). Randomly (but deterministically, see
+  // seededRotationDeg) rotated per slot so a full card reads as individually
+  // hand-stamped rather than a printed grid of identical icons.
+  const rotate = rotationDeg
+    ? `<g transform="rotate(${rotationDeg} ${cx} ${cy})">`
+    : "<g>";
+  return `${rotate}<image href="${beanDataUrl}" x="${cx - d / 2}" y="${cy - d / 2}" width="${d}" height="${d}" /></g>`;
 }
 
 const STRIP_W = 375;
@@ -201,7 +222,7 @@ function renderRedeemedRibbon(w, h, scale) {
 // Shared by buildStripBuffers (Apple, one SVG per @1x/2x/3x asset) and
 // buildStampStripPngBuffer (Google, a single standalone image) so both
 // wallets render the same stamp-progress grid from one source of truth.
-function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed) {
+function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed) {
   const w = STRIP_W * scale;
   const h = STRIP_H * scale;
   const rows = threshold <= 5 ? 1 : 2;
@@ -221,7 +242,8 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
     const cy = padY + cellH * row + cellH / 2;
     if (i < stampCount) {
       const d = r * 2.1;
-      icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex);
+      const rotationDeg = seed ? seededRotationDeg(`${seed}|${i}`) : 0;
+      icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex, rotationDeg);
     } else {
       circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
     }
@@ -234,14 +256,18 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
 
 // Renders the stamp-progress strip using the cafe's chosen stamp symbol
 // (bean/cup/star/circle) for filled stamps, empty ones are always an
-// outline circle - same visual language as the in-app card.
-async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed) {
-  const beanBuffer = await getBeanBuffer();
+// outline circle - same visual language as the in-app card. `cafeRow` picks
+// the bean vs. a café's custom logo-derived icon (see getStampIconBuffer);
+// `seed` (typically the pass's serialNumber - unique and stable per card)
+// drives the per-slot rotation so it doesn't change between re-renders of
+// the same card.
+async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed, cafeRow, seed) {
+  const beanBuffer = await getStampIconBuffer(cafeRow);
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
   const out = {};
 
   for (const scale of [1, 2, 3]) {
-    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed);
+    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed);
     const name = scale === 1 ? "strip.png" : `strip@${scale}x.png`;
     out[name] = await sharp(Buffer.from(svg)).png().toBuffer();
   }
@@ -251,11 +277,11 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle
 
 // Same stamp-progress grid as a single standalone PNG, for Google Wallet's
 // imageModulesData (which references one hosted image, not an @1x/2x/3x
-// asset bundle like Apple's).
-async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed) {
-  const beanBuffer = await getBeanBuffer();
+// asset bundle like Apple's). See buildStripBuffers above for cafeRow/seed.
+async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed, cafeRow, seed) {
+  const beanBuffer = await getStampIconBuffer(cafeRow);
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
-  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed);
+  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed);
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
@@ -605,6 +631,8 @@ async function generateSignedPass({
       colors.fg,
       program.stampStyle,
       isRedeemed,
+      cafeRow,
+      serialNumber,
     )),
   };
 

@@ -3175,6 +3175,27 @@
     return "/assets/stamp-bean.png?v=1";
   }
 
+  // Per-café override: a café can generate a stamp silhouette from their
+  // own logo (cafe-scanner-new.html Design tab), served at this endpoint -
+  // always returns a valid image (falls back server-side to the same
+  // default bean above), so this never needs to know in advance whether a
+  // given café customized theirs. Falls back to the global
+  // getStampIconUrl() when no café context is found (e.g. a grid rendered
+  // outside a .passCard/.face wrapper).
+  function getStampIconUrlForContainer(container) {
+    try {
+      var pass =
+        container && container.closest
+          ? container.closest(".passCard, .face")
+          : null;
+      var cafeId = pass ? pass.getAttribute("data-cafe-id") : "";
+      if (cafeId) {
+        return "/api/cafes/" + encodeURIComponent(cafeId) + "/stamp-icon.png";
+      }
+    } catch (e) {}
+    return getStampIconUrl();
+  }
+
   function primeStampIcon() {
     if (stampIconState.promise) return stampIconState.promise;
     stampIconState.url = getStampIconUrl();
@@ -3195,16 +3216,18 @@
     return stampIconState.promise;
   }
 
-  function buildStampSvg(filled, style) {
+  function buildStampSvg(filled, style, iconUrl) {
     stampSvgSeq = (stampSvgSeq + 1) % 1000000;
     var uid = String(stampSvgSeq);
     var kind = String(style || "bean").trim().toLowerCase();
     if (kind === "cup") kind = "bean";
 
     if (kind === "bean") {
-      var beanSrc = stampIconState && stampIconState.url
-        ? String(stampIconState.url)
-        : getStampIconUrl();
+      var beanSrc =
+        iconUrl ||
+        (stampIconState && stampIconState.url
+          ? String(stampIconState.url)
+          : getStampIconUrl());
       var beanOpacity = filled ? "0.96" : "0.18";
       return (
         '<img class="stampIcon stampIconImg" src="' +
@@ -3507,6 +3530,7 @@
       }
     }
     var seedKey = getStampSeedKey();
+    var iconUrl = getStampIconUrlForContainer(container);
     container.innerHTML = "";
     container.classList.toggle("stampGridTen", threshold === 10);
     container.classList.toggle("stampGridFive", threshold === 5);
@@ -3535,7 +3559,7 @@
         } catch (eJ) {}
       }
 
-      cell.innerHTML = buildStampSvg(filled, stampStyle);
+      cell.innerHTML = buildStampSvg(filled, stampStyle, iconUrl);
       container.appendChild(cell);
     }
   }
