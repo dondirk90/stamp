@@ -9034,8 +9034,18 @@ app.get("/cafes/public", async (req, res) => {
               ? `data:${row.logo_mime};base64,${row.logo_data}`
               : null,
           cardTheme: row.card_theme || "paper",
-          cardBgColor: row.card_bg_color || null,
-          cardFgColor: row.card_fg_color || null,
+          // Resolved, never null - see the identical fix (and its full
+          // reasoning) on GET /cafes/public/:id just below.
+          cardBgColor: walletPass.resolveThemeColors(
+            row.card_theme,
+            row.card_bg_color,
+            row.card_fg_color,
+          ).bg,
+          cardFgColor: walletPass.resolveThemeColors(
+            row.card_theme,
+            row.card_bg_color,
+            row.card_fg_color,
+          ).fg,
           cardBackText: row.card_back_text || null,
           program: {
             stampsForReward:
@@ -9100,6 +9110,12 @@ app.get("/cafes/public/:id", async (req, res) => {
       .filter(Boolean)
       .slice(0, 6);
 
+    const publicResolvedColors = walletPass.resolveThemeColors(
+      row.card_theme,
+      row.card_bg_color,
+      row.card_fg_color,
+    );
+
     res.json({
       ok: true,
       cafe: {
@@ -9118,8 +9134,15 @@ app.get("/cafes/public/:id", async (req, res) => {
           : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
-        cardBgColor: row.card_bg_color || null,
-        cardFgColor: row.card_fg_color || null,
+        // Resolved, never null - callers outside this app (the standee
+        // page, e.g.) shouldn't need to know the card_theme preset system
+        // exists at all. A café with no custom hex set (the common case
+        // since the Kartendesign color-picker UI was removed - chat
+        // 2026-09-21) used to leave cardBgColor/cardFgColor both null here,
+        // which read to guest-qr-standee.html as "no café color at all" and
+        // silently fell back to the generic default look (chat 2026-09-24).
+        cardBgColor: publicResolvedColors.bg,
+        cardFgColor: publicResolvedColors.fg,
         cardBackText: row.card_back_text || null,
         program: {
           stampsForReward:

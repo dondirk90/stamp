@@ -1353,7 +1353,14 @@
         display: grid;
         place-items: center;
         border-radius: 999px;
-        background: transparent;
+        /* White backing, same as the real Wallet pass strip
+           (wallet-pass.cjs, chat 2026-09-24) - the icon is allowed to run
+           bigger than the ring (see overflow: visible below) and needs a
+           round shape of its own to bleed past, or the slot reads as "not
+           quite round" instead of a clean stamped circle. Also keeps black
+           ink legible on darker card themes instead of nearly disappearing
+           against them, same reasoning as the pass fix. */
+        background: #ffffff;
         border: 1.5px solid currentColor;
         color: var(--pass-ink, var(--brand-700));
         --stamp-seam: var(--pass-bg, var(--surface));

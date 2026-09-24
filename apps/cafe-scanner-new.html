@@ -2626,6 +2626,12 @@
         aspect-ratio: 1 / 1;
         border-radius: 999px;
         border: 1.5px solid var(--pass-stamp-ring, rgba(23, 20, 18, 0.2));
+        /* White backing, same as the real Wallet pass strip
+           (wallet-pass.cjs, chat 2026-09-24) - without it, a filled icon
+           run bigger than its ring (see the :not(.empty) rule below) has
+           no round shape of its own behind it, so the slot reads as
+           "not quite round" instead of a clean stamped circle. */
+        background: #ffffff;
         display: grid;
         place-items: center;
       }
@@ -3946,6 +3952,7 @@
         utilityMenu.className = "utilityMenu";
         utilityMenu.innerHTML = `
           <button type="button" class="utilityMenuBtn" id="utilityAdminBtn">Konto</button>
+          <button type="button" class="utilityMenuBtn" id="utilityStandeeBtn">Aufsteller</button>
           <button type="button" class="utilityMenuBtn" id="utilityLogoutBtn">Logout</button>
         `;
         document.body.appendChild(utilityMenu);
@@ -4146,6 +4153,7 @@
       const utilityWelcomeBtn = document.getElementById("utilityWelcomeBtn");
       const utilityCardBtn = document.getElementById("utilityCardBtn");
       const utilityAdminBtn = document.getElementById("utilityAdminBtn");
+      const utilityStandeeBtn = document.getElementById("utilityStandeeBtn");
       const utilityDashboardBtn = document.getElementById("utilityDashboardBtn");
       const utilityLogoutBtn = document.getElementById("utilityLogoutBtn");
       const bottomTabs = document.getElementById("bottomTabs");
@@ -4480,6 +4488,25 @@
             setDrawerOpen(false);
             setUtilityMenuOpen(false);
             navigateToCafeView("profile-advanced");
+          });
+        if (utilityStandeeBtn)
+          utilityStandeeBtn.addEventListener("click", () => {
+            setDrawerOpen(false);
+            setUtilityMenuOpen(false);
+            // Same ?cafeAddress= param the standee page actually reads (see
+            // guest-qr-standee.html) - without it, the page silently shows
+            // the generic default look (no color, no logo, generic QR
+            // target) instead of erroring, which is exactly the bug this
+            // fixes: there was previously no in-app way for a café to reach
+            // their own standee at all, only an admin tool had this link
+            // (chat 2026-09-24).
+            const addr = (cafe && (cafe.cafeAddress || cafe.address)) || "";
+            if (!addr) return;
+            window.open(
+              `/aufsteller?cafeAddress=${encodeURIComponent(addr)}`,
+              "_blank",
+              "noopener",
+            );
           });
         if (utilityDashboardBtn)
           utilityDashboardBtn.addEventListener("click", () => {
