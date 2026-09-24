@@ -49,6 +49,15 @@ async function getStampIconBuffer(cafeRow) {
 // re-renders of the same slot - same idea (and same 0-360deg full range) as
 // the seeded jitter in apps/customer-qr-modern.js's renderStampGrid, just a
 // standalone FNV-1a-ish hash here since this runs in Node, not a browser.
+//
+// Plain FNV-1a alone isn't enough, though (chat 2026-09-24 - confirmed
+// live): every call here uses a seed of the shape `${cardSeed}|${i}` for
+// consecutive i, which differs only in one ASCII digit at the very end.
+// FNV-1a's single multiply per character doesn't avalanche that small a
+// change well, and taking %360 of the result exposed it directly as
+// stamps alternating between just two rotation values ~180° apart instead
+// of looking random. The MurmurHash3 finalizer below (xor/multiply/xor
+// twice) re-mixes the bits enough to break that up.
 function seededRotationDeg(seed) {
   let h = 2166136261;
   const s = String(seed);
@@ -56,6 +65,11 @@ function seededRotationDeg(seed) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
   return (h >>> 0) % 360;
 }
 

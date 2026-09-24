@@ -5833,6 +5833,14 @@
       // doesn't need to match it bit-for-bit, this preview and the real
       // card are never compared side by side, it just needs to look
       // randomly stamped and not jump around on every re-render.
+      //
+      // Plain FNV-1a alone showed up live as stamps clustering into just
+      // two rotation values ~180° apart (chat 2026-09-24) - every call here
+      // uses a seed like `${base}|${i}` for consecutive i, differing only
+      // in one trailing ASCII digit, and FNV-1a's single multiply per
+      // character doesn't avalanche that small a change enough before the
+      // %360. The MurmurHash3 finalizer (xor/multiply/xor twice) below
+      // re-mixes the bits enough to fix that.
       function seededPreviewRotationDeg(seed) {
         let h = 2166136261;
         const s = String(seed);
@@ -5840,6 +5848,11 @@
           h ^= s.charCodeAt(i);
           h = Math.imul(h, 16777619);
         }
+        h ^= h >>> 16;
+        h = Math.imul(h, 0x85ebca6b);
+        h ^= h >>> 13;
+        h = Math.imul(h, 0xc2b2ae35);
+        h ^= h >>> 16;
         return (h >>> 0) % 360;
       }
 
