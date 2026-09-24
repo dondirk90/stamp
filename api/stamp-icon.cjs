@@ -19,13 +19,111 @@ const path = require("path");
 
 const ICON_SIZE = 300; // Same working size as the existing bean asset.
 const INK_RGB = { r: 0, g: 0, b: 0 }; // Black ink (chat 2026-09-24: brown read as "colored logo", not "stamped").
-const LUMINANCE_THRESHOLD = 200; // 0-255; pixels darker than this become "ink".
+const BACKDROP_RGB = { r: 120, g: 120, b: 120 }; // Muted gray for large "backdrop" shapes (see classifyBackdrop).
+const BACKDROP_ALPHA_SCALE = 0.5; // Large shapes recede instead of competing with text for attention.
+// 0-255; pixels darker than this become "ink". 175 rather than a rounder
+// 200 (chat 2026-09-24): light pastel fills (e.g. a window pane at ~187)
+// need to fall on the background side, or the backdrop-classification pass
+// below has no transparent space around text sitting on top of them to
+// tell the letters apart from the fill in the first place.
+const LUMINANCE_THRESHOLD = 175;
 const ALPHA_CUTOFF = 40; // Source pixels more transparent than this are always background.
 const EDGE_SOFTEN_SIGMA = 1.1; // px - blurs the crisp cutout edge into a soft ink-bleed falloff.
 const ERASE_BELOW = 70; // 0-255 blob-noise value below which ink is fully missing (dry-stamp gaps).
+// Half-width (px, at the 300x300 working size) of the square structuring
+// element used to tell "thick fill" backdrop shapes from "thin stroke"
+// text/detail - see classifyBackdrop(). ~19px window: survives on a house
+// roof/window pane, erodes away on a single letter stroke.
+const BACKDROP_ERODE_RADIUS = 9;
+// Small pre-cleanup radius (dilate then erode back = "closing") that fills
+// tiny background specks *inside* an otherwise solid shape before the much
+// larger BACKDROP_ERODE_RADIUS pass runs - without this, ordinary shading
+// highlights baked into a source logo (confirmed live on the existing bean
+// icon, which has some) read as "background gaps" to the big erosion pass
+// and fracture one solid shape into an inconsistent patchwork of
+// black/gray fragments instead of classifying it as one piece.
+const HOLE_CLOSE_RADIUS = 2;
 
 function luminance(r, g, b) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+// Separable box erosion: out[p] = 1 only if every mask pixel within
+// `radius` (both axes) of p is also 1. Out-of-bounds counts as 0, so
+// shapes touching the canvas edge erode there too.
+function erodeMask(mask, width, height, radius) {
+  const horiz = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      let allOnes = true;
+      for (let dx = -radius; dx <= radius && allOnes; dx++) {
+        const xi = x + dx;
+        if (xi < 0 || xi >= width || !mask[row + xi]) allOnes = false;
+      }
+      horiz[row + x] = allOnes ? 1 : 0;
+    }
+  }
+  const out = new Uint8Array(width * height);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      let allOnes = true;
+      for (let dy = -radius; dy <= radius && allOnes; dy++) {
+        const yi = y + dy;
+        if (yi < 0 || yi >= height || !horiz[yi * width + x]) allOnes = false;
+      }
+      out[y * width + x] = allOnes ? 1 : 0;
+    }
+  }
+  return out;
+}
+
+// Separable box dilation: out[p] = 1 if any mask pixel within `radius` is 1.
+function dilateMask(mask, width, height, radius) {
+  const horiz = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      let anyOne = false;
+      for (let dx = -radius; dx <= radius && !anyOne; dx++) {
+        const xi = x + dx;
+        if (xi >= 0 && xi < width && mask[row + xi]) anyOne = true;
+      }
+      horiz[row + x] = anyOne ? 1 : 0;
+    }
+  }
+  const out = new Uint8Array(width * height);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      let anyOne = false;
+      for (let dy = -radius; dy <= radius && !anyOne; dy++) {
+        const yi = y + dy;
+        if (yi >= 0 && yi < height && horiz[yi * width + x]) anyOne = true;
+      }
+      out[y * width + x] = anyOne ? 1 : 0;
+    }
+  }
+  return out;
+}
+
+// Morphological "opening" (erode then dilate back to size): the result
+// keeps the full extent of shapes wide enough to survive erosion (a house
+// roof, a filled window pane) and drops anything narrower than
+// 2*BACKDROP_ERODE_RADIUS entirely (letter strokes) - crucially, this is a
+// *local* thickness test, not connectivity, so a thin letter stroke that
+// visually crosses or touches a big shape still erodes away and stays
+// classified as text/detail (chat 2026-09-24: a connected-component-by-area
+// version of this tried first failed exactly here - text overlapping the
+// backdrop shape merged into one region and got swallowed by it).
+function classifyBackdrop(mask, width, height) {
+  const closed = erodeMask(
+    dilateMask(mask, width, height, HOLE_CLOSE_RADIUS),
+    width,
+    height,
+    HOLE_CLOSE_RADIUS,
+  );
+  const eroded = erodeMask(closed, width, height, BACKDROP_ERODE_RADIUS);
+  return dilateMask(eroded, width, height, BACKDROP_ERODE_RADIUS);
 }
 
 // Background pixels are set to alpha 0 up front and this function only ever
@@ -62,24 +160,65 @@ async function generateStampIcon(logoBuffer) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  // Pass 1: crisp black/transparent cutout from the source logo.
-  const cutout = Buffer.alloc(data.length);
-  for (let i = 0; i < data.length; i += 4) {
+  // Pass 1a: binary ink/background mask (same test as before), kept
+  // separate from colour assignment so component classification below can
+  // work on plain connectivity, not colour.
+  const pixelCount = info.width * info.height;
+  const mask = new Uint8Array(pixelCount);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     const a = data[i + 3];
-
     const isBackground = a < ALPHA_CUTOFF || luminance(r, g, b) >= LUMINANCE_THRESHOLD;
-    if (isBackground) {
+    mask[p] = isBackground ? 0 : 1;
+  }
+
+  // Pass 1b: tell text/detail strokes apart from large filled shapes (a
+  // house icon, a badge outline) purely by local thickness - a wordmark
+  // stamped over a background graphic (chat 2026-09-24: café logo with
+  // "Stube" lettering over a house icon) needs the text to stay legible
+  // and visually distinct, not merge into one solid silhouette.
+  let backdropMask = classifyBackdrop(mask, info.width, info.height);
+
+  // A logo that's essentially *just* one shape (the default bean, a simple
+  // wordmark-free mark) ends up almost entirely classified as "backdrop"
+  // here, since there's no text to contrast it against - two-toning that
+  // would just make an otherwise-fine silhouette look like a patchy,
+  // half-erased mistake. Only apply the two-tone treatment when there's a
+  // real mix of both: a decent chunk of actual detail ink alongside the
+  // large shape, not that shape alone.
+  let inkCount = 0;
+  let detailCount = 0;
+  for (let p = 0; p < mask.length; p++) {
+    if (!mask[p]) continue;
+    inkCount += 1;
+    if (!backdropMask[p]) detailCount += 1;
+  }
+  if (inkCount === 0 || detailCount / inkCount < 0.08) {
+    backdropMask = new Uint8Array(mask.length); // all-zero: everything renders as plain ink.
+  }
+
+  // Pass 1c: crisp cutout - black ink for text/detail, muted receding gray
+  // for backdrop shapes, transparent everywhere else.
+  const cutout = Buffer.alloc(data.length);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    if (!mask[p]) {
       cutout[i + 3] = 0;
       continue;
     }
-
-    cutout[i] = INK_RGB.r;
-    cutout[i + 1] = INK_RGB.g;
-    cutout[i + 2] = INK_RGB.b;
-    cutout[i + 3] = a;
+    const a = data[i + 3];
+    if (backdropMask[p]) {
+      cutout[i] = BACKDROP_RGB.r;
+      cutout[i + 1] = BACKDROP_RGB.g;
+      cutout[i + 2] = BACKDROP_RGB.b;
+      cutout[i + 3] = Math.round(a * BACKDROP_ALPHA_SCALE);
+    } else {
+      cutout[i] = INK_RGB.r;
+      cutout[i + 1] = INK_RGB.g;
+      cutout[i + 2] = INK_RGB.b;
+      cutout[i + 3] = a;
+    }
   }
 
   // Pass 2: soften the razor-crisp cutout edge into a slight ink-bleed
