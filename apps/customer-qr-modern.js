@@ -3549,7 +3549,7 @@
           var jx = (rnd() * 2 - 1) * 2.0; // px
           var jy = (rnd() * 2 - 1) * 1.6; // px
           var jr = rnd() * 360; // deg (full rotation)
-          var size = 88 + rnd() * 8; // % (88..96)
+          var size = 100 + rnd() * 16; // % (100..116) - allowed to bleed past the circle, see .passCard .stamp's overflow:visible
           var ink = 0.78 + rnd() * 0.16; // opacity (0.78..0.94)
           cell.style.setProperty("--stamp-jx", jx.toFixed(2) + "px");
           cell.style.setProperty("--stamp-jy", jy.toFixed(2) + "px");

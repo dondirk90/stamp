@@ -48,6 +48,121 @@ function luminance(r, g, b) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+// Tightly crop to the logo's actual content (plus a little padding) before
+// fitting it into the working square - ported from a reference Python
+// script the café shared (chat 2026-09-24): without this, a source file
+// with a lot of built-in margin renders its logo small and centered in a
+// sea of empty stamp, instead of actually filling the stamp.
+const CROP_ANALYZE_MAX = 800; // analysis resolution cap, only need a bounding box
+const CROP_PADDING_FRACTION = 0.08;
+
+async function cropToContent(logoBuffer) {
+  const { data, info } = await sharp(logoBuffer)
+    .resize(CROP_ANALYZE_MAX, CROP_ANALYZE_MAX, { fit: "inside", withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  let minX = info.width;
+  let minY = info.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const i = (y * info.width + x) * 4;
+      const isBackground =
+        data[i + 3] < ALPHA_CUTOFF || luminance(data[i], data[i + 1], data[i + 2]) >= LUMINANCE_THRESHOLD;
+      if (isBackground) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return logoBuffer; // nothing found - leave the source untouched.
+
+  const meta = await sharp(logoBuffer).metadata();
+  const scaleX = (meta.width || info.width) / info.width;
+  const scaleY = (meta.height || info.height) / info.height;
+  const bboxW = maxX - minX + 1;
+  const bboxH = maxY - minY + 1;
+  const padX = Math.round(bboxW * CROP_PADDING_FRACTION);
+  const padY = Math.round(bboxH * CROP_PADDING_FRACTION);
+
+  const left = Math.max(0, Math.round((minX - padX) * scaleX));
+  const top = Math.max(0, Math.round((minY - padY) * scaleY));
+  const right = Math.min(meta.width || info.width, Math.round((maxX + 1 + padX) * scaleX));
+  const bottom = Math.min(meta.height || info.height, Math.round((maxY + 1 + padY) * scaleY));
+  if (right <= left || bottom <= top) return logoBuffer;
+
+  return sharp(logoBuffer)
+    .extract({ left, top, width: right - left, height: bottom - top })
+    .toBuffer();
+}
+
+// Multi-octave blurred noise (fine + medium + coarse, weighted and summed)
+// reads as organic ink variation rather than the slightly uniform "blob"
+// texture a single noise/blur pass produces - also ported from the same
+// reference script. Returns a normalized 0..255 single-channel buffer.
+const NOISE_OCTAVES = [
+  { blur: 1.4, weight: 0.5 },
+  { blur: 4, weight: 0.3 },
+  { blur: 9, weight: 0.2 },
+];
+
+async function generateOctaveNoise(width, height) {
+  const combined = new Float32Array(width * height);
+  for (const { blur, weight } of NOISE_OCTAVES) {
+    // sharp's noise synthesis ignores `channels: 1` and always produces 3
+    // (see the note this cost us further down) - .toColourspace("b-w")
+    // forces it back to one byte per pixel before reading raw.
+    const layer = await sharp({
+      create: { width, height, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 60 } },
+    })
+      .blur(blur)
+      .toColourspace("b-w")
+      .raw()
+      .toBuffer();
+    for (let i = 0; i < combined.length; i++) combined[i] += layer[i] * weight;
+  }
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < combined.length; i++) {
+    if (combined[i] < min) min = combined[i];
+    if (combined[i] > max) max = combined[i];
+  }
+  const range = Math.max(1e-6, max - min);
+  const out = new Uint8Array(width * height);
+  for (let i = 0; i < combined.length; i++) {
+    out[i] = Math.round(((combined[i] - min) / range) * 255);
+  }
+  return out;
+}
+
+// Randomly erases a fraction of pixels right on the ink/background boundary
+// (not the interior) for a ragged, hand-inked edge instead of a clean
+// vector outline - a smaller, targeted cousin of the interior wear in
+// applyInkDistortion. Applied before the edge-soften blur so the blur
+// smooths the newly-ragged edge instead of leaving it razor-cut.
+const EDGE_IRREGULARITY_AMOUNT = 0.16;
+
+function applyEdgeIrregularity(buffer, mask, width, height, amount) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const p = y * width + x;
+      if (!mask[p]) continue;
+      const isEdge =
+        (x > 0 && !mask[p - 1]) ||
+        (x < width - 1 && !mask[p + 1]) ||
+        (y > 0 && !mask[p - width]) ||
+        (y < height - 1 && !mask[p + width]);
+      if (isEdge && Math.random() < amount) {
+        buffer[p * 4 + 3] = 0;
+      }
+    }
+  }
+}
+
 // Separable box erosion: out[p] = 1 only if every mask pixel within
 // `radius` (both axes) of p is also 1. Out-of-bounds counts as 0, so
 // shapes touching the canvas edge erode there too.
@@ -151,7 +266,8 @@ function applyInkDistortion(buffer, noise) {
  *   with an ink-stamp-like distressed/uneven texture.
  */
 async function generateStampIcon(logoBuffer) {
-  const { data, info } = await sharp(logoBuffer)
+  const cropped = await cropToContent(logoBuffer);
+  const { data, info } = await sharp(cropped)
     .resize(ICON_SIZE, ICON_SIZE, {
       fit: "contain",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -221,7 +337,12 @@ async function generateStampIcon(logoBuffer) {
     }
   }
 
-  // Pass 2: soften the razor-crisp cutout edge into a slight ink-bleed
+  // Pass 1d: ragged ink/background boundary before anything gets blurred,
+  // so the softening pass below smooths the new raggedness instead of a
+  // razor-crisp vector edge.
+  applyEdgeIrregularity(cutout, mask, info.width, info.height, EDGE_IRREGULARITY_AMOUNT);
+
+  // Pass 2: soften the (now ragged) cutout edge into a slight ink-bleed
   // falloff. Safe to blur all channels here - the ink is a single flat
   // color, so blending it against transparent at the border can't smear in
   // any stray colors, only a soft alpha gradient.
@@ -232,27 +353,10 @@ async function generateStampIcon(logoBuffer) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  // Pass 3: a blurred noise field (blob-shaped patches, not per-pixel
-  // grain) modulates ink density and occasionally erases it outright -
-  // mimics how a real rubber stamp never lays down perfectly even ink.
-  // sharp's noise synthesis ignores the requested `channels: 1` and always
-  // produces 3 (confirmed live - .raw() came back at width*height*3, not
-  // *1), so .toColourspace("b-w") forces it down to one byte per pixel
-  // before reading raw - skipping that step silently misaligns every
-  // applyInkDistortion() lookup by a growing offset and shows up as
-  // diagonal banding instead of blob-shaped noise.
-  const noise = await sharp({
-    create: {
-      width: info.width,
-      height: info.height,
-      channels: 3,
-      noise: { type: "gaussian", mean: 165, sigma: 70 },
-    },
-  })
-    .blur(2.6)
-    .toColourspace("b-w")
-    .raw()
-    .toBuffer();
+  // Pass 3: multi-octave blurred noise modulates ink density and
+  // occasionally erases it outright - mimics how a real rubber stamp never
+  // lays down perfectly even ink.
+  const noise = await generateOctaveNoise(info.width, info.height);
 
   applyInkDistortion(softened, noise);
 

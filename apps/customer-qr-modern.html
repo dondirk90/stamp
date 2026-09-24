@@ -1359,7 +1359,11 @@
         --stamp-seam: var(--pass-bg, var(--surface));
         --stamp-icon-size: 82%;
         position: relative;
-        overflow: hidden;
+        /* visible, not hidden (chat 2026-09-24): a real stamp icon is
+           allowed to touch/slightly bleed past its circle for an authentic
+           hand-stamped look - see the enlarged jitter range in
+           renderStampGrid()'s "size" calc. */
+        overflow: visible;
         -webkit-clip-path: none;
         clip-path: none;
         box-shadow:

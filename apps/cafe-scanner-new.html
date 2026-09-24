@@ -2638,6 +2638,15 @@
         display: block;
       }
 
+      /* Filled stamps run bigger than empty placeholders, allowed to touch
+         or slightly bleed past the ring - a real ink stamp isn't neatly
+         inscribed inside its own outline (chat 2026-09-24). */
+      .previewStamp:not(.empty) img,
+      .previewStamp:not(.empty) svg {
+        width: 108%;
+        height: 108%;
+      }
+
       .previewStamp.empty img,
       .previewStamp.empty svg {
         opacity: 0.22;
@@ -5881,7 +5890,7 @@
           dot.style.cssText =
             "width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f3ede4;border:1px solid rgba(0,0,0,0.08);";
           const rotationDeg = seededPreviewRotationDeg(`stampicon|${cacheBust}|${i}`);
-          dot.innerHTML = `<img src="${iconUrl}" alt="" style="width:70%;transform:rotate(${rotationDeg}deg);" />`;
+          dot.innerHTML = `<img src="${iconUrl}" alt="" style="width:108%;transform:rotate(${rotationDeg}deg);" />`;
           row.appendChild(dot);
         }
 

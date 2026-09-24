@@ -241,7 +241,9 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
     const cx = padX + cellW * col + cellW / 2;
     const cy = padY + cellH * row + cellH / 2;
     if (i < stampCount) {
-      const d = r * 2.1;
+      // 2.5x the empty-slot radius (was 2.1x) - a real stamp isn't neatly
+      // inscribed inside its own outline (chat 2026-09-24).
+      const d = r * 2.5;
       const rotationDeg = seed ? seededRotationDeg(`${seed}|${i}`) : 0;
       icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex, rotationDeg);
     } else {
