@@ -2634,6 +2634,17 @@
         background: #ffffff;
         display: grid;
         place-items: center;
+        /* Grid items default to min-width/height: auto, which considers a
+           child's own content size - a filled icon at 108% (see
+           :not(.empty) below) was inflating the *cell itself* to fit that
+           oversized image instead of just visually overflowing it, making
+           filled circles taller/wider (and so non-round, and a different
+           size than empty ones) than their siblings (chat 2026-09-24). This
+           pins the cell to its grid track size regardless of content;
+           overflow stays visible by default so the image can still bleed
+           past the now-fixed-size circle. */
+        min-width: 0;
+        min-height: 0;
       }
 
       .previewStamp img,

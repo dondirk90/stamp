@@ -6973,6 +6973,39 @@ app.post("/admin/logo-preview", requireAdminKey, async (req, res) => {
   }
 });
 
+// Same brand-color detection as /admin/logo-preview above, without the
+// mockup-image rendering - used by admin-cafe-design.html to pre-fill the
+// custom color pickers as soon as a logo is chosen, for a real café that
+// already exists (unlike /admin/logo-preview, which never touches the DB).
+app.post("/admin/logo-colors", requireAdminKey, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawLogo = body.logoDataUrl;
+    if (!rawLogo) {
+      return res.status(400).json({ ok: false, error: "logo_required" });
+    }
+    const m =
+      /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+        String(rawLogo),
+      );
+    if (!m) {
+      return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+    }
+    const base64 = String(m[3] || "").replace(/\s+/g, "");
+    if (base64.length > 1_500_000) {
+      return res.status(413).json({ ok: false, error: "logo_too_large" });
+    }
+    const logoBuffer = Buffer.from(base64, "base64");
+    const detected = await logoPreview.extractColorsFromLogo(logoBuffer);
+    res.json({ ok: true, bgColor: detected.bg, fgColor: detected.fg });
+  } catch (err) {
+    console.error("Error in /admin/logo-colors:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
 // Manually re-patches a customer's Google Wallet object with the current
 // stamp count/profile - useful for support ("card looks stale, resync it")
 // and to test the PATCH path without needing to award a real stamp.
