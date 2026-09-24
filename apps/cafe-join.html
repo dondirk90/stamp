@@ -577,18 +577,18 @@
           return;
         }
 
-        fetch("/api/cafes/public")
+        // Direct lookup by address, not the /cafes/public discovery list -
+        // that list filters out internal/test-looking cafes and any cafe
+        // without a location_address set (by design, it's a customer-facing
+        // browse/map list), which used to make this page silently show no
+        // logo/color for such a cafe even though the QR/link it was handed
+        // is entirely valid (same root cause as the standee page fix).
+        fetch("/api/cafes/public/" + encodeURIComponent(cafeAddress))
           .then(function (res) {
             return res.json();
           })
           .then(function (data) {
-            var cafes = (data && data.cafes) || [];
-            var cafe = cafes.find(function (c) {
-              return (
-                String(c.cafeAddress || "").toLowerCase() ===
-                cafeAddress.toLowerCase()
-              );
-            });
+            var cafe = data && data.cafe;
             if (!cafe) return;
 
             cafeNameEl.textContent = cafe.name || "Kaffeekarte";
