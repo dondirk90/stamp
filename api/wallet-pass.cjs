@@ -254,14 +254,16 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
     const row = Math.floor(i / cols);
     const cx = padX + cellW * col + cellW / 2;
     const cy = padY + cellH * row + cellH / 2;
+    // A white backing disc under every slot, filled or not - keeps the
+    // (always-black, see stamp-icon.cjs) ink legible on darker card themes
+    // instead of nearly disappearing against them (chat 2026-09-24).
+    circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
     if (i < stampCount) {
       // 2.5x the empty-slot radius (was 2.1x) - a real stamp isn't neatly
       // inscribed inside its own outline (chat 2026-09-24).
       const d = r * 2.5;
       const rotationDeg = seed ? seededRotationDeg(`${seed}|${i}`) : 0;
       icons += renderFilledIcon(stampStyle, beanDataUrl, cx, cy, d, fgHex, rotationDeg);
-    } else {
-      circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
     }
   }
 
