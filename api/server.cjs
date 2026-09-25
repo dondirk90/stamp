@@ -28,6 +28,10 @@ const os = require("os");
 const jwt = require("jsonwebtoken");
 const jwksRsa = require("jwks-rsa");
 const walletPass = require("./wallet-pass.cjs");
+const {
+  generateStampIcon,
+  getDefaultStampIconBuffer,
+} = require("./stamp-icon.cjs");
 const googleWalletPass = require("./google-wallet-pass.cjs");
 const logoPreview = require("./logo-preview.cjs");
 
@@ -1712,6 +1716,15 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN logo_data TEXT",
   "Failed to add cafes.logo_data column:",
 );
+// See migrations/026_add_cafe_stamp_icon.sql - NULL means "use the default bean".
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stamp_icon_mime TEXT",
+  "Failed to add cafes.stamp_icon_mime column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stamp_icon_data TEXT",
+  "Failed to add cafes.stamp_icon_data column:",
+);
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN redeem_message TEXT",
   "Failed to add cafes.redeem_message column:",
@@ -2864,6 +2877,9 @@ const setCafePasswordHashById = db.prepare(
 );
 const setCafeEmailVerifiedAtById = db.prepare(
   "UPDATE cafes SET email_verified_at = ? WHERE id = ?",
+);
+const setCafeStampIconById = db.prepare(
+  "UPDATE cafes SET stamp_icon_mime = ?, stamp_icon_data = ? WHERE id = ?",
 );
 
 const insertCafePasswordReset = db.prepare(
@@ -5611,6 +5627,39 @@ app.get(
   },
 );
 
+// One customer's raw stamp history across every café, newest first - the
+// customer-detail view only ever showed per-café totals before (awarded/
+// redeemed/balance), not the individual events that add up to them, so
+// "wann genau hat der Kunde wieviele Stempel bekommen" wasn't answerable
+// without going straight to the DB (chat 2026-09-25).
+app.get(
+  "/admin/customers/:address/stamp-events",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const address = String(req.params.address || "").trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+        return res.status(400).json({ error: "invalid_address" });
+      }
+      const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 200));
+      const rows = await db
+        .prepare(
+          "SELECT se.ts, se.delta, se.event_type, se.card_id, se.status, " +
+            "c.id AS cafe_id, c.name AS cafe_name FROM stamp_events se " +
+            'LEFT JOIN cafes c ON LOWER(c.address) = LOWER(se.cafe) ' +
+            'WHERE LOWER(se."user") = LOWER(?) ORDER BY se.ts DESC LIMIT ?',
+        )
+        .all(address, limit);
+      res.json({ ok: true, log: rows });
+    } catch (err) {
+      console.error("Error in /admin/customers/:address/stamp-events:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
 // All cafés with the reminder enabled, each with their own candidate list -
 // the shape a future cron job would iterate over to actually send.
 app.get("/admin/reminder-candidates", requireAdminKey, async (req, res) => {
@@ -5942,6 +5991,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
           cafeRow.logo_data && cafeRow.logo_mime
             ? `data:${cafeRow.logo_mime};base64,${cafeRow.logo_data}`
             : null,
+        hasCustomStampIcon: !!(cafeRow.stamp_icon_data && cafeRow.stamp_icon_mime),
         cardBackgroundDataUrl:
           cafeRow.card_bg_data && cafeRow.card_bg_mime
             ? `data:${cafeRow.card_bg_mime};base64,${cafeRow.card_bg_data}`
@@ -6347,6 +6397,7 @@ async function applyCafeProfileUpdate(current, body) {
           updated.logo_data && updated.logo_mime
             ? `data:${updated.logo_mime};base64,${updated.logo_data}`
             : null,
+        hasCustomStampIcon: !!(updated.stamp_icon_data && updated.stamp_icon_mime),
         cardBackgroundDataUrl:
           updated.card_bg_data && updated.card_bg_mime
             ? `data:${updated.card_bg_mime};base64,${updated.card_bg_data}`
@@ -6455,7 +6506,13 @@ app.post("/cafes/me/broadcast", requireCafeAuth, async (req, res) => {
           message,
           lastStampTs: now,
         });
-        if (result.hasChannel) sent += 1;
+        // hasChannel only means "has a registered wallet pass" - true even
+        // when the pass has no push token yet or the actual APNs/Google
+        // call failed, which used to make the barista UI report "Gesendet
+        // an X von Y Kunden" while zero pushes had actually gone out
+        // (chat 2026-09-25). applePushed/googleSent reflect a real
+        // confirmed delivery instead.
+        if (result.applePushed > 0 || result.googleSent > 0) sent += 1;
         else failed += 1;
       } catch (err) {
         failed += 1;
@@ -6949,6 +7006,39 @@ app.post("/admin/logo-preview", requireAdminKey, async (req, res) => {
     });
   } catch (err) {
     console.error("Error in /admin/logo-preview:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
+// Same brand-color detection as /admin/logo-preview above, without the
+// mockup-image rendering - used by admin-cafe-design.html to pre-fill the
+// custom color pickers as soon as a logo is chosen, for a real café that
+// already exists (unlike /admin/logo-preview, which never touches the DB).
+app.post("/admin/logo-colors", requireAdminKey, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawLogo = body.logoDataUrl;
+    if (!rawLogo) {
+      return res.status(400).json({ ok: false, error: "logo_required" });
+    }
+    const m =
+      /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+        String(rawLogo),
+      );
+    if (!m) {
+      return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+    }
+    const base64 = String(m[3] || "").replace(/\s+/g, "");
+    if (base64.length > 1_500_000) {
+      return res.status(413).json({ ok: false, error: "logo_too_large" });
+    }
+    const logoBuffer = Buffer.from(base64, "base64");
+    const detected = await logoPreview.extractColorsFromLogo(logoBuffer);
+    res.json({ ok: true, bgColor: detected.bg, fgColor: detected.fg });
+  } catch (err) {
+    console.error("Error in /admin/logo-colors:", err);
     res
       .status(500)
       .json({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -9016,8 +9106,18 @@ app.get("/cafes/public", async (req, res) => {
               ? `data:${row.logo_mime};base64,${row.logo_data}`
               : null,
           cardTheme: row.card_theme || "paper",
-          cardBgColor: row.card_bg_color || null,
-          cardFgColor: row.card_fg_color || null,
+          // Resolved, never null - see the identical fix (and its full
+          // reasoning) on GET /cafes/public/:id just below.
+          cardBgColor: walletPass.resolveThemeColors(
+            row.card_theme,
+            row.card_bg_color,
+            row.card_fg_color,
+          ).bg,
+          cardFgColor: walletPass.resolveThemeColors(
+            row.card_theme,
+            row.card_bg_color,
+            row.card_fg_color,
+          ).fg,
           cardBackText: row.card_back_text || null,
           program: {
             stampsForReward:
@@ -9082,6 +9182,12 @@ app.get("/cafes/public/:id", async (req, res) => {
       .filter(Boolean)
       .slice(0, 6);
 
+    const publicResolvedColors = walletPass.resolveThemeColors(
+      row.card_theme,
+      row.card_bg_color,
+      row.card_fg_color,
+    );
+
     res.json({
       ok: true,
       cafe: {
@@ -9100,8 +9206,15 @@ app.get("/cafes/public/:id", async (req, res) => {
           : null,
         redeemMessage: row.redeem_message || null,
         cardTheme: row.card_theme || "paper",
-        cardBgColor: row.card_bg_color || null,
-        cardFgColor: row.card_fg_color || null,
+        // Resolved, never null - callers outside this app (the standee
+        // page, e.g.) shouldn't need to know the card_theme preset system
+        // exists at all. A café with no custom hex set (the common case
+        // since the Kartendesign color-picker UI was removed - chat
+        // 2026-09-21) used to leave cardBgColor/cardFgColor both null here,
+        // which read to guest-qr-standee.html as "no café color at all" and
+        // silently fell back to the generic default look (chat 2026-09-24).
+        cardBgColor: publicResolvedColors.bg,
+        cardFgColor: publicResolvedColors.fg,
         cardBackText: row.card_back_text || null,
         program: {
           stampsForReward:
@@ -9582,6 +9695,109 @@ app.get("/cafes/:cafeId/logo.png", async (req, res) => {
   }
 });
 
+// Public, unauthenticated - same reasoning as /logo.png above (loaded
+// directly as an <img src> from the customer wallet card and the café's own
+// Design-tab preview, no session available). Always returns a valid image:
+// the café's generated silhouette if they have one, otherwise the same
+// default bean every café used before this feature existed - callers never
+// need to know in advance whether a café customized theirs.
+app.get("/cafes/:cafeId/stamp-icon.png", async (req, res) => {
+  try {
+    const cafeId = Number(req.params.cafeId);
+    if (!Number.isFinite(cafeId)) return res.status(400).end();
+    const cafeRow = await getCafeById.get(cafeId);
+    if (!cafeRow) return res.status(404).end();
+
+    res.setHeader("Cache-Control", "public, max-age=300");
+    if (cafeRow.stamp_icon_data && cafeRow.stamp_icon_mime) {
+      res.setHeader("Content-Type", cafeRow.stamp_icon_mime);
+      return res.send(Buffer.from(cafeRow.stamp_icon_data, "base64"));
+    }
+    const defaultBuffer = await getDefaultStampIconBuffer();
+    res.setHeader("Content-Type", "image/png");
+    res.send(defaultBuffer);
+  } catch (err) {
+    console.error("Error serving cafe stamp icon:", err);
+    res.status(500).end();
+  }
+});
+
+// Generates a stamp silhouette from a logo and stores it - "upload a logo,
+// get a stamp template" per the feature ask. Takes an optional
+// `logoDataUrl` in the body so a café can generate a preview from a
+// just-picked file before clicking the main "Speichern" (logo upload there
+// is otherwise deferred until save, see saveProfile() in
+// cafe-scanner-new.html) - and by the same mechanism, from a dedicated
+// "stamp symbol" upload distinct from the café's main logo, since a busy
+// marketing logo doesn't always silhouette well; falls back to whatever
+// logo is already saved when omitted. Optional boolean `invert` overrides
+// generateStampIcon's own light-vs-dark-background auto-detection, for
+// cafés whose logo is light-on-dark and got auto-detected wrong.
+app.post("/cafes/me/stamp-icon/generate", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ ok: false, error: "missing_cafe_context" });
+    }
+    const current = await getCafeById.get(cafeRow.id);
+    if (!current) {
+      return res.status(404).json({ ok: false, error: "cafe_not_found" });
+    }
+
+    const body = req.body || {};
+    let logoBuffer;
+    if (body.logoDataUrl) {
+      const m =
+        /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+          String(body.logoDataUrl),
+        );
+      if (!m) {
+        return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+      }
+      logoBuffer = Buffer.from(String(m[3] || "").replace(/\s+/g, ""), "base64");
+    } else if (current.logo_data && current.logo_mime) {
+      logoBuffer = Buffer.from(current.logo_data, "base64");
+    } else {
+      return res.status(400).json({ ok: false, error: "logo_required" });
+    }
+
+    // Auto-detected (light-on-dark vs. the usual dark-on-light) unless the
+    // café explicitly overrides it via the Design-tab toggle.
+    const invertOption =
+      typeof body.invert === "boolean" ? { invert: body.invert } : {};
+    const iconBuffer = await generateStampIcon(logoBuffer, invertOption);
+    const iconData = iconBuffer.toString("base64");
+
+    await setCafeStampIconById.run("image/png", iconData, current.id);
+
+    res.json({
+      ok: true,
+      stampIconUrl: `/cafes/${current.id}/stamp-icon.png?v=${Date.now()}`,
+    });
+  } catch (err) {
+    console.error("Error in POST /cafes/me/stamp-icon/generate:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
+app.delete("/cafes/me/stamp-icon", requireCafeAuth, async (req, res) => {
+  try {
+    const cafeRow = req.cafe;
+    if (!cafeRow || cafeRow.id == null) {
+      return res.status(500).json({ ok: false, error: "missing_cafe_context" });
+    }
+    await setCafeStampIconById.run(null, null, cafeRow.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Error in DELETE /cafes/me/stamp-icon:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
 // Public, unauthenticated - referenced from the loyalty object's
 // imageModulesData, so Google's servers (and the Wallet client) fetch this
 // directly. Renders the same stamp-progress grid as the Apple Wallet strip,
@@ -9613,6 +9829,8 @@ app.get("/customers/:customerAddress/google-wallet-stamp-strip.png", async (req,
       colors.fg,
       program.stampStyle,
       isRedeemed,
+      cafeRow,
+      `${rawAddress}|${cafeAddress}|${cardId || ""}`,
     );
 
     res.setHeader("Content-Type", "image/png");

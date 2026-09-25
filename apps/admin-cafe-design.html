@@ -495,6 +495,28 @@
             state.pendingLogoDataUrl = String(reader.result);
             refs.logoPreview.src = state.pendingLogoDataUrl;
             refs.logoPreview.style.display = "block";
+
+            // Pre-fill the custom color pickers from the logo's own
+            // dominant color (same detection /admin-logo-preview.html
+            // uses) - the admin can still fine-tune or pick a preset
+            // afterwards, this is just a starting point.
+            fetch("/api/admin/logo-colors", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ logoDataUrl: state.pendingLogoDataUrl }),
+            })
+              .then(function (res) {
+                return res.json();
+              })
+              .then(function (data) {
+                if (data && data.ok) {
+                  refs.bgColorInput.value = data.bgColor;
+                  refs.fgColorInput.value = data.fgColor;
+                  state.selectedTheme = null;
+                  renderThemeGrid();
+                }
+              })
+              .catch(function () {});
           };
           reader.readAsDataURL(file);
         });

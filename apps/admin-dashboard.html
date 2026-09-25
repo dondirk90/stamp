@@ -2386,7 +2386,78 @@
                 </tbody>
               </table>
             </div>
+
+            <div id="customerStampLogBlock" data-customer-address="${key}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
+              <p class="section-subtitle">Lade Stempel-Log …</p>
+            </div>
           </div>`;
+      }
+
+      function buildCustomerStampLogHtml(rows) {
+        const logRows =
+          (rows || [])
+            .map((r) => {
+              const cafeCell =
+                r.cafe_id != null
+                  ? `<a href="#" class="cafeDetailLink" data-cafe-id="${r.cafe_id}">${escapeHtml(
+                      r.cafe_name || "Café " + r.cafe_id,
+                    )}</a>`
+                  : escapeHtml(r.cafe_name || "—");
+              const delta = Number(r.delta) || 0;
+              const deltaClass =
+                delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "";
+              const deltaText = delta > 0 ? `+${delta}` : String(delta);
+              return `
+              <tr>
+                <td class="timestamp">${formatDate(r.ts)}</td>
+                <td>${cafeCell}</td>
+                <td class="${deltaClass}">${deltaText}</td>
+                <td>${escapeHtml(r.event_type || "stamp")}</td>
+              </tr>`;
+            })
+            .join("") ||
+          `<tr><td colspan="4" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Stempel-Events</td></tr>`;
+
+        return `
+          <div class="section-title">Stempel-Log</div>
+          <div class="section-subtitle">Jedes Stempel-Event dieses Kunden, café-übergreifend, neueste zuerst.</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zeit</th>
+                  <th>Café</th>
+                  <th>Stempel</th>
+                  <th>Art</th>
+                </tr>
+              </thead>
+              <tbody>${logRows}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      async function loadCustomerStampLog(customerUser) {
+        const container = document.getElementById("customerStampLogBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl(
+            `/admin/customers/${encodeURIComponent(customerUser)}/stamp-events`,
+          );
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || data.ok === false) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          if (String(state.selectedCustomerUser) !== String(customerUser)) return;
+          container.innerHTML = buildCustomerStampLogHtml(data.log);
+          wireDetailLinks(container);
+        } catch (err) {
+          if (String(state.selectedCustomerUser) !== String(customerUser)) return;
+          container.innerHTML = `<div class="section-title">Stempel-Log</div><p class="section-subtitle">Konnte nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
       }
 
       function renderCustomerDetail() {
@@ -2400,6 +2471,7 @@
           state.selectedCustomerUser,
         );
         wireDetailLinks(refs.customerDetailContainer);
+        loadCustomerStampLog(state.selectedCustomerUser);
       }
 
       function openCustomerDetail(customerUser) {

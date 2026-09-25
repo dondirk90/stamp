@@ -3,26 +3,26 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Kaffeekarte für Cafés - Die Stempelkarte in Apple & Google Wallet</title>
+    <title>Über uns - Kaffeekarte</title>
     <meta
       name="description"
-      content="Digitale Stammkarten für unabhängige Cafés: kein App-Download für deine Gäste, die Karte lebt direkt in Apple Wallet und Google Wallet - mit deinem Logo, deiner Farbe."
+      content="Kaffeekarte ist ein kleines Projekt aus Köln-Sülz, gebaut für Cafés, die mit Liebe und Leidenschaft geführt werden - mit persönlichem Support statt anonymem Ticketsystem."
     />
-    <link rel="canonical" href="https://kaffeekarte.app/fuer-cafes" />
+    <link rel="canonical" href="https://kaffeekarte.app/ueber-uns" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Kaffeekarte" />
-    <meta property="og:title" content="Kaffeekarte für Cafés - Deine Karte. In jedem Wallet." />
+    <meta property="og:title" content="Über uns - Kaffeekarte" />
     <meta
       property="og:description"
-      content="Kein App-Download für deine Gäste - die Stempelkarte lebt direkt in Apple Wallet und Google Wallet, mit deinem Logo und deiner Farbe."
+      content="Ein kleines Projekt aus Köln-Sülz, gebaut für Cafés, die mit Liebe und Leidenschaft geführt werden."
     />
     <meta property="og:image" content="https://kaffeekarte.app/assets/og-image.png" />
-    <meta property="og:url" content="https://kaffeekarte.app/fuer-cafes" />
+    <meta property="og:url" content="https://kaffeekarte.app/ueber-uns" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Kaffeekarte für Cafés - Deine Karte. In jedem Wallet." />
+    <meta name="twitter:title" content="Über uns - Kaffeekarte" />
     <meta
       name="twitter:description"
-      content="Kein App-Download für deine Gäste - die Stempelkarte lebt direkt in Apple Wallet und Google Wallet, mit deinem Logo und deiner Farbe."
+      content="Ein kleines Projekt aus Köln-Sülz, gebaut für Cafés, die mit Liebe und Leidenschaft geführt werden."
     />
     <meta name="twitter:image" content="https://kaffeekarte.app/assets/og-image.png" />
     <link rel="stylesheet" href="/theme.css?v=20260712b" />
@@ -146,22 +146,15 @@
         font-size: clamp(44px, 6.4vw, 72px);
         line-height: 0.94;
         letter-spacing: -0.055em;
-        max-width: 16ch;
+        max-width: 18ch;
       }
 
       .heroLead {
         margin: 0;
-        max-width: 46ch;
+        max-width: 50ch;
         font-size: 19px;
         line-height: 1.6;
         color: rgba(59, 42, 31, 0.8);
-      }
-
-      .heroActions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 6px;
       }
 
       .heroCard .accentRule {
@@ -177,47 +170,41 @@
         border-top: 1px solid var(--line);
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: clamp(28px, 4vw, 48px);
+      .postBody {
+        max-width: 62ch;
       }
 
-      .panel h2 {
-        margin: 0 0 8px;
-        font-size: 24px;
+      .postBody h2 {
+        margin: 0 0 14px;
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 3.6vw, 38px);
         line-height: 1.05;
         letter-spacing: -0.03em;
       }
 
-      .panel p {
-        margin: 0;
-        color: rgba(59, 42, 31, 0.76);
-        line-height: 1.55;
+      .postBody p {
+        margin: 0 0 16px;
+        font-size: 16px;
+        line-height: 1.7;
+        color: rgba(59, 42, 31, 0.82);
       }
 
-      .panelNo {
-        font-family: var(--font-serif);
-        font-size: 30px;
-        line-height: 1;
-        letter-spacing: -0.03em;
-        color: var(--brand);
-        margin-bottom: 8px;
+      .postBody p:last-child {
+        margin-bottom: 0;
       }
 
-      /* Dark contrast anchor, same role as the guest landing's manifesto
-         panel (BRAND.md: "Dark = Arbeit", one deliberate dark panel breaks
-         up the otherwise light marketing page) - here it carries the
-         "why Wallet" argument instead of the brand manifesto. */
-      .walletShowcase {
+      /* Gleicher Dark-Manifesto-Stil wie auf der Startseite ("Warum es
+         Kaffeekarte gibt") - hier für den Ursprungsgedanken statt für das
+         Produktversprechen. Bewusst die einzige dunkle Fläche auf dieser
+         Seite (BRAND.md: Gäste-Seiten bleiben hell, ein dunkler Kontrast-
+         Anker reicht). */
+      .manifesto {
         padding: clamp(40px, 7vw, 76px) clamp(24px, 6vw, 76px);
         border-radius: 34px;
+        display: grid;
+        gap: 20px;
         position: relative;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        gap: clamp(32px, 5vw, 56px);
-        align-items: center;
         background:
           radial-gradient(circle at 84% -4%, rgba(213, 173, 132, 0.18), rgba(213, 173, 132, 0) 44%),
           linear-gradient(165deg, rgba(44, 30, 21, 0.94) 0%, rgba(33, 23, 18, 0.95) 56%, rgba(25, 16, 9, 0.97) 100%),
@@ -228,11 +215,11 @@
         box-shadow: 0 28px 56px rgba(40, 24, 14, 0.2);
       }
 
-      .walletShowcase .sectionKicker {
+      .manifesto .sectionKicker {
         color: rgba(242, 228, 216, 0.52);
       }
 
-      .walletShowcase h2 {
+      .manifesto h2 {
         margin: 0;
         font-family: var(--font-serif);
         font-size: clamp(34px, 4.6vw, 52px);
@@ -241,35 +228,28 @@
         color: rgba(255, 247, 239, 0.96);
       }
 
-      .walletShowcase p {
-        margin: 14px 0 0;
-        max-width: 46ch;
+      .manifesto p {
+        margin: 0;
+        max-width: 56ch;
         font-size: 17px;
         line-height: 1.65;
         color: rgba(242, 228, 216, 0.78);
       }
 
-      .walletShowcaseClaim {
-        margin-top: 18px;
+      .manifestoClaim {
+        margin-top: 6px;
         font-family: var(--font-serif);
-        font-size: 20px;
+        font-size: 22px;
         letter-spacing: -0.02em;
         color: #d9b48d;
       }
 
-      .walletShowcaseImage {
-        display: grid;
-        justify-items: center;
-        gap: 18px;
-      }
-
-      .walletShowcaseImage img {
-        display: block;
-        width: 100%;
-        max-width: 280px;
-        height: auto;
-        border-radius: 18px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      .contactRow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 4px;
       }
 
       .footerNote {
@@ -292,8 +272,6 @@
         font-weight: 700;
       }
 
-      /* Rechtliche Pflichtlinks bewusst leiser als die echte Navigation
-         darueber - sie muessen auffindbar sein, nicht auffallen. */
       .legalLinks {
         display: flex;
         gap: 12px;
@@ -306,24 +284,6 @@
         text-decoration: none;
         font-size: 11px;
         font-weight: 600;
-      }
-
-      @media (max-width: 1080px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-
-        .walletShowcase {
-          grid-template-columns: 1fr;
-        }
-
-        .walletShowcaseImage {
-          order: -1;
-        }
-
-        .walletShowcaseImage img {
-          max-width: 240px;
-        }
       }
 
       @media (max-width: 760px) {
@@ -358,9 +318,6 @@
             0 -6px 0 var(--color-coffee);
         }
 
-        /* Same destinations already sit as prominent buttons in the hero
-           right below - the header only needs to offer them, not repeat
-           them wrapped across two lines above the fold. */
         .nav {
           display: none;
           position: absolute;
@@ -391,22 +348,6 @@
           background: rgba(81, 58, 40, 0.08);
         }
 
-        .heroActions {
-          flex-direction: column;
-        }
-
-        .heroActions .btn {
-          width: 100%;
-        }
-
-        /* More breathing room specifically on mobile - the clamp()s above
-           collapse to their tight minimums on narrow screens, which reads
-           as cramped/stressful once everything is stacked in one column
-           instead of spread across a wide desktop grid. */
-        .heroCard {
-          gap: 24px;
-        }
-
         .section {
           margin-top: 84px;
         }
@@ -415,18 +356,9 @@
           padding-top: 84px;
         }
 
-        .grid {
-          gap: 40px;
-        }
-
-        .walletShowcase {
-          gap: 40px;
+        .manifesto {
           margin-inline: -20px;
           border-radius: 0;
-        }
-
-        .walletShowcase h2 {
-          font-size: clamp(38px, 9vw, 52px);
         }
       }
     </style>
@@ -455,64 +387,41 @@
         </button>
         <nav class="nav" id="mainNav" aria-label="Produktnavigation">
           <a href="/">Für Gäste</a>
+          <a href="/fuer-cafes">Für Cafés</a>
           <a href="/blog">Blog</a>
-          <a href="/ueber-uns">Über uns</a>
-          <a href="/cafe">Anmelden</a>
-          <a href="/cafe-onboarding">Café registrieren</a>
         </nav>
       </header>
 
       <section class="heroCard">
-        <div class="sectionKicker">Für Cafés</div>
-        <h1 class="heroTitle">Deine Karte. In jedem Wallet.</h1>
+        <div class="sectionKicker">Über uns</div>
+        <h1 class="heroTitle">Ein Café-Projekt aus Köln-Sülz.</h1>
         <span class="accentRule" aria-hidden="true"></span>
         <p class="heroLead">
-          Kein App-Download, keine Reibung an der Theke. Deine Gäste
-          scannen einmal, registrieren sich kurz – danach lebt die
-          Stempelkarte direkt in Apple Wallet oder Google Wallet, mit
-          deinem Logo und deiner Farbe.
+          Kaffeekarte ist keine anonyme Loyalty-Plattform von der Stange -
+          sondern ein kleines Projekt, entwickelt in Köln-Sülz, von jemandem,
+          der selbst gern in den teilnehmenden Cafés sitzt.
         </p>
-        <div class="heroActions">
-          <a class="btn primary" href="/cafe-onboarding">Café registrieren</a>
-          <a class="btn secondary" href="/cafe">Anmelden</a>
-        </div>
       </section>
 
       <section class="section section--divider">
         <div class="editorialGrid">
           <div class="editorialIndex">01</div>
-          <div class="walletShowcase">
-            <div>
-              <div class="sectionKicker">Warum Wallet</div>
-              <h2>Keine App.<br />Keine Reibung.</h2>
-              <p>
-                Eine eigene App verlangt Download, Account, Speicherplatz –
-                für eine Stempelkarte ist das zu viel Hürde. Wallet kennt
-                jeder, es ist auf jedem Handy schon installiert.
-              </p>
-              <p>
-                Ein QR-Scan genügt. Die Karte landet dort, wo Gäste ohnehin
-                hinschauen: auf dem Sperrbildschirm, direkt neben Bordkarte
-                und Ticket.
-              </p>
-              <div class="walletShowcaseClaim">
-                Good coffee deserves better loyalty.
-              </div>
-            </div>
-            <div class="walletShowcaseImage">
-              <img
-                src="/assets/wallet-pass-apple-example.png"
-                alt="Beispiel einer Kaffeekarte-Stempelkarte in Apple Wallet"
-                width="640"
-                height="526"
-              />
-              <img
-                src="/assets/wallet-pass-google-example.png"
-                alt="Beispiel einer Kaffeekarte-Stempelkarte in Google Wallet"
-                width="640"
-                height="496"
-              />
-            </div>
+          <div class="manifesto">
+            <div class="sectionKicker">Der Ursprungsgedanke</div>
+            <h2>Eine Karte für Cafés mit Haltung.</h2>
+            <p>
+              Am Anfang stand keine Marktlücke, sondern ein Ärgernis: Die
+              Cafés, die mit Liebe und Leidenschaft geführt werden - eigene
+              Röstung, eigene Handschrift, echtes Handwerk - bekamen für ihre
+              Stammkarte entweder eine Stapel Papier oder dieselbe generische
+              Rabatt-App wie jede Tankstelle nebenan.
+            </p>
+            <p>
+              Kaffeekarte sollte das umdrehen: eine Plattform, die sich dem
+              Café anpasst und nicht umgekehrt, und die sich anfühlt wie das
+              Café selbst - ruhig, persönlich, mit Sorgfalt gemacht.
+            </p>
+            <div class="manifestoClaim">Für Cafés, die es ernst meinen.</div>
           </div>
         </div>
       </section>
@@ -520,33 +429,19 @@
       <section class="section section--divider">
         <div class="editorialGrid">
           <div class="editorialIndex">02</div>
-          <div class="grid" aria-label="Wallet-Vorteile">
-            <article class="panel">
-              <div class="panelNo">01</div>
-              <h2>Kein Download</h2>
-              <p>
-                Ein QR-Code, ein Scan, eine kurze Anmeldung – und die Karte
-                ist im Wallet. Kein App Store, keine zweite App auf dem
-                Homescreen deiner Gäste.
-              </p>
-            </article>
-            <article class="panel">
-              <div class="panelNo">02</div>
-              <h2>Bleibt automatisch aktuell</h2>
-              <p>
-                Jeder Stempel aktualisiert die Karte in Echtzeit. Ist sie
-                voll, bekommt dein Gast eine Mitteilung direkt auf dem
-                Sperrbildschirm – ganz ohne dein Zutun.
-              </p>
-            </article>
-            <article class="panel">
-              <div class="panelNo">03</div>
-              <h2>Sieht aus wie dein Café</h2>
-              <p>
-                Eigenes Logo, eigene Farbe, eigene Prämie – keine generische
-                Vorlage. Die Karte trägt deine Handschrift, nicht unsere.
-              </p>
-            </article>
+          <div class="postBody">
+            <h2>Köln-Sülz</h2>
+            <p>
+              Kaffeekarte wird in Köln-Sülz entwickelt - und die Cafés, die
+              die Karte nutzen, sind keine abstrakten Kunden, sondern Orte,
+              an denen ich selbst regelmäßig Gast bin. Wenn eine Änderung an
+              der Wallet-Karte ankommt, sehe ich sie oft am nächsten Tag
+              selbst am Tresen, nicht nur im Dashboard.
+            </p>
+            <p>
+              Das hält die Prioritäten ehrlich: Was im Alltag eines echten
+              Cafés nicht hilft, kommt erst gar nicht in die App.
+            </p>
           </div>
         </div>
       </section>
@@ -554,37 +449,37 @@
       <section class="section section--divider">
         <div class="editorialGrid">
           <div class="editorialIndex">03</div>
-          <div class="grid" aria-label="So startest du">
-            <article class="panel">
-              <div class="panelNo">1</div>
-              <h2>Registrieren</h2>
-              <p>Café anlegen, Zugang erhalten – in wenigen Minuten, ohne Setup-Projekt.</p>
-            </article>
-            <article class="panel">
-              <div class="panelNo">2</div>
-              <h2>Karte gestalten</h2>
-              <p>Reward festlegen, Beschreibung und Bild hinterlegen. Deine Karte, deine Sprache.</p>
-            </article>
-            <article class="panel">
-              <div class="panelNo">3</div>
-              <h2>QR an die Theke</h2>
-              <p>
-                Gäste zeigen ihren QR, du stempelst – die Karte aktualisiert
-                sich in Apple und Google Wallet von selbst.
-              </p>
-            </article>
+          <div class="postBody">
+            <h2>Direkter Draht statt Ticketsystem</h2>
+            <p>
+              Produktsupport ist bei Kaffeekarte keine Warteschlange und kein
+              anonymes Formular - ich beantworte Anfragen und
+              Verbesserungswünsche persönlich. Wenn an der Theke etwas hakt
+              oder eine Funktion fehlt, will ich das direkt wissen, nicht
+              über drei Ebenen Support.
+            </p>
+            <p>
+              Vieles, was heute Teil von Kaffeekarte ist - vom
+              Push-Erinnerungssystem bis zur Stempel-Korrektur - kam so
+              zustande: als konkreter Wunsch eines Cafés, umgesetzt in den
+              Tagen danach.
+            </p>
+            <div class="contactRow">
+              <a class="btn primary" href="mailto:info@kaffeekarte.app">Schreib mir</a>
+              <a class="btn secondary" href="/fuer-cafes">Café registrieren</a>
+            </div>
           </div>
         </div>
       </section>
 
       <p class="footerNote section section--divider">
-        Kaffeekarte ist für unabhängige Cafés gebaut: weniger Software,
-        mehr Cafégefühl – und Gäste, die ihre Karte nie wieder verlieren.
+        Kaffeekarte ist für unabhängige Cafés gebaut: weniger Software, mehr
+        Cafégefühl - und Gäste, die ihre Karte nie wieder verlieren.
       </p>
       <div class="footerLinks" aria-label="Weitere Seiten">
         <a href="/">Für Gäste</a>
+        <a href="/fuer-cafes">Für Cafés</a>
         <a href="/blog">Blog</a>
-        <a href="/ueber-uns">Über uns</a>
       </div>
       <div class="legalLinks" aria-label="Rechtliches">
         <a href="/impressum">Impressum</a>
