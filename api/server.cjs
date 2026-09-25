@@ -5627,6 +5627,39 @@ app.get(
   },
 );
 
+// One customer's raw stamp history across every café, newest first - the
+// customer-detail view only ever showed per-café totals before (awarded/
+// redeemed/balance), not the individual events that add up to them, so
+// "wann genau hat der Kunde wieviele Stempel bekommen" wasn't answerable
+// without going straight to the DB (chat 2026-09-25).
+app.get(
+  "/admin/customers/:address/stamp-events",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const address = String(req.params.address || "").trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+        return res.status(400).json({ error: "invalid_address" });
+      }
+      const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 200));
+      const rows = await db
+        .prepare(
+          "SELECT se.ts, se.delta, se.event_type, se.card_id, se.status, " +
+            "c.id AS cafe_id, c.name AS cafe_name FROM stamp_events se " +
+            'LEFT JOIN cafes c ON LOWER(c.address) = LOWER(se.cafe) ' +
+            'WHERE LOWER(se."user") = LOWER(?) ORDER BY se.ts DESC LIMIT ?',
+        )
+        .all(address, limit);
+      res.json({ ok: true, log: rows });
+    } catch (err) {
+      console.error("Error in /admin/customers/:address/stamp-events:", err);
+      res
+        .status(500)
+        .json({ error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
 // All cafés with the reminder enabled, each with their own candidate list -
 // the shape a future cron job would iterate over to actually send.
 app.get("/admin/reminder-candidates", requireAdminKey, async (req, res) => {
@@ -6473,7 +6506,13 @@ app.post("/cafes/me/broadcast", requireCafeAuth, async (req, res) => {
           message,
           lastStampTs: now,
         });
-        if (result.hasChannel) sent += 1;
+        // hasChannel only means "has a registered wallet pass" - true even
+        // when the pass has no push token yet or the actual APNs/Google
+        // call failed, which used to make the barista UI report "Gesendet
+        // an X von Y Kunden" while zero pushes had actually gone out
+        // (chat 2026-09-25). applePushed/googleSent reflect a real
+        // confirmed delivery instead.
+        if (result.applePushed > 0 || result.googleSent > 0) sent += 1;
         else failed += 1;
       } catch (err) {
         failed += 1;
