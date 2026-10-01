@@ -284,10 +284,16 @@ function buildLoyaltyObjectPayload({
   // no-store on the server side, and a cache-busting query param here too -
   // Google caches this image by URL, so the version tag must change
   // whenever anything the image actually renders changes (stamp count,
-  // color, *or* the redeemed ribbon), not just the stamp count - otherwise
-  // a stale cached image (without the ribbon) could keep showing after
-  // redemption until some other field happens to change the version too.
-  const version = `${clampedStamps}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}-${isRedeemed ? "r" : "o"}`;
+  // reward threshold, color, *or* the redeemed ribbon), not just the stamp
+  // count - otherwise a stale cached image (e.g. still laid out for the old
+  // threshold, or without the ribbon) could keep showing until some other
+  // field happens to change the version too (chat 2026-10-05: a café
+  // changing "Stempel bis zur Prämie" never reached Android wallets already
+  // holding a card, Apple updated fine since its pass is always refetched
+  // whole rather than cached by an image URL).
+  const version =
+    `${clampedStamps}-${threshold}-${colors.bg.replace("#", "")}-${colors.fg.replace("#", "")}-${isRedeemed ? "r" : "o"}` +
+    `-${cafeRow.stamp_style || "bean"}-${cafeRow.stamp_circle_style || "white"}`;
   const stampStripUri =
     `${base}/api/customers/${customerAddress}/google-wallet-stamp-strip.png` +
     `?cafe=${encodeURIComponent(cafeRow.address)}&v=${version}` +
