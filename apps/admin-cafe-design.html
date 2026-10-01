@@ -97,6 +97,25 @@
         display: none;
       }
 
+      .stampCirclePreview {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        object-fit: contain;
+        background: #f3ede4;
+      }
+
+      .stampSourcePreview {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        object-fit: contain;
+        background: var(--color-surface-elevated, #fff);
+        display: none;
+      }
+
       .themeGrid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -279,6 +298,39 @@
           <div class="stampGrid" id="stampGrid"></div>
         </div>
 
+        <div class="field">
+          <label for="circleStyleSelect">Stempel-Kreise</label>
+          <select id="circleStyleSelect">
+            <option value="white">Weiß</option>
+            <option value="background">In Hintergrundfarbe</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label
+            >Stempel-Vorlage
+            <span class="hint">(statt der Kaffeebohne das Logo oder ein eigenes Symbol stempeln)</span></label
+          >
+          <div class="logoRow">
+            <img class="stampCirclePreview" id="stampPreview" alt="" />
+            <input id="stampSourceInput" type="file" accept="image/*" />
+            <img class="stampSourcePreview" id="stampSourcePreview" alt="" />
+          </div>
+          <label class="colorPickerField" style="margin-top: 10px">
+            <input id="stampInvertInput" type="checkbox" />
+            <span>Farben umkehren (für helles Symbol auf dunklem Hintergrund)</span>
+          </label>
+          <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap">
+            <button class="btn secondary" id="stampGenerateBtn" type="button">
+              Stempel-Vorlage erzeugen
+            </button>
+            <button class="btn secondary hidden" id="stampResetBtn" type="button">
+              Zurücksetzen (Kaffeebohne)
+            </button>
+          </div>
+          <p class="statusMsg" id="stampStatusMsg" style="color: var(--text-muted)"></p>
+        </div>
+
         <div class="row2">
           <div class="field">
             <label for="stampsForReward">Stempel bis zur Prämie</label>
@@ -334,6 +386,14 @@
           bgColorInput: document.getElementById("bgColorInput"),
           fgColorInput: document.getElementById("fgColorInput"),
           stampGrid: document.getElementById("stampGrid"),
+          circleStyleSelect: document.getElementById("circleStyleSelect"),
+          stampPreview: document.getElementById("stampPreview"),
+          stampSourceInput: document.getElementById("stampSourceInput"),
+          stampSourcePreview: document.getElementById("stampSourcePreview"),
+          stampInvertInput: document.getElementById("stampInvertInput"),
+          stampGenerateBtn: document.getElementById("stampGenerateBtn"),
+          stampResetBtn: document.getElementById("stampResetBtn"),
+          stampStatusMsg: document.getElementById("stampStatusMsg"),
           stampsForReward: document.getElementById("stampsForReward"),
           rewardDescription: document.getElementById("rewardDescription"),
           cardBackText: document.getElementById("cardBackText"),
@@ -347,6 +407,9 @@
           selectedTheme: "paper",
           selectedStampStyle: "bean",
           pendingLogoDataUrl: undefined, // undefined = unchanged
+          pendingStampSourceDataUrl: undefined, // optional symbol distinct from the logo
+          loadedLogoDataUrl: null, // the cafe's already-saved logo, once loaded
+          hasCustomStampIcon: false,
         };
 
         function themeHex(themeId) {
@@ -424,6 +487,27 @@
           refs.standeeLink.classList.remove("hidden");
         }
 
+        // Stempel-Vorlage preview/button state - a logo (just-picked or
+        // already-saved) or a separately-picked symbol is required before
+        // "erzeugen" makes sense; the reset button only matters once a
+        // custom icon actually exists.
+        function renderStampSection() {
+          refs.stampPreview.src =
+            "/api/cafes/" + state.selectedCafeId + "/stamp-icon.png?v=" + Date.now();
+          var sourceAvailable = !!(
+            state.pendingStampSourceDataUrl ||
+            state.pendingLogoDataUrl ||
+            state.loadedLogoDataUrl
+          );
+          refs.stampGenerateBtn.disabled = !sourceAvailable;
+          refs.stampResetBtn.classList.toggle("hidden", !state.hasCustomStampIcon);
+          refs.stampStatusMsg.textContent = !sourceAvailable
+            ? "Zuerst ein Logo oder Symbol hochladen."
+            : state.hasCustomStampIcon
+              ? "Eigene Stempel-Vorlage aktiv."
+              : "Noch die Standard-Kaffeebohne.";
+        }
+
         function loadCafeProfile(cafeId) {
           return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile")
             .then(function (res) {
@@ -447,6 +531,7 @@
               refs.rewardDescription.value =
                 (cafe.program && cafe.program.rewardDescription) || "";
               refs.cardBackText.value = cafe.cardBackText || "";
+              state.loadedLogoDataUrl = cafe.logoDataUrl || null;
               if (cafe.logoDataUrl) {
                 refs.logoPreview.src = cafe.logoDataUrl;
                 refs.logoPreview.style.display = "block";
@@ -454,8 +539,14 @@
                 refs.logoPreview.style.display = "none";
                 refs.logoPreview.src = "";
               }
+              refs.circleStyleSelect.value = cafe.stampCircleStyle || "white";
+              state.pendingStampSourceDataUrl = undefined;
+              state.hasCustomStampIcon = !!cafe.hasCustomStampIcon;
+              refs.stampSourcePreview.style.display = "none";
+              refs.stampSourcePreview.src = "";
               renderThemeGrid();
               renderStampGrid();
+              renderStampSection();
             });
         }
 
@@ -517,8 +608,98 @@
                 }
               })
               .catch(function () {});
+            renderStampSection();
           };
           reader.readAsDataURL(file);
+        });
+
+        refs.stampSourceInput.addEventListener("change", function () {
+          var file = refs.stampSourceInput.files && refs.stampSourceInput.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            state.pendingStampSourceDataUrl = String(reader.result);
+            refs.stampSourcePreview.src = state.pendingStampSourceDataUrl;
+            refs.stampSourcePreview.style.display = "block";
+            renderStampSection();
+          };
+          reader.readAsDataURL(file);
+        });
+
+        refs.stampGenerateBtn.addEventListener("click", function () {
+          if (!state.selectedCafeId) return;
+          var source =
+            state.pendingStampSourceDataUrl ||
+            state.pendingLogoDataUrl ||
+            state.loadedLogoDataUrl;
+          if (!source) return;
+          refs.stampGenerateBtn.disabled = true;
+          refs.stampStatusMsg.textContent = "Wird erzeugt …";
+          fetch(
+            "/api/admin/cafes/" +
+              encodeURIComponent(state.selectedCafeId) +
+              "/stamp-icon/generate",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                logoDataUrl: source,
+                invert: !!refs.stampInvertInput.checked,
+              }),
+            },
+          )
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || result.data.ok === false) {
+                throw new Error(
+                  (result.data && result.data.error) ||
+                    "Stempel-Vorlage konnte nicht erzeugt werden.",
+                );
+              }
+              state.hasCustomStampIcon = true;
+              renderStampSection();
+            })
+            .catch(function (err) {
+              refs.stampStatusMsg.textContent =
+                err.message || "Stempel-Vorlage konnte nicht erzeugt werden.";
+            })
+            .then(function () {
+              refs.stampGenerateBtn.disabled = false;
+            });
+        });
+
+        refs.stampResetBtn.addEventListener("click", function () {
+          if (!state.selectedCafeId) return;
+          refs.stampResetBtn.disabled = true;
+          fetch(
+            "/api/admin/cafes/" +
+              encodeURIComponent(state.selectedCafeId) +
+              "/stamp-icon",
+            { method: "DELETE" },
+          )
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok) {
+                throw new Error("Zurücksetzen fehlgeschlagen.");
+              }
+              state.hasCustomStampIcon = false;
+              renderStampSection();
+            })
+            .catch(function (err) {
+              refs.stampStatusMsg.textContent =
+                err.message || "Zurücksetzen fehlgeschlagen.";
+            })
+            .then(function () {
+              refs.stampResetBtn.disabled = false;
+            });
         });
 
         refs.saveBtn.addEventListener("click", function () {
@@ -531,6 +712,7 @@
             cardBgColor: refs.bgColorInput.value,
             cardFgColor: refs.fgColorInput.value,
             stampStyle: state.selectedStampStyle,
+            stampCircleStyle: refs.circleStyleSelect.value,
             stampsForReward: Number(refs.stampsForReward.value) || 10,
             rewardDescription: refs.rewardDescription.value.trim(),
             cardBackText: refs.cardBackText.value.trim(),
