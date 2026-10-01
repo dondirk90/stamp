@@ -7660,7 +7660,14 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         stampsAwarded: Number(row.stamps_awarded || 0),
         stampsRedeemed: Number(row.stamps_redeemed || 0),
         redemptions: Number(row.redemptions || 0),
-        netStamps: Number(row.net_stamps || 0),
+        // Not row.net_stamps (a raw SUM(delta) across every card_id ever,
+        // closed ones included) - a redeemed card stays in stamp_events at
+        // its full pre-redemption delta sum forever (redemption marks it
+        // redeemed, it doesn't zero the history), so the naive sum shows
+        // the same "10" long after redemption. Same fix as the cafe's own
+        // /cafes/:cafeId/overview already applies (chat 2026-10-01: a
+        // customer's dashboard "Saldo" stuck at 10 after a real redemption).
+        netStamps: await getOpenStampTotal(row.cafe, row.user),
         lastActivityTs:
           row.last_activity_ts != null ? Number(row.last_activity_ts) : null,
         lastStampTs:

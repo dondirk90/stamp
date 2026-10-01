@@ -1956,6 +1956,8 @@
               stampsAwarded: c.stampsAwarded || 0,
               stampsRedeemed: c.stampsRedeemed || 0,
               netStamps: c.netStamps || 0,
+              redemptions: c.redemptions || 0,
+              lastRedemptionTs: c.lastRedemptionTs || null,
               lastActivityTs: c.lastActivityTs,
             });
           }
@@ -2160,6 +2162,19 @@
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
                     : "—";
+                  const redeemedBadge = cust.redemptions
+                    ? `<span class="badge badge-neutral"${
+                        cust.lastRedemptionTs
+                          ? ` title="Zuletzt eingelöst: ${escapeHtml(
+                              formatDate(cust.lastRedemptionTs),
+                            )}"`
+                          : ""
+                      }>${
+                        cust.redemptions > 1
+                          ? `${cust.redemptions}× eingelöst`
+                          : "Eingelöst"
+                      }</span>`
+                    : "";
                   return `
                   <tr>
                     <td>${customerAddr}</td>
@@ -2168,7 +2183,7 @@
                     <td>${formatNumber(cust.stampsRedeemed)}</td>
                     <td class="${balanceClass}">${formatNumber(
                       cust.netStamps,
-                    )}</td>
+                    )}${redeemedBadge}</td>
                     <td>${formatDate(cust.lastActivityTs)}</td>
                   </tr>`;
                 })
@@ -2502,12 +2517,23 @@
                     c.cafeAddress,
                   )}">Wallet neu synchronisieren</button>`
                 : "—";
+              const redeemedBadge = c.redemptions
+                ? `<span class="badge badge-neutral"${
+                    c.lastRedemptionTs
+                      ? ` title="Zuletzt eingelöst: ${escapeHtml(
+                          formatDate(c.lastRedemptionTs),
+                        )}"`
+                      : ""
+                  }>${
+                    c.redemptions > 1 ? `${c.redemptions}× eingelöst` : "Eingelöst"
+                  }</span>`
+                : "";
               return `
               <tr>
                 <td>${nameCell}</td>
                 <td>${formatNumber(c.stampsAwarded)}</td>
                 <td>${formatNumber(c.stampsRedeemed)}</td>
-                <td class="${balanceClass}">${formatNumber(c.netStamps)}</td>
+                <td class="${balanceClass}">${formatNumber(c.netStamps)}${redeemedBadge}</td>
                 <td>${formatDate(c.lastActivityTs)}</td>
                 <td>${syncCell}</td>
               </tr>`;
