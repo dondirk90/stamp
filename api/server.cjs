@@ -6587,6 +6587,7 @@ app.get("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
         current.logo_data && current.logo_mime
           ? `data:${current.logo_mime};base64,${current.logo_data}`
           : null,
+      hasCustomStampIcon: !!(current.stamp_icon_data && current.stamp_icon_mime),
     },
   });
 });
@@ -9828,6 +9829,84 @@ app.delete("/cafes/me/stamp-icon", requireCafeAuth, async (req, res) => {
       .json({ ok: false, error: String(err && err.message ? err.message : err) });
   }
 });
+
+// Admin equivalents of the two routes above, keyed by :cafeId instead of a
+// café session - same "Stempel-Vorlage" generator for cafés who want admin
+// support to set up their logo-derived stamp icon instead of doing it
+// themselves (chat 2026-10-01).
+app.post(
+  "/admin/cafes/:cafeId/stamp-icon/generate",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ ok: false, error: "cafe_not_found" });
+      }
+
+      const body = req.body || {};
+      let logoBuffer;
+      if (body.logoDataUrl) {
+        const m =
+          /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+            String(body.logoDataUrl),
+          );
+        if (!m) {
+          return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+        }
+        logoBuffer = Buffer.from(String(m[3] || "").replace(/\s+/g, ""), "base64");
+      } else if (current.logo_data && current.logo_mime) {
+        logoBuffer = Buffer.from(current.logo_data, "base64");
+      } else {
+        return res.status(400).json({ ok: false, error: "logo_required" });
+      }
+
+      const invertOption =
+        typeof body.invert === "boolean" ? { invert: body.invert } : {};
+      const iconBuffer = await generateStampIcon(logoBuffer, invertOption);
+      const iconData = iconBuffer.toString("base64");
+
+      await setCafeStampIconById.run("image/png", iconData, current.id);
+
+      res.json({
+        ok: true,
+        stampIconUrl: `/cafes/${current.id}/stamp-icon.png?v=${Date.now()}`,
+      });
+    } catch (err) {
+      console.error(
+        "Error in POST /admin/cafes/:cafeId/stamp-icon/generate:",
+        err,
+      );
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+app.delete(
+  "/admin/cafes/:cafeId/stamp-icon",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+      }
+      await setCafeStampIconById.run(null, null, cafeId);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Error in DELETE /admin/cafes/:cafeId/stamp-icon:", err);
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
 
 // Public, unauthenticated - referenced from the loyalty object's
 // imageModulesData, so Google's servers (and the Wallet client) fetch this

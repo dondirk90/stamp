@@ -1413,6 +1413,7 @@
           ? `<img src="${data.logoDataUrl}" alt="" style="height:48px; width:48px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff;" />`
           : `<div style="height:48px; width:48px; border-radius:8px; border:1px dashed var(--border);"></div>`;
         const circleStyle = data.stampCircleStyle || "white";
+        const stampPreviewUrl = `/api/cafes/${data.id}/stamp-icon.png?v=${Date.now()}`;
         return `
           <div class="section-title">Café-Design</div>
           <div class="section-subtitle">Logo und Stempel-Kreise für dieses Café anpassen.</div>
@@ -1429,13 +1430,48 @@
           </div>
           <button type="button" class="btn btn-secondary" id="cafeDesignSaveBtn">Design speichern</button>
           <p class="section-subtitle" id="cafeDesignStatus" style="margin-top:8px;"></p>
+
+          <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border);">
+            <div class="section-subtitle" style="font-weight:700; margin-bottom:4px;">Stempel-Vorlage</div>
+            <div class="section-subtitle" style="margin-bottom:10px;">
+              Standard ist die Kaffeebohne. Statt ihr kann das Logo (oder ein eigenes, einfacheres Symbol) als gestempelte Silhouette verwendet werden.
+            </div>
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:10px;">
+              <img id="cafeDesignStampPreview" src="${stampPreviewUrl}" alt="" style="height:48px; width:48px; object-fit:contain; border-radius:50%; border:1px solid var(--border); background:#f3ede4;" />
+              <input type="file" id="cafeDesignStampSourceInput" accept="image/*" />
+              <img id="cafeDesignStampSourcePreview" alt="" style="display:none; height:40px; width:40px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff;" />
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:10px;">
+              <input type="checkbox" id="cafeDesignStampInvert" />
+              Farben umkehren (für helles Symbol auf dunklem Hintergrund)
+            </label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary" id="cafeDesignStampGenerateBtn"${
+                data.logoDataUrl ? "" : " disabled"
+              }>Stempel-Vorlage erzeugen</button>
+              <button type="button" class="btn btn-secondary" id="cafeDesignStampResetBtn" style="${
+                data.hasCustomStampIcon ? "" : "display:none;"
+              }">Zurücksetzen (Kaffeebohne)</button>
+            </div>
+            <p class="section-subtitle" id="cafeDesignStampStatus" style="margin-top:8px;">${
+              data.logoDataUrl
+                ? data.hasCustomStampIcon
+                  ? "Eigene Stempel-Vorlage aktiv."
+                  : "Noch die Standard-Kaffeebohne."
+                : "Zuerst ein Logo oder Symbol hochladen."
+            }</p>
+          </div>
         `;
       }
 
-      function wireCafeDesignControls(container, cafeId) {
+      function wireCafeDesignControls(container, cafeId, cafeData) {
         let pendingLogoDataUrl; // undefined = unchanged, same convention as admin-cafe-design.html
+        let pendingStampSourceDataUrl; // optional symbol distinct from the logo
         const logoInput = container.querySelector("#cafeDesignLogoInput");
         const logoPreview = container.querySelector("#cafeDesignLogoPreview");
+        const stampGenerateBtn = container.querySelector(
+          "#cafeDesignStampGenerateBtn",
+        );
         if (logoInput) {
           logoInput.addEventListener("change", function () {
             const file = logoInput.files && logoInput.files[0];
@@ -1444,6 +1480,7 @@
             reader.onload = function () {
               pendingLogoDataUrl = String(reader.result);
               logoPreview.innerHTML = `<img src="${pendingLogoDataUrl}" alt="" style="height:48px; width:48px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff;" />`;
+              if (stampGenerateBtn) stampGenerateBtn.disabled = false;
             };
             reader.readAsDataURL(file);
           });
@@ -1491,6 +1528,123 @@
             }
           });
         }
+
+        // Stempel-Vorlage: same /admin/cafes/:cafeId/stamp-icon endpoints as
+        // the café's own self-service "Stempel-Vorlage" in cafe-scanner-new.html
+        // (chat 2026-10-01 - admins needed this too, not just cafés doing it
+        // themselves).
+        const stampSourceInput = container.querySelector(
+          "#cafeDesignStampSourceInput",
+        );
+        const stampSourcePreview = container.querySelector(
+          "#cafeDesignStampSourcePreview",
+        );
+        if (stampSourceInput) {
+          stampSourceInput.addEventListener("change", function () {
+            const file = stampSourceInput.files && stampSourceInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function () {
+              pendingStampSourceDataUrl = String(reader.result);
+              if (stampSourcePreview) {
+                stampSourcePreview.src = pendingStampSourceDataUrl;
+                stampSourcePreview.style.display = "block";
+              }
+              if (stampGenerateBtn) stampGenerateBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+        const stampPreview = container.querySelector("#cafeDesignStampPreview");
+        const stampInvert = container.querySelector("#cafeDesignStampInvert");
+        const stampResetBtn = container.querySelector(
+          "#cafeDesignStampResetBtn",
+        );
+        const stampStatusEl = container.querySelector(
+          "#cafeDesignStampStatus",
+        );
+        if (stampGenerateBtn) {
+          stampGenerateBtn.addEventListener("click", async function () {
+            const source =
+              pendingStampSourceDataUrl ||
+              pendingLogoDataUrl ||
+              (cafeData && cafeData.logoDataUrl);
+            if (!source) return;
+            stampGenerateBtn.disabled = true;
+            if (stampStatusEl) stampStatusEl.textContent = "Wird erzeugt …";
+            try {
+              const url = adminApiUrl(
+                `/admin/cafes/${encodeURIComponent(cafeId)}/stamp-icon/generate`,
+              );
+              const res = await fetch(url.toString(), {
+                method: "POST",
+                headers: Object.assign(
+                  { "Content-Type": "application/json" },
+                  adminHeaders(),
+                ),
+                body: JSON.stringify({
+                  logoDataUrl: source,
+                  invert: !!(stampInvert && stampInvert.checked),
+                }),
+              });
+              const result = await res.json();
+              if (!res.ok || result.error || result.ok === false) {
+                throw new Error(
+                  (result && (result.error || result.ok === false)) ||
+                    `HTTP ${res.status}`,
+                );
+              }
+              if (stampPreview) {
+                stampPreview.src = `/api/cafes/${cafeId}/stamp-icon.png?v=${Date.now()}`;
+              }
+              if (stampResetBtn) stampResetBtn.style.display = "inline-flex";
+              if (stampStatusEl) stampStatusEl.textContent = "Stempel-Vorlage erzeugt.";
+            } catch (err) {
+              if (stampStatusEl) {
+                stampStatusEl.textContent = stampUI.userSafeErrorMessage(
+                  err,
+                  "Stempel-Vorlage konnte nicht erzeugt werden.",
+                );
+              }
+            } finally {
+              stampGenerateBtn.disabled = false;
+            }
+          });
+        }
+        if (stampResetBtn) {
+          stampResetBtn.addEventListener("click", async function () {
+            stampResetBtn.disabled = true;
+            try {
+              const url = adminApiUrl(
+                `/admin/cafes/${encodeURIComponent(cafeId)}/stamp-icon`,
+              );
+              const res = await fetch(url.toString(), {
+                method: "DELETE",
+                headers: adminHeaders(),
+              });
+              const result = await res.json();
+              if (!res.ok || result.error) {
+                throw new Error((result && result.error) || `HTTP ${res.status}`);
+              }
+              if (stampPreview) {
+                stampPreview.src = `/api/cafes/${cafeId}/stamp-icon.png?v=${Date.now()}`;
+              }
+              stampResetBtn.style.display = "none";
+              if (stampStatusEl) {
+                stampStatusEl.textContent = "Zurückgesetzt auf die Kaffeebohne.";
+              }
+            } catch (err) {
+              if (stampStatusEl) {
+                stampStatusEl.textContent = stampUI.userSafeErrorMessage(
+                  err,
+                  "Zurücksetzen fehlgeschlagen.",
+                );
+              }
+            } finally {
+              stampResetBtn.disabled = false;
+            }
+          });
+        }
       }
 
       async function loadCafeDesignSettings(cafeId) {
@@ -1507,7 +1661,7 @@
           }
           if (String(state.selectedCafeId) !== String(cafeId)) return;
           container.innerHTML = buildCafeDesignHtml(data.cafe || {});
-          wireCafeDesignControls(container, cafeId);
+          wireCafeDesignControls(container, cafeId, data.cafe || {});
         } catch (err) {
           if (String(state.selectedCafeId) !== String(cafeId)) return;
           container.innerHTML = `<div class="section-title">Café-Design</div><p class="section-subtitle">Konnte nicht geladen werden: ${escapeHtml(
