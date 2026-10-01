@@ -236,7 +236,7 @@ function renderRedeemedRibbon(w, h, scale) {
 // Shared by buildStripBuffers (Apple, one SVG per @1x/2x/3x asset) and
 // buildStampStripPngBuffer (Google, a single standalone image) so both
 // wallets render the same stamp-progress grid from one source of truth.
-function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed) {
+function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed, circleFill) {
   const w = STRIP_W * scale;
   const h = STRIP_H * scale;
   const rows = threshold <= 5 ? 1 : 2;
@@ -254,10 +254,13 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
     const row = Math.floor(i / cols);
     const cx = padX + cellW * col + cellW / 2;
     const cy = padY + cellH * row + cellH / 2;
-    // A white backing disc under every slot, filled or not - keeps the
-    // (always-black, see stamp-icon.cjs) ink legible on darker card themes
-    // instead of nearly disappearing against them (chat 2026-09-24).
-    circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
+    // A backing disc under every slot, filled or not - keeps the (always-
+    // black, see stamp-icon.cjs) ink legible on darker card themes instead
+    // of nearly disappearing against them (chat 2026-09-24). Café-
+    // configurable: white (default) or blended into the card's own
+    // background (chat 2026-10-01) for cafés whose theme already has
+    // enough contrast and don't want a visible ring around every slot.
+    circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${circleFill || "#ffffff"}" stroke="${fgHex}" stroke-opacity="0.45" stroke-width="${Math.max(1, scale)}" />`;
     if (i < stampCount) {
       // 2.5x the empty-slot radius (was 2.1x) - a real stamp isn't neatly
       // inscribed inside its own outline (chat 2026-09-24).
@@ -282,10 +285,11 @@ function renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, 
 async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed, cafeRow, seed) {
   const beanBuffer = await getStampIconBuffer(cafeRow);
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
+  const circleFill = cafeRow && cafeRow.stamp_circle_style === "background" ? bgHex : "#ffffff";
   const out = {};
 
   for (const scale of [1, 2, 3]) {
-    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed);
+    const svg = renderStripSvg(scale, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed, circleFill);
     const name = scale === 1 ? "strip.png" : `strip@${scale}x.png`;
     out[name] = await sharp(Buffer.from(svg)).png().toBuffer();
   }
@@ -299,7 +303,8 @@ async function buildStripBuffers(stampCount, threshold, bgHex, fgHex, stampStyle
 async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, stampStyle, isRedeemed, cafeRow, seed) {
   const beanBuffer = await getStampIconBuffer(cafeRow);
   const beanDataUrl = "data:image/png;base64," + beanBuffer.toString("base64");
-  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed);
+  const circleFill = cafeRow && cafeRow.stamp_circle_style === "background" ? bgHex : "#ffffff";
+  const svg = renderStripSvg(3, stampCount, threshold, bgHex, fgHex, stampStyle, beanDataUrl, isRedeemed, seed, circleFill);
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 

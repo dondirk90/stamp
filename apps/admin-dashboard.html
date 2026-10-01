@@ -1403,6 +1403,119 @@
         `;
       }
 
+      // Logo + stamp-circle styling for a café, editable straight from the
+      // admin café detail view instead of needing the separate Kartendesign
+      // tool just for these two fields (chat 2026-10-01). PUTs through the
+      // same /admin/cafes/:cafeId/profile endpoint that tool uses, so a
+      // change here is indistinguishable from one made there.
+      function buildCafeDesignHtml(data) {
+        const logoHtml = data.logoDataUrl
+          ? `<img src="${data.logoDataUrl}" alt="" style="height:48px; width:48px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff;" />`
+          : `<div style="height:48px; width:48px; border-radius:8px; border:1px dashed var(--border);"></div>`;
+        const circleStyle = data.stampCircleStyle || "white";
+        return `
+          <div class="section-title">Café-Design</div>
+          <div class="section-subtitle">Logo und Stempel-Kreise für dieses Café anpassen.</div>
+          <div style="display:flex; align-items:center; gap:14px; margin:12px 0;">
+            <span id="cafeDesignLogoPreview">${logoHtml}</span>
+            <input type="file" id="cafeDesignLogoInput" accept="image/*" />
+          </div>
+          <div class="field" style="max-width:320px; margin-bottom:12px;">
+            <label for="cafeDesignCircleStyle" style="display:block; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Stempel-Kreise</label>
+            <select id="cafeDesignCircleStyle">
+              <option value="white" ${circleStyle === "white" ? "selected" : ""}>Weiß</option>
+              <option value="background" ${circleStyle === "background" ? "selected" : ""}>In Hintergrundfarbe</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-secondary" id="cafeDesignSaveBtn">Design speichern</button>
+          <p class="section-subtitle" id="cafeDesignStatus" style="margin-top:8px;"></p>
+        `;
+      }
+
+      function wireCafeDesignControls(container, cafeId) {
+        let pendingLogoDataUrl; // undefined = unchanged, same convention as admin-cafe-design.html
+        const logoInput = container.querySelector("#cafeDesignLogoInput");
+        const logoPreview = container.querySelector("#cafeDesignLogoPreview");
+        if (logoInput) {
+          logoInput.addEventListener("change", function () {
+            const file = logoInput.files && logoInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function () {
+              pendingLogoDataUrl = String(reader.result);
+              logoPreview.innerHTML = `<img src="${pendingLogoDataUrl}" alt="" style="height:48px; width:48px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff;" />`;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+        const saveBtn = container.querySelector("#cafeDesignSaveBtn");
+        const statusEl = container.querySelector("#cafeDesignStatus");
+        const circleSelect = container.querySelector("#cafeDesignCircleStyle");
+        if (saveBtn) {
+          saveBtn.addEventListener("click", async function () {
+            saveBtn.disabled = true;
+            if (statusEl) statusEl.textContent = "Speichern …";
+            const body = {
+              stampCircleStyle: circleSelect ? circleSelect.value : "white",
+            };
+            if (pendingLogoDataUrl !== undefined) {
+              body.logoDataUrl = pendingLogoDataUrl;
+            }
+            try {
+              const url = adminApiUrl(
+                `/admin/cafes/${encodeURIComponent(cafeId)}/profile`,
+              );
+              const res = await fetch(url.toString(), {
+                method: "PUT",
+                headers: Object.assign(
+                  { "Content-Type": "application/json" },
+                  adminHeaders(),
+                ),
+                body: JSON.stringify(body),
+              });
+              const data = await res.json();
+              if (!res.ok || data.error) {
+                throw new Error((data && data.error) || `HTTP ${res.status}`);
+              }
+              pendingLogoDataUrl = undefined;
+              if (statusEl) statusEl.textContent = "Gespeichert.";
+            } catch (err) {
+              if (statusEl) {
+                statusEl.textContent = stampUI.userSafeErrorMessage(
+                  err,
+                  "Speichern fehlgeschlagen.",
+                );
+              }
+            } finally {
+              saveBtn.disabled = false;
+            }
+          });
+        }
+      }
+
+      async function loadCafeDesignSettings(cafeId) {
+        const container = document.getElementById("cafeDesignBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl(
+            `/admin/cafes/${encodeURIComponent(cafeId)}/profile`,
+          );
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildCafeDesignHtml(data.cafe || {});
+          wireCafeDesignControls(container, cafeId);
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<div class="section-title">Café-Design</div><p class="section-subtitle">Konnte nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
       async function loadCafeMessageLog(cafeId) {
         const container = document.getElementById("cafeMessageLogBlock");
         if (!container || !state.config) return;
@@ -1838,6 +1951,7 @@
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
               cafeId: cafe.id,
+              cafeAddress: cafe.address || null,
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: c.stampsAwarded || 0,
               stampsRedeemed: c.stampsRedeemed || 0,
@@ -1854,6 +1968,7 @@
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
               cafeId: cafe.id,
+              cafeAddress: cafe.address || null,
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: 0,
               stampsRedeemed: 0,
@@ -2211,6 +2326,10 @@
                     : ""
                 }
 
+                <div id="cafeDesignBlock" data-cafe-id="${cafe.id}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
+                  <p class="section-subtitle">Lade Café-Design …</p>
+                </div>
+
                 <div id="cafeMessageLogBlock" data-cafe-id="${cafe.id}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
                   <p class="section-subtitle">Lade Nachrichten-Log …</p>
                 </div>
@@ -2239,6 +2358,60 @@
             openCustomerDetail(link.dataset.customerUser);
           });
         });
+        container.querySelectorAll(".walletResyncBtn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            resyncCustomerWallet(
+              btn.dataset.customerAddress,
+              btn.dataset.cafeAddress,
+              btn,
+            );
+          });
+        });
+      }
+
+      // Re-patches an already-installed wallet pass with the current
+      // server-side stamp count, for both platforms - a fix for "the pass
+      // says 2 but the server has 5" support cases where the automatic
+      // update push after a stamp award never visibly landed on the device
+      // (chat 2026-09-25). Doesn't touch stamp_events at all, purely a
+      // resend of what the server already believes is true.
+      async function resyncCustomerWallet(customerAddress, cafeAddress, btn) {
+        if (!customerAddress || !cafeAddress || !state.config) return;
+        const originalLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Synchronisiere …";
+        try {
+          const appleUrl = adminApiUrl("/admin/apple-wallet/resync");
+          appleUrl.searchParams.set("customer", customerAddress);
+          appleUrl.searchParams.set("cafe", cafeAddress);
+          const googleUrl = adminApiUrl("/admin/google-wallet/resync");
+          googleUrl.searchParams.set("customer", customerAddress);
+          googleUrl.searchParams.set("cafe", cafeAddress);
+          const [appleRes, googleRes] = await Promise.all([
+            fetch(appleUrl.toString(), {
+              method: "POST",
+              headers: adminHeaders(),
+            }),
+            fetch(googleUrl.toString(), {
+              method: "POST",
+              headers: adminHeaders(),
+            }),
+          ]);
+          if (!appleRes.ok || !googleRes.ok) {
+            throw new Error(`HTTP ${appleRes.status}/${googleRes.status}`);
+          }
+          btn.textContent = "Synchronisiert ✓";
+        } catch (err) {
+          btn.textContent = "Fehlgeschlagen";
+          window.alert(
+            stampUI.userSafeErrorMessage(err, "Synchronisieren fehlgeschlagen."),
+          );
+        } finally {
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+          }, 3000);
+        }
       }
 
       function renderCafeDetail() {
@@ -2254,6 +2427,7 @@
         wireDetailLinks(refs.cafeDetailContainer);
         loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
         loadCafeLifecycle(cafe.id);
+        loadCafeDesignSettings(cafe.id);
         loadCafeMessageLog(cafe.id);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")
@@ -2321,6 +2495,13 @@
                       c.name,
                     )}</a>`
                   : escapeHtml(c.name);
+              const syncCell = c.cafeAddress
+                ? `<button type="button" class="miniBtn walletResyncBtn" data-customer-address="${escapeHtml(
+                    key,
+                  )}" data-cafe-address="${escapeHtml(
+                    c.cafeAddress,
+                  )}">Wallet neu synchronisieren</button>`
+                : "—";
               return `
               <tr>
                 <td>${nameCell}</td>
@@ -2328,12 +2509,13 @@
                 <td>${formatNumber(c.stampsRedeemed)}</td>
                 <td class="${balanceClass}">${formatNumber(c.netStamps)}</td>
                 <td>${formatDate(c.lastActivityTs)}</td>
+                <td>${syncCell}</td>
               </tr>`;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Café-Aktivität gefunden.
               </td>
             </tr>`;
@@ -2379,6 +2561,7 @@
                     <th>Eingelöst</th>
                     <th>Saldo</th>
                     <th>Zuletzt aktiv</th>
+                    <th>Wallet-Pass</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -1725,6 +1725,13 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN stamp_icon_data TEXT",
   "Failed to add cafes.stamp_icon_data column:",
 );
+// See migrations/027_add_cafe_stamp_circle_style.sql - NULL/"white" means
+// the existing solid-white backing disc, "background" blends it into the
+// card's own bg color instead.
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stamp_circle_style TEXT DEFAULT 'white'",
+  "Failed to add cafes.stamp_circle_style column:",
+);
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN redeem_message TEXT",
   "Failed to add cafes.redeem_message column:",
@@ -2927,7 +2934,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamp_circle_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -5985,6 +5992,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         cardTheme: cafeRow.card_theme || "paper",
         cardBgColor: cafeRow.card_bg_color || null,
         cardFgColor: cafeRow.card_fg_color || null,
+        stampCircleStyle: cafeRow.stamp_circle_style || "white",
         cardBackText: cafeRow.card_back_text || null,
         program: getCafeProgramSettings(cafeRow),
         logoDataUrl:
@@ -6211,6 +6219,17 @@ async function applyCafeProfileUpdate(current, body) {
       stampStyle = trimmed || "bean";
     }
 
+    const allowedStampCircleStyles = new Set(["white", "background"]);
+    let stampCircleStyle = current.stamp_circle_style || "white";
+    if (Object.prototype.hasOwnProperty.call(body, "stampCircleStyle")) {
+      const raw = body.stampCircleStyle == null ? "" : String(body.stampCircleStyle);
+      const trimmed = raw.trim().toLowerCase();
+      if (trimmed && !allowedStampCircleStyles.has(trimmed)) {
+        return { ok: false, status: 400, error: "invalid_stamp_circle_style" };
+      }
+      stampCircleStyle = trimmed || "white";
+    }
+
     const currentProgram = getCafeProgramSettings(current);
     let stampsForReward = currentProgram.stampsForReward;
     if (Object.prototype.hasOwnProperty.call(body, "stampsForReward")) {
@@ -6349,6 +6368,7 @@ async function applyCafeProfileUpdate(current, body) {
       cardBgColor,
       cardFgColor,
       stampStyle,
+      stampCircleStyle,
       stampsForReward,
       rewardDescription,
       popupInactiveEnabled,
@@ -6391,6 +6411,7 @@ async function applyCafeProfileUpdate(current, body) {
         cardTheme: updated.card_theme || "paper",
         cardBgColor: updated.card_bg_color || null,
         cardFgColor: updated.card_fg_color || null,
+        stampCircleStyle: updated.stamp_circle_style || "white",
         cardBackText: updated.card_back_text || null,
         program: updatedProgram,
         logoDataUrl:
@@ -6559,6 +6580,7 @@ app.get("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
       cardTheme: current.card_theme || "paper",
       cardBgColor: current.card_bg_color || null,
       cardFgColor: current.card_fg_color || null,
+      stampCircleStyle: current.stamp_circle_style || "white",
       cardBackText: current.card_back_text || null,
       program,
       logoDataUrl:
