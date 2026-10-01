@@ -116,6 +116,59 @@
         display: none;
       }
 
+      .passPreview {
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .passPreviewHead {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .passPreviewLogo {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        object-fit: contain;
+        background: rgba(255, 255, 255, 0.6);
+        display: none;
+      }
+
+      .passPreviewName {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      .passPreviewStamps {
+        display: grid;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .passPreviewStamp {
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .passPreviewStamp img {
+        width: 82%;
+        height: 82%;
+        object-fit: contain;
+      }
+
+      .passPreviewReward {
+        margin-top: 14px;
+        font-size: 0.82rem;
+        opacity: 0.8;
+      }
+
       .themeGrid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -266,6 +319,18 @@
 
       <div class="card hidden" id="formCard">
         <div class="field">
+          <label>Vorschau <span class="hint">(so sieht der Wallet-Pass bei den Gästen aus)</span></label>
+          <div id="passPreview" class="passPreview">
+            <div class="passPreviewHead">
+              <img id="passPreviewLogo" class="passPreviewLogo" alt="" />
+              <span id="passPreviewName" class="passPreviewName"></span>
+            </div>
+            <div id="passPreviewStamps" class="passPreviewStamps"></div>
+            <div id="passPreviewReward" class="passPreviewReward"></div>
+          </div>
+        </div>
+
+        <div class="field">
           <label for="logoInput"
             >Logo <span class="hint">(quadratisch wirkt am besten)</span></label
           >
@@ -399,6 +464,11 @@
           cardBackText: document.getElementById("cardBackText"),
           saveBtn: document.getElementById("saveBtn"),
           statusMsg: document.getElementById("statusMsg"),
+          passPreview: document.getElementById("passPreview"),
+          passPreviewLogo: document.getElementById("passPreviewLogo"),
+          passPreviewName: document.getElementById("passPreviewName"),
+          passPreviewStamps: document.getElementById("passPreviewStamps"),
+          passPreviewReward: document.getElementById("passPreviewReward"),
         };
 
         var state = {
@@ -410,6 +480,7 @@
           pendingStampSourceDataUrl: undefined, // optional symbol distinct from the logo
           loadedLogoDataUrl: null, // the cafe's already-saved logo, once loaded
           hasCustomStampIcon: false,
+          stampIconVersion: 0, // cache-bust the stamp-icon.png preview after generate/reset
         };
 
         function themeHex(themeId) {
@@ -433,6 +504,7 @@
               refs.bgColorInput.value = t.bg;
               refs.fgColorInput.value = t.fg;
               renderThemeGrid();
+              renderPassPreview();
             });
             refs.themeGrid.appendChild(el);
           });
@@ -449,6 +521,7 @@
             el.addEventListener("click", function () {
               state.selectedStampStyle = s.id;
               renderStampGrid();
+              renderPassPreview();
             });
             refs.stampGrid.appendChild(el);
           });
@@ -492,8 +565,9 @@
         // "erzeugen" makes sense; the reset button only matters once a
         // custom icon actually exists.
         function renderStampSection() {
+          state.stampIconVersion = Date.now();
           refs.stampPreview.src =
-            "/api/cafes/" + state.selectedCafeId + "/stamp-icon.png?v=" + Date.now();
+            "/api/cafes/" + state.selectedCafeId + "/stamp-icon.png?v=" + state.stampIconVersion;
           var sourceAvailable = !!(
             state.pendingStampSourceDataUrl ||
             state.pendingLogoDataUrl ||
@@ -506,6 +580,83 @@
             : state.hasCustomStampIcon
               ? "Eigene Stempel-Vorlage aktiv."
               : "Noch die Standard-Kaffeebohne.";
+          renderPassPreview();
+        }
+
+        // Live preview of the actual wallet pass: same color/logo/stamp-
+        // style inputs as the form above, re-rendered on every change so an
+        // admin can see the effect immediately instead of guessing from the
+        // raw field values (chat 2026-10-02). Deliberately a simplified
+        // standalone card, not a reuse of cafe-scanner-new.html's full
+        // preview system - this tool only ever shows one café at a time and
+        // doesn't need that system's multi-theme CSS variables.
+        function renderPassPreview() {
+          var bg = refs.bgColorInput.value || "#f7efe1";
+          var fg = refs.fgColorInput.value || "#171412";
+          refs.passPreview.style.background = bg;
+          refs.passPreview.style.color = fg;
+          refs.passPreview.style.borderColor = fg;
+
+          var logoSrc = state.pendingLogoDataUrl || state.loadedLogoDataUrl;
+          if (logoSrc) {
+            refs.passPreviewLogo.src = logoSrc;
+            refs.passPreviewLogo.style.display = "block";
+          } else {
+            refs.passPreviewLogo.style.display = "none";
+            refs.passPreviewLogo.src = "";
+          }
+
+          var selectedOption =
+            refs.cafeSelect.options[refs.cafeSelect.selectedIndex];
+          refs.passPreviewName.textContent = selectedOption
+            ? selectedOption.textContent
+            : "Dein Café";
+
+          var threshold = Math.max(
+            1,
+            Math.min(50, Number(refs.stampsForReward.value) || 10),
+          );
+          var filled = Math.min(threshold, Math.round(threshold * 0.6));
+          var circleFill =
+            refs.circleStyleSelect.value === "background" ? bg : "#ffffff";
+          var stampSym =
+            STAMP_STYLES.filter(function (s) {
+              return s.id === state.selectedStampStyle;
+            })[0] || STAMP_STYLES[0];
+          var iconUrl =
+            state.selectedCafeId != null
+              ? "/api/cafes/" +
+                state.selectedCafeId +
+                "/stamp-icon.png?v=" +
+                state.stampIconVersion
+              : "";
+
+          var rows = threshold <= 5 ? 1 : 2;
+          var cols = Math.ceil(threshold / rows);
+          refs.passPreviewStamps.style.gridTemplateColumns =
+            "repeat(" + cols + ", 1fr)";
+
+          refs.passPreviewStamps.innerHTML = "";
+          for (var i = 0; i < threshold; i++) {
+            var dot = document.createElement("div");
+            dot.className = "passPreviewStamp";
+            dot.style.border = "1.5px solid " + fg;
+            dot.style.background = circleFill;
+            if (i < filled) {
+              dot.innerHTML =
+                stampSym.id === "bean"
+                  ? '<img src="' + iconUrl + '" alt="" />'
+                  : '<span style="font-size: 1.1rem">' + stampSym.symbol + "</span>";
+            }
+            refs.passPreviewStamps.appendChild(dot);
+          }
+
+          var remaining = Math.max(0, threshold - filled);
+          var reward = refs.rewardDescription.value.trim() || "deine Prämie";
+          refs.passPreviewReward.textContent =
+            remaining > 0
+              ? "Noch " + remaining + " Stempel bis: " + reward
+              : "Prämie verfügbar: " + reward;
         }
 
         function loadCafeProfile(cafeId) {
@@ -576,6 +727,17 @@
         refs.cafeSelect.addEventListener("change", function () {
           state.selectedCafeId = Number(refs.cafeSelect.value);
           loadCafeProfile(state.selectedCafeId);
+        });
+
+        [
+          refs.bgColorInput,
+          refs.fgColorInput,
+          refs.circleStyleSelect,
+          refs.stampsForReward,
+          refs.rewardDescription,
+        ].forEach(function (el) {
+          el.addEventListener("input", renderPassPreview);
+          el.addEventListener("change", renderPassPreview);
         });
 
         refs.logoInput.addEventListener("change", function () {
