@@ -7644,6 +7644,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
                AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
                AND (se2.status IS NULL OR se2.status = 'confirmed')
            ) ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'stamp_removed' THEN -delta ELSE 0 END) AS stamps_removed,
            SUM(delta) AS net_stamps,
            SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            MAX(CASE WHEN customer_name IS NOT NULL AND customer_name != '' THEN customer_name ELSE NULL END) AS customer_name
@@ -7659,6 +7660,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         customerName: row.customer_name || null,
         stampsAwarded: Number(row.stamps_awarded || 0),
         stampsRedeemed: Number(row.stamps_redeemed || 0),
+        stampsRemoved: Number(row.stamps_removed || 0),
         redemptions: Number(row.redemptions || 0),
         // Not row.net_stamps (a raw SUM(delta) across every card_id ever,
         // closed ones included) - a redeemed card stays in stamp_events at

@@ -1955,6 +1955,7 @@
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: c.stampsAwarded || 0,
               stampsRedeemed: c.stampsRedeemed || 0,
+              stampsRemoved: c.stampsRemoved || 0,
               netStamps: c.netStamps || 0,
               redemptions: c.redemptions || 0,
               lastRedemptionTs: c.lastRedemptionTs || null,
@@ -1974,6 +1975,7 @@
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: 0,
               stampsRedeemed: 0,
+              stampsRemoved: 0,
               netStamps: 0,
               lastActivityTs: null,
             });
@@ -2181,6 +2183,7 @@
                     <td>${nameCell}</td>
                     <td>${formatNumber(cust.stampsAwarded)}</td>
                     <td>${formatNumber(cust.stampsRedeemed)}</td>
+                    <td>${formatNumber(cust.stampsRemoved)}</td>
                     <td class="${balanceClass}">${formatNumber(
                       cust.netStamps,
                     )}${redeemedBadge}</td>
@@ -2190,7 +2193,7 @@
                 .join("") ||
               `
                 <tr>
-                  <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                  <td colspan="7" style="text-align:center; padding: 18px; color: var(--text-muted);">
                     Keine Kunden im Limit
                   </td>
                 </tr>`;
@@ -2308,6 +2311,7 @@
                         <th>Name</th>
                         <th>Erhalten</th>
                         <th>Eingelöst</th>
+                        <th>Zurückgenommen</th>
                         <th>Saldo</th>
                         <th>Zuletzt aktiv</th>
                       </tr>
@@ -2533,6 +2537,7 @@
                 <td>${nameCell}</td>
                 <td>${formatNumber(c.stampsAwarded)}</td>
                 <td>${formatNumber(c.stampsRedeemed)}</td>
+                <td>${formatNumber(c.stampsRemoved)}</td>
                 <td class="${balanceClass}">${formatNumber(c.netStamps)}${redeemedBadge}</td>
                 <td>${formatDate(c.lastActivityTs)}</td>
                 <td>${syncCell}</td>
@@ -2541,7 +2546,7 @@
             .join("") ||
           `
             <tr>
-              <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="7" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Café-Aktivität gefunden.
               </td>
             </tr>`;
@@ -2585,6 +2590,7 @@
                     <th>Café</th>
                     <th>Erhalten</th>
                     <th>Eingelöst</th>
+                    <th>Zurückgenommen</th>
                     <th>Saldo</th>
                     <th>Zuletzt aktiv</th>
                     <th>Wallet-Pass</th>
@@ -2616,16 +2622,22 @@
               const deltaClass =
                 delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "";
               const deltaText = delta > 0 ? `+${delta}` : String(delta);
+              const cardCell = r.card_id
+                ? `<span class="address" title="${escapeHtml(r.card_id)}">${escapeHtml(
+                    shortenAddress(r.card_id, 6),
+                  )}</span>`
+                : "— (legacy)";
               return `
               <tr>
                 <td class="timestamp">${formatDate(r.ts)}</td>
                 <td>${cafeCell}</td>
                 <td class="${deltaClass}">${deltaText}</td>
                 <td>${escapeHtml(r.event_type || "stamp")}</td>
+                <td>${cardCell}</td>
               </tr>`;
             })
             .join("") ||
-          `<tr><td colspan="4" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Stempel-Events</td></tr>`;
+          `<tr><td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Stempel-Events</td></tr>`;
 
         return `
           <div class="section-title">Stempel-Log</div>
@@ -2638,6 +2650,7 @@
                   <th>Café</th>
                   <th>Stempel</th>
                   <th>Art</th>
+                  <th>Karte</th>
                 </tr>
               </thead>
               <tbody>${logRows}</tbody>
