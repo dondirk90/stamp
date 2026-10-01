@@ -1403,6 +1403,103 @@
         `;
       }
 
+      // Café-Abo-Status: payment_exempt ist der einzige hier editierbare
+      // Wert (manueller Admin-Override, z.B. fürs eigene Test-Café) - alles
+      // andere ist Stripes eigene Wahrheit, synchronisiert über
+      // /webhooks/stripe, hier nur Anzeige (chat 2026-10-02).
+      function buildCafeBillingHtml(billing) {
+        const statusLabel = billing.exempt
+          ? "Zahlungsbefreit"
+          : billing.active
+            ? "Aktiv"
+            : billing.status
+              ? billing.status
+              : "Kein Abo";
+        const badgeClass = billing.active
+          ? "badge badge-neutral"
+          : "badge badge-warning";
+        const periodEnd = billing.currentPeriodEnd
+          ? formatDate(billing.currentPeriodEnd)
+          : "—";
+        return `
+          <div class="section-title">Abo</div>
+          <div class="section-subtitle" style="margin-bottom: 10px;">
+            Status: <span class="${badgeClass}">${escapeHtml(statusLabel)}</span>
+            &nbsp;•&nbsp; Nächste Abrechnung: ${periodEnd}
+            ${
+              billing.stripeCustomerId
+                ? `&nbsp;•&nbsp; <a href="https://dashboard.stripe.com/customers/${encodeURIComponent(
+                    billing.stripeCustomerId,
+                  )}" target="_blank" rel="noopener">Stripe-Kunde öffnen</a>`
+                : ""
+            }
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+            <input type="checkbox" id="cafeBillingExemptInput" ${
+              billing.exempt ? "checked" : ""
+            } />
+            Zahlungsbefreit (läuft komplett ohne Stripe/Kreditkarte)
+          </label>
+          <p class="section-subtitle" id="cafeBillingStatus" style="margin-top:8px;"></p>
+        `;
+      }
+
+      async function loadCafeBilling(cafeId) {
+        const container = document.getElementById("cafeBillingBlock");
+        if (!container || !state.config) return;
+        try {
+          const url = adminApiUrl(`/admin/cafes/${encodeURIComponent(cafeId)}/billing`);
+          const res = await fetch(url.toString(), { headers: adminHeaders() });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error((data && data.error) || `HTTP ${res.status}`);
+          }
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = buildCafeBillingHtml(data.billing);
+          const exemptInput = container.querySelector("#cafeBillingExemptInput");
+          const statusEl = container.querySelector("#cafeBillingStatus");
+          if (exemptInput) {
+            exemptInput.addEventListener("change", async function () {
+              exemptInput.disabled = true;
+              if (statusEl) statusEl.textContent = "Speichern …";
+              try {
+                const putUrl = adminApiUrl(
+                  `/admin/cafes/${encodeURIComponent(cafeId)}/billing`,
+                );
+                const putRes = await fetch(putUrl.toString(), {
+                  method: "PUT",
+                  headers: Object.assign(
+                    { "Content-Type": "application/json" },
+                    adminHeaders(),
+                  ),
+                  body: JSON.stringify({ paymentExempt: exemptInput.checked }),
+                });
+                const putData = await putRes.json();
+                if (!putRes.ok || putData.error) {
+                  throw new Error((putData && putData.error) || `HTTP ${putRes.status}`);
+                }
+                if (statusEl) statusEl.textContent = "Gespeichert.";
+              } catch (err) {
+                if (statusEl) {
+                  statusEl.textContent = stampUI.userSafeErrorMessage(
+                    err,
+                    "Speichern fehlgeschlagen.",
+                  );
+                }
+                exemptInput.checked = !exemptInput.checked;
+              } finally {
+                exemptInput.disabled = false;
+              }
+            });
+          }
+        } catch (err) {
+          if (String(state.selectedCafeId) !== String(cafeId)) return;
+          container.innerHTML = `<div class="section-title">Abo</div><p class="section-subtitle">Konnte nicht geladen werden: ${escapeHtml(
+            stampUI.userSafeErrorMessage(err, "Unbekannter Fehler"),
+          )}</p>`;
+        }
+      }
+
       async function loadCafeMessageLog(cafeId) {
         const container = document.getElementById("cafeMessageLogBlock");
         if (!container || !state.config) return;
@@ -2232,6 +2329,10 @@
                     : ""
                 }
 
+                <div id="cafeBillingBlock" data-cafe-id="${cafe.id}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
+                  <p class="section-subtitle">Lade Abo-Status …</p>
+                </div>
+
                 <div id="cafeMessageLogBlock" data-cafe-id="${cafe.id}" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);">
                   <p class="section-subtitle">Lade Nachrichten-Log …</p>
                 </div>
@@ -2329,6 +2430,7 @@
         wireDetailLinks(refs.cafeDetailContainer);
         loadCafeAnalytics(cafe.id, state.analyticsDays || 30);
         loadCafeLifecycle(cafe.id);
+        loadCafeBilling(cafe.id);
         loadCafeMessageLog(cafe.id);
         refs.cafeDetailContainer
           .querySelectorAll(".deleteAnyCafeBtn")

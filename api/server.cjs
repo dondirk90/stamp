@@ -34,6 +34,7 @@ const {
 } = require("./stamp-icon.cjs");
 const googleWalletPass = require("./google-wallet-pass.cjs");
 const logoPreview = require("./logo-preview.cjs");
+const stripeBilling = require("./stripe-billing.cjs");
 
 const { z } = require("zod");
 
@@ -1732,6 +1733,28 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN stamp_circle_style TEXT DEFAULT 'white'",
   "Failed to add cafes.stamp_circle_style column:",
 );
+// See migrations/028_add_cafe_billing.sql - a café is unlocked when
+// payment_exempt is truthy OR subscription_status is 'active'/'trialing'.
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stripe_customer_id TEXT",
+  "Failed to add cafes.stripe_customer_id column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stripe_subscription_id TEXT",
+  "Failed to add cafes.stripe_subscription_id column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN subscription_status TEXT",
+  "Failed to add cafes.subscription_status column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN subscription_current_period_end INTEGER",
+  "Failed to add cafes.subscription_current_period_end column:",
+);
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN payment_exempt INTEGER DEFAULT 0",
+  "Failed to add cafes.payment_exempt column:",
+);
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN redeem_message TEXT",
   "Failed to add cafes.redeem_message column:",
@@ -3176,6 +3199,72 @@ try {
   // express-rate-limit optional
 }
 
+// Stripe webhook - MUST be registered before the global express.json()
+// below, with its own express.raw() body parser, or Stripe's signature
+// verification fails (it signs the exact raw bytes, not a re-serialized
+// JSON-parsed-then-stringified copy). Unauthenticated by design (no
+// requireCafeAuth/requireAdminKey) - the signature check against
+// STRIPE_WEBHOOK_SECRET is the actual auth here.
+app.post(
+  "/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    if (!stripeBilling.isBillingConfigured()) return res.status(503).end();
+
+    let event;
+    try {
+      event = stripeBilling.constructWebhookEvent(
+        req.body,
+        req.headers["stripe-signature"],
+      );
+    } catch (err) {
+      console.warn("Stripe webhook signature check failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    try {
+      // All three share the same shape (a subscription object) and the
+      // same handling - including "deleted", whose object already carries
+      // status: "canceled" rather than needing special-casing. Relies on
+      // subscription_data.metadata.cafeId (set when the Checkout Session is
+      // created, see POST /cafes/me/billing/checkout-session) rather than
+      // looking the café up by stripe_customer_id, so this self-heals even
+      // if a customer_id was never persisted for some reason.
+      if (
+        event.type === "customer.subscription.created" ||
+        event.type === "customer.subscription.updated" ||
+        event.type === "customer.subscription.deleted"
+      ) {
+        const subscription = event.data.object;
+        const cafeId = Number(subscription.metadata && subscription.metadata.cafeId);
+        if (Number.isFinite(cafeId)) {
+          const summary = stripeBilling.summarizeSubscription(subscription);
+          await db
+            .prepare(
+              "UPDATE cafes SET stripe_customer_id = ?, stripe_subscription_id = ?, subscription_status = ?, subscription_current_period_end = ? WHERE id = ?",
+            )
+            .run(
+              subscription.customer,
+              summary.id,
+              summary.status,
+              summary.currentPeriodEnd,
+              cafeId,
+            );
+        } else {
+          console.warn(
+            "Stripe subscription event without a cafeId in metadata:",
+            subscription.id,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error handling Stripe webhook:", event.type, err);
+    }
+
+    res.json({ received: true });
+  },
+);
+
 // Capture raw request body for debugging JSON parse errors (verify option)
 app.use(
   express.json({
@@ -3297,6 +3386,42 @@ async function requireCafeAuth(req, res, next) {
     console.error("Auth error:", e && e.stack ? e.stack : e);
     return res.status(401).json({ error: "unauthorized" });
   }
+}
+
+// A café is unlocked if an admin has manually exempted it (payment_exempt -
+// for the team's own test cafés/partners who should never see a paywall at
+// all) or it has a live Stripe subscription. "trialing" counts as active
+// even though nothing here currently creates trial subscriptions, so a
+// trial started directly in the Stripe dashboard still works without a
+// code change.
+function isCafeBillingActive(cafeRow) {
+  if (!cafeRow) return false;
+  if (Number(cafeRow.payment_exempt) === 1) return true;
+  return cafeRow.subscription_status === "active" || cafeRow.subscription_status === "trialing";
+}
+
+function summarizeCafeBilling(cafeRow) {
+  return {
+    active: isCafeBillingActive(cafeRow),
+    exempt: Number(cafeRow?.payment_exempt) === 1,
+    status: cafeRow?.subscription_status || null,
+    currentPeriodEnd:
+      cafeRow?.subscription_current_period_end != null
+        ? Number(cafeRow.subscription_current_period_end)
+        : null,
+  };
+}
+
+// Chained after requireCafeAuth on the day-to-day stamping/redeem routes
+// only (chat 2026-10-02) - deliberately NOT on login, profile GET/PUT,
+// account deletion, or the billing routes themselves, so an unpaid café can
+// still log in, see its own settings, and reach checkout instead of being
+// locked out of the account entirely.
+function requireActiveSubscription(req, res, next) {
+  if (!isCafeBillingActive(req.cafe)) {
+    return res.status(402).json({ error: "payment_required" });
+  }
+  return next();
 }
 
 function buildLocationAddress({
@@ -3520,7 +3645,7 @@ app.get("/debug/contract", async (req, res) => {
 });
 
 // QR Code für Stempel ausstellen (Café-Rolle)
-app.post("/qr/issue", requireCafeAuth, async (req, res) => {
+app.post("/qr/issue", requireCafeAuth, requireActiveSubscription, async (req, res) => {
   try {
     const cafeId = ensureCafeAddress(req.cafe) || String(req.cafe?.id || "");
     if (!cafeId) return res.status(500).json({ error: "missing_cafe_context" });
@@ -3711,7 +3836,7 @@ async function notifyNewCardByEmail(customerAddress, cafeAddress, newCardId) {
 }
 
 // Stempel direkt durch das Café (Bearer Token required)
-app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
+app.post("/stamp-by-cafe", requireCafeAuth, requireActiveSubscription, async (req, res) => {
   console.log("[DEBUG] /stamp-by-cafe reached");
   try {
     const { customer, count, customerName, qrCafe, cardId, cid, card } =
@@ -3845,7 +3970,7 @@ app.post("/stamp-by-cafe", requireCafeAuth, async (req, res) => {
 // use). Clamped so a card can never go below 0, and rejected outright on
 // an already-redeemed card - that's a closed historical record, not
 // something a café should be able to edit after the fact.
-app.post("/remove-stamp", requireCafeAuth, async (req, res) => {
+app.post("/remove-stamp", requireCafeAuth, requireActiveSubscription, async (req, res) => {
   try {
     const { customer, count, customerName, qrCafe, cardId, cid, card } =
       req.body || {};
@@ -3965,7 +4090,7 @@ app.post("/remove-stamp", requireCafeAuth, async (req, res) => {
 });
 
 // Redeem reward (café scans customer redemption QR)
-app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
+app.post("/redeem-reward", requireCafeAuth, requireActiveSubscription, async (req, res) => {
   console.log("[DEBUG] /redeem-reward reached");
   try {
     const { customer, customerName, qrCafe, redeemToken, cardId, cid, card } =
@@ -4162,7 +4287,7 @@ app.post("/redeem-reward", requireCafeAuth, async (req, res) => {
 });
 
 // Start a new stamp card (reset balance) without redeeming (café scans customer reset QR)
-app.post("/reset-card", requireCafeAuth, async (req, res) => {
+app.post("/reset-card", requireCafeAuth, requireActiveSubscription, async (req, res) => {
   console.log("[DEBUG] /reset-card reached");
   try {
     const { customer, customerName, qrCafe } = req.body || {};
@@ -6005,6 +6130,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
             ? `data:${cafeRow.card_bg_mime};base64,${cafeRow.card_bg_data}`
             : null,
       },
+      billing: summarizeCafeBilling(cafeRow),
       stats,
       recentEvents: recentEvents.filter(Boolean),
       customers,
@@ -6452,6 +6578,66 @@ app.put("/cafes/me/profile", requireCafeAuth, async (req, res) => {
   );
 });
 
+// Deliberately NOT behind requireActiveSubscription (that would be
+// circular - an unpaid café needs this route precisely to become paid) -
+// just requireCafeAuth, so any logged-in café can start a checkout.
+app.post("/cafes/me/billing/checkout-session", requireCafeAuth, async (req, res) => {
+  try {
+    if (!stripeBilling.isBillingConfigured()) {
+      return res.status(503).json({ error: "billing_not_configured" });
+    }
+    const cafeRow = req.cafe;
+    const customerId = await stripeBilling.getOrCreateStripeCustomerId(cafeRow);
+    if (customerId !== cafeRow.stripe_customer_id) {
+      await db
+        .prepare("UPDATE cafes SET stripe_customer_id = ? WHERE id = ?")
+        .run(customerId, cafeRow.id);
+    }
+
+    const base = getAppsBaseUrlFromRequest(req);
+    const session = await stripeBilling.createCheckoutSession({
+      cafeRow,
+      customerId,
+      successUrl: `${base}/cafe-profile?billing=success`,
+      cancelUrl: `${base}/cafe-profile?billing=cancelled`,
+      // Stamped onto the resulting Subscription object itself (not just
+      // this Checkout Session), so the webhook can find the café by
+      // metadata alone - see /webhooks/stripe's own comment.
+      subscriptionMetadata: { cafeId: String(cafeRow.id) },
+    });
+
+    res.json({ ok: true, url: session.url });
+  } catch (err) {
+    console.error("Error in /cafes/me/billing/checkout-session:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
+app.post("/cafes/me/billing/portal-session", requireCafeAuth, async (req, res) => {
+  try {
+    if (!stripeBilling.isBillingConfigured()) {
+      return res.status(503).json({ error: "billing_not_configured" });
+    }
+    const cafeRow = req.cafe;
+    if (!cafeRow.stripe_customer_id) {
+      return res.status(400).json({ error: "no_stripe_customer" });
+    }
+    const base = getAppsBaseUrlFromRequest(req);
+    const session = await stripeBilling.createPortalSession({
+      customerId: cafeRow.stripe_customer_id,
+      returnUrl: `${base}/cafe-profile`,
+    });
+    res.json({ ok: true, url: session.url });
+  } catch (err) {
+    console.error("Error in /cafes/me/billing/portal-session:", err);
+    res
+      .status(500)
+      .json({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+});
+
 const BROADCAST_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 // Lets a café send a one-off custom push to every customer with an open
@@ -6605,6 +6791,51 @@ app.put("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
   return res.status(result.status).json(
     result.ok ? { ok: true, cafe: result.cafe } : { error: result.error },
   );
+});
+
+// Billing status for one café - same GET/PUT shape as the profile routes
+// above. PUT only ever touches payment_exempt (the manual admin override);
+// everything else about a café's subscription is Stripe's own source of
+// truth, synced in via /webhooks/stripe, not editable here.
+app.get("/admin/cafes/:cafeId/billing", requireAdminKey, async (req, res) => {
+  const cafeId = Number(req.params.cafeId);
+  if (!Number.isFinite(cafeId)) {
+    return res.status(400).json({ error: "invalid_cafe_id" });
+  }
+  const current = await getCafeById.get(cafeId);
+  if (!current) {
+    return res.status(404).json({ error: "cafe_not_found" });
+  }
+  res.json({
+    ok: true,
+    billing: {
+      ...summarizeCafeBilling(current),
+      stripeCustomerId: current.stripe_customer_id || null,
+    },
+  });
+});
+
+app.put("/admin/cafes/:cafeId/billing", requireAdminKey, async (req, res) => {
+  const cafeId = Number(req.params.cafeId);
+  if (!Number.isFinite(cafeId)) {
+    return res.status(400).json({ error: "invalid_cafe_id" });
+  }
+  const current = await getCafeById.get(cafeId);
+  if (!current) {
+    return res.status(404).json({ error: "cafe_not_found" });
+  }
+  const exempt = req.body && req.body.paymentExempt ? 1 : 0;
+  await db
+    .prepare("UPDATE cafes SET payment_exempt = ? WHERE id = ?")
+    .run(exempt, cafeId);
+  const updated = await getCafeById.get(cafeId);
+  res.json({
+    ok: true,
+    billing: {
+      ...summarizeCafeBilling(updated),
+      stripeCustomerId: updated.stripe_customer_id || null,
+    },
+  });
 });
 
 // Permanently deletes one café and everything tied to it (sessions, stamp
@@ -8462,6 +8693,7 @@ app.post("/cafes/login", async (req, res) => {
         lng: cafe.lng != null ? Number(cafe.lng) : null,
         createdAt: cafe.created_at != null ? Number(cafe.created_at) : null,
       },
+      billing: summarizeCafeBilling(cafe),
     });
   } catch (err) {
     console.error("Error in /cafes/login:", err);

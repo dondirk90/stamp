@@ -2879,6 +2879,27 @@
           </div>
         </div>
       </div>
+      <!-- Zahlungsschranke: zeigt sich statt loginCard/appShell, sobald ein
+           Login erfolgreich war, aber billing.active (siehe /cafes/login,
+           /cafes/:id/overview) false ist (chat 2026-10-02). -->
+      <div class="card" id="billingGateScreen" style="display: none">
+        <div class="introBadge">Kaffeekarte fuer Cafés</div>
+        <h2>Abo erforderlich</h2>
+        <p class="subtitle">
+          Um weiter Stempel zu vergeben und Prämien einzulösen, braucht dieses
+          Café ein aktives Abo (45&nbsp;€/Monat). Rabattcodes können direkt
+          beim Bezahlen eingegeben werden.
+        </p>
+        <button id="billingCheckoutBtn" style="margin-top: 20px">
+          Jetzt Abo abschließen
+        </button>
+        <div id="billingGateStatus" class="muted" style="margin-top: 12px"></div>
+        <div class="linkRow" style="margin-top: 20px">
+          <button id="billingGateLogoutBtn" type="button" class="ghostLink" style="background:none;border:none;cursor:pointer;">
+            Abmelden
+          </button>
+        </div>
+      </div>
       <!-- Post-login Shell -->
       <div id="appShell" class="app-shell" style="display: none">
         <main class="mainPanel">
@@ -3802,6 +3823,19 @@
                   </div>
                 </div>
 
+                <div id="sectionBilling" style="margin-top: 18px">
+                  <div class="muted" style="margin-bottom: 6px; font-weight: 700">
+                    Abo &amp; Rechnungen
+                  </div>
+                  <div class="muted" style="margin-bottom: 10px">
+                    Zahlungsmittel ändern, kündigen oder bisherige Rechnungen einsehen.
+                  </div>
+                  <button id="billingPortalBtn" class="btn secondary" type="button">
+                    Abo verwalten
+                  </button>
+                  <div id="billingPortalStatus" class="muted" style="margin-top: 8px"></div>
+                </div>
+
                 <div id="sectionChangePassword" style="margin-top: 18px">
                   <div class="muted" style="margin-bottom: 6px; font-weight: 700">
                     Passwort ändern
@@ -4111,6 +4145,10 @@
       const loginBtn = document.getElementById("loginBtn");
       const loginCard = document.getElementById("loginCard");
       const appShell = document.getElementById("appShell");
+      const billingGateScreen = document.getElementById("billingGateScreen");
+      const billingCheckoutBtn = document.getElementById("billingCheckoutBtn");
+      const billingGateStatus = document.getElementById("billingGateStatus");
+      const billingGateLogoutBtn = document.getElementById("billingGateLogoutBtn");
       const forgotPwBtn = document.getElementById("forgotPwBtn");
       const forgotPwBox = document.getElementById("forgotPwBox");
       const forgotEmail = document.getElementById("forgotEmail");
@@ -6043,6 +6081,30 @@
         }
       }
 
+      async function openBillingPortal() {
+        if (!cafe || !cafe.token) return;
+        const btn = document.getElementById("billingPortalBtn");
+        const statusEl = document.getElementById("billingPortalStatus");
+        if (btn) btn.disabled = true;
+        if (statusEl) statusEl.textContent = "Einen Moment …";
+        try {
+          const data = await apiFetch("/cafes/me/billing/portal-session", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${cafe.token}` },
+          });
+          if (!data || !data.url) throw new Error("no_url");
+          window.location.href = data.url;
+        } catch (e) {
+          if (statusEl) {
+            statusEl.textContent = userSafeErrorMessage(
+              e,
+              "Konnte nicht geöffnet werden.",
+            );
+          }
+          if (btn) btn.disabled = false;
+        }
+      }
+
       // Live mirror of the actual guest-facing card (see buildPassCard() in
       // customer-qr-modern.js) - kept intentionally lighter than that (no 3D
       // flip, no QR, no swipe physics) since this only needs to show the
@@ -6620,6 +6682,9 @@
         const stampIconResetBtn = document.getElementById("stampIconResetBtn");
         if (stampIconResetBtn)
           stampIconResetBtn.addEventListener("click", resetStampIcon);
+        const billingPortalBtn = document.getElementById("billingPortalBtn");
+        if (billingPortalBtn)
+          billingPortalBtn.addEventListener("click", openBillingPortal);
 
         document.querySelectorAll(".subTabBtn").forEach((el) => {
           el.addEventListener("click", () => setProfileTab(el.getAttribute("data-tab")));
@@ -6936,8 +7001,55 @@
 
       function showAppUI() {
         loginCard.style.display = "none";
+        if (billingGateScreen) billingGateScreen.style.display = "none";
         appShell.style.display = "block";
         if (bottomTabs) bottomTabs.style.display = "";
+      }
+
+      // Shown instead of the app shell once a login succeeds but the café's
+      // subscription isn't active (chat 2026-10-02) - mirrors showAppUI's
+      // display-toggling, just a third state instead of the usual two.
+      function showBillingGate() {
+        loginCard.style.display = "none";
+        appShell.style.display = "none";
+        if (bottomTabs) bottomTabs.style.display = "none";
+        if (billingGateScreen) billingGateScreen.style.display = "block";
+      }
+
+      if (billingCheckoutBtn) {
+        billingCheckoutBtn.addEventListener("click", async () => {
+          if (!cafe || !cafe.token) return;
+          billingCheckoutBtn.disabled = true;
+          billingCheckoutBtn.textContent = "Einen Moment …";
+          if (billingGateStatus) billingGateStatus.textContent = "";
+          try {
+            const res = await fetch(`${apiBase}/cafes/me/billing/checkout-session`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${cafe.token}` },
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok || !data.url) {
+              throw new Error((data && data.error) || "Checkout konnte nicht gestartet werden.");
+            }
+            window.location.href = data.url;
+          } catch (e) {
+            if (billingGateStatus) {
+              billingGateStatus.textContent = userSafeErrorMessage(
+                e,
+                "Checkout konnte nicht gestartet werden.",
+              );
+            }
+            billingCheckoutBtn.disabled = false;
+            billingCheckoutBtn.textContent = "Jetzt Abo abschließen";
+          }
+        });
+      }
+
+      if (billingGateLogoutBtn) {
+        billingGateLogoutBtn.addEventListener("click", () => {
+          localStorage.removeItem("cafe_session");
+          location.reload();
+        });
       }
 
       function hideForgotNotice() {
@@ -7159,6 +7271,12 @@
             name: loginData.cafe?.name || null,
           };
           localStorage.setItem("cafe_session", JSON.stringify(cafe));
+
+          if (!loginData.billing || !loginData.billing.active) {
+            showBillingGate();
+            return;
+          }
+
           void refreshRewardThreshold();
 
           // Update UI
@@ -7969,6 +8087,10 @@
               localStorage.setItem("cafe_session", JSON.stringify(cafe));
               if (ovData.cafe?.program?.stampsForReward != null) {
                 rewardThreshold = Number(ovData.cafe.program.stampsForReward);
+              }
+              if (!ovData.billing || !ovData.billing.active) {
+                showBillingGate();
+                return;
               }
             } catch (err) {
               dwarn("Session validation failed", err);
