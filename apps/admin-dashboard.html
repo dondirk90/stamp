@@ -1408,13 +1408,18 @@
       // andere ist Stripes eigene Wahrheit, synchronisiert über
       // /webhooks/stripe, hier nur Anzeige (chat 2026-10-02).
       function buildCafeBillingHtml(billing) {
+        const hasRealSubscription =
+          billing.status === "active" || billing.status === "trialing";
+        const graceEnd = billing.graceEndsAt ? formatDate(billing.graceEndsAt) : "—";
         const statusLabel = billing.exempt
           ? "Zahlungsbefreit"
-          : billing.active
+          : hasRealSubscription
             ? "Aktiv"
-            : billing.status
-              ? billing.status
-              : "Kein Abo";
+            : billing.active
+              ? `In Kulanzfrist bis ${graceEnd}`
+              : billing.status
+                ? `${billing.status} (gesperrt seit ${graceEnd})`
+                : `Kein Abo (gesperrt seit ${graceEnd})`;
         const badgeClass = billing.active
           ? "badge badge-neutral"
           : "badge badge-warning";

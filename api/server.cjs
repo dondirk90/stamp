@@ -3388,16 +3388,47 @@ async function requireCafeAuth(req, res, next) {
   }
 }
 
+// Nobody gets cut off the instant they're unpaid - a café always has a
+// grace period before requireActiveSubscription actually blocks anything
+// (chat 2026-10-05: "bitte nicht direkt deaktivieren sondern eine Frist
+// setzen (2 Wochen)"). The deadline is the latest of three things, so every
+// café is covered for a reason that actually applies to it:
+//  - PAYWALL_GRACE_FALLBACK: a fixed date two weeks after this feature
+//    shipped - covers every café that already existed at that point, so
+//    the rollout itself doesn't instantly lock anyone out.
+//  - cafeRow.created_at + 14 days: covers a brand new signup (after the
+//    fallback date above) with its own two-week runway before it has to
+//    pay, same as a free trial.
+//  - subscription_current_period_end + 14 days: covers a café whose
+//    subscription just lapsed/failed - two more weeks past what they
+//    already paid for, not an instant cutoff the moment Stripe reports it.
+const PAYWALL_GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
+const PAYWALL_GRACE_FALLBACK = new Date("2026-10-02T00:00:00Z").getTime() + PAYWALL_GRACE_PERIOD_MS;
+
+function billingGraceEndsAt(cafeRow) {
+  const candidates = [PAYWALL_GRACE_FALLBACK];
+  if (cafeRow?.created_at != null) {
+    candidates.push(Number(cafeRow.created_at) + PAYWALL_GRACE_PERIOD_MS);
+  }
+  if (cafeRow?.subscription_current_period_end != null) {
+    candidates.push(Number(cafeRow.subscription_current_period_end) + PAYWALL_GRACE_PERIOD_MS);
+  }
+  return Math.max(...candidates);
+}
+
 // A café is unlocked if an admin has manually exempted it (payment_exempt -
 // for the team's own test cafés/partners who should never see a paywall at
-// all) or it has a live Stripe subscription. "trialing" counts as active
-// even though nothing here currently creates trial subscriptions, so a
-// trial started directly in the Stripe dashboard still works without a
-// code change.
+// all), it has a live Stripe subscription ("trialing" counts even though
+// nothing here currently creates trial subscriptions, so a trial started
+// directly in the Stripe dashboard still works without a code change), or
+// it's still within its grace period.
 function isCafeBillingActive(cafeRow) {
   if (!cafeRow) return false;
   if (Number(cafeRow.payment_exempt) === 1) return true;
-  return cafeRow.subscription_status === "active" || cafeRow.subscription_status === "trialing";
+  if (cafeRow.subscription_status === "active" || cafeRow.subscription_status === "trialing") {
+    return true;
+  }
+  return Date.now() < billingGraceEndsAt(cafeRow);
 }
 
 function summarizeCafeBilling(cafeRow) {
@@ -3409,6 +3440,7 @@ function summarizeCafeBilling(cafeRow) {
       cafeRow?.subscription_current_period_end != null
         ? Number(cafeRow.subscription_current_period_end)
         : null,
+    graceEndsAt: billingGraceEndsAt(cafeRow),
   };
 }
 
