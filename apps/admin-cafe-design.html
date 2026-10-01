@@ -97,6 +97,78 @@
         display: none;
       }
 
+      .stampCirclePreview {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        object-fit: contain;
+        background: #f3ede4;
+      }
+
+      .stampSourcePreview {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        object-fit: contain;
+        background: var(--color-surface-elevated, #fff);
+        display: none;
+      }
+
+      .passPreview {
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .passPreviewHead {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .passPreviewLogo {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        object-fit: contain;
+        background: rgba(255, 255, 255, 0.6);
+        display: none;
+      }
+
+      .passPreviewName {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      .passPreviewStamps {
+        display: grid;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .passPreviewStamp {
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .passPreviewStamp img {
+        width: 82%;
+        height: 82%;
+        object-fit: contain;
+      }
+
+      .passPreviewReward {
+        margin-top: 14px;
+        font-size: 0.82rem;
+        opacity: 0.8;
+      }
+
       .themeGrid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -247,6 +319,18 @@
 
       <div class="card hidden" id="formCard">
         <div class="field">
+          <label>Vorschau <span class="hint">(so sieht der Wallet-Pass bei den Gästen aus)</span></label>
+          <div id="passPreview" class="passPreview">
+            <div class="passPreviewHead">
+              <img id="passPreviewLogo" class="passPreviewLogo" alt="" />
+              <span id="passPreviewName" class="passPreviewName"></span>
+            </div>
+            <div id="passPreviewStamps" class="passPreviewStamps"></div>
+            <div id="passPreviewReward" class="passPreviewReward"></div>
+          </div>
+        </div>
+
+        <div class="field">
           <label for="logoInput"
             >Logo <span class="hint">(quadratisch wirkt am besten)</span></label
           >
@@ -277,6 +361,39 @@
         <div class="field">
           <label>Stempel-Symbol</label>
           <div class="stampGrid" id="stampGrid"></div>
+        </div>
+
+        <div class="field">
+          <label for="circleStyleSelect">Stempel-Kreise</label>
+          <select id="circleStyleSelect">
+            <option value="white">Weiß</option>
+            <option value="background">In Hintergrundfarbe</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label
+            >Stempel-Vorlage
+            <span class="hint">(statt der Kaffeebohne das Logo oder ein eigenes Symbol stempeln)</span></label
+          >
+          <div class="logoRow">
+            <img class="stampCirclePreview" id="stampPreview" alt="" />
+            <input id="stampSourceInput" type="file" accept="image/*" />
+            <img class="stampSourcePreview" id="stampSourcePreview" alt="" />
+          </div>
+          <label class="colorPickerField" style="margin-top: 10px">
+            <input id="stampInvertInput" type="checkbox" />
+            <span>Farben umkehren (für helles Symbol auf dunklem Hintergrund)</span>
+          </label>
+          <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap">
+            <button class="btn secondary" id="stampGenerateBtn" type="button">
+              Stempel-Vorlage erzeugen
+            </button>
+            <button class="btn secondary hidden" id="stampResetBtn" type="button">
+              Zurücksetzen (Kaffeebohne)
+            </button>
+          </div>
+          <p class="statusMsg" id="stampStatusMsg" style="color: var(--text-muted)"></p>
         </div>
 
         <div class="row2">
@@ -334,11 +451,24 @@
           bgColorInput: document.getElementById("bgColorInput"),
           fgColorInput: document.getElementById("fgColorInput"),
           stampGrid: document.getElementById("stampGrid"),
+          circleStyleSelect: document.getElementById("circleStyleSelect"),
+          stampPreview: document.getElementById("stampPreview"),
+          stampSourceInput: document.getElementById("stampSourceInput"),
+          stampSourcePreview: document.getElementById("stampSourcePreview"),
+          stampInvertInput: document.getElementById("stampInvertInput"),
+          stampGenerateBtn: document.getElementById("stampGenerateBtn"),
+          stampResetBtn: document.getElementById("stampResetBtn"),
+          stampStatusMsg: document.getElementById("stampStatusMsg"),
           stampsForReward: document.getElementById("stampsForReward"),
           rewardDescription: document.getElementById("rewardDescription"),
           cardBackText: document.getElementById("cardBackText"),
           saveBtn: document.getElementById("saveBtn"),
           statusMsg: document.getElementById("statusMsg"),
+          passPreview: document.getElementById("passPreview"),
+          passPreviewLogo: document.getElementById("passPreviewLogo"),
+          passPreviewName: document.getElementById("passPreviewName"),
+          passPreviewStamps: document.getElementById("passPreviewStamps"),
+          passPreviewReward: document.getElementById("passPreviewReward"),
         };
 
         var state = {
@@ -347,6 +477,10 @@
           selectedTheme: "paper",
           selectedStampStyle: "bean",
           pendingLogoDataUrl: undefined, // undefined = unchanged
+          pendingStampSourceDataUrl: undefined, // optional symbol distinct from the logo
+          loadedLogoDataUrl: null, // the cafe's already-saved logo, once loaded
+          hasCustomStampIcon: false,
+          stampIconVersion: 0, // cache-bust the stamp-icon.png preview after generate/reset
         };
 
         function themeHex(themeId) {
@@ -370,6 +504,7 @@
               refs.bgColorInput.value = t.bg;
               refs.fgColorInput.value = t.fg;
               renderThemeGrid();
+              renderPassPreview();
             });
             refs.themeGrid.appendChild(el);
           });
@@ -386,6 +521,7 @@
             el.addEventListener("click", function () {
               state.selectedStampStyle = s.id;
               renderStampGrid();
+              renderPassPreview();
             });
             refs.stampGrid.appendChild(el);
           });
@@ -424,6 +560,105 @@
           refs.standeeLink.classList.remove("hidden");
         }
 
+        // Stempel-Vorlage preview/button state - a logo (just-picked or
+        // already-saved) or a separately-picked symbol is required before
+        // "erzeugen" makes sense; the reset button only matters once a
+        // custom icon actually exists.
+        function renderStampSection() {
+          state.stampIconVersion = Date.now();
+          refs.stampPreview.src =
+            "/api/cafes/" + state.selectedCafeId + "/stamp-icon.png?v=" + state.stampIconVersion;
+          var sourceAvailable = !!(
+            state.pendingStampSourceDataUrl ||
+            state.pendingLogoDataUrl ||
+            state.loadedLogoDataUrl
+          );
+          refs.stampGenerateBtn.disabled = !sourceAvailable;
+          refs.stampResetBtn.classList.toggle("hidden", !state.hasCustomStampIcon);
+          refs.stampStatusMsg.textContent = !sourceAvailable
+            ? "Zuerst ein Logo oder Symbol hochladen."
+            : state.hasCustomStampIcon
+              ? "Eigene Stempel-Vorlage aktiv."
+              : "Noch die Standard-Kaffeebohne.";
+          renderPassPreview();
+        }
+
+        // Live preview of the actual wallet pass: same color/logo/stamp-
+        // style inputs as the form above, re-rendered on every change so an
+        // admin can see the effect immediately instead of guessing from the
+        // raw field values (chat 2026-10-02). Deliberately a simplified
+        // standalone card, not a reuse of cafe-scanner-new.html's full
+        // preview system - this tool only ever shows one café at a time and
+        // doesn't need that system's multi-theme CSS variables.
+        function renderPassPreview() {
+          var bg = refs.bgColorInput.value || "#f7efe1";
+          var fg = refs.fgColorInput.value || "#171412";
+          refs.passPreview.style.background = bg;
+          refs.passPreview.style.color = fg;
+          refs.passPreview.style.borderColor = fg;
+
+          var logoSrc = state.pendingLogoDataUrl || state.loadedLogoDataUrl;
+          if (logoSrc) {
+            refs.passPreviewLogo.src = logoSrc;
+            refs.passPreviewLogo.style.display = "block";
+          } else {
+            refs.passPreviewLogo.style.display = "none";
+            refs.passPreviewLogo.src = "";
+          }
+
+          var selectedOption =
+            refs.cafeSelect.options[refs.cafeSelect.selectedIndex];
+          refs.passPreviewName.textContent = selectedOption
+            ? selectedOption.textContent
+            : "Dein Café";
+
+          var threshold = Math.max(
+            1,
+            Math.min(50, Number(refs.stampsForReward.value) || 10),
+          );
+          var filled = Math.min(threshold, Math.round(threshold * 0.6));
+          var circleFill =
+            refs.circleStyleSelect.value === "background" ? bg : "#ffffff";
+          var stampSym =
+            STAMP_STYLES.filter(function (s) {
+              return s.id === state.selectedStampStyle;
+            })[0] || STAMP_STYLES[0];
+          var iconUrl =
+            state.selectedCafeId != null
+              ? "/api/cafes/" +
+                state.selectedCafeId +
+                "/stamp-icon.png?v=" +
+                state.stampIconVersion
+              : "";
+
+          var rows = threshold <= 5 ? 1 : 2;
+          var cols = Math.ceil(threshold / rows);
+          refs.passPreviewStamps.style.gridTemplateColumns =
+            "repeat(" + cols + ", 1fr)";
+
+          refs.passPreviewStamps.innerHTML = "";
+          for (var i = 0; i < threshold; i++) {
+            var dot = document.createElement("div");
+            dot.className = "passPreviewStamp";
+            dot.style.border = "1.5px solid " + fg;
+            dot.style.background = circleFill;
+            if (i < filled) {
+              dot.innerHTML =
+                stampSym.id === "bean"
+                  ? '<img src="' + iconUrl + '" alt="" />'
+                  : '<span style="font-size: 1.1rem">' + stampSym.symbol + "</span>";
+            }
+            refs.passPreviewStamps.appendChild(dot);
+          }
+
+          var remaining = Math.max(0, threshold - filled);
+          var reward = refs.rewardDescription.value.trim() || "deine Prämie";
+          refs.passPreviewReward.textContent =
+            remaining > 0
+              ? "Noch " + remaining + " Stempel bis: " + reward
+              : "Prämie verfügbar: " + reward;
+        }
+
         function loadCafeProfile(cafeId) {
           return fetch("/api/admin/cafes/" + encodeURIComponent(cafeId) + "/profile")
             .then(function (res) {
@@ -447,6 +682,7 @@
               refs.rewardDescription.value =
                 (cafe.program && cafe.program.rewardDescription) || "";
               refs.cardBackText.value = cafe.cardBackText || "";
+              state.loadedLogoDataUrl = cafe.logoDataUrl || null;
               if (cafe.logoDataUrl) {
                 refs.logoPreview.src = cafe.logoDataUrl;
                 refs.logoPreview.style.display = "block";
@@ -454,8 +690,14 @@
                 refs.logoPreview.style.display = "none";
                 refs.logoPreview.src = "";
               }
+              refs.circleStyleSelect.value = cafe.stampCircleStyle || "white";
+              state.pendingStampSourceDataUrl = undefined;
+              state.hasCustomStampIcon = !!cafe.hasCustomStampIcon;
+              refs.stampSourcePreview.style.display = "none";
+              refs.stampSourcePreview.src = "";
               renderThemeGrid();
               renderStampGrid();
+              renderStampSection();
             });
         }
 
@@ -485,6 +727,17 @@
         refs.cafeSelect.addEventListener("change", function () {
           state.selectedCafeId = Number(refs.cafeSelect.value);
           loadCafeProfile(state.selectedCafeId);
+        });
+
+        [
+          refs.bgColorInput,
+          refs.fgColorInput,
+          refs.circleStyleSelect,
+          refs.stampsForReward,
+          refs.rewardDescription,
+        ].forEach(function (el) {
+          el.addEventListener("input", renderPassPreview);
+          el.addEventListener("change", renderPassPreview);
         });
 
         refs.logoInput.addEventListener("change", function () {
@@ -517,8 +770,98 @@
                 }
               })
               .catch(function () {});
+            renderStampSection();
           };
           reader.readAsDataURL(file);
+        });
+
+        refs.stampSourceInput.addEventListener("change", function () {
+          var file = refs.stampSourceInput.files && refs.stampSourceInput.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            state.pendingStampSourceDataUrl = String(reader.result);
+            refs.stampSourcePreview.src = state.pendingStampSourceDataUrl;
+            refs.stampSourcePreview.style.display = "block";
+            renderStampSection();
+          };
+          reader.readAsDataURL(file);
+        });
+
+        refs.stampGenerateBtn.addEventListener("click", function () {
+          if (!state.selectedCafeId) return;
+          var source =
+            state.pendingStampSourceDataUrl ||
+            state.pendingLogoDataUrl ||
+            state.loadedLogoDataUrl;
+          if (!source) return;
+          refs.stampGenerateBtn.disabled = true;
+          refs.stampStatusMsg.textContent = "Wird erzeugt …";
+          fetch(
+            "/api/admin/cafes/" +
+              encodeURIComponent(state.selectedCafeId) +
+              "/stamp-icon/generate",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                logoDataUrl: source,
+                invert: !!refs.stampInvertInput.checked,
+              }),
+            },
+          )
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || result.data.ok === false) {
+                throw new Error(
+                  (result.data && result.data.error) ||
+                    "Stempel-Vorlage konnte nicht erzeugt werden.",
+                );
+              }
+              state.hasCustomStampIcon = true;
+              renderStampSection();
+            })
+            .catch(function (err) {
+              refs.stampStatusMsg.textContent =
+                err.message || "Stempel-Vorlage konnte nicht erzeugt werden.";
+            })
+            .then(function () {
+              refs.stampGenerateBtn.disabled = false;
+            });
+        });
+
+        refs.stampResetBtn.addEventListener("click", function () {
+          if (!state.selectedCafeId) return;
+          refs.stampResetBtn.disabled = true;
+          fetch(
+            "/api/admin/cafes/" +
+              encodeURIComponent(state.selectedCafeId) +
+              "/stamp-icon",
+            { method: "DELETE" },
+          )
+            .then(function (res) {
+              return res.json().then(function (data) {
+                return { ok: res.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok) {
+                throw new Error("Zurücksetzen fehlgeschlagen.");
+              }
+              state.hasCustomStampIcon = false;
+              renderStampSection();
+            })
+            .catch(function (err) {
+              refs.stampStatusMsg.textContent =
+                err.message || "Zurücksetzen fehlgeschlagen.";
+            })
+            .then(function () {
+              refs.stampResetBtn.disabled = false;
+            });
         });
 
         refs.saveBtn.addEventListener("click", function () {
@@ -531,6 +874,7 @@
             cardBgColor: refs.bgColorInput.value,
             cardFgColor: refs.fgColorInput.value,
             stampStyle: state.selectedStampStyle,
+            stampCircleStyle: refs.circleStyleSelect.value,
             stampsForReward: Number(refs.stampsForReward.value) || 10,
             rewardDescription: refs.rewardDescription.value.trim(),
             cardBackText: refs.cardBackText.value.trim(),

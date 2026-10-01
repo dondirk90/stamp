@@ -1838,10 +1838,14 @@
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
               cafeId: cafe.id,
+              cafeAddress: cafe.address || null,
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: c.stampsAwarded || 0,
               stampsRedeemed: c.stampsRedeemed || 0,
+              stampsRemoved: c.stampsRemoved || 0,
               netStamps: c.netStamps || 0,
+              redemptions: c.redemptions || 0,
+              lastRedemptionTs: c.lastRedemptionTs || null,
               lastActivityTs: c.lastActivityTs,
             });
           }
@@ -1854,9 +1858,11 @@
             if (!cafesByCustomer.has(key)) cafesByCustomer.set(key, []);
             cafesByCustomer.get(key).push({
               cafeId: cafe.id,
+              cafeAddress: cafe.address || null,
               name: cafe.name || "Unbenanntes Café",
               stampsAwarded: 0,
               stampsRedeemed: 0,
+              stampsRemoved: 0,
               netStamps: 0,
               lastActivityTs: null,
             });
@@ -2045,22 +2051,36 @@
                   const nameCell = cust.customerName
                     ? escapeHtml(cust.customerName)
                     : "—";
+                  const redeemedBadge = cust.redemptions
+                    ? `<span class="badge badge-neutral"${
+                        cust.lastRedemptionTs
+                          ? ` title="Zuletzt eingelöst: ${escapeHtml(
+                              formatDate(cust.lastRedemptionTs),
+                            )}"`
+                          : ""
+                      }>${
+                        cust.redemptions > 1
+                          ? `${cust.redemptions}× eingelöst`
+                          : "Eingelöst"
+                      }</span>`
+                    : "";
                   return `
                   <tr>
                     <td>${customerAddr}</td>
                     <td>${nameCell}</td>
                     <td>${formatNumber(cust.stampsAwarded)}</td>
                     <td>${formatNumber(cust.stampsRedeemed)}</td>
+                    <td>${formatNumber(cust.stampsRemoved)}</td>
                     <td class="${balanceClass}">${formatNumber(
                       cust.netStamps,
-                    )}</td>
+                    )}${redeemedBadge}</td>
                     <td>${formatDate(cust.lastActivityTs)}</td>
                   </tr>`;
                 })
                 .join("") ||
               `
                 <tr>
-                  <td colspan="6" style="text-align:center; padding: 18px; color: var(--text-muted);">
+                  <td colspan="7" style="text-align:center; padding: 18px; color: var(--text-muted);">
                     Keine Kunden im Limit
                   </td>
                 </tr>`;
@@ -2178,6 +2198,7 @@
                         <th>Name</th>
                         <th>Erhalten</th>
                         <th>Eingelöst</th>
+                        <th>Zurückgenommen</th>
                         <th>Saldo</th>
                         <th>Zuletzt aktiv</th>
                       </tr>
@@ -2239,6 +2260,60 @@
             openCustomerDetail(link.dataset.customerUser);
           });
         });
+        container.querySelectorAll(".walletResyncBtn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            resyncCustomerWallet(
+              btn.dataset.customerAddress,
+              btn.dataset.cafeAddress,
+              btn,
+            );
+          });
+        });
+      }
+
+      // Re-patches an already-installed wallet pass with the current
+      // server-side stamp count, for both platforms - a fix for "the pass
+      // says 2 but the server has 5" support cases where the automatic
+      // update push after a stamp award never visibly landed on the device
+      // (chat 2026-09-25). Doesn't touch stamp_events at all, purely a
+      // resend of what the server already believes is true.
+      async function resyncCustomerWallet(customerAddress, cafeAddress, btn) {
+        if (!customerAddress || !cafeAddress || !state.config) return;
+        const originalLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Synchronisiere …";
+        try {
+          const appleUrl = adminApiUrl("/admin/apple-wallet/resync");
+          appleUrl.searchParams.set("customer", customerAddress);
+          appleUrl.searchParams.set("cafe", cafeAddress);
+          const googleUrl = adminApiUrl("/admin/google-wallet/resync");
+          googleUrl.searchParams.set("customer", customerAddress);
+          googleUrl.searchParams.set("cafe", cafeAddress);
+          const [appleRes, googleRes] = await Promise.all([
+            fetch(appleUrl.toString(), {
+              method: "POST",
+              headers: adminHeaders(),
+            }),
+            fetch(googleUrl.toString(), {
+              method: "POST",
+              headers: adminHeaders(),
+            }),
+          ]);
+          if (!appleRes.ok || !googleRes.ok) {
+            throw new Error(`HTTP ${appleRes.status}/${googleRes.status}`);
+          }
+          btn.textContent = "Synchronisiert ✓";
+        } catch (err) {
+          btn.textContent = "Fehlgeschlagen";
+          window.alert(
+            stampUI.userSafeErrorMessage(err, "Synchronisieren fehlgeschlagen."),
+          );
+        } finally {
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+          }, 3000);
+        }
       }
 
       function renderCafeDetail() {
@@ -2321,19 +2396,39 @@
                       c.name,
                     )}</a>`
                   : escapeHtml(c.name);
+              const syncCell = c.cafeAddress
+                ? `<button type="button" class="miniBtn walletResyncBtn" data-customer-address="${escapeHtml(
+                    key,
+                  )}" data-cafe-address="${escapeHtml(
+                    c.cafeAddress,
+                  )}">Wallet neu synchronisieren</button>`
+                : "—";
+              const redeemedBadge = c.redemptions
+                ? `<span class="badge badge-neutral"${
+                    c.lastRedemptionTs
+                      ? ` title="Zuletzt eingelöst: ${escapeHtml(
+                          formatDate(c.lastRedemptionTs),
+                        )}"`
+                      : ""
+                  }>${
+                    c.redemptions > 1 ? `${c.redemptions}× eingelöst` : "Eingelöst"
+                  }</span>`
+                : "";
               return `
               <tr>
                 <td>${nameCell}</td>
                 <td>${formatNumber(c.stampsAwarded)}</td>
                 <td>${formatNumber(c.stampsRedeemed)}</td>
-                <td class="${balanceClass}">${formatNumber(c.netStamps)}</td>
+                <td>${formatNumber(c.stampsRemoved)}</td>
+                <td class="${balanceClass}">${formatNumber(c.netStamps)}${redeemedBadge}</td>
                 <td>${formatDate(c.lastActivityTs)}</td>
+                <td>${syncCell}</td>
               </tr>`;
             })
             .join("") ||
           `
             <tr>
-              <td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">
+              <td colspan="7" style="text-align:center; padding: 18px; color: var(--text-muted);">
                 Keine Café-Aktivität gefunden.
               </td>
             </tr>`;
@@ -2377,8 +2472,10 @@
                     <th>Café</th>
                     <th>Erhalten</th>
                     <th>Eingelöst</th>
+                    <th>Zurückgenommen</th>
                     <th>Saldo</th>
                     <th>Zuletzt aktiv</th>
+                    <th>Wallet-Pass</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2407,16 +2504,22 @@
               const deltaClass =
                 delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : "";
               const deltaText = delta > 0 ? `+${delta}` : String(delta);
+              const cardCell = r.card_id
+                ? `<span class="address" title="${escapeHtml(r.card_id)}">${escapeHtml(
+                    shortenAddress(r.card_id, 6),
+                  )}</span>`
+                : "— (legacy)";
               return `
               <tr>
                 <td class="timestamp">${formatDate(r.ts)}</td>
                 <td>${cafeCell}</td>
                 <td class="${deltaClass}">${deltaText}</td>
                 <td>${escapeHtml(r.event_type || "stamp")}</td>
+                <td>${cardCell}</td>
               </tr>`;
             })
             .join("") ||
-          `<tr><td colspan="4" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Stempel-Events</td></tr>`;
+          `<tr><td colspan="5" style="text-align:center; padding: 18px; color: var(--text-muted);">Noch keine Stempel-Events</td></tr>`;
 
         return `
           <div class="section-title">Stempel-Log</div>
@@ -2429,6 +2532,7 @@
                   <th>Café</th>
                   <th>Stempel</th>
                   <th>Art</th>
+                  <th>Karte</th>
                 </tr>
               </thead>
               <tbody>${logRows}</tbody>

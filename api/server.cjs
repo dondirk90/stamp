@@ -1725,6 +1725,13 @@ runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN stamp_icon_data TEXT",
   "Failed to add cafes.stamp_icon_data column:",
 );
+// See migrations/027_add_cafe_stamp_circle_style.sql - NULL/"white" means
+// the existing solid-white backing disc, "background" blends it into the
+// card's own bg color instead.
+runSqliteOnlyAlter(
+  "ALTER TABLE cafes ADD COLUMN stamp_circle_style TEXT DEFAULT 'white'",
+  "Failed to add cafes.stamp_circle_style column:",
+);
 runSqliteOnlyAlter(
   "ALTER TABLE cafes ADD COLUMN redeem_message TEXT",
   "Failed to add cafes.redeem_message column:",
@@ -2927,7 +2934,7 @@ const markCafePasswordResetUsedById = db.prepare(
 );
 
 const updateCafeProfileById = db.prepare(
-  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
+  "UPDATE cafes SET about_text = ?, short_description = ?, redeem_message = ?, logo_mime = ?, logo_data = ?, card_bg_mime = ?, card_bg_data = ?, card_back_text = ?, location_address = ?, lat = ?, lng = ?, website_url = ?, instagram_url = ?, card_theme = ?, card_bg_color = ?, card_fg_color = ?, stamp_style = ?, stamp_circle_style = ?, stamps_for_reward = ?, reward_description = ?, popup_inactive_enabled = ?, popup_inactive_days = ?, popup_inactive_message = ?, popup_almost_reward_enabled = ?, popup_almost_reward_remaining = ?, popup_almost_reward_message = ?, reminder_push_enabled = ?, reminder_min_stamps = ?, reminder_inactive_days = ?, reminder_message = ?, reminder_full_message = ?, reminder_new_customer_days = ?, reminder_new_customer_message = ?, updated_at = ? WHERE id = ?",
 );
 
 const listCafeImagesByCafeId = db.prepare(
@@ -5985,6 +5992,7 @@ app.get("/cafes/:cafeId/overview", requireCafeAuth, async (req, res) => {
         cardTheme: cafeRow.card_theme || "paper",
         cardBgColor: cafeRow.card_bg_color || null,
         cardFgColor: cafeRow.card_fg_color || null,
+        stampCircleStyle: cafeRow.stamp_circle_style || "white",
         cardBackText: cafeRow.card_back_text || null,
         program: getCafeProgramSettings(cafeRow),
         logoDataUrl:
@@ -6211,6 +6219,17 @@ async function applyCafeProfileUpdate(current, body) {
       stampStyle = trimmed || "bean";
     }
 
+    const allowedStampCircleStyles = new Set(["white", "background"]);
+    let stampCircleStyle = current.stamp_circle_style || "white";
+    if (Object.prototype.hasOwnProperty.call(body, "stampCircleStyle")) {
+      const raw = body.stampCircleStyle == null ? "" : String(body.stampCircleStyle);
+      const trimmed = raw.trim().toLowerCase();
+      if (trimmed && !allowedStampCircleStyles.has(trimmed)) {
+        return { ok: false, status: 400, error: "invalid_stamp_circle_style" };
+      }
+      stampCircleStyle = trimmed || "white";
+    }
+
     const currentProgram = getCafeProgramSettings(current);
     let stampsForReward = currentProgram.stampsForReward;
     if (Object.prototype.hasOwnProperty.call(body, "stampsForReward")) {
@@ -6349,6 +6368,7 @@ async function applyCafeProfileUpdate(current, body) {
       cardBgColor,
       cardFgColor,
       stampStyle,
+      stampCircleStyle,
       stampsForReward,
       rewardDescription,
       popupInactiveEnabled,
@@ -6391,6 +6411,7 @@ async function applyCafeProfileUpdate(current, body) {
         cardTheme: updated.card_theme || "paper",
         cardBgColor: updated.card_bg_color || null,
         cardFgColor: updated.card_fg_color || null,
+        stampCircleStyle: updated.stamp_circle_style || "white",
         cardBackText: updated.card_back_text || null,
         program: updatedProgram,
         logoDataUrl:
@@ -6559,12 +6580,14 @@ app.get("/admin/cafes/:cafeId/profile", requireAdminKey, async (req, res) => {
       cardTheme: current.card_theme || "paper",
       cardBgColor: current.card_bg_color || null,
       cardFgColor: current.card_fg_color || null,
+      stampCircleStyle: current.stamp_circle_style || "white",
       cardBackText: current.card_back_text || null,
       program,
       logoDataUrl:
         current.logo_data && current.logo_mime
           ? `data:${current.logo_mime};base64,${current.logo_data}`
           : null,
+      hasCustomStampIcon: !!(current.stamp_icon_data && current.stamp_icon_mime),
     },
   });
 });
@@ -7622,6 +7645,7 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
                AND COALESCE(se2.card_id, '') = COALESCE(stamp_events.card_id, '')
                AND (se2.status IS NULL OR se2.status = 'confirmed')
            ) ELSE 0 END) AS stamps_redeemed,
+           SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'stamp_removed' THEN -delta ELSE 0 END) AS stamps_removed,
            SUM(delta) AS net_stamps,
            SUM(CASE WHEN LOWER(COALESCE(event_type,'')) = 'redeem' THEN 1 ELSE 0 END) AS redemptions,
            MAX(CASE WHEN customer_name IS NOT NULL AND customer_name != '' THEN customer_name ELSE NULL END) AS customer_name
@@ -7637,8 +7661,16 @@ app.get("/admin/cafes/activity", requireAdminKey, async (req, res) => {
         customerName: row.customer_name || null,
         stampsAwarded: Number(row.stamps_awarded || 0),
         stampsRedeemed: Number(row.stamps_redeemed || 0),
+        stampsRemoved: Number(row.stamps_removed || 0),
         redemptions: Number(row.redemptions || 0),
-        netStamps: Number(row.net_stamps || 0),
+        // Not row.net_stamps (a raw SUM(delta) across every card_id ever,
+        // closed ones included) - a redeemed card stays in stamp_events at
+        // its full pre-redemption delta sum forever (redemption marks it
+        // redeemed, it doesn't zero the history), so the naive sum shows
+        // the same "10" long after redemption. Same fix as the cafe's own
+        // /cafes/:cafeId/overview already applies (chat 2026-10-01: a
+        // customer's dashboard "Saldo" stuck at 10 after a real redemption).
+        netStamps: await getOpenStampTotal(row.cafe, row.user),
         lastActivityTs:
           row.last_activity_ts != null ? Number(row.last_activity_ts) : null,
         lastStampTs:
@@ -9797,6 +9829,84 @@ app.delete("/cafes/me/stamp-icon", requireCafeAuth, async (req, res) => {
       .json({ ok: false, error: String(err && err.message ? err.message : err) });
   }
 });
+
+// Admin equivalents of the two routes above, keyed by :cafeId instead of a
+// café session - same "Stempel-Vorlage" generator for cafés who want admin
+// support to set up their logo-derived stamp icon instead of doing it
+// themselves (chat 2026-10-01).
+app.post(
+  "/admin/cafes/:cafeId/stamp-icon/generate",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+      }
+      const current = await getCafeById.get(cafeId);
+      if (!current) {
+        return res.status(404).json({ ok: false, error: "cafe_not_found" });
+      }
+
+      const body = req.body || {};
+      let logoBuffer;
+      if (body.logoDataUrl) {
+        const m =
+          /^data:(image\/(png|jpeg|jpg|svg\+xml|webp));base64,([a-z0-9+/=\r\n]+)$/i.exec(
+            String(body.logoDataUrl),
+          );
+        if (!m) {
+          return res.status(400).json({ ok: false, error: "invalid_logo_format" });
+        }
+        logoBuffer = Buffer.from(String(m[3] || "").replace(/\s+/g, ""), "base64");
+      } else if (current.logo_data && current.logo_mime) {
+        logoBuffer = Buffer.from(current.logo_data, "base64");
+      } else {
+        return res.status(400).json({ ok: false, error: "logo_required" });
+      }
+
+      const invertOption =
+        typeof body.invert === "boolean" ? { invert: body.invert } : {};
+      const iconBuffer = await generateStampIcon(logoBuffer, invertOption);
+      const iconData = iconBuffer.toString("base64");
+
+      await setCafeStampIconById.run("image/png", iconData, current.id);
+
+      res.json({
+        ok: true,
+        stampIconUrl: `/cafes/${current.id}/stamp-icon.png?v=${Date.now()}`,
+      });
+    } catch (err) {
+      console.error(
+        "Error in POST /admin/cafes/:cafeId/stamp-icon/generate:",
+        err,
+      );
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
+
+app.delete(
+  "/admin/cafes/:cafeId/stamp-icon",
+  requireAdminKey,
+  async (req, res) => {
+    try {
+      const cafeId = Number(req.params.cafeId);
+      if (!Number.isFinite(cafeId)) {
+        return res.status(400).json({ ok: false, error: "invalid_cafe_id" });
+      }
+      await setCafeStampIconById.run(null, null, cafeId);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Error in DELETE /admin/cafes/:cafeId/stamp-icon:", err);
+      res
+        .status(500)
+        .json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  },
+);
 
 // Public, unauthenticated - referenced from the loyalty object's
 // imageModulesData, so Google's servers (and the Wallet client) fetch this
