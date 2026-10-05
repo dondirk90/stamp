@@ -25,16 +25,63 @@ function requirePriceId() {
   return priceId;
 }
 
+// Stripe wants a 2-letter ISO country code, not the free-text string the
+// registration form collects ("Deutschland" etc.) - only the handful of
+// countries cafés actually register from need a real mapping, anything
+// else is passed through as-is (Stripe just won't recognize it, same as
+// leaving the field empty).
+const COUNTRY_NAME_TO_ISO = {
+  deutschland: "DE",
+  österreich: "AT",
+  oesterreich: "AT",
+  schweiz: "CH",
+};
+
+function toStripeCountryCode(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return undefined;
+  if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+  return COUNTRY_NAME_TO_ISO[s.toLowerCase()] || s;
+}
+
+// Builds Stripe's customer.address shape from the separate street/house
+// number/postal code/city/country columns the registration form collects
+// (see apps/cafe-onboarding.html) - this is what ends up as the billing
+// address on the generated invoice.
+function buildStripeAddress(cafeRow) {
+  const line1 = [cafeRow.street, cafeRow.house_number]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const address = {
+    line1: line1 || undefined,
+    city: cafeRow.city || undefined,
+    postal_code: cafeRow.postal_code || undefined,
+    country: toStripeCountryCode(cafeRow.country),
+  };
+  return Object.values(address).some(Boolean) ? address : undefined;
+}
+
 // cafeRow.stripe_customer_id, once persisted, is trusted as-is - no round
 // trip to Stripe to verify it still exists, same reasoning as every other
 // "trust our own saved id" convention in this codebase (see wallet-pass.cjs/
-// google-wallet-pass.cjs object id handling).
+// google-wallet-pass.cjs object id handling). Name/address are re-synced
+// every time regardless (cheap, idempotent) so a café that fixes a typo in
+// its address after already having a Stripe customer still gets it right
+// on its next invoice, not just the first one.
 async function getOrCreateStripeCustomerId(cafeRow) {
-  if (cafeRow.stripe_customer_id) return cafeRow.stripe_customer_id;
   const stripe = getClient();
-  const customer = await stripe.customers.create({
+  const details = {
     email: cafeRow.email || undefined,
     name: cafeRow.name || undefined,
+    address: buildStripeAddress(cafeRow),
+  };
+  if (cafeRow.stripe_customer_id) {
+    await stripe.customers.update(cafeRow.stripe_customer_id, details);
+    return cafeRow.stripe_customer_id;
+  }
+  const customer = await stripe.customers.create({
+    ...details,
     metadata: { cafeId: String(cafeRow.id) },
   });
   return customer.id;
