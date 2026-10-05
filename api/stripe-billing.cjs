@@ -1,4 +1,4 @@
-// Stripe subscription billing for cafés (45€/month, see chat 2026-10-02).
+// Stripe subscription billing for cafés (29€/month, see chat 2026-10-02).
 // Pure Stripe-API wrapper, no DB access here - same separation as
 // wallet-pass.cjs/google-wallet-pass.cjs: this module builds/reads Stripe
 // objects, server.cjs owns reading/writing the `cafes` row.
