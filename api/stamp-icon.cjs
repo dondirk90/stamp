@@ -39,11 +39,77 @@ function luminance(r, g, b) {
 // Whether a pixel counts as "ink" - the one test every other pass in this
 // file builds on. `invert` flips which tone (light or dark) counts as
 // background, for a logo built the opposite way round (light mark on a
-// dark background) - see detectBackgroundIsDark().
-function isInkPixel(r, g, b, a, invert) {
+// dark background) - see detectBackgroundIsDark(). `threshold` is the
+// per-image adaptive cutoff from computeAdaptiveThreshold() below; falls
+// back to the fixed default when omitted (e.g. a caller that hasn't been
+// updated, or computeAdaptiveThreshold itself falling back).
+function isInkPixel(r, g, b, a, invert, threshold) {
   if (a < ALPHA_CUTOFF) return false;
   const lum = luminance(r, g, b);
-  return invert ? lum > 255 - LUMINANCE_THRESHOLD : lum < LUMINANCE_THRESHOLD;
+  const t = threshold != null ? threshold : LUMINANCE_THRESHOLD;
+  return invert ? lum > t : lum < t;
+}
+
+// A fixed threshold only works when the real background happens to be near
+// black/white - a mid-tone background (confirmed live with an olive-green
+// logo background, chat 2026-10-05: the fixed invert threshold of
+// 255-175=80 is low enough that olive green's own luminance (~110) cleared
+// it and got classified as ink too, turning almost the whole canvas into
+// noise instead of just the icon). Otsu's method instead finds the
+// threshold that actually best separates *this* image's two real clusters
+// (background vs. mark), whatever their actual brightness happens to be.
+// Clamped to a sane range in case a near-flat/low-contrast source produces
+// a degenerate split.
+const OTSU_MIN_THRESHOLD = 50;
+const OTSU_MAX_THRESHOLD = 220;
+
+function computeOtsuThreshold(data, channels) {
+  const hist = new Array(256).fill(0);
+  let total = 0;
+  for (let i = 0; i < data.length; i += channels) {
+    const a = channels >= 4 ? data[i + 3] : 255;
+    if (a < ALPHA_CUTOFF) continue;
+    const lum = Math.max(0, Math.min(255, Math.round(luminance(data[i], data[i + 1], data[i + 2]))));
+    hist[lum] += 1;
+    total += 1;
+  }
+  if (total === 0) return LUMINANCE_THRESHOLD;
+
+  let sumAll = 0;
+  for (let t = 0; t < 256; t++) sumAll += t * hist[t];
+
+  let sumB = 0;
+  let weightB = 0;
+  let bestVariance = -1;
+  let bestThreshold = LUMINANCE_THRESHOLD;
+  for (let t = 0; t < 256; t++) {
+    weightB += hist[t];
+    if (weightB === 0) continue;
+    const weightF = total - weightB;
+    if (weightF === 0) break;
+    sumB += t * hist[t];
+    const meanB = sumB / weightB;
+    const meanF = (sumAll - sumB) / weightF;
+    const variance = weightB * weightF * (meanB - meanF) * (meanB - meanF);
+    if (variance > bestVariance) {
+      bestVariance = variance;
+      bestThreshold = t;
+    }
+  }
+  return Math.max(OTSU_MIN_THRESHOLD, Math.min(OTSU_MAX_THRESHOLD, bestThreshold));
+}
+
+async function computeAdaptiveThreshold(logoBuffer) {
+  try {
+    const { data, info } = await sharp(logoBuffer)
+      .resize(200, 200, { fit: "inside", withoutEnlargement: true })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return computeOtsuThreshold(data, info.channels);
+  } catch {
+    return LUMINANCE_THRESHOLD;
+  }
 }
 
 // Samples a ring around the image's outer edge (not the exact corner
@@ -92,7 +158,7 @@ async function detectBackgroundIsDark(logoBuffer) {
 const CROP_ANALYZE_MAX = 800; // analysis resolution cap, only need a bounding box
 const CROP_PADDING_FRACTION = 0.08;
 
-async function cropToContent(logoBuffer, invert) {
+async function cropToContent(logoBuffer, invert, threshold) {
   const { data, info } = await sharp(logoBuffer)
     .resize(CROP_ANALYZE_MAX, CROP_ANALYZE_MAX, { fit: "inside", withoutEnlargement: true })
     .ensureAlpha()
@@ -106,7 +172,7 @@ async function cropToContent(logoBuffer, invert) {
   for (let y = 0; y < info.height; y++) {
     for (let x = 0; x < info.width; x++) {
       const i = (y * info.width + x) * 4;
-      if (!isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert)) continue;
+      if (!isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert, threshold)) continue;
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;
@@ -232,8 +298,9 @@ async function generateStampIcon(logoBuffer, options = {}) {
     typeof options.invert === "boolean"
       ? options.invert
       : await detectBackgroundIsDark(logoBuffer);
+  const threshold = await computeAdaptiveThreshold(logoBuffer);
 
-  const cropped = await cropToContent(logoBuffer, invert);
+  const cropped = await cropToContent(logoBuffer, invert, threshold);
   const { data, info } = await sharp(cropped)
     .resize(ICON_SIZE, ICON_SIZE, {
       fit: "contain",
@@ -247,7 +314,7 @@ async function generateStampIcon(logoBuffer, options = {}) {
   const pixelCount = info.width * info.height;
   const mask = new Uint8Array(pixelCount);
   for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
-    mask[p] = isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert) ? 1 : 0;
+    mask[p] = isInkPixel(data[i], data[i + 1], data[i + 2], data[i + 3], invert, threshold) ? 1 : 0;
   }
 
   // Pass 1b: crisp cutout - one uniform ink color for every foreground
