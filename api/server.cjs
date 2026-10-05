@@ -1323,6 +1323,63 @@ async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
   return emailTransporter.sendMail(mailOptions);
 }
 
+// Sent once, right after a brand-new café registers (not on the "resend
+// verification for an existing unverified account" path - that's a repeat
+// signup attempt, not a first-time welcome). Orientation only, not a
+// required action like the verification link - best-effort, a failed send
+// here must never block registration itself (chat 2026-10-06).
+async function sendCafeWelcomeEmail({ email, cafeName, loginUrl }) {
+  const displayName = String(cafeName || "").trim() || "dein Café";
+  const steps = [
+    "E-Mail bestätigen (siehe die zweite Mail, die du gerade bekommen hast) und einloggen.",
+    "Abo abschließen (29 €/Monat) - direkt beim ersten Login geht es weiter zur Kasse.",
+    "Kartendesign einrichten: Logo hochladen, Farben und Stempelsymbol wählen.",
+    "Aufsteller für die Theke ausdrucken, damit Gäste die Karte direkt per QR holen können.",
+    "Loslegen: erste Stempel über die Barista-App vergeben.",
+  ];
+  const stepsHtml = steps
+    .map(
+      (s, i) =>
+        `<li style="margin-bottom: 10px;"><strong>${i + 1}.</strong> ${s}</li>`,
+    )
+    .join("");
+  const stepsText = steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: email,
+    subject: `Willkommen bei Kaffeekarte, ${displayName}!`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #222; background: #f6f1ea; margin: 0; padding: 24px;">
+          <div style="max-width: 620px; margin: 0 auto; background: #fffdf9; border: 1px solid rgba(34, 24, 18, 0.1); border-radius: 16px; overflow: hidden;">
+            <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
+              <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
+              <h1 style="margin: 10px 0 8px; font-size: 28px; line-height: 1.1; color: #181311;">Willkommen, ${displayName}!</h1>
+              <p style="margin: 0; color: #5f544a;">Schön, dass du dabei bist. Hier die wichtigsten Schritte, bis deine erste Stempelkarte bei Gästen ankommt.</p>
+            </div>
+            <div style="padding: 24px 28px 30px;">
+              <ol style="margin: 0 0 20px; padding-left: 20px; color: #4d443c;">
+                ${stepsHtml}
+              </ol>
+              <div style="margin-top: 8px;">
+                <a href="${loginUrl}" style="display:inline-block;padding:14px 18px;background:#1c1917;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;">Zum Login</a>
+              </div>
+              <p style="margin: 24px 0 0; color:#8a7d70;font-size:12px;">Fragen? Einfach auf diese E-Mail antworten.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Willkommen, ${displayName}!\n\nSchön, dass du dabei bist. Hier die wichtigsten Schritte:\n\n${stepsText}\n\nZum Login: ${loginUrl}\n\nFragen? Einfach auf diese E-Mail antworten.`,
+  };
+
+  ensureEmailConfigured();
+
+  return emailTransporter.sendMail(mailOptions);
+}
+
 // === Database (SQLite for local dev; Postgres in cloud via DATABASE_URL) ===
 const { createDb } = require("./db.cjs");
 let db;
@@ -9310,6 +9367,22 @@ app.post("/cafes/register-with-email", async (req, res) => {
       return res
         .status(502)
         .json({ ok: false, error: "verification_email_failed" });
+    }
+
+    // Best-effort, not blocking - a café that never got the welcome email
+    // still successfully registered and will still get the verification
+    // link resent on their next attempt if that part failed instead.
+    try {
+      await sendCafeWelcomeEmail({
+        email: normalizedEmail,
+        cafeName: name,
+        loginUrl: `${appsBaseUrl}/cafe-onboarding`,
+      });
+    } catch (welcomeErr) {
+      console.warn(
+        `Failed to send welcome email to ${normalizedEmail}:`,
+        welcomeErr && welcomeErr.message ? welcomeErr.message : welcomeErr,
+      );
     }
 
     res.json({
