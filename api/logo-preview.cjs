@@ -8,6 +8,7 @@
 const sharp = require("sharp");
 const QRCode = require("qrcode");
 const walletPass = require("./wallet-pass.cjs");
+const { generateStampIcon } = require("./stamp-icon.cjs");
 
 // Same paper/ink pair guest-qr-standee.html and the wallet card theme
 // presets use, so a detected-color card still looks native to the brand.
@@ -377,13 +378,36 @@ function platformBadgeSvg(x, y, label, fg) {
   </g>`;
 }
 
+// Derives a stamp silhouette from the prospect's own logo, same generator
+// the real "Stempel-Vorlage" feature uses (see admin-cafe-design.html /
+// POST /admin/cafes/:cafeId/stamp-icon/generate) - so the wallet-pass
+// mockups below show the actual stamp a café would get, not the generic
+// bean (chat 2026-10-05). Packaged as a cafeRow-shaped object purely
+// because that's what getStampIconBuffer() in wallet-pass.cjs expects;
+// nothing here touches a real café. Falls back to undefined (-> default
+// bean) if generation fails for this particular logo, same "always returns
+// a valid image" resilience as the real feature.
+async function buildPreviewStampCafeRow(logoBuffer) {
+  if (!logoBuffer) return undefined;
+  try {
+    const iconBuffer = await generateStampIcon(logoBuffer);
+    return {
+      stamp_icon_data: iconBuffer.toString("base64"),
+      stamp_icon_mime: "image/png",
+    };
+  } catch (err) {
+    console.warn("Logo-preview: stamp icon generation failed:", err.message || err);
+    return undefined;
+  }
+}
+
 // Apple Wallet Store Card, laid out exactly like the real pass this app
 // issues (see buildPassJson in wallet-pass.cjs): logo top-left, the same
 // stamp-strip image as the strip image, "cafeName" as the secondary field
 // centered under it, "remaining" as the smaller auxiliary field under that,
 // then the QR barcode - no invented layout, just that structure with
 // placeholder data.
-async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
+async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }) {
   const colors = walletPass.resolveThemeColors(null, bg, fg);
   const stripBuffer = await walletPass.buildStampStripPngBuffer(
     6,
@@ -392,6 +416,8 @@ async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
     colors.fg,
     "bean",
     false,
+    stampCafeRow,
+    "preview",
   );
   const stripMeta = await sharp(stripBuffer).metadata();
   const stripTargetW = PASS_W - 80;
@@ -450,7 +476,7 @@ async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
 // the "remaining" text as the front-card row Google's cardTemplateOverride
 // defines, then the hero/strip image (shown once the pass is opened) and
 // the barcode.
-async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
+async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }) {
   const colors = walletPass.resolveThemeColors(null, bg, fg);
   const stripBuffer = await walletPass.buildStampStripPngBuffer(
     6,
@@ -459,6 +485,8 @@ async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
     colors.fg,
     "bean",
     false,
+    stampCafeRow,
+    "preview",
   );
   const stripMeta = await sharp(stripBuffer).metadata();
   const stripTargetW = PASS_W - 80;
@@ -512,11 +540,12 @@ async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }) {
 }
 
 async function renderPreviewImages({ logoBuffer, cafeName, rewardText, bg, fg }) {
+  const stampCafeRow = await buildPreviewStampCafeRow(logoBuffer);
   const [standee, registration, walletPassApple, walletPassGoogle] = await Promise.all([
     renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg }),
     renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }),
-    renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg }),
-    renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg }),
+    renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }),
+    renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }),
   ]);
   return { standee, registration, walletPassApple, walletPassGoogle };
 }
