@@ -9,6 +9,7 @@ const sharp = require("sharp");
 const QRCode = require("qrcode");
 const walletPass = require("./wallet-pass.cjs");
 const { generateStampIcon } = require("./stamp-icon.cjs");
+const { stripLogoBackground } = require("./logo-background.cjs");
 
 // Same paper/ink pair guest-qr-standee.html and the wallet card theme
 // presets use, so a detected-color card still looks native to the brand.
@@ -59,6 +60,7 @@ async function extractColorsFromLogo(buffer) {
 
   const { width: w, height: h, channels } = info;
   const counts = new Map();
+  const sums = new Map();
   const QUANT = 8;
 
   function sample(x, y) {
@@ -74,6 +76,11 @@ async function extractColorsFromLogo(buffer) {
       Math.round(b / QUANT) * QUANT,
     ].join(",");
     counts.set(key, (counts.get(key) || 0) + 1);
+    const sum = sums.get(key) || [0, 0, 0];
+    sum[0] += r;
+    sum[1] += g;
+    sum[2] += b;
+    sums.set(key, sum);
   }
 
   for (let x = 0; x < w; x++) {
@@ -104,7 +111,10 @@ async function extractColorsFromLogo(buffer) {
       bestKey = key;
     }
   }
-  const [r, g, b] = bestKey.split(",").map(Number);
+  // Mean of the real pixels in the winning bucket, not the bucket's rounded
+  // key - the rounding alone made the card color visibly differ from the
+  // logo's own background (chat 2026-10-07).
+  const [r, g, b] = sums.get(bestKey).map((v) => v / bestCount);
   return { bg: rgbToHex(r, g, b), fg: pickReadableForeground(r, g, b) };
 }
 
@@ -142,11 +152,35 @@ function wrapText(text, maxCharsPerLine) {
   return lines;
 }
 
+// Same treatment the real surfaces give a logo: own background removed
+// (logo-background.cjs, also used by the Wallet pass and the standee page),
+// then transparent margins trimmed so the visible logo fills its slot.
+async function prepareLogo(logoBuffer) {
+  if (!logoBuffer) return null;
+  const stripped = await stripLogoBackground(logoBuffer);
+  try {
+    return await sharp(stripped).trim().png().toBuffer();
+  } catch {
+    return stripped;
+  }
+}
+
+// Scales a logo to fit inside maxW x maxH (enlarging small uploads too) and
+// returns its final size so callers can center it.
+async function fitLogo(logoBuffer, maxW, maxH) {
+  const { data, info } = await sharp(logoBuffer)
+    .resize(maxW, maxH, { fit: "inside" })
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  return { input: data, width: info.width, height: info.height };
+}
+
 const STANDEE_W = 600;
 const STANDEE_H = 850; // A5 ratio (148:210mm), matches guest-qr-standee.html
 
-// Mirrors guest-qr-standee.html's single colored .face block: logo/name top
-// left, claim + reward + QR centered, small wordmark at the foot.
+// Mirrors guest-qr-standee.html's single colored .face block: logo/name
+// centered at the top (36mm tall slot, max 110mm wide - scaled to this
+// 600px-wide A5), claim + reward + QR centered, small wordmark at the foot.
 async function renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg }) {
   const qrDataUrl = await QRCode.toDataURL("https://kaffeekarte.app/get-app", {
     width: 400,
@@ -174,7 +208,7 @@ async function renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg })
 
   const cafeNameSvg =
     !logoBuffer && cafeName
-      ? `<text x="60" y="92" font-family="${FONT_SANS}" font-size="15" font-weight="700" letter-spacing="2" fill="${fg}">${escapeXml(cafeName.toUpperCase())}</text>`
+      ? `<text x="300" y="150" text-anchor="middle" font-family="${FONT_SANS}" font-size="15" font-weight="700" letter-spacing="2" fill="${fg}">${escapeXml(cafeName.toUpperCase())}</text>`
       : "";
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${STANDEE_W}" height="${STANDEE_H}">
@@ -191,11 +225,15 @@ async function renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg })
 
   const composites = [{ input: qrResized, left: 215, top: 527 }];
   if (logoBuffer) {
-    const logo = await sharp(logoBuffer)
-      .resize(220, 80, { fit: "inside", withoutEnlargement: true })
-      .png()
-      .toBuffer();
-    composites.push({ input: logo, left: 60, top: 60 });
+    const slotW = 446; // 110mm
+    const slotH = 146; // 36mm
+    const slotTop = 70;
+    const logo = await fitLogo(logoBuffer, slotW, slotH);
+    composites.push({
+      input: logo.input,
+      left: Math.round(300 - logo.width / 2),
+      top: Math.round(slotTop + (slotH - logo.height) / 2),
+    });
   }
 
   return sharp(Buffer.from(svg)).composite(composites).png().toBuffer();
@@ -236,13 +274,18 @@ async function renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }) {
   const parts = [];
   let y = 40;
 
-  const badgeSize = 140;
-  const badgeX = cx - badgeSize / 2;
+  // Same as cafe-join.html's img.cafeLogo: 120px tall, width follows the
+  // logo, no box - the (background-stripped) logo sits directly on the
+  // café color. Only the no-logo case keeps the white placeholder square.
+  const badgeH = 120;
+  const logo = logoBuffer ? await fitLogo(logoBuffer, contentW, badgeH) : null;
   const badgeY = y;
-  parts.push(
-    `<rect x="${badgeX}" y="${badgeY}" width="${badgeSize}" height="${badgeSize}" rx="32" fill="rgba(255,255,255,0.94)" />`,
-  );
-  y += badgeSize + 24;
+  if (!logo) {
+    parts.push(
+      `<rect x="${cx - badgeH / 2}" y="${badgeY}" width="${badgeH}" height="${badgeH}" rx="16" fill="rgba(255,255,255,0.94)" />`,
+    );
+  }
+  y += badgeH + 24;
 
   for (const line of wrapText(cafeName || "Kaffeekarte", 22)) {
     y += 26;
@@ -333,19 +376,11 @@ async function renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }) {
   </svg>`;
 
   const composites = [];
-  if (logoBuffer) {
-    const pad = 18;
-    const logo = await sharp(logoBuffer)
-      .resize(badgeSize - pad * 2, badgeSize - pad * 2, {
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .png()
-      .toBuffer();
+  if (logo) {
     composites.push({
-      input: logo,
-      left: Math.round(badgeX + pad),
-      top: Math.round(badgeY + pad),
+      input: logo.input,
+      left: Math.round(cx - logo.width / 2),
+      top: Math.round(badgeY + (badgeH - logo.height) / 2),
     });
   }
 
@@ -402,12 +437,13 @@ async function buildPreviewStampCafeRow(logoBuffer) {
 }
 
 // Apple Wallet Store Card, laid out exactly like the real pass this app
-// issues (see buildPassJson in wallet-pass.cjs): logo top-left, the same
-// stamp-strip image as the strip image, "cafeName" as the secondary field
-// centered under it, "remaining" as the smaller auxiliary field under that,
-// then the QR barcode - no invented layout, just that structure with
-// placeholder data.
-async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }) {
+// issues (see buildPassJson in wallet-pass.cjs): logo top-left in the full
+// 160x50pt slot (2x here: this mockup is ~320pt wide), "Stempel 6/10" header
+// field top-right, the same stamp-strip image as the strip image,
+// "cafeName" as the secondary field centered under it, "Bis zur Prämie" /
+// "Prämie" as the auxiliary pair under that, then the QR barcode - no
+// invented layout, just that structure with placeholder data.
+async function renderAppleWalletMockup({ logoBuffer, cafeName, rewardText, bg, fg, stampCafeRow }) {
   const colors = walletPass.resolveThemeColors(null, bg, fg);
   const stripBuffer = await walletPass.buildStampStripPngBuffer(
     6,
@@ -424,34 +460,52 @@ async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafe
   const stripH = Math.round((stripMeta.height / stripMeta.width) * stripTargetW);
   const qrSize = 108;
 
-  let y = 36;
+  const logoSlotW = 320;
+  const logoSlotH = 100;
+  let y = 28;
   const logoTop = y;
-  y += 40 + 16; // logo height + gap
+  y += logoSlotH + 18;
   const stripTop = y;
   y += stripH + 34;
   const secondaryY = y;
-  y += 22;
-  const auxiliaryY = y;
   y += 30;
+  const auxLabelY = y;
+  y += 22;
+  const auxValueY = y;
+  y += 26;
   const qrBoxTop = y;
   y += qrSize + 28 + 28; // box padding + bottom margin
+  const badgeY = y;
+  y += 22 + 20;
   const passH = y;
+
+  const reward = walletPass.rewardTextFor(rewardText);
+  const label = (x, yy, text, anchor) =>
+    `<text x="${x}" y="${yy}" text-anchor="${anchor}" font-family="${FONT_SANS}" font-size="11" font-weight="700" letter-spacing="1" fill="${colors.fg}" opacity="0.75">${escapeXml(text.toUpperCase())}</text>`;
+  const value = (x, yy, text, anchor, size) =>
+    `<text x="${x}" y="${yy}" text-anchor="${anchor}" font-family="${FONT_SANS}" font-size="${size}" font-weight="600" fill="${colors.fg}">${escapeXml(text)}</text>`;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PASS_W}" height="${passH}">
     <rect x="0" y="0" width="${PASS_W}" height="${passH}" rx="24" fill="${colors.bg}" />
-    ${platformBadgeSvg(PASS_W - 130, 24, "APPLE WALLET", colors.fg)}
+    ${label(PASS_W - 40, logoTop + 40, "Stempel", "end")}
+    ${value(PASS_W - 40, logoTop + 72, "6/10", "end", 28)}
     <text x="${PASS_W / 2}" y="${secondaryY}" text-anchor="middle" font-family="${FONT_SANS}" font-size="19" font-weight="700" fill="${colors.fg}">${escapeXml(cafeName || "Café")}</text>
-    <text x="${PASS_W / 2}" y="${auxiliaryY}" text-anchor="middle" font-family="${FONT_SANS}" font-size="13" fill="${colors.fg}" opacity="0.75">noch 4</text>
+    ${label(40, auxLabelY, "Bis zur Prämie", "start")}
+    ${value(40, auxValueY, "noch 4", "start", 17)}
+    ${label(PASS_W - 40, auxLabelY, "Prämie", "end")}
+    ${value(PASS_W - 40, auxValueY, reward, "end", 17)}
     <rect x="${PASS_W / 2 - qrSize / 2 - 14}" y="${qrBoxTop}" width="${qrSize + 28}" height="${qrSize + 28}" rx="16" fill="#ffffff" />
+    ${platformBadgeSvg(40, badgeY, "APPLE WALLET", colors.fg)}
   </svg>`;
 
   const composites = [];
   if (logoBuffer) {
-    const logo = await sharp(logoBuffer)
-      .resize(140, 40, { fit: "inside", withoutEnlargement: true })
-      .png()
-      .toBuffer();
-    composites.push({ input: logo, left: 40, top: logoTop });
+    const logo = await fitLogo(logoBuffer, logoSlotW, logoSlotH);
+    composites.push({
+      input: logo.input,
+      left: 40,
+      top: Math.round(logoTop + (logoSlotH - logo.height) / 2),
+    });
   }
 
   const stripResized = await sharp(stripBuffer)
@@ -476,7 +530,7 @@ async function renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafe
 // the "remaining" text as the front-card row Google's cardTemplateOverride
 // defines, then the hero/strip image (shown once the pass is opened) and
 // the barcode.
-async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }) {
+async function renderGoogleWalletMockup({ logoBuffer, cafeName, rewardText, bg, fg, stampCafeRow }) {
   const colors = walletPass.resolveThemeColors(null, bg, fg);
   const stripBuffer = await walletPass.buildStampStripPngBuffer(
     6,
@@ -510,7 +564,8 @@ async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCaf
     <rect x="0" y="0" width="${PASS_W}" height="${passH}" rx="16" fill="${colors.bg}" />
     ${platformBadgeSvg(PASS_W - 140, 24, "GOOGLE WALLET", colors.fg)}
     <text x="${headerTextX}" y="${nameY}" font-family="${FONT_SANS}" font-size="21" font-weight="700" fill="${colors.fg}">${escapeXml(cafeName || "Café")}</text>
-    <text x="${headerTextX}" y="${remainingY}" font-family="${FONT_SANS}" font-size="14" fill="${colors.fg}" opacity="0.8">noch 4 Stempel</text>
+    <text x="${headerTextX}" y="${remainingY}" font-family="${FONT_SANS}" font-size="14" fill="${colors.fg}" opacity="0.8">noch 4</text>
+    <text x="${PASS_W - 40}" y="${remainingY}" text-anchor="end" font-family="${FONT_SANS}" font-size="14" font-weight="600" fill="${colors.fg}">${escapeXml(walletPass.rewardTextFor(rewardText))}</text>
     <rect x="${PASS_W / 2 - qrSize / 2 - 14}" y="${qrBoxTop}" width="${qrSize + 28}" height="${qrSize + 28}" rx="16" fill="#ffffff" />
   </svg>`;
 
@@ -540,12 +595,17 @@ async function renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCaf
 }
 
 async function renderPreviewImages({ logoBuffer, cafeName, rewardText, bg, fg }) {
-  const stampCafeRow = await buildPreviewStampCafeRow(logoBuffer);
+  // Stamp silhouette from the original upload (that generator does its own
+  // background handling); every visible logo uses the prepared version.
+  const [stampCafeRow, logo] = await Promise.all([
+    buildPreviewStampCafeRow(logoBuffer),
+    prepareLogo(logoBuffer),
+  ]);
   const [standee, registration, walletPassApple, walletPassGoogle] = await Promise.all([
-    renderStandeeMockup({ logoBuffer, cafeName, rewardText, bg, fg }),
-    renderRegistrationMockup({ logoBuffer, cafeName, bg, fg }),
-    renderAppleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }),
-    renderGoogleWalletMockup({ logoBuffer, cafeName, bg, fg, stampCafeRow }),
+    renderStandeeMockup({ logoBuffer: logo, cafeName, rewardText, bg, fg }),
+    renderRegistrationMockup({ logoBuffer: logo, cafeName, bg, fg }),
+    renderAppleWalletMockup({ logoBuffer: logo, cafeName, rewardText, bg, fg, stampCafeRow }),
+    renderGoogleWalletMockup({ logoBuffer: logo, cafeName, rewardText, bg, fg, stampCafeRow }),
   ]);
   return { standee, registration, walletPassApple, walletPassGoogle };
 }

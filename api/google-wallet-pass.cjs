@@ -199,18 +199,23 @@ function buildLoyaltyClassPayload(cafeRow, appsBaseUrl, classId) {
       // available elsewhere (the object's own accountName), just not
       // pinned under the QR code.
       cardBarcodeSectionDetails: null,
-      // Reuses the same "remaining" text module already sent for the
-      // detail view - the class only defines *where* this shows (a row on
-      // the front card, above the barcode), each object's own value (either
-      // "noch X" or "Prämie verfügbar!") decides *what* it says, since
-      // that's naturally different per customer.
+      // Reuses the "remaining" and "reward" text modules already sent for
+      // the detail view - the class only defines *where* these show (one
+      // row on the front card, above the barcode), each object's own values
+      // decide *what* they say. Same left/right pair as the Apple pass's
+      // auxiliaryFields.
       cardTemplateOverride: {
         cardRowTemplateInfos: [
           {
-            oneItem: {
-              item: {
+            twoItems: {
+              startItem: {
                 firstValue: {
                   fields: [{ fieldPath: "object.textModulesData['remaining']" }],
+                },
+              },
+              endItem: {
+                firstValue: {
+                  fields: [{ fieldPath: "object.textModulesData['reward']" }],
                 },
               },
             },
@@ -329,7 +334,12 @@ function buildLoyaltyObjectPayload({
       ...(cafeRow.instagram_url
         ? [{ id: "cafeInstagram", header: "Instagram", body: cafeRow.instagram_url }]
         : []),
-      { id: "remaining", header: "Bis zum Gratis-Kaffee", body: remainingLine },
+      { id: "remaining", header: "Bis zur Prämie", body: remainingLine },
+      {
+        id: "reward",
+        header: "Prämie",
+        body: walletPass.rewardTextFor(rewardDescription),
+      },
       // Account info - see the matching comment in wallet-pass.cjs's
       // buildPassJson for why these three exist.
       ...(customerId

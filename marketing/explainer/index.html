@@ -1,0 +1,1595 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kaffeekarte Erklärvideo</title>
+    <!--
+      Animiertes Erklärvideo für Café-Betreiber (ca. 70 s), zum Abfilmen per
+      Bildschirmaufnahme (macOS: Cmd+Shift+5). Bedienung:
+        Klick / Leertaste  Start bzw. Pause
+        R                  Neustart
+        ?format=vertical   9:16 statt 16:9 (Reels/TikTok/WhatsApp)
+        ?t=30              ab Sekunde 30 starten (zum Durchsehen)
+        ?cafe=Name         anderer Café-Name in den Mitteilungen
+
+      Echte Bilder (aus Admin > Logo-Vorschau herunterladen) gehören nach
+      marketing/explainer/assets/:
+        logo.png, aufsteller.png, registrierung.png,
+        wallet-apple.png, wallet-google.png
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f7f4ef;
+        --cream: #f6eee3;
+        --surface: #fcfaf6;
+        --ink: #171513;
+        --muted: #706860;
+        --coffee: #4a3728;
+        --coffee-dark: #2b1d15;
+        --coffee-light: #b99174;
+        --terracotta: #b76e52;
+        --butter: #d8bd75;
+        --sage: #aeb7a0;
+        --success: #54705b;
+        --sans: "Geist", "Inter", system-ui, -apple-system, sans-serif;
+        --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        --stage-w: 1920px;
+        --stage-h: 1080px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: var(--sans);
+        color: var(--ink);
+      }
+
+      body.vertical {
+        --stage-w: 1080px;
+        --stage-h: 1920px;
+      }
+
+      #stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--stage-w);
+        height: var(--stage-h);
+        transform-origin: 0 0;
+        overflow: hidden;
+        background: var(--paper);
+      }
+
+      /* ---------- Szenen-Mechanik ---------- */
+      .scene {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.5s ease,
+          visibility 0s linear 0.5s;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        gap: 80px;
+        padding: 110px 140px;
+      }
+
+      .scene.on {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.5s ease;
+      }
+
+      body.vertical .scene {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        align-content: center;
+        justify-items: center;
+        gap: 70px;
+        padding: 120px 80px;
+      }
+
+      body.vertical .scene .visual {
+        order: -1;
+      }
+
+      .scene.center {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .dark {
+        background:
+          radial-gradient(circle at 80% 0%, rgba(213, 173, 132, 0.2), rgba(213, 173, 132, 0) 50%),
+          linear-gradient(165deg, #2c1e15 0%, #21170f 60%, #190f09 100%);
+        color: rgba(255, 247, 239, 0.95);
+      }
+
+      .visual {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+      }
+
+      /* Elemente mit data-cue sind bis zu ihrem Einsatz unsichtbar.
+         .go wird vom Timeline-Script gesetzt. */
+      [data-cue] {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity 0.6s ease,
+          transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      [data-cue].go {
+        opacity: 1;
+        transform: none;
+      }
+
+      [data-cue].pop {
+        transform: scale(0.6);
+      }
+
+      [data-cue].pop.go {
+        transform: none;
+        transition:
+          opacity 0.3s ease,
+          transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+
+      [data-cue].fade {
+        transform: none;
+      }
+
+      [data-cue].gone {
+        opacity: 0 !important;
+        transform: translateY(-20px) !important;
+      }
+
+      /* ---------- Typografie ---------- */
+      .kicker {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--terracotta);
+        margin-bottom: 26px;
+      }
+
+      .dark .kicker {
+        color: #d9b48d;
+      }
+
+      h1,
+      h2 {
+        font-family: var(--serif);
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 104px;
+        line-height: 1;
+      }
+
+      h2 {
+        font-size: 84px;
+        line-height: 1.04;
+      }
+
+      .lead {
+        margin-top: 30px;
+        font-size: 38px;
+        line-height: 1.4;
+        color: var(--muted);
+        max-width: 22ch;
+      }
+
+      .dark .lead {
+        color: rgba(242, 228, 216, 0.78);
+      }
+
+      body.vertical .copy {
+        text-align: center;
+      }
+
+      body.vertical .lead {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* ---------- Telefon ---------- */
+      .phone {
+        width: 430px;
+        height: 880px;
+        border-radius: 72px;
+        background: #111;
+        padding: 16px;
+        box-shadow:
+          0 50px 100px rgba(40, 24, 14, 0.35),
+          inset 0 0 0 2px #333;
+        position: relative;
+        flex: none;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        width: 120px;
+        height: 34px;
+        margin-left: -60px;
+        background: #000;
+        border-radius: 20px;
+        z-index: 5;
+      }
+
+      .screen {
+        width: 100%;
+        height: 100%;
+        border-radius: 58px;
+        overflow: hidden;
+        position: relative;
+        background: var(--paper);
+      }
+
+      .screen > .state {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 90px 34px 40px;
+        transform: none;
+      }
+
+      /* ---------- Stempelkarte (Nachbau des Wallet-Passes) ---------- */
+      .pass {
+        width: 520px;
+        border-radius: 30px;
+        background: var(--cardBg, var(--cream));
+        color: var(--cardFg, var(--coffee));
+        padding: 34px 34px 30px;
+        box-shadow: 0 40px 80px rgba(40, 24, 14, 0.25);
+        position: relative;
+        transition: background 0.6s ease, color 0.6s ease;
+      }
+
+      .pass.small {
+        width: 362px;
+        padding: 24px 22px 22px;
+        border-radius: 22px;
+        box-shadow: 0 16px 34px rgba(40, 24, 14, 0.22);
+      }
+
+      .passHead {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 26px;
+      }
+
+      .passLogo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        font-size: 24px;
+      }
+
+      .passLogo img {
+        width: 46px;
+        height: 46px;
+      }
+
+      .passCount {
+        text-align: right;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+
+      .passCount b {
+        display: block;
+        font-size: 30px;
+        letter-spacing: 0;
+        opacity: 1;
+      }
+
+      .stamps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        justify-items: center;
+        margin: 6px 0 22px;
+      }
+
+      .pass.small .stamps {
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .slot {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        border: 3px solid currentColor;
+        opacity: 0.5;
+        position: relative;
+      }
+
+      .pass.small .slot {
+        width: 46px;
+        height: 46px;
+        border-width: 2px;
+      }
+
+      .slot.fill {
+        opacity: 0.5;
+        transform: none;
+      }
+
+      .slot.filled,
+      .slot.fill.go {
+        opacity: 1;
+        border-color: transparent;
+        background: url("../../apps/assets/stamp-bean.png") center / 78% no-repeat;
+      }
+
+      .slot.fill.go {
+        animation: stampIn 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+
+      @keyframes stampIn {
+        0% {
+          transform: scale(2.2) rotate(-25deg);
+          opacity: 0;
+        }
+        100% {
+          transform: none;
+          opacity: 1;
+        }
+      }
+
+      .passName {
+        text-align: center;
+        font-weight: 800;
+        font-size: 30px;
+      }
+
+      .passRemain {
+        text-align: center;
+        font-size: 22px;
+        opacity: 0.75;
+        margin-top: 4px;
+        height: 30px;
+        position: relative;
+      }
+
+      .passRemain span {
+        position: absolute;
+        left: 0;
+        right: 0;
+      }
+
+      .passRemain span[data-cue] {
+        transform: none;
+      }
+
+      .qr {
+        width: 150px;
+        height: 150px;
+        margin: 22px auto 0;
+        background: #fff;
+        border-radius: 18px;
+        padding: 14px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pass.small .qr {
+        width: 104px;
+        height: 104px;
+        padding: 10px;
+        margin-top: 14px;
+      }
+
+      .qrInner {
+        width: 100%;
+        height: 100%;
+        background:
+          linear-gradient(90deg, #111 0 30%, transparent 30% 70%, #111 70%) top / 100% 30% no-repeat,
+          linear-gradient(90deg, #111 0 30%, transparent 30%) bottom / 100% 30% no-repeat,
+          repeating-conic-gradient(#111 0 25%, #fff 0 50%) center / 22% 22%;
+        border-radius: 4px;
+      }
+
+      .scanBeam {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--terracotta);
+        box-shadow: 0 0 18px var(--terracotta);
+        top: 0;
+        opacity: 0;
+      }
+
+      .scanBeam.go {
+        animation: beam 0.9s ease-in-out 1;
+      }
+
+      @keyframes beam {
+        0% {
+          top: 0;
+          opacity: 1;
+        }
+        100% {
+          top: 100%;
+          opacity: 1;
+        }
+      }
+
+      /* ---------- Szene 1: Papierkarte ---------- */
+      .paperCard {
+        width: 560px;
+        height: 330px;
+        background: #efe6d6;
+        border-radius: 14px;
+        padding: 34px;
+        box-shadow: 0 30px 60px rgba(40, 24, 14, 0.2);
+        font-family: var(--serif);
+        color: #6b5443;
+        position: relative;
+        transform: rotate(-6deg);
+      }
+
+      .paperCard .stamps {
+        margin-top: 30px;
+      }
+
+      .paperCard .slot {
+        border-style: dashed;
+        opacity: 0.6;
+      }
+
+      .paperCard .ink {
+        border: none;
+        opacity: 0.75;
+        background: radial-gradient(circle, rgba(183, 110, 82, 0.85) 0 55%, transparent 60%);
+      }
+
+      .paperCard.lost.go {
+        animation: lose 2.2s ease-in 1.2s forwards;
+      }
+
+      @keyframes lose {
+        0% {
+          transform: rotate(-6deg);
+          opacity: 1;
+        }
+        30% {
+          transform: rotate(4deg) translateY(-30px);
+        }
+        100% {
+          transform: rotate(38deg) translate(260px, 900px) scale(0.7);
+          opacity: 0;
+        }
+      }
+
+      .appTile {
+        position: absolute;
+        width: 230px;
+        height: 230px;
+        border-radius: 52px;
+        background: linear-gradient(160deg, #6c7f93, #3e4d5c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 700;
+        text-align: center;
+        line-height: 1.2;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+      }
+
+      .appTile .dl {
+        position: absolute;
+        right: -24px;
+        bottom: -24px;
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: var(--terracotta);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 50px;
+      }
+
+      .strike {
+        position: absolute;
+        width: 330px;
+        height: 14px;
+        border-radius: 8px;
+        background: var(--terracotta);
+        transform: rotate(-35deg) scaleX(0);
+        transition: transform 0.5s ease;
+      }
+
+      .strike.go {
+        transform: rotate(-35deg) scaleX(1);
+        opacity: 1;
+      }
+
+      /* ---------- Szene 2 / 8: Logo ---------- */
+      .bigLogo {
+        width: 230px;
+        height: 230px;
+        margin: 0 auto 40px;
+      }
+
+      .wordmark {
+        font-family: var(--serif);
+        font-size: 120px;
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+
+      /* ---------- Szene 3: Schritte & Aufsteller ---------- */
+      .steps {
+        list-style: none;
+        padding: 0;
+        margin: 50px 0 0;
+        display: grid;
+        gap: 26px;
+      }
+
+      .steps li {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        font-size: 40px;
+        font-weight: 600;
+      }
+
+      .steps .n {
+        flex: none;
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        background: var(--coffee);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        font-weight: 800;
+      }
+
+      body.vertical .steps {
+        justify-content: center;
+        text-align: left;
+      }
+
+      .camera {
+        background: linear-gradient(180deg, #3a2a20, #1d140e);
+      }
+
+      .standee {
+        width: 250px;
+        height: 350px;
+        border-radius: 14px;
+        background: var(--coffee);
+        color: var(--paper);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        text-align: center;
+        font-family: var(--serif);
+        font-size: 22px;
+        line-height: 1.2;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        position: relative;
+      }
+
+      .standee .qr {
+        width: 130px;
+        height: 130px;
+        margin: 0;
+        padding: 12px;
+      }
+
+      .viewfinder {
+        position: absolute;
+        inset: 120px -20px 70px;
+        border: 4px solid rgba(255, 255, 255, 0.85);
+        border-radius: 26px;
+      }
+
+      .form {
+        width: 100%;
+        display: grid;
+        gap: 18px;
+        text-align: left;
+      }
+
+      .form h3 {
+        font-size: 30px;
+        margin: 0 0 8px;
+        font-family: var(--serif);
+      }
+
+      .field {
+        height: 66px;
+        border-radius: 16px;
+        background: #fff;
+        border: 2px solid rgba(34, 28, 24, 0.12);
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        font-size: 22px;
+        color: var(--muted);
+      }
+
+      .field .typed {
+        color: var(--ink);
+        overflow: hidden;
+        white-space: nowrap;
+        width: 0;
+        border-right: 2px solid var(--ink);
+      }
+
+      .field .typed.go {
+        animation: type 1.2s steps(18) forwards;
+      }
+
+      @keyframes type {
+        to {
+          width: 100%;
+          border-color: transparent;
+        }
+      }
+
+      .btn {
+        height: 72px;
+        border-radius: 36px;
+        background: var(--coffee);
+        color: var(--paper);
+        font-size: 24px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .walletBtn {
+        background: #000;
+        color: #fff;
+        gap: 12px;
+        border-radius: 16px;
+      }
+
+      .walletBtn .wIcon {
+        width: 40px;
+        height: 30px;
+        border-radius: 6px;
+        background: linear-gradient(180deg, #4fb0e8 0 25%, #f5b941 25% 50%, #6ac36f 50% 75%, #ef6b5a 75%);
+      }
+
+      .tap.go {
+        animation: tap 0.5s ease 0.4s;
+      }
+
+      @keyframes tap {
+        50% {
+          transform: scale(0.94);
+        }
+      }
+
+      .walletScreen {
+        background: #f2f2f6;
+      }
+
+      .walletReveal .pass {
+        transform: translateY(110%);
+        transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .walletReveal.go .pass {
+        transform: none;
+      }
+
+      .added {
+        margin-top: 26px;
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--success);
+      }
+
+      /* ---------- Szene 5: Sperrbildschirm ---------- */
+      .lock {
+        background:
+          radial-gradient(circle at 30% 20%, #e3b65c 0%, rgba(227, 182, 92, 0) 55%),
+          linear-gradient(180deg, #b76e52 0%, #6b3f2c 60%, #2b1d15 100%);
+        color: #fff;
+        justify-content: flex-start !important;
+        padding-top: 110px !important;
+      }
+
+      .lockDate {
+        font-size: 24px;
+        font-weight: 600;
+        opacity: 0.9;
+      }
+
+      .lockTime {
+        font-size: 124px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        margin-bottom: 60px;
+      }
+
+      .notif {
+        width: 100%;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(16px);
+        color: var(--ink);
+        padding: 20px;
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .notif img {
+        width: 58px;
+        height: 58px;
+        border-radius: 14px;
+        background: var(--cream);
+        flex: none;
+      }
+
+      .notif .nTop {
+        display: flex;
+        justify-content: space-between;
+        font-size: 19px;
+        font-weight: 700;
+      }
+
+      .notif .nTop span {
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      .notif .nText {
+        font-size: 19px;
+        line-height: 1.35;
+        margin-top: 4px;
+      }
+
+      /* ---------- Szene 6: Café-App ---------- */
+      .panels {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px;
+        width: 100%;
+        margin-top: 60px;
+      }
+
+      body.vertical .panels {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        margin-top: 50px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border-radius: 34px;
+        padding: 36px;
+        box-shadow: 0 24px 50px rgba(40, 24, 14, 0.12);
+        min-height: 470px;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+      }
+
+      body.vertical .panel {
+        min-height: 0;
+        padding: 30px 36px;
+      }
+
+      .panel h3 {
+        margin: 0 0 6px;
+        font-size: 36px;
+        font-family: var(--serif);
+      }
+
+      .panel p {
+        margin: 0 0 24px;
+        font-size: 22px;
+        color: var(--muted);
+      }
+
+      .panelBody {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+      }
+
+      body.vertical .panelBody {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .swatches {
+        display: flex;
+        gap: 14px;
+      }
+
+      .swatches i {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: block;
+        box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.08);
+      }
+
+      .colorCycle.go {
+        animation: cycle 6s steps(1) forwards;
+      }
+
+      @keyframes cycle {
+        0% {
+          background-color: #f6eee3;
+          color: #4a3728;
+        }
+        25% {
+          background-color: #477e4d;
+          color: #fff7ec;
+        }
+        50% {
+          background-color: #2b1d15;
+          color: #f6eee3;
+        }
+        75%,
+        100% {
+          background-color: #b76e52;
+          color: #fff7ec;
+        }
+      }
+
+      .msgBox {
+        width: 100%;
+        border-radius: 18px;
+        background: #fff;
+        border: 2px solid rgba(34, 28, 24, 0.1);
+        padding: 18px 20px;
+        font-size: 21px;
+        line-height: 1.4;
+      }
+
+      .sendBtn {
+        width: 100%;
+        position: relative;
+      }
+
+      .sendBtn .sent {
+        position: absolute;
+        inset: 0;
+        border-radius: 36px;
+        background: var(--success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: none;
+      }
+
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        width: 100%;
+      }
+
+      .tile {
+        background: var(--paper);
+        border-radius: 18px;
+        padding: 14px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .tile b {
+        display: block;
+        font-size: 44px;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+
+      .bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        height: 130px;
+        width: 100%;
+      }
+
+      .bars i {
+        flex: 1;
+        background: var(--coffee-light);
+        border-radius: 6px 6px 0 0;
+        height: var(--h);
+        transform-origin: bottom;
+        transform: scaleY(0);
+        transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .bars.go i {
+        transform: none;
+      }
+
+      body.vertical .msgBox,
+      body.vertical .sendBtn {
+        flex: 1;
+      }
+
+      body.vertical .bars {
+        display: none;
+      }
+
+      /* ---------- Szene 7: Vorteile ---------- */
+      .benefits {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 34px;
+      }
+
+      .benefits li {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        font-size: 50px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .benefits .ck {
+        flex: none;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        background: #d9b48d;
+        color: var(--coffee-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 42px;
+        font-weight: 800;
+      }
+
+      body.vertical .benefits li {
+        font-size: 44px;
+      }
+
+      /* ---------- Szene 8: Abschluss ---------- */
+      .offer {
+        font-family: var(--serif);
+        font-size: 96px;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        margin-top: 10px;
+      }
+
+      .offerSub {
+        font-size: 38px;
+        margin-top: 26px;
+        color: rgba(242, 228, 216, 0.82);
+      }
+
+      .url {
+        display: inline-block;
+        margin-top: 56px;
+        padding: 26px 52px;
+        border-radius: 999px;
+        background: #f5ecdf;
+        color: var(--coffee-dark);
+        font-size: 44px;
+        font-weight: 700;
+      }
+
+      /* ---------- Echte Bilder (assets/) ---------- */
+      .logoCard {
+        width: 560px;
+        height: 560px;
+        border-radius: 48px;
+        background: #fff;
+        box-shadow: 0 40px 90px rgba(40, 24, 14, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+      }
+
+      .logoCard img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .shot {
+        position: relative;
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 40px 90px rgba(40, 24, 14, 0.28);
+        background: #fff;
+      }
+
+      .shot img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .standeeShot {
+        height: 860px;
+        aspect-ratio: 148 / 210;
+        background: transparent;
+      }
+
+      body.vertical .standeeShot {
+        height: 1000px;
+      }
+
+      .kenburns {
+        transform: scale(1);
+        transition: transform 7s ease-out;
+      }
+
+      .go .kenburns {
+        transform: scale(1.06);
+      }
+
+      /* Registrierung: lange Seite langsam durchscrollen wie auf dem Handy */
+      .scrollShot {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        transform: translateY(0);
+        transition: transform 6s ease-in-out 1.5s;
+      }
+
+      .go .scrollShot {
+        transform: translateY(calc(-100% + 848px));
+      }
+
+      .passPair {
+        gap: 40px;
+      }
+
+      body.vertical .passPair {
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .passShot {
+        width: 400px;
+        background: transparent;
+        overflow: visible;
+        box-shadow: none;
+      }
+
+      body.vertical .passShot {
+        width: 470px;
+      }
+
+      .passShot img {
+        border-radius: 24px;
+        box-shadow: 0 40px 80px rgba(40, 24, 14, 0.28);
+        height: auto;
+      }
+
+      .badge {
+        margin-top: 22px;
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .missing {
+        width: 100%;
+        height: 100%;
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 30px;
+        border: 4px dashed var(--terracotta);
+        border-radius: 24px;
+        color: var(--terracotta);
+        font-size: 26px;
+        font-weight: 700;
+        background: #fff;
+      }
+
+      /* ---------- Start-Overlay & Fortschritt ---------- */
+      #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        font-size: 22px;
+        cursor: pointer;
+        text-align: center;
+        padding: 16px;
+      }
+
+      #overlay b {
+        font-size: 34px;
+      }
+
+      #overlay small {
+        opacity: 0.7;
+        max-width: 560px;
+        line-height: 1.5;
+      }
+
+      #progress {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        height: 4px;
+        background: var(--terracotta);
+        width: 0;
+        z-index: 9;
+        display: none;
+      }
+
+      body.debug #progress {
+        display: block;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        [data-cue] {
+          transition-duration: 0.01s;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!-- 1 · Problem (0–6 s) -->
+      <section class="scene" data-start="0" data-end="6">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Für Cafés</div>
+          <h2 data-cue="0.4">Papier-Stempelkarten gehen verloren.</h2>
+          <p class="lead" data-cue="3.3">Und eine Extra-App lädt kaum ein Gast herunter.</p>
+        </div>
+        <div class="visual" style="height: 520px">
+          <div class="paperCard lost" data-cue="0.6" style="transition: opacity 0.4s">
+            <div style="font-size: 34px; font-weight: 700">Café Stempelkarte</div>
+            <div class="stamps">
+              <div class="slot ink"></div>
+              <div class="slot ink"></div>
+              <div class="slot ink"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+              <div class="slot"></div>
+            </div>
+          </div>
+          <div class="appTile pop" data-cue="3.6">
+            Café-App
+            <div class="dl">↓</div>
+          </div>
+          <div class="strike" data-cue="4.6"></div>
+        </div>
+      </section>
+
+      <!-- 2 · Marke (6–11 s) -->
+      <section class="scene center dark" data-start="6" data-end="11">
+        <div class="copy">
+          <img class="bigLogo pop" data-cue="0.3" src="../../apps/assets/app-icon-mark.png" alt="" />
+          <div class="wordmark" data-cue="0.8">Kaffeekarte</div>
+          <p class="lead" data-cue="1.8" style="margin-left: auto; margin-right: auto; max-width: 26ch">
+            Deine Stempelkarte – direkt im Wallet deiner Gäste.
+          </p>
+        </div>
+      </section>
+
+      <!-- 3 · Dein Logo (11–17 s) -->
+      <section class="scene" data-start="11" data-end="17">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Schritt 1</div>
+          <h2 data-cue="0.3">Du lädst dein Logo hoch.</h2>
+          <p class="lead" data-cue="1.2">Daraus entsteht alles Weitere – in deinen Farben.</p>
+        </div>
+        <div class="visual">
+          <div class="logoCard pop" data-cue="0.8">
+            <img class="real" src="assets/logo.png" alt="Logo des Cafés" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 · Aufsteller (17–25 s) -->
+      <section class="scene" data-start="17" data-end="25">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Schritt 2</div>
+          <h2 data-cue="0.3">Dein Aufsteller für die Theke.</h2>
+          <p class="lead" data-cue="1.2">Mit deinem Logo und deiner Prämie. Wir schicken ihn dir zu – inklusive.</p>
+        </div>
+        <div class="visual">
+          <div class="shot standeeShot" data-cue="0.7">
+            <img class="real kenburns" src="assets/aufsteller.png" alt="Aufsteller" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 · Registrierung (25–34 s) -->
+      <section class="scene" data-start="25" data-end="34">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Schritt 3</div>
+          <h2 data-cue="0.3">Dein Gast scannt und meldet sich an.</h2>
+          <p class="lead" data-cue="1.2">Ein Scan, kurz anmelden – ohne App-Download.</p>
+        </div>
+        <div class="visual">
+          <div class="phone" data-cue="0.6">
+            <div class="screen">
+              <img class="real scrollShot" src="assets/registrierung.png" alt="Registrierung" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 · Wallet (34–44 s) -->
+      <section class="scene" data-start="34" data-end="44">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Schritt 4</div>
+          <h2 data-cue="0.3">Die Karte landet im Wallet.</h2>
+          <p class="lead" data-cue="1.2">In Apple Wallet und Google Wallet – bei jedem Stempel automatisch aktuell.</p>
+        </div>
+        <div class="visual passPair">
+          <div class="shot passShot" data-cue="0.8">
+            <img class="real" src="assets/wallet-apple.png" alt="Apple-Wallet-Karte" />
+            <div class="badge">Apple Wallet</div>
+          </div>
+          <div class="shot passShot" data-cue="2.0">
+            <img class="real" src="assets/wallet-google.png" alt="Google-Wallet-Karte" />
+            <div class="badge">Google Wallet</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 · Sperrbildschirm (44–51 s) -->
+      <section class="scene" data-start="44" data-end="51">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Ganz von selbst</div>
+          <h2 data-cue="0.3">Die Karte meldet sich auf dem Sperrbildschirm.</h2>
+          <p class="lead" data-cue="1.0">Wenn dein Gast in der Nähe ist – und wenn die Prämie wartet.</p>
+        </div>
+        <div class="visual">
+          <div class="phone">
+            <div class="screen">
+              <div class="state lock">
+                <div class="lockDate">Dienstag, 14. Oktober</div>
+                <div class="lockTime">8:12</div>
+                <div class="notif" data-cue="1.6">
+                  <img src="assets/logo.png" alt="" />
+                  <div>
+                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Coffee Roasters</span><span>jetzt</span></div>
+                    <div class="nText"><span class="cafeName">Coffee Roasters</span> ist in der Nähe – Zeit für einen Kaffee?</div>
+                  </div>
+                </div>
+                <div class="notif" data-cue="4.4">
+                  <img src="assets/logo.png" alt="" />
+                  <div>
+                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Coffee Roasters</span><span>jetzt</span></div>
+                    <div class="nText">Prämie verfügbar! Dein Gratis-Kaffee wartet auf dich. ☕</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 · Café-App (51–61 s) -->
+      <section class="scene center" data-start="51" data-end="61" style="align-content: center">
+        <div style="width: 100%">
+          <div class="kicker" data-cue="0.2">Deine Café-App</div>
+          <h2 data-cue="0.3">Alles im Griff – ohne Aufwand.</h2>
+          <div class="panels">
+            <div class="panel" data-cue="1.0">
+              <h3>Dein Design</h3>
+              <p>Logo, Farbe und Prämie</p>
+              <div class="panelBody">
+                <div class="pass small colorCycle" data-cue="1.6" style="width: 300px; transform: none">
+                  <div class="stamps" style="grid-template-columns: repeat(5, 1fr); margin: 0">
+                    <div class="slot filled" style="width: 38px; height: 38px"></div>
+                    <div class="slot filled" style="width: 38px; height: 38px"></div>
+                    <div class="slot" style="width: 38px; height: 38px"></div>
+                    <div class="slot" style="width: 38px; height: 38px"></div>
+                    <div class="slot" style="width: 38px; height: 38px"></div>
+                  </div>
+                </div>
+                <div class="swatches">
+                  <i style="background: #f6eee3"></i><i style="background: #477e4d"></i><i style="background: #2b1d15"></i><i style="background: #b76e52"></i>
+                </div>
+              </div>
+            </div>
+            <div class="panel" data-cue="2.2">
+              <h3>Erinnerungen</h3>
+              <p>Direkt an alle Stammgäste</p>
+              <div class="panelBody">
+                <div class="msgBox">Neu bei uns: Kürbis-Latte 🎃 Komm vorbei!</div>
+                <div class="btn sendBtn tap" data-cue="4.2" style="opacity: 1; transform: none">
+                  An 214 Gäste senden
+                  <div class="sent fade" data-cue="5.0">✓ Gesendet</div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" data-cue="3.4">
+              <h3>Statistik</h3>
+              <p>Wer kommt wieder?</p>
+              <div class="panelBody">
+                <div class="tiles">
+                  <div class="tile">Neu<b class="count" data-to="23">0</b></div>
+                  <div class="tile">Zurück<b class="count" data-to="58">0</b></div>
+                  <div class="tile">Aktiv<b class="count" data-to="71">0</b></div>
+                </div>
+                <div class="bars fade" data-cue="4.0" style="opacity: 1">
+                  <i style="--h: 45%"></i><i style="--h: 70%"></i><i style="--h: 82%"></i><i style="--h: 64%"></i><i style="--h: 90%"></i><i style="--h: 100%"></i><i style="--h: 58%"></i><i style="--h: 76%"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 · Vorteile (61–68 s) -->
+      <section class="scene dark" data-start="61" data-end="68">
+        <div class="copy">
+          <div class="kicker" data-cue="0.2">Deine Vorteile</div>
+          <h2 data-cue="0.3">Mehr Stammgäste.<br />Weniger Aufwand.</h2>
+        </div>
+        <ul class="benefits">
+          <li data-cue="0.9"><span class="ck">✓</span>Keine App für deine Gäste</li>
+          <li data-cue="2.0"><span class="ck">✓</span>Kein Papier, keine gefälschten Stempel</li>
+          <li data-cue="3.1"><span class="ck">✓</span>Direkter Draht zu Stammgästen</li>
+          <li data-cue="4.2"><span class="ck">✓</span>Du siehst, wer wiederkommt</li>
+          <li data-cue="5.3"><span class="ck">✓</span>In 10 Minuten startklar</li>
+        </ul>
+      </section>
+
+      <!-- 10 · Angebot (68–77 s) -->
+      <section class="scene center dark" data-start="68" data-end="77">
+        <div class="copy">
+          <img class="bigLogo pop" data-cue="0.2" src="../../apps/assets/app-icon-mark.png" alt="" style="width: 170px; height: 170px" />
+          <div class="offer" data-cue="0.6">1 Monat kostenlos testen</div>
+          <div class="offerSub" data-cue="1.4">Ohne Zahlungsdaten · Aufsteller inklusive · danach 29 € / Monat</div>
+          <div class="url pop" data-cue="2.4">kaffeekarte.app/fuer-cafes</div>
+        </div>
+      </section>
+    </div>
+
+    <div id="overlay">
+      <b>Kaffeekarte Erklärvideo</b>
+      <div>Klicken oder Leertaste zum Starten</div>
+      <small>
+        Zum Aufnehmen: Browser in den Vollbildmodus, Bildschirmaufnahme
+        starten (⌘⇧5), dann hier klicken. R startet neu.
+        Hochformat: <code>?format=vertical</code>
+      </small>
+    </div>
+    <div id="progress"></div>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        if (params.get("format") === "vertical") document.body.classList.add("vertical");
+        if (params.has("t") || params.has("debug")) document.body.classList.add("debug");
+        var startOffset = Number(params.get("t")) || 0;
+
+        var cafe = params.get("cafe");
+        if (cafe) {
+          document.querySelectorAll(".cafeName").forEach(function (el) {
+            el.textContent = cafe;
+          });
+        }
+
+        var stage = document.getElementById("stage");
+        // Fehlt ein Bild in assets/, zeigen wir einen deutlichen Platzhalter
+        // mit dem erwarteten Dateinamen statt eines kaputten Bildes.
+        document.querySelectorAll("img.real, .notif img").forEach(function (img) {
+          img.addEventListener("error", function () {
+            var file = img.getAttribute("src");
+            if (img.closest(".notif")) {
+              img.src = "../../apps/assets/stamp-bean.png";
+              return;
+            }
+            var box = document.createElement("div");
+            box.className = "missing";
+            box.textContent = "Bild fehlt: marketing/explainer/" + file;
+            img.replaceWith(box);
+          });
+        });
+        // Kurze Registrierungsseiten nicht scrollen (sonst rutschen sie nach unten)
+        document.querySelectorAll(".scrollShot").forEach(function (img) {
+          function check() {
+            var screenH = img.parentElement.clientHeight;
+            var shownH = img.naturalHeight * (img.parentElement.clientWidth / img.naturalWidth);
+            if (shownH <= screenH) img.style.transition = "none", (img.style.transform = "none");
+          }
+          if (img.complete) check();
+          else img.addEventListener("load", check);
+        });
+        function fit() {
+          var w = stage.offsetWidth;
+          var h = stage.offsetHeight;
+          var s = Math.min(window.innerWidth / w, window.innerHeight / h);
+          stage.style.transform =
+            "scale(" + s + ") translate(" + -w / 2 + "px," + -h / 2 + "px)";
+        }
+        window.addEventListener("resize", fit);
+        fit();
+
+        var scenes = Array.prototype.map.call(document.querySelectorAll(".scene"), function (el) {
+          return {
+            el: el,
+            start: Number(el.dataset.start),
+            end: Number(el.dataset.end),
+            cues: Array.prototype.slice.call(el.querySelectorAll("[data-cue]")),
+            counts: Array.prototype.slice.call(el.querySelectorAll(".count")),
+          };
+        });
+        var TOTAL = Math.max.apply(null, scenes.map(function (s) { return s.end; }));
+
+        var playing = false;
+        var t0 = 0; // performance.now() bei t = 0
+        var pausedAt = startOffset;
+        var progress = document.getElementById("progress");
+        var overlay = document.getElementById("overlay");
+
+        function reset() {
+          scenes.forEach(function (s) {
+            s.el.classList.remove("on");
+            s.cues.forEach(function (c) {
+              c.classList.remove("go", "gone");
+            });
+            s.counts.forEach(function (c) {
+              c.textContent = "0";
+            });
+          });
+        }
+
+        function render(t) {
+          scenes.forEach(function (s) {
+            var on = t >= s.start && t < s.end;
+            s.el.classList.toggle("on", on);
+            if (!on) return;
+            var local = t - s.start;
+            s.cues.forEach(function (c) {
+              var cue = Number(c.dataset.cue);
+              var off = c.dataset.off != null ? Number(c.dataset.off) : Infinity;
+              c.classList.toggle("go", local >= cue);
+              c.classList.toggle("gone", local >= off);
+            });
+            // Zahlen in den Statistik-Kacheln hochzählen (ab 3.6 s, 1.2 s lang)
+            s.counts.forEach(function (c) {
+              var p = Math.max(0, Math.min(1, (local - 3.6) / 1.2));
+              c.textContent = Math.round(Number(c.dataset.to) * (1 - Math.pow(1 - p, 3)));
+            });
+          });
+          progress.style.width = (t / TOTAL) * 100 + "%";
+        }
+
+        function loop(now) {
+          if (!playing) return;
+          var t = (now - t0) / 1000;
+          if (t >= TOTAL) {
+            render(TOTAL - 0.001);
+            playing = false;
+            ended = true;
+            return;
+          }
+          render(t);
+          requestAnimationFrame(loop);
+        }
+
+        var ended = false;
+        function play() {
+          if (ended) {
+            ended = false;
+            pausedAt = 0;
+            reset();
+          }
+          overlay.style.display = "none";
+          playing = true;
+          t0 = performance.now() - pausedAt * 1000;
+          requestAnimationFrame(loop);
+        }
+
+        function pause() {
+          playing = false;
+          pausedAt = (performance.now() - t0) / 1000;
+        }
+
+        function restart() {
+          playing = false;
+          pausedAt = 0;
+          reset();
+          void stage.offsetWidth;
+          // kurze Ruhe vor dem Start, damit die Aufnahme sauber beginnt
+          setTimeout(play, 600);
+        }
+
+        overlay.addEventListener("click", function () {
+          // 1 s schwarzer Vorlauf: Zeit, um die Maus aus dem Bild zu nehmen
+          overlay.style.display = "none";
+          setTimeout(play, 1000);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.code === "Space") {
+            e.preventDefault();
+            if (playing) pause();
+            else play();
+          } else if (e.key === "r" || e.key === "R") {
+            restart();
+          }
+        });
+
+        render(startOffset);
+      })();
+    </script>
+  </body>
+</html>

@@ -67,16 +67,18 @@
       }
 
       /* Echtes Logo nie beschneiden: Seitenverhaeltnis behalten, Breite
-         passt sich an (nur das Kaffee-Fallback bleibt quadratisch). */
+         passt sich an. Keine weisse Box - das Logo steht (ohne eigenen
+         Hintergrund, siehe logo-background.js) direkt auf der Cafe-Farbe,
+         wie auf Aufsteller und Wallet-Karte. Nur das Kaffee-Fallback bleibt
+         ein Kaestchen. */
       img.cafeLogo {
         width: auto;
-        height: 100px;
+        height: 120px;
         max-width: 100%;
         object-fit: contain;
-        /* Genug Abstand, damit die runden Ecken Logos, die bis an den
-           Bildrand gehen (z. B. Schriftzuege), nicht anschneiden. */
-        padding: 14px 18px;
-        border-radius: 16px;
+        background: none;
+        border-radius: 0;
+        box-shadow: none;
       }
 
       .cafeLogo.fallback {
@@ -502,6 +504,7 @@
     </main>
     </div>
 
+    <script src="logo-background.js?v=1"></script>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
@@ -611,6 +614,13 @@
               cafeLogoEl.src = cafe.logoDataUrl;
               cafeLogoEl.style.display = "block";
               cafeLogoFallbackEl.style.display = "none";
+              // Eigenen Logo-Hintergrund entfernen, wie auf Aufsteller und
+              // Wallet-Karte (logo-background.js).
+              if (window.stripLogoBackground) {
+                window.stripLogoBackground(cafe.logoDataUrl).then(function (cleanUrl) {
+                  cafeLogoEl.src = cleanUrl;
+                });
+              }
             }
 
             applyCafeColors(cafe);

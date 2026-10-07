@@ -326,6 +326,16 @@ async function buildStampStripPngBuffer(stampCount, threshold, bgHex, fgHex, sta
 // the same words. Deliberately limited to things that are actually true of
 // how the product works (no expiry logic, no cash payout, no transfer
 // feature) rather than inventing policy we haven't actually decided on.
+// Shown on the card face of both wallets whenever a café hasn't entered its
+// own reward - same default as /cafes/register-with-email's
+// rewardDescription fallback (chat 2026-10-07: "standard dabei ist ein
+// freigetränk").
+const DEFAULT_REWARD_TEXT = "1 Freigetränk";
+
+function rewardTextFor(rewardDescription) {
+  return String(rewardDescription || "").trim() || DEFAULT_REWARD_TEXT;
+}
+
 function buildTermsText(threshold, rewardDescription) {
   const reward = rewardDescription || "eine Prämie";
   return [
@@ -579,11 +589,21 @@ function buildPassJson({
       // front-card row - the stamp circles already hint at it visually,
       // but it should also be readable as text, not just inferred from
       // counting filled circles.
+      // Plus what the reward actually is (chat 2026-10-07: "auf die
+      // Wallet soll auch noch was genau die Belohnung ist") - left/right
+      // pair instead of the single centered field it used to be.
       auxiliaryFields: [
         {
           key: "remaining",
+          label: "Bis zur Prämie",
           value: remainingLine,
-          textAlignment: "PKTextAlignmentCenter",
+          textAlignment: "PKTextAlignmentLeft",
+        },
+        {
+          key: "reward",
+          label: "Prämie",
+          value: rewardTextFor(rewardDescription),
+          textAlignment: "PKTextAlignmentRight",
         },
       ],
       backFields,
@@ -764,4 +784,5 @@ module.exports = {
   resolveThemeColors,
   buildStampStripPngBuffer,
   buildTermsText,
+  rewardTextFor,
 };
