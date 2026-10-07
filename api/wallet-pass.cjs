@@ -126,23 +126,28 @@ function loadCertificates() {
   return cachedCertificates;
 }
 
-// Fits an arbitrary-aspect-ratio logo into Apple's 160x50pt logo.png slot,
-// transparent-padded, left-aligned. Source is whatever a cafe already
-// uploaded via cafe-scanner-new.html's logo picker.
+// Fits an arbitrary-aspect-ratio logo into Apple's 160x50pt logo.png slot
+// (the maximum Apple allows), transparent-padded, left-aligned, vertically
+// centered. Uses the whole slot rather than a 50x50 square (chat
+// 2026-10-07: "logo auf dem wallet pass etwas größer") and trims
+// transparent margins first, so padding baked into the upload doesn't
+// shrink the visible logo. Source is whatever a cafe already uploaded via
+// cafe-scanner-new.html's logo picker.
 async function buildLogoBuffers(logoBuffer) {
+  let trimmed = logoBuffer;
+  try {
+    trimmed = await sharp(logoBuffer).trim().png().toBuffer();
+  } catch {
+    // trim() throws when there's nothing to keep - use the logo as-is.
+  }
   const out = {};
   for (const scale of [1, 2, 3]) {
     const w = 160 * scale;
     const h = 50 * scale;
-    // Explicit transparent background - sharp's "contain" default is
-    // opaque black, which put black bars next to any non-square logo.
-    const icon = await sharp(logoBuffer)
-      .resize(h, h, {
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
+    const { data: icon, info } = await sharp(trimmed)
+      .resize(w, h, { fit: "inside" })
       .png()
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
     const name = scale === 1 ? "logo.png" : `logo@${scale}x.png`;
     out[name] = await sharp({
       create: {
@@ -152,7 +157,9 @@ async function buildLogoBuffers(logoBuffer) {
         background: { r: 0, g: 0, b: 0, alpha: 0 },
       },
     })
-      .composite([{ input: icon, left: 0, top: 0 }])
+      .composite([
+        { input: icon, left: 0, top: Math.floor((h - info.height) / 2) },
+      ])
       .png()
       .toBuffer();
   }
@@ -546,6 +553,17 @@ function buildPassJson({
     foregroundColor: hexToRgbString(colors.fg),
     labelColor: hexToRgbString(colors.fg),
     storeCard: {
+      // Top-right corner, next to the logo (chat 2026-10-07: "die anzahl
+      // stempel bitte in die ecke oben rechts"). Also visible in the
+      // collapsed pass stack, where only the header row shows.
+      headerFields: [
+        {
+          key: "stampCount",
+          label: "Stempel",
+          value: `${clampedStamps}/${threshold}`,
+          textAlignment: "PKTextAlignmentRight",
+        },
+      ],
       // primaryFields render huge and overlap the strip image instead of
       // stacking below it - secondaryFields is the smaller, normal-sized
       // field row that actually sits between the strip and the barcode
@@ -575,9 +593,9 @@ function buildPassJson({
         message: barcodeMessage,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
-        // Below the barcode, not a top-right headerField - keeps the header
-        // free for logo + cafe name, and reads more like "this is your
-        // card" right where you'd hold it up to scan.
+        // Below the barcode, not a top-right headerField - the header holds
+        // logo + stamp count, and this reads more like "this is your card"
+        // right where you'd hold it up to scan.
         ...(trimmedCustomerName ? { altText: trimmedCustomerName } : {}),
       },
     ],
