@@ -7,6 +7,9 @@ pnpm-lock.yaml
 apps/*/.env
 contracts/.env
 
+# Apple API keys (App Store Connect / APNs)
+*.p8
+
 # Build/Dist
 **/dist/
 **/build/

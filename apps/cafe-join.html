@@ -66,6 +66,15 @@
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
       }
 
+      /* Echtes Logo nie beschneiden: Seitenverhaeltnis behalten, Breite
+         passt sich an (nur das Kaffee-Fallback bleibt quadratisch). */
+      img.cafeLogo {
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        padding: 6px;
+      }
+
       .cafeLogo.fallback {
         display: flex;
         align-items: center;
