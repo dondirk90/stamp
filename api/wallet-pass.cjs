@@ -11,6 +11,7 @@ const http2 = require("http2");
 const sharp = require("sharp");
 const { PKPass } = require("passkit-generator");
 const { getDefaultStampIconBuffer } = require("./stamp-icon.cjs");
+const { stripLogoBackground } = require("./logo-background.cjs");
 
 const PASS_TYPE_IDENTIFIER = "pass.app.kaffeekarte.customer.stampcard";
 
@@ -133,8 +134,14 @@ async function buildLogoBuffers(logoBuffer) {
   for (const scale of [1, 2, 3]) {
     const w = 160 * scale;
     const h = 50 * scale;
+    // Explicit transparent background - sharp's "contain" default is
+    // opaque black, which put black bars next to any non-square logo.
     const icon = await sharp(logoBuffer)
-      .resize(h, h, { fit: "contain" })
+      .resize(h, h, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
       .toBuffer();
     const name = scale === 1 ? "logo.png" : `logo@${scale}x.png`;
     out[name] = await sharp({
@@ -661,7 +668,14 @@ async function generateSignedPass({
 
   if (cafeRow && cafeRow.logo_data && cafeRow.logo_mime) {
     const logoBuffer = Buffer.from(cafeRow.logo_data, "base64");
-    Object.assign(buffers, await buildLogoBuffers(logoBuffer));
+    // Card header logo sits on the café color -> drop the logo's own
+    // background (see logo-background.cjs). icon.png keeps the original:
+    // it's shown on Apple's light notification/list backgrounds, where a
+    // logo with light lettering on its own dark background would vanish.
+    Object.assign(
+      buffers,
+      await buildLogoBuffers(await stripLogoBackground(logoBuffer)),
+    );
     Object.assign(buffers, await buildIconBuffers(logoBuffer));
   }
 

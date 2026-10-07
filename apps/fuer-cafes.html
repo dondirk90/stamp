@@ -272,6 +272,60 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       }
 
+      .heroNote {
+        margin: 0;
+        font-size: 14px;
+        color: rgba(59, 42, 31, 0.66);
+      }
+
+      .pricing {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(28px, 4vw, 48px);
+        align-items: start;
+      }
+
+      .pricing h2 {
+        margin: 8px 0 0;
+        font-family: var(--font-serif);
+        font-size: clamp(34px, 4.6vw, 52px);
+        line-height: 1;
+        letter-spacing: -0.045em;
+      }
+
+      .priceTag {
+        font-family: var(--font-serif);
+        font-size: clamp(44px, 6vw, 64px);
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--brand);
+      }
+
+      .priceTag small {
+        font-size: 0.36em;
+        letter-spacing: 0;
+        color: rgba(59, 42, 31, 0.7);
+      }
+
+      .priceList {
+        margin: 18px 0 0;
+        padding-left: 18px;
+        color: rgba(59, 42, 31, 0.76);
+        line-height: 1.7;
+      }
+
+      .priceFinePrint {
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: rgba(59, 42, 31, 0.6);
+      }
+
+      @media (max-width: 760px) {
+        .pricing {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .footerNote {
         margin-bottom: 14px;
         color: rgba(59, 42, 31, 0.7);
@@ -473,9 +527,12 @@
           deinem Logo und deiner Farbe.
         </p>
         <div class="heroActions">
-          <a class="btn primary" href="/cafe-onboarding">Café registrieren</a>
+          <a class="btn primary" href="/cafe-onboarding">1 Monat kostenlos testen</a>
           <a class="btn secondary" href="/cafe">Anmelden</a>
         </div>
+        <p class="heroNote">
+          Erster Monat gratis, ohne Zahlungsdaten. Danach 29&nbsp;€/Monat.
+        </p>
       </section>
 
       <section class="section section--divider">
@@ -573,6 +630,34 @@
                 sich in Apple und Google Wallet von selbst.
               </p>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--divider" id="preise">
+        <div class="editorialGrid">
+          <div class="editorialIndex">04</div>
+          <div class="pricing">
+            <div>
+              <div class="sectionKicker">Preis</div>
+              <h2>Ein Monat geschenkt.<br />Dann ein fairer Preis.</h2>
+            </div>
+            <div>
+              <div class="priceTag">29&nbsp;€ <small>pro Monat</small></div>
+              <ul class="priceList">
+                <li>Erster Monat kostenlos – ohne Zahlungsdaten</li>
+                <li>Kein automatischer Übergang ins Abo: Du entscheidest im Testmonat</li>
+                <li>Abo schon früher abschließen? Bezahlt wird trotzdem erst nach dem Testmonat</li>
+                <li>Alle Funktionen inklusive, Apple &amp; Google Wallet</li>
+              </ul>
+              <p class="priceFinePrint">
+                Endpreis. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.
+                Details in den <a href="/agb">AGB</a>.
+              </p>
+              <div class="heroActions" style="margin-top: 22px">
+                <a class="btn primary" href="/cafe-onboarding">Jetzt kostenlos testen</a>
+              </div>
+            </div>
           </div>
         </div>
       </section>

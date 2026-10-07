@@ -34,6 +34,7 @@ const {
 } = require("./stamp-icon.cjs");
 const googleWalletPass = require("./google-wallet-pass.cjs");
 const logoPreview = require("./logo-preview.cjs");
+const { stripLogoBackground } = require("./logo-background.cjs");
 const stripeBilling = require("./stripe-billing.cjs");
 
 const { z } = require("zod");
@@ -463,7 +464,7 @@ function parseCustomerAvatarDataUrl(raw) {
   return { mime, data };
 }
 
-const LEGAL_VERSION = "2026-06-mvp";
+const LEGAL_VERSION = "2026-10-07";
 
 async function upsertCustomerOauthIdentity({
   customerId,
@@ -3453,19 +3454,31 @@ async function requireCafeAuth(req, res, next) {
 //  - PAYWALL_GRACE_FALLBACK: a fixed date two weeks after this feature
 //    shipped - covers every café that already existed at that point, so
 //    the rollout itself doesn't instantly lock anyone out.
-//  - cafeRow.created_at + 14 days: covers a brand new signup (after the
-//    fallback date above) with its own two-week runway before it has to
-//    pay, same as a free trial.
+//  - cafeTrialEndsAt(): covers a brand new signup with its free test month
+//    (one calendar month from registration, no card needed - chat
+//    2026-10-07: "1 monatigen Testzeitraum einräumen", advertised on
+//    /fuer-cafes and in AGB § 7).
 //  - subscription_current_period_end + 14 days: covers a café whose
 //    subscription just lapsed/failed - two more weeks past what they
 //    already paid for, not an instant cutoff the moment Stripe reports it.
 const PAYWALL_GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 const PAYWALL_GRACE_FALLBACK = new Date("2026-10-02T00:00:00Z").getTime() + PAYWALL_GRACE_PERIOD_MS;
 
+// End of the free test month, or null if created_at is unknown. Also used by
+// the checkout route: a café that subscribes early gets the rest of its test
+// month as a Stripe trial, so it never pays for days that were free anyway.
+function cafeTrialEndsAt(cafeRow) {
+  if (cafeRow?.created_at == null) return null;
+  const d = new Date(Number(cafeRow.created_at));
+  d.setMonth(d.getMonth() + 1);
+  return d.getTime();
+}
+
 function billingGraceEndsAt(cafeRow) {
   const candidates = [PAYWALL_GRACE_FALLBACK];
-  if (cafeRow?.created_at != null) {
-    candidates.push(Number(cafeRow.created_at) + PAYWALL_GRACE_PERIOD_MS);
+  const trialEndsAt = cafeTrialEndsAt(cafeRow);
+  if (trialEndsAt != null) {
+    candidates.push(trialEndsAt);
   }
   if (cafeRow?.subscription_current_period_end != null) {
     candidates.push(Number(cafeRow.subscription_current_period_end) + PAYWALL_GRACE_PERIOD_MS);
@@ -3498,6 +3511,7 @@ function summarizeCafeBilling(cafeRow) {
         ? Number(cafeRow.subscription_current_period_end)
         : null,
     graceEndsAt: billingGraceEndsAt(cafeRow),
+    trialEndsAt: cafeTrialEndsAt(cafeRow),
   };
 }
 
@@ -6693,6 +6707,12 @@ app.post("/cafes/me/billing/checkout-session", requireCafeAuth, async (req, res)
       // this Checkout Session), so the webhook can find the café by
       // metadata alone - see /webhooks/stripe's own comment.
       subscriptionMetadata: { cafeId: String(cafeRow.id) },
+      // Rest of the free test month carries over as a Stripe trial - only
+      // for a first subscription (no re-trial after cancelling), and only
+      // if far enough out for Stripe (trial_end must be >= 48h ahead).
+      trialEndsAt: !cafeRow.stripe_subscription_id
+        ? cafeTrialEndsAt(cafeRow)
+        : null,
     });
 
     res.json({ ok: true, url: session.url });
@@ -9156,7 +9176,7 @@ app.post("/cafes/reset-password/preview", async (req, res) => {
 
 app.post("/cafes/register-with-email", async (req, res) => {
   try {
-    const LEGAL_VERSION = "2026-06-mvp";
+    const LEGAL_VERSION = "2026-10-07";
     const {
       name,
       email,
@@ -10047,6 +10067,7 @@ app.get("/customers/:customerAddress/google-wallet-save-link", async (req, res) 
 
 // Public, unauthenticated - Google's servers fetch this URL directly when
 // rendering a loyalty class's logo, so it can't sit behind cafe auth.
+const strippedLogoCache = new Map();
 app.get("/cafes/:cafeId/logo.png", async (req, res) => {
   try {
     const cafeId = Number(req.params.cafeId);
@@ -10055,9 +10076,21 @@ app.get("/cafes/:cafeId/logo.png", async (req, res) => {
     if (!cafeRow || !cafeRow.logo_data || !cafeRow.logo_mime) {
       return res.status(404).end();
     }
-    res.setHeader("Content-Type", cafeRow.logo_mime);
+    // Background stripped so the Google Wallet card shows the logo directly
+    // on the café color, not inside its own off-tone rectangle (see
+    // logo-background.cjs). Also used in emails, where a transparent logo
+    // on white is just as fine. Cached per logo so Google's repeated
+    // fetches don't redo the pixel work every time.
+    const cacheKey = `${cafeId}:${cafeRow.logo_data.length}:${cafeRow.updated_at || ""}`;
+    let png = strippedLogoCache.get(cacheKey);
+    if (!png) {
+      png = await stripLogoBackground(Buffer.from(cafeRow.logo_data, "base64"));
+      if (strippedLogoCache.size > 200) strippedLogoCache.clear();
+      strippedLogoCache.set(cacheKey, png);
+    }
+    res.setHeader("Content-Type", "image/png");
     res.setHeader("Cache-Control", "public, max-age=300");
-    res.send(Buffer.from(cafeRow.logo_data, "base64"));
+    res.send(png);
   } catch (err) {
     console.error("Error serving cafe logo:", err);
     res.status(500).end();

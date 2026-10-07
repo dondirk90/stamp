@@ -6161,10 +6161,15 @@
             billing && billing.graceEndsAt != null
               ? Math.max(0, Math.ceil((billing.graceEndsAt - Date.now()) / 86400000))
               : null;
+          // Never subscribed yet -> this is the free test month, not a
+          // lapsed-payment grace period.
+          const isTrial = billing && !billing.status;
           if (statusEl) {
             statusEl.textContent =
               daysLeft != null
-                ? `Noch kein aktives Abo - Kulanzfrist noch ${daysLeft} Tag${daysLeft === 1 ? "" : "e"}.`
+                ? isTrial
+                  ? `Kostenloser Testmonat - noch ${daysLeft} Tag${daysLeft === 1 ? "" : "e"}.`
+                  : `Noch kein aktives Abo - Kulanzfrist noch ${daysLeft} Tag${daysLeft === 1 ? "" : "e"}.`
                 : "Noch kein aktives Abo.";
           }
         }
@@ -7140,7 +7145,11 @@
             : null;
         if (textEl) {
           textEl.textContent =
-            daysLeft != null
+            daysLeft != null && !billing.status
+              ? `Dein kostenloser Testmonat läuft noch ${daysLeft} Tag${
+                  daysLeft === 1 ? "" : "e"
+                }. Wenn du das Abo (29 €/Monat) schon jetzt abschließt, zahlst du erst nach dem Testmonat.`
+              : daysLeft != null
               ? `Dieses Café hat noch kein aktives Abo (29 €/Monat). Noch ${daysLeft} Tag${
                   daysLeft === 1 ? "" : "e"
                 } Kulanzfrist, danach wird die App gesperrt.`

@@ -62,6 +62,13 @@ function buildStripeAddress(cafeRow) {
   return Object.values(address).some(Boolean) ? address : undefined;
 }
 
+// Kleinunternehmer (§ 19 UStG, see apps/impressum.html): every invoice must
+// say why no VAT is shown. Set per customer (re-synced like name/address
+// below) so it can't silently go missing if the dashboard default footer
+// is ever changed.
+const INVOICE_FOOTER =
+  "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).";
+
 // cafeRow.stripe_customer_id, once persisted, is trusted as-is - no round
 // trip to Stripe to verify it still exists, same reasoning as every other
 // "trust our own saved id" convention in this codebase (see wallet-pass.cjs/
@@ -75,6 +82,7 @@ async function getOrCreateStripeCustomerId(cafeRow) {
     email: cafeRow.email || undefined,
     name: cafeRow.name || undefined,
     address: buildStripeAddress(cafeRow),
+    invoice_settings: { footer: INVOICE_FOOTER },
   };
   if (cafeRow.stripe_customer_id) {
     await stripe.customers.update(cafeRow.stripe_customer_id, details);
@@ -93,8 +101,16 @@ async function createCheckoutSession({
   successUrl,
   cancelUrl,
   subscriptionMetadata,
+  trialEndsAt,
 }) {
   const stripe = getClient();
+  const subscriptionData = {};
+  if (subscriptionMetadata) subscriptionData.metadata = subscriptionMetadata;
+  // Stripe rejects a trial_end less than 48h out - closer than that the
+  // café just starts paying right away, which costs it at most two days.
+  if (trialEndsAt && trialEndsAt > Date.now() + 48 * 60 * 60 * 1000) {
+    subscriptionData.trial_end = Math.floor(trialEndsAt / 1000);
+  }
   return stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
@@ -108,8 +124,8 @@ async function createCheckoutSession({
     // Copied onto the resulting Subscription object itself, not just this
     // Checkout Session - the webhook looks the café up by this, not by
     // stripe_customer_id, so it self-heals regardless of event ordering.
-    subscription_data: subscriptionMetadata
-      ? { metadata: subscriptionMetadata }
+    subscription_data: Object.keys(subscriptionData).length
+      ? subscriptionData
       : undefined,
     success_url: successUrl,
     cancel_url: cancelUrl,
