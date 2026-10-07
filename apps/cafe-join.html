@@ -70,9 +70,13 @@
          passt sich an (nur das Kaffee-Fallback bleibt quadratisch). */
       img.cafeLogo {
         width: auto;
+        height: 100px;
         max-width: 100%;
         object-fit: contain;
-        padding: 6px;
+        /* Genug Abstand, damit die runden Ecken Logos, die bis an den
+           Bildrand gehen (z. B. Schriftzuege), nicht anschneiden. */
+        padding: 14px 18px;
+        border-radius: 16px;
       }
 
       .cafeLogo.fallback {
