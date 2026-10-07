@@ -68,3 +68,6 @@ apps/*-native/ios/**/DerivedData/
 apps/*-native/android/.gradle/
 apps/*-native/android/local.properties
 apps/*-native/android/.idea/
+# Rohe Bildschirmaufnahmen fuers Erklaervideo (gross) - die web-optimierte
+# Fassung liegt in apps/assets/video/ und wird committet.
+marketing/**/*.mov

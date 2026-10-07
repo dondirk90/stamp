@@ -411,6 +411,56 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Videos (Erklärvideo auf /fuer-cafes) brauchen Range-Requests: Safari/iOS
+  // spielt <video> ohne 206-Antworten gar nicht ab, und ohne Range müsste
+  // jeder Sprung im Player die ganze Datei neu laden. Anders als die
+  // HTML-Seiten darf das Video gecacht werden - es ist ~14 MB groß und
+  // ändert sich nur mit neuem Dateinamen.
+  if (path.extname(filePath).toLowerCase() === ".mp4") {
+    fs.stat(filePath, (statErr, stat) => {
+      if (statErr || !stat.isFile()) {
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("404 Not Found: " + pathname);
+        return;
+      }
+      const baseHeaders = {
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400",
+      };
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
+      if (!range || (range[1] === "" && range[2] === "")) {
+        res.writeHead(200, { ...baseHeaders, "Content-Length": stat.size });
+        if (req.method === "HEAD") return res.end();
+        pipeline(fs.createReadStream(filePath), res, () => {});
+        return;
+      }
+      let start;
+      let end;
+      if (range[1] === "") {
+        // "bytes=-500": die letzten 500 Bytes
+        start = Math.max(0, stat.size - Number(range[2]));
+        end = stat.size - 1;
+      } else {
+        start = Number(range[1]);
+        end = range[2] === "" ? stat.size - 1 : Math.min(Number(range[2]), stat.size - 1);
+      }
+      if (start > end || start >= stat.size) {
+        res.writeHead(416, { ...baseHeaders, "Content-Range": `bytes */${stat.size}` });
+        res.end();
+        return;
+      }
+      res.writeHead(206, {
+        ...baseHeaders,
+        "Content-Range": `bytes ${start}-${end}/${stat.size}`,
+        "Content-Length": end - start + 1,
+      });
+      if (req.method === "HEAD") return res.end();
+      pipeline(fs.createReadStream(filePath, { start, end }), res, () => {});
+    });
+    return;
+  }
+
   // Versuche Datei zu lesen
   fs.readFile(filePath, (err, content) => {
     if (err) {
@@ -439,6 +489,7 @@ const server = http.createServer((req, res) => {
     else if (ext === ".png") contentType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
     else if (ext === ".svg") contentType = "image/svg+xml";
+    else if (ext === ".webp") contentType = "image/webp";
     else if (ext === ".xml") contentType = "application/xml; charset=utf-8";
 
     // CORS Headers für Smartphone

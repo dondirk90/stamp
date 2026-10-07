@@ -272,6 +272,59 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       }
 
+      /* Erklärvideo (Hochformat 9:16) neben kurzem Text; auf dem Handy
+         untereinander, Video zuerst. */
+      .videoSection {
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 380px);
+        gap: clamp(32px, 6vw, 80px);
+        align-items: center;
+      }
+
+      .videoSection h2 {
+        margin: 10px 0 0;
+        font-family: var(--font-serif);
+        font-size: clamp(34px, 4.6vw, 52px);
+        line-height: 1;
+        letter-spacing: -0.045em;
+      }
+
+      .videoSection p {
+        margin: 16px 0 0;
+        max-width: 46ch;
+        font-size: 17px;
+        line-height: 1.65;
+        color: rgba(59, 42, 31, 0.78);
+      }
+
+      .videoFrame {
+        width: 100%;
+        max-width: 380px;
+        justify-self: center;
+        border-radius: 28px;
+        overflow: hidden;
+        background: #f2ede5;
+        box-shadow: 0 28px 56px rgba(40, 24, 14, 0.18);
+      }
+
+      .videoFrame video {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 552 / 960;
+      }
+
+      @media (max-width: 760px) {
+        .videoSection {
+          grid-template-columns: 1fr;
+        }
+
+        .videoFrame {
+          order: -1;
+          max-width: 340px;
+        }
+      }
+
       .heroNote {
         margin: 0;
         font-size: 14px;
@@ -533,6 +586,38 @@
         <p class="heroNote">
           Erster Monat gratis, ohne Zahlungsdaten. Danach 29&nbsp;€/Monat.
         </p>
+      </section>
+
+      <section class="section section--divider" id="video">
+        <div class="videoSection">
+          <div>
+            <div class="sectionKicker">In 75 Sekunden erklärt</div>
+            <h2>Vom Logo zur Karte im Wallet.</h2>
+            <p>
+              Du lädst dein Logo hoch – daraus entstehen dein Aufsteller für
+              die Theke, die Anmeldeseite für deine Gäste und die
+              Stempelkarte in Apple Wallet und Google Wallet. Alles in deinen
+              Farben.
+            </p>
+            <div class="heroActions" style="margin-top: 22px">
+              <a class="btn primary" href="/cafe-onboarding">1 Monat kostenlos testen</a>
+            </div>
+          </div>
+          <div class="videoFrame">
+            <video
+              controls
+              playsinline
+              preload="none"
+              poster="/assets/video/kaffeekarte-erklaervideo-poster.jpg"
+              width="552"
+              height="960"
+            >
+              <source src="/assets/video/kaffeekarte-erklaervideo.mp4" type="video/mp4" />
+              Dein Browser kann dieses Video nicht abspielen.
+              <a href="/assets/video/kaffeekarte-erklaervideo.mp4">Video herunterladen</a>.
+            </video>
+          </div>
+        </div>
       </section>
 
       <section class="section section--divider">

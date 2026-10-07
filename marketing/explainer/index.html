@@ -1036,21 +1036,18 @@
 
       /* ---------- Echte Bilder (assets/) ---------- */
       .logoCard {
-        width: 560px;
-        height: 560px;
+        width: 620px;
+        height: 620px;
         border-radius: 48px;
-        background: #fff;
+        overflow: hidden;
         box-shadow: 0 40px 90px rgba(40, 24, 14, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 60px;
       }
 
       .logoCard img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
       }
 
       .shot {
@@ -1120,6 +1117,14 @@
 
       body.vertical .passShot {
         width: 470px;
+      }
+
+      .passShot.single {
+        width: 640px;
+      }
+
+      body.vertical .passShot.single {
+        width: 820px;
       }
 
       .passShot img {
@@ -1256,7 +1261,7 @@
         </div>
         <div class="visual">
           <div class="logoCard pop" data-cue="0.8">
-            <img class="real" src="assets/logo.png" alt="Logo des Cafés" />
+            <img class="real" src="assets/1600w-evuhBYaf-w8.jpg.webp" alt="Logo des Cafés" />
           </div>
         </div>
       </section>
@@ -1270,7 +1275,7 @@
         </div>
         <div class="visual">
           <div class="shot standeeShot" data-cue="0.7">
-            <img class="real kenburns" src="assets/aufsteller.png" alt="Aufsteller" />
+            <img class="real kenburns" src="assets/aufsteller-vorschau.png" alt="Aufsteller" />
           </div>
         </div>
       </section>
@@ -1285,7 +1290,7 @@
         <div class="visual">
           <div class="phone" data-cue="0.6">
             <div class="screen">
-              <img class="real scrollShot" src="assets/registrierung.png" alt="Registrierung" />
+              <img class="real scrollShot" src="assets/registrierung-vorschau.png" alt="Registrierung" />
             </div>
           </div>
         </div>
@@ -1299,13 +1304,8 @@
           <p class="lead" data-cue="1.2">In Apple Wallet und Google Wallet – bei jedem Stempel automatisch aktuell.</p>
         </div>
         <div class="visual passPair">
-          <div class="shot passShot" data-cue="0.8">
-            <img class="real" src="assets/wallet-apple.png" alt="Apple-Wallet-Karte" />
-            <div class="badge">Apple Wallet</div>
-          </div>
-          <div class="shot passShot" data-cue="2.0">
-            <img class="real" src="assets/wallet-google.png" alt="Google-Wallet-Karte" />
-            <div class="badge">Google Wallet</div>
+          <div class="shot passShot single" data-cue="0.8">
+            <img class="real" src="assets/apple-wallet-pass-vorschau.png" alt="Apple-Wallet-Karte" />
           </div>
         </div>
       </section>
@@ -1324,17 +1324,17 @@
                 <div class="lockDate">Dienstag, 14. Oktober</div>
                 <div class="lockTime">8:12</div>
                 <div class="notif" data-cue="1.6">
-                  <img src="assets/logo.png" alt="" />
+                  <img src="assets/1600w-evuhBYaf-w8.jpg.webp" alt="" />
                   <div>
-                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Coffee Roasters</span><span>jetzt</span></div>
-                    <div class="nText"><span class="cafeName">Coffee Roasters</span> ist in der Nähe – Zeit für einen Kaffee?</div>
+                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Röstbaron</span><span>jetzt</span></div>
+                    <div class="nText"><span class="cafeName">Röstbaron</span> ist in der Nähe – Zeit für einen Kaffee?</div>
                   </div>
                 </div>
                 <div class="notif" data-cue="4.4">
-                  <img src="assets/logo.png" alt="" />
+                  <img src="assets/1600w-evuhBYaf-w8.jpg.webp" alt="" />
                   <div>
-                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Coffee Roasters</span><span>jetzt</span></div>
-                    <div class="nText">Prämie verfügbar! Dein Gratis-Kaffee wartet auf dich. ☕</div>
+                    <div class="nTop"><span class="cafeName" style="font-weight: 700; color: inherit">Röstbaron</span><span>jetzt</span></div>
+                    <div class="nText">Prämie verfügbar! Dein Freigetränk wartet auf dich. ☕</div>
                   </div>
                 </div>
               </div>
@@ -1468,7 +1468,14 @@
           function check() {
             var screenH = img.parentElement.clientHeight;
             var shownH = img.naturalHeight * (img.parentElement.clientWidth / img.naturalWidth);
-            if (shownH <= screenH) img.style.transition = "none", (img.style.transform = "none");
+            if (shownH <= screenH) {
+              // passt fast genau: ohne Scrollen bildschirmfüllend anzeigen
+              img.style.transition = "none";
+              img.style.transform = "none";
+              img.style.height = "100%";
+              img.style.objectFit = "cover";
+              img.style.objectPosition = "top";
+            }
           }
           if (img.complete) check();
           else img.addEventListener("load", check);
