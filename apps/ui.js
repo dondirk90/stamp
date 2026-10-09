@@ -149,6 +149,15 @@
     if (raw.indexOf("invalid_token") >= 0) {
       return "Der Reset-Link ist ungueltig.";
     }
+    // Spezifische *_not_found-Codes vor dem allgemeinen "not_found" pruefen -
+    // sonst wurde z. B. eine nicht gefundene Adresse bei der Cafe-
+    // Registrierung als "Konto nicht gefunden" angezeigt (chat 2026-10-09).
+    if (raw.indexOf("address_not_found") >= 0) {
+      return "Diese Adresse konnten wir nicht finden. Bitte Straße, Hausnummer, PLZ und Ort prüfen.";
+    }
+    if (raw.indexOf("cafe_not_found") >= 0) {
+      return "Café nicht gefunden.";
+    }
     if (raw.indexOf("not_found") >= 0 || raw.indexOf("customer_not_found") >= 0) {
       return "Konto nicht gefunden.";
     }

@@ -3681,30 +3681,57 @@ async function validateAddressExists({
   const base = (
     process.env.NOMINATIM_URL || "https://nominatim.openstreetmap.org"
   ).replace(/\/$/, "");
-  const params = new URLSearchParams({
-    format: "json",
-    limit: "1",
-    addressdetails: "1",
-  });
-  if (street || houseNumber) {
-    params.set("street", [street, houseNumber].filter(Boolean).join(" "));
-  }
-  if (postalCode) params.set("postalcode", String(postalCode));
-  if (city) params.set("city", String(city));
-  if (country) params.set("country", String(country));
 
-  const url = `${base}/search?${params.toString()}`;
-  const results = await httpGetJson(url, 6000);
-  const first = Array.isArray(results) ? results[0] : null;
-  const lat = first && first.lat != null ? Number(first.lat) : null;
-  const lng = first && first.lon != null ? Number(first.lon) : null;
-  const ok = Number.isFinite(lat) && Number.isFinite(lng);
-  return {
-    ok,
-    provider: "nominatim",
-    lat: ok ? lat : null,
-    lng: ok ? lng : null,
-  };
+  async function search(extra) {
+    const params = new URLSearchParams({
+      format: "json",
+      limit: "1",
+      addressdetails: "1",
+      ...extra,
+    });
+    const results = await httpGetJson(`${base}/search?${params.toString()}`, 6000);
+    const first = Array.isArray(results) ? results[0] : null;
+    const lat = first && first.lat != null ? Number(first.lat) : null;
+    const lng = first && first.lon != null ? Number(first.lon) : null;
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  }
+
+  const structured = {};
+  if (postalCode) structured.postalcode = String(postalCode);
+  if (city) structured.city = String(city);
+  if (country) structured.country = String(country);
+
+  // Structured search alone was too strict for real café addresses (chat
+  // 2026-10-09: a real registration failed with address_not_found) - OSM
+  // often lacks the house number, or spells the street slightly
+  // differently. Fall back to a free-text query, then to the street without
+  // house number. Sequential with a pause: Nominatim's usage policy allows
+  // at most one request per second.
+  const attempts = [
+    {
+      ...structured,
+      ...(street || houseNumber
+        ? { street: [street, houseNumber].filter(Boolean).join(" ") }
+        : {}),
+    },
+    {
+      q: [
+        [street, houseNumber].filter(Boolean).join(" "),
+        [postalCode, city].filter(Boolean).join(" "),
+        country,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    },
+    ...(street && houseNumber ? [{ ...structured, street: String(street) }] : []),
+  ];
+
+  for (let i = 0; i < attempts.length; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 1100));
+    const hit = await search(attempts[i]);
+    if (hit) return { ok: true, provider: "nominatim", lat: hit.lat, lng: hit.lng };
+  }
+  return { ok: false, provider: "nominatim", lat: null, lng: null };
 }
 
 function requireAdminKey(req, res, next) {
