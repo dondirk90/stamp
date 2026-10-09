@@ -157,12 +157,25 @@ function constructWebhookEvent(rawBody, signatureHeader) {
 // customer.subscription.updated/deleted - callers pass whichever object the
 // event gives them).
 function summarizeSubscription(subscription) {
+  // Since Stripe API version 2025-03-31 ("basil", which stripe-node v18+
+  // pins) current_period_end lives on each subscription item, not on the
+  // subscription itself - reading only the old top-level field always gave
+  // null, which silently skipped the 14-day grace period after a failed
+  // payment (see billingGraceEndsAt in server.cjs). Old field kept as a
+  // fallback for events from older API versions.
+  const itemEnd =
+    subscription.items &&
+    Array.isArray(subscription.items.data) &&
+    subscription.items.data.length
+      ? Math.max(
+          ...subscription.items.data.map((item) => item.current_period_end || 0),
+        )
+      : 0;
+  const periodEnd = itemEnd || subscription.current_period_end || 0;
   return {
     id: subscription.id,
     status: subscription.status,
-    currentPeriodEnd: subscription.current_period_end
-      ? subscription.current_period_end * 1000
-      : null,
+    currentPeriodEnd: periodEnd ? periodEnd * 1000 : null,
   };
 }
 

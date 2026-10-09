@@ -3449,33 +3449,35 @@ async function requireCafeAuth(req, res, next) {
 // Nobody gets cut off the instant they're unpaid - a café always has a
 // grace period before requireActiveSubscription actually blocks anything
 // (chat 2026-10-05: "bitte nicht direkt deaktivieren sondern eine Frist
-// setzen (2 Wochen)"). The deadline is the latest of three things, so every
-// café is covered for a reason that actually applies to it:
-//  - PAYWALL_GRACE_FALLBACK: a fixed date two weeks after this feature
-//    shipped - covers every café that already existed at that point, so
-//    the rollout itself doesn't instantly lock anyone out.
-//  - cafeTrialEndsAt(): covers a brand new signup with its free test month
-//    (one calendar month from registration, no card needed - chat
-//    2026-10-07: "1 monatigen Testzeitraum einräumen", advertised on
-//    /fuer-cafes and in AGB § 7).
+// setzen (2 Wochen)"). The deadline is the later of two things:
+//  - cafeTrialEndsAt(): the free test month (chat 2026-10-07: "1 monatigen
+//    Testzeitraum einräumen", advertised on /fuer-cafes and in AGB § 7).
 //  - subscription_current_period_end + 14 days: covers a café whose
 //    subscription just lapsed/failed - two more weeks past what they
 //    already paid for, not an instant cutoff the moment Stripe reports it.
 const PAYWALL_GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
-const PAYWALL_GRACE_FALLBACK = new Date("2026-10-02T00:00:00Z").getTime() + PAYWALL_GRACE_PERIOD_MS;
 
-// End of the free test month, or null if created_at is unknown. Also used by
-// the checkout route: a café that subscribes early gets the rest of its test
-// month as a Stripe trial, so it never pays for days that were free anyway.
+// Cafés that already existed before the prod rollout get the same test
+// month as new signups, counted from the rollout instead of their own
+// registration (chat 2026-10-09: "ja lass für alle den testmonat
+// einrichten"). Fixed date, never computed from "now": every existing café
+// gets the same predictable end date, which is what the info mail to them
+// announces. Move it only together with that mail.
+const EXISTING_CAFES_TRIAL_ENDS_AT = Date.parse("2026-11-10T00:00:00+01:00");
+
+// End of the free test month: one calendar month from registration, but
+// never before EXISTING_CAFES_TRIAL_ENDS_AT. Also used by the checkout route:
+// a café that subscribes early gets the rest of its test month as a Stripe
+// trial, so it never pays for days that were free anyway.
 function cafeTrialEndsAt(cafeRow) {
-  if (cafeRow?.created_at == null) return null;
+  if (cafeRow?.created_at == null) return EXISTING_CAFES_TRIAL_ENDS_AT;
   const d = new Date(Number(cafeRow.created_at));
   d.setMonth(d.getMonth() + 1);
-  return d.getTime();
+  return Math.max(d.getTime(), EXISTING_CAFES_TRIAL_ENDS_AT);
 }
 
 function billingGraceEndsAt(cafeRow) {
-  const candidates = [PAYWALL_GRACE_FALLBACK];
+  const candidates = [];
   const trialEndsAt = cafeTrialEndsAt(cafeRow);
   if (trialEndsAt != null) {
     candidates.push(trialEndsAt);
@@ -3488,10 +3490,9 @@ function billingGraceEndsAt(cafeRow) {
 
 // A café is unlocked if an admin has manually exempted it (payment_exempt -
 // for the team's own test cafés/partners who should never see a paywall at
-// all), it has a live Stripe subscription ("trialing" counts even though
-// nothing here currently creates trial subscriptions, so a trial started
-// directly in the Stripe dashboard still works without a code change), or
-// it's still within its grace period.
+// all), it has a live Stripe subscription ("trialing" included - a café
+// that subscribes during its test month gets the rest of it as a Stripe
+// trial, see the checkout route), or it's still within its grace period.
 function isCafeBillingActive(cafeRow) {
   if (!cafeRow) return false;
   if (Number(cafeRow.payment_exempt) === 1) return true;
