@@ -356,7 +356,7 @@
     </main>
 
     <script src="vendor/qrcode.min.js"></script>
-    <script src="logo-background.js?v=1"></script>
+    <script src="logo-background.js?v=2"></script>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
@@ -461,7 +461,12 @@
         function setCafeLogo(url) {
           currentLogoUrl = url;
           if (url) {
-            stripLogoBackground(url).then(function (cleanUrl) {
+            // Kartenfarbe mitgeben, damit auch ein Logo-Kasten in
+            // Kartenfarbe innerhalb eines Randes verschwindet.
+            var cardColor = getComputedStyle(document.documentElement)
+              .getPropertyValue("--cafe-block-bg")
+              .trim();
+            stripLogoBackground(url, cardColor).then(function (cleanUrl) {
               if (currentLogoUrl !== url) return; // inzwischen anderes Logo
               cafeLogoTargets.forEach(function (img) {
                 img.src = cleanUrl;

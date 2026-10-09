@@ -10081,10 +10081,17 @@ app.get("/cafes/:cafeId/logo.png", async (req, res) => {
     // logo-background.cjs). Also used in emails, where a transparent logo
     // on white is just as fine. Cached per logo so Google's repeated
     // fetches don't redo the pixel work every time.
-    const cacheKey = `${cafeId}:${cafeRow.logo_data.length}:${cafeRow.updated_at || ""}`;
+    const cardColor = walletPass.resolveThemeColors(
+      cafeRow.card_theme || "paper",
+      cafeRow.card_bg_color,
+      cafeRow.card_fg_color,
+    ).bg;
+    const cacheKey = `${cafeId}:${cafeRow.logo_data.length}:${cafeRow.updated_at || ""}:${cardColor}`;
     let png = strippedLogoCache.get(cacheKey);
     if (!png) {
-      png = await stripLogoBackground(Buffer.from(cafeRow.logo_data, "base64"));
+      png = await stripLogoBackground(Buffer.from(cafeRow.logo_data, "base64"), {
+        cardColor,
+      });
       if (strippedLogoCache.size > 200) strippedLogoCache.clear();
       strippedLogoCache.set(cacheKey, png);
     }

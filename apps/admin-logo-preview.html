@@ -118,6 +118,21 @@
         background: none;
       }
 
+      .hexInput {
+        width: 92px;
+        height: 32px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+      }
+
+      .hexInput:invalid {
+        border-color: var(--danger);
+      }
+
       .btn {
         appearance: none;
         border: 0;
@@ -248,10 +263,16 @@
             <label class="colorPickerField">
               <span>Hintergrund</span>
               <input id="bgColorInput" type="color" value="#4a3728" />
+              <input id="bgHexInput" class="hexInput" type="text" value="#4a3728"
+                maxlength="7" pattern="#?[0-9a-fA-F]{6}" spellcheck="false"
+                aria-label="Hintergrund als Hex-Code" />
             </label>
             <label class="colorPickerField">
               <span>Text/Symbole</span>
               <input id="fgColorInput" type="color" value="#f7f4ef" />
+              <input id="fgHexInput" class="hexInput" type="text" value="#f7f4ef"
+                maxlength="7" pattern="#?[0-9a-fA-F]{6}" spellcheck="false"
+                aria-label="Text/Symbole als Hex-Code" />
             </label>
           </div>
         </div>
@@ -303,6 +324,8 @@
           rewardInput: document.getElementById("rewardInput"),
           bgColorInput: document.getElementById("bgColorInput"),
           fgColorInput: document.getElementById("fgColorInput"),
+          bgHexInput: document.getElementById("bgHexInput"),
+          fgHexInput: document.getElementById("fgHexInput"),
           generateBtn: document.getElementById("generateBtn"),
           statusMsg: document.getElementById("statusMsg"),
           results: document.getElementById("results"),
@@ -369,6 +392,8 @@
               var data = result.data;
               refs.bgColorInput.value = data.bgColor;
               refs.fgColorInput.value = data.fgColor;
+              refs.bgHexInput.value = data.bgColor;
+              refs.fgHexInput.value = data.fgColor;
 
               refs.standeeImg.src = data.standee;
               refs.standeeDownload.href = data.standee;
@@ -407,12 +432,28 @@
           reader.readAsDataURL(file);
         });
 
-        refs.bgColorInput.addEventListener("input", function () {
-          state.colorsTouchedByUser = true;
-        });
-        refs.fgColorInput.addEventListener("input", function () {
-          state.colorsTouchedByUser = true;
-        });
+        // Farbwähler und Hex-Feld synchron halten. Das Hex-Feld ist der
+        // schnelle Weg für exakte Codes (z. B. aus dem Logo-Styleguide) -
+        // Safaris nativer Farbdialog macht genau das umständlich.
+        function linkColorInputs(picker, hex) {
+          picker.addEventListener("input", function () {
+            state.colorsTouchedByUser = true;
+            hex.value = picker.value;
+          });
+          hex.addEventListener("input", function () {
+            var v = hex.value.trim();
+            if (v && v.charAt(0) !== "#") v = "#" + v;
+            if (/^#[0-9a-f]{6}$/i.test(v)) {
+              state.colorsTouchedByUser = true;
+              picker.value = v.toLowerCase();
+            }
+          });
+          hex.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") refs.generateBtn.click();
+          });
+        }
+        linkColorInputs(refs.bgColorInput, document.getElementById("bgHexInput"));
+        linkColorInputs(refs.fgColorInput, document.getElementById("fgHexInput"));
 
         refs.generateBtn.addEventListener("click", function () {
           generate(!state.colorsTouchedByUser);

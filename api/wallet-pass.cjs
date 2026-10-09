@@ -712,7 +712,9 @@ async function generateSignedPass({
     // logo with light lettering on its own dark background would vanish.
     Object.assign(
       buffers,
-      await buildLogoBuffers(await stripLogoBackground(logoBuffer)),
+      await buildLogoBuffers(
+        await stripLogoBackground(logoBuffer, { cardColor: colors.bg }),
+      ),
     );
     Object.assign(buffers, await buildIconBuffers(logoBuffer));
   }

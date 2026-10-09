@@ -155,9 +155,9 @@ function wrapText(text, maxCharsPerLine) {
 // Same treatment the real surfaces give a logo: own background removed
 // (logo-background.cjs, also used by the Wallet pass and the standee page),
 // then transparent margins trimmed so the visible logo fills its slot.
-async function prepareLogo(logoBuffer) {
+async function prepareLogo(logoBuffer, cardColor) {
   if (!logoBuffer) return null;
-  const stripped = await stripLogoBackground(logoBuffer);
+  const stripped = await stripLogoBackground(logoBuffer, { cardColor });
   try {
     return await sharp(stripped).trim().png().toBuffer();
   } catch {
@@ -599,7 +599,7 @@ async function renderPreviewImages({ logoBuffer, cafeName, rewardText, bg, fg })
   // background handling); every visible logo uses the prepared version.
   const [stampCafeRow, logo] = await Promise.all([
     buildPreviewStampCafeRow(logoBuffer),
-    prepareLogo(logoBuffer),
+    prepareLogo(logoBuffer, walletPass.resolveThemeColors(null, bg, fg).bg),
   ]);
   const [standee, registration, walletPassApple, walletPassGoogle] = await Promise.all([
     renderStandeeMockup({ logoBuffer: logo, cafeName, rewardText, bg, fg }),
