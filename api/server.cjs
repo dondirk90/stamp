@@ -1331,12 +1331,16 @@ async function sendCafeVerificationEmail({ email, cafeName, verifyUrl }) {
 // here must never block registration itself (chat 2026-10-06).
 async function sendCafeWelcomeEmail({ email, cafeName, loginUrl }) {
   const displayName = String(cafeName || "").trim() || "dein Café";
+  // Design + standee are done by us, not the café (chat 2026-10-09: "sie
+  // müssen quasi gar nichts mehr machen, nur die leute überzeugen sich die
+  // passes zu holen") - matches AGB § 2.3 (standee shipped within 7
+  // working days, clock starts once logo + address are in the profile).
   const steps = [
     "E-Mail bestätigen (siehe die zweite Mail, die du gerade bekommen hast) und einloggen.",
-    "Abo abschließen (29 €/Monat) - direkt beim ersten Login geht es weiter zur Kasse.",
-    "Kartendesign einrichten: Logo hochladen, Farben und Stempelsymbol wählen.",
-    "Aufsteller für die Theke ausdrucken, damit Gäste die Karte direkt per QR holen können.",
-    "Loslegen: erste Stempel über die Barista-App vergeben.",
+    "Dein Testmonat läuft: Du kannst Kaffeekarte einen Monat lang kostenlos nutzen, ganz ohne Zahlungsdaten.",
+    "Deine Stempelkarte gestalten wir für dich: Logo, Farben und Stempelsymbol richten wir ein. Du musst nichts tun. Falls du bei der Registrierung noch kein Logo hochgeladen hast, schick es uns einfach als Antwort auf diese Mail.",
+    "Deinen Aufsteller für die Theke schicken wir dir fertig zu, innerhalb von 7 Werktagen an die Adresse aus deinem Profil.",
+    "Dein einziger Job: Gäste begeistern. Stell den Aufsteller gut sichtbar an die Theke, erzähl deinen Stammgästen davon und vergib die ersten Stempel über die Barista-App.",
   ];
   const stepsHtml = steps
     .map(
@@ -1358,7 +1362,7 @@ async function sendCafeWelcomeEmail({ email, cafeName, loginUrl }) {
             <div style="padding: 28px 28px 20px; background: linear-gradient(180deg, #fffdf9, #f6efe5);">
               <div style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b625a; font-weight: 700;">Kaffeekarte</div>
               <h1 style="margin: 10px 0 8px; font-size: 28px; line-height: 1.1; color: #181311;">Willkommen, ${displayName}!</h1>
-              <p style="margin: 0; color: #5f544a;">Schön, dass du dabei bist. Hier die wichtigsten Schritte, bis deine erste Stempelkarte bei Gästen ankommt.</p>
+              <p style="margin: 0; color: #5f544a;">Schön, dass du dabei bist. Den Großteil erledigen wir für dich, du musst nur noch deine Gäste begeistern. So geht es weiter:</p>
             </div>
             <div style="padding: 24px 28px 30px;">
               <ol style="margin: 0 0 20px; padding-left: 20px; color: #4d443c;">
@@ -1373,7 +1377,7 @@ async function sendCafeWelcomeEmail({ email, cafeName, loginUrl }) {
         </body>
       </html>
     `,
-    text: `Willkommen, ${displayName}!\n\nSchön, dass du dabei bist. Hier die wichtigsten Schritte:\n\n${stepsText}\n\nZum Login: ${loginUrl}\n\nFragen? Einfach auf diese E-Mail antworten.`,
+    text: `Willkommen, ${displayName}!\n\nSchön, dass du dabei bist. Den Großteil erledigen wir für dich, du musst nur noch deine Gäste begeistern. So geht es weiter:\n\n${stepsText}\n\nZum Login: ${loginUrl}\n\nFragen? Einfach auf diese E-Mail antworten.`,
   };
 
   ensureEmailConfigured();

@@ -47,6 +47,9 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           ADMIN_BASIC_USER: ${{ secrets.ADMIN_BASIC_USER }}
           ADMIN_BASIC_HASH: ${{ secrets.ADMIN_BASIC_HASH }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_ID: ${{ secrets.STRIPE_PRICE_ID }}
         run: |
           test -n "$SSH_HOST"
           test -n "$SSH_PORT"
@@ -70,6 +73,16 @@ jobs:
           test -n "$ADMIN_TOKEN"
           test -n "$ADMIN_BASIC_USER"
           test -n "$ADMIN_BASIC_HASH"
+          # Without Stripe the paywall still locks cafés out after their test
+          # month, but nobody can pay - so a missing key must fail the deploy.
+          # Prod must run on live keys, never the sandbox/test ones.
+          test -n "$STRIPE_SECRET_KEY"
+          test -n "$STRIPE_WEBHOOK_SECRET"
+          test -n "$STRIPE_PRICE_ID"
+          case "$STRIPE_SECRET_KEY" in
+            sk_live_*|rk_live_*) ;;
+            *) echo "STRIPE_SECRET_KEY is not a live key"; exit 1 ;;
+          esac
 
       - name: Create deployment archive
         run: |
@@ -151,6 +164,9 @@ jobs:
             ADMIN_TOKEN=${{ secrets.ADMIN_TOKEN }}
             ADMIN_BASIC_USER=${{ secrets.ADMIN_BASIC_USER }}
             ADMIN_BASIC_HASH='${{ secrets.ADMIN_BASIC_HASH }}'
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            STRIPE_PRICE_ID=${{ secrets.STRIPE_PRICE_ID }}
             EOF
 
             cd "$APP_DIR"
