@@ -1029,18 +1029,18 @@
           };
           localStorage.setItem("cafe_session", JSON.stringify(cafeSession));
 
-          // Payment as part of onboarding (chat 2026-10-05): a café that
-          // logs in here for the first time (right after verifying its
-          // email) without an actual paid/exempt subscription gets sent
-          // straight to Stripe Checkout instead of the scanner - the grace
-          // period still technically applies (so this never hard-blocks
-          // anything if Stripe/the redirect fails), but "set up billing"
-          // is now a deliberate part of finishing registration, not
-          // something only surfacing later as a dismissible in-app popup.
+          // Straight to Stripe Checkout only once the café's free test month
+          // / grace period is over (billing.active false). During it, the
+          // café goes to the scanner like everyone else and sees the
+          // "Testmonat - noch X Tage" reminder there instead (chat
+          // 2026-10-09: forcing checkout at every login contradicted the
+          // advertised test month "ohne Zahlungsdaten" and hit existing
+          // cafés without any notice). Never hard-blocks if Stripe or the
+          // redirect fails - the scanner's own billing gate still applies.
           const billing = data.billing || null;
           const hasRealSubscription =
             billing && (billing.status === "active" || billing.status === "trialing");
-          if (billing && !billing.exempt && !hasRealSubscription) {
+          if (billing && !billing.exempt && !hasRealSubscription && !billing.active) {
             try {
               const checkoutRes = await fetch(
                 `${apiBase}/cafes/me/billing/checkout-session`,
